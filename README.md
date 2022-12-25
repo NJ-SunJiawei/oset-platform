@@ -26,6 +26,6 @@ Core目录为核心目录，核心功能均在此目录开发，全部采用动�
 
 Open-SET平台由三大部分构成：
 1）Core核心：core核心负责整个平台的running，是整个平台最重要的运行框架，负责Mod和App的管理和调度。
-2）Mod：Module是平台的中间层，分为common mod和algorithm mod两大类，common模块提供各种常用的API接口，供给上层业务调用，是Os-SET的实例化，如日志模块、CLI模块、Redis模块等；algorithm模块是SSET常用的算法模块，提供各种算法API接口。
+2）Mod：Module是平台的中间层，分为common mod和algorithm mod两大类，common模块提供各种常用的API接口，供给上层业务调用，是Os-SET的实例化，如日志模块、CLI模块、Redis模块等；algorithm模块是常用的算法模块，提供各种算法API接口。
 3）App：APP是平台最上层的业务，由业务逻辑和Mod API组合而成。
 整个平台都是模块化设计，MOD和APP两大核心可以任意加载、卸载、重载，非常灵活。平台的运行依托于Os-SET底软平台，否则无法运行。
