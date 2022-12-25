@@ -1,0 +1,117 @@
+<configuration name="core.conf" description="Core Configuration">
+
+  <settings>
+    <!--the size of self memory pools -->
+    <param name="pool-size-128" value="65536"/>
+    <param name="pool-size-256" value="16384"/>
+    <param name="pool-size-512" value="4096"/>
+    <param name="pool-size-1024" value="1024"/>
+    <param name="pool-size-2048" value="512"/>
+    <param name="pool-size-8192" value="128"/>
+    <param name="pool-size-1024*1024" value="8"/>	
+    <!--the size of self thread pools -->
+    <param name="thread-pool-size" value="20"/>
+    <!-- Run the timer at 20ms by default and drop down as needed unless you set 1m-timer=true which was previous default -->
+    <!-- <param name="1ms-timer" value="true"/> -->
+
+    <!-- <param name="osetname" value="sset-om"/> -->
+    <!-- <param name="cpu-idle-smoothing-depth" value="30"/> -->
+
+    <!-- Colorize the Console -->
+    <param name="colorize-console" value="true"/>
+
+    <!--Include full timestamps in dialplan logs -->
+    <!-- <param name="dialplan-timestamps" value="false"/> -->
+
+    <!-- Maximum number of simultaneous DB handles open -->
+    <param name="max-db-handles" value="50"/>
+    <!-- Maximum number of seconds to wait for a new DB handle before failing -->
+    <param name="db-handle-timeout" value="10"/>
+
+    <!-- Minimum idle CPU before refusing calls -->
+    <!-- <param name="min-idle-cpu" value="25"/> -->
+
+    <param name="max-sessions" value="2000"/>
+    <!--Most channels to create per second -->
+    <param name="sessions-per-second" value="30"/>
+    <!-- Default Global Log Level - value is one of debug,info,notice,warning,err,crit,alert -->
+    <param name="loglevel" value="DEBUG"/>
+
+    <!-- Set the core DEBUG level (0-10) -->
+    <!-- <param name="debug-level" value="10"/> -->
+
+    <!-- SQL Buffer length within rage of 32k to 10m -->
+    <!-- <param name="sql-buffer-len" value="1m"/> -->
+    <!-- Maximum SQL Buffer length must be greater than sql-buffer-len -->
+    <!-- <param name="max-sql-buffer-len" value="2m"/> -->
+
+    <param name="dump-cores" value="yes"/>
+
+    <!-- Enable verbose channel events to include every detail about a channel on every event  -->
+    <!-- <param name="verbose-channel-events" value="no"/> -->
+
+    <!-- Enable clock nanosleep -->
+    <!-- <param name="enable-clock-nanosleep" value="true"/> -->
+
+    <!-- Enable monotonic timing -->
+    <!-- <param name="enable-monotonic-timing" value="true"/> -->
+
+    <!-- NEEDS DOCUMENTATION -->
+    <!-- <param name="enable-softtimer-timerfd" value="true"/> -->
+    <!-- <param name="enable-cond-yield" value="true"/> -->
+    <!-- <param name="enable-timer-matrix" value="true"/> -->
+    <!-- <param name="threaded-system-exec" value="true"/> -->
+    <!-- <param name="tipping-point" value="0"/> -->
+    <!-- <param name="timer-affinity" value="disabled"/> -->
+    <!-- NEEDS DOCUMENTATION -->
+
+    <!-- UDP port range -->
+    <!-- <param name="udp-start-port" value="16384"/> -->
+    <!-- <param name="udp-end-port" value="32768"/> -->
+
+    <!-- Test each port to make sure it is not in use by some other process before allocating it to UDP -->
+    <!-- <param name="udp-port-usage-robustness" value="true"/> -->
+
+    <!--
+	 Native PostgreSQL support was removed from the Core!
+	 =================================
+	 NOTICE: You MUST enable mod_pgsql        
+	 =================================
+	 According to https://www.postgresql.org/docs/9.6/libpq-connect.html#LIBPQ-CONNSTRING
+	 There are two accepted formats for connection strings supported by the libpq library: 
+	 * For plain keyword = value strings use pgsql://
+	   pgsql://hostaddr=127.0.0.1 dbname=sset user=sset password='' options='-c client_min_messages=NOTICE'
+	 * For RFC 3986 URIs use postgresql:// or postgres://
+	   postgresql://
+	   postgresql://localhost
+	   postgresql://localhost:5433
+	   postgresql://localhost/mydb
+	   postgresql://user@localhost
+	   postgresql://user:secret@localhost
+	   postgresql://other@localhost/otherdb?connect_timeout=10&application_name=myapp
+	   postgresql:///mydb?host=localhost&port=5433
+    -->
+    <!-- <param name="core-db-dsn" value="pgsql://hostaddr=127.0.0.1 dbname=sset user=sset password='' options='-c client_min_messages=NOTICE'" /> -->
+    <!-- <param name="core-db-dsn" value="postgresql://sset:@127.0.0.1/sset?options=-c%20client_min_messages%3DNOTICE" /> -->
+    <!-- <param name="core-db-dsn" value="mariadb://Server=localhost;Database=sset;Uid=sset;Pwd=pass;" /> -->
+    <!-- <param name="core-db-dsn" value="dsn:username:password" /> -->
+    <!-- 
+	 Allow to specify the sqlite db at a different location (In this example, move it to ramdrive for
+	 better performance on most linux distro (note, you loose the data if you reboot))
+    -->
+    <!-- <param name="core-db-name" value="/dev/shm/core.db" /> -->
+
+    <!-- The system will create all the db schemas automatically, set this to false to avoid this behaviour -->
+    <!-- <param name="auto-create-schemas" value="true"/> -->
+    <!-- <param name="auto-clear-sql" value="true"/> -->
+    <!-- <param name="enable-early-hangup" value="true"/> -->
+
+    <!-- <param name="core-dbtype" value="MSSQL"/> -->
+
+    <!-- Allow multiple registrations to the same account in the central registration table -->
+    <!-- <param name="multiple-registrations" value="true"/> -->
+   
+  </settings>
+
+</configuration>
+

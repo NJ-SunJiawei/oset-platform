@@ -1,0 +1,40 @@
+{
+   "title": "OpenSET C Framework demo APP",
+   "version": "1.0",
+
+   "description": [
+      "Creates a 'hello world' App using the OpenSET application C framework"
+   ],
+
+   "dir": [
+      {
+         "path": "",
+         "files": ["@template@.json"]
+      },
+      {
+         "path": "",
+         "files": ["CMakeLists.txt"]
+      },
+      {
+         "path": "",
+         "files": ["mod_@template@.c"]
+      },
+      {
+         "path": "",
+         "files": ["@template@.conf.xml"]
+      },
+      {
+         "path": "cmake",
+         "files": ["cmake_uninstall.cmake.in"]
+      },
+      {
+         "path": "cmake/Modules",
+         "files": ["FindAPR.cmake","FindAPRUtil.cmake","FindOSET.cmake"]
+      },
+      {
+         "path": "build",
+         "files": ["ReadMe.txt"]
+      }
+   ]
+}
+

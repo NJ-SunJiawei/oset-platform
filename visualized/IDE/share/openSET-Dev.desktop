@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=OSET Dev
+Comment=A Platform IDE
+Exec=openDEV %F
+Terminal=false
+Type=Application
+StartupNotify=true
+MimeType=text/plain;text/x-c++hdr;text/x-c++src;text/x-chdr;text/x-csrc;text/x-cmake;
+Categories=Utility;Development;TextEditor;
+Icon=/usr/local/share/icons/hicolor/scalable/apps/openSET-Dev.png

@@ -1,0 +1,18 @@
+<configuration name="Fn.conf" description="Core Configuration">
+
+  <cli-keybindings>
+    <key name="1" value="help"/>
+    <key name="2" value="status"/>
+    <key name="3" value="show api"/>
+    <key name="4" value="show application"/>
+    <key name="5" value="show modules"/>
+    <key name="6" value="reloadxml"/>
+    <key name="7" value="console loglevel 0"/>
+    <key name="8" value="console loglevel 7"/>
+    <key name="9" value="version"/>
+    <key name="10" value=""/>
+    <key name="11" value=""/>
+    <key name="12" value=""/>
+  </cli-keybindings> 
+</configuration>
+

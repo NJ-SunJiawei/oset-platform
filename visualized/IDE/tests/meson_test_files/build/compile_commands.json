@@ -1,0 +1,26 @@
+[
+  {
+    "directory": "/home/test/meson_test_files/build",
+    "command": "c++ -Ilibhello_lib.a.p -I. -I.. -Xclang -fcolor-diagnostics -pipe -std=c++11 -Wall -Wextra -MD -MQ libhello_lib.a.p/main.cpp.o -MF libhello_lib.a.p/main.cpp.o.d -o libhello_lib.a.p/main.cpp.o -c ../main.cpp",
+    "file": "../main.cpp",
+    "output": "libhello_lib.a.p/main.cpp.o"
+  },
+  {
+    "directory": "/home/test/meson_test_files/build",
+    "command": "c++ -Ihello.p -I. -I.. -Xclang -fcolor-diagnostics -pipe -std=c++11 -Wall -Wextra -MD -MQ hello.p/main.cpp.o -MF hello.p/main.cpp.o.d -o hello.p/main.cpp.o -c ../main.cpp",
+    "file": "../main.cpp",
+    "output": "hello.p/main.cpp.o"
+  },
+  {
+    "directory": "/home/test/meson_test_files/build",
+    "command": "c++ -Ianother_executable.p -I. -I.. -Xclang -fcolor-diagnostics -pipe -std=c++11 -Wall -Wextra -MD -MQ another_executable.p/another_file.cpp.o -MF another_executable.p/another_file.cpp.o.d -o another_executable.p/another_file.cpp.o -c ../another_file.cpp",
+    "file": "../another_file.cpp",
+    "output": "another_executable.p/another_file.cpp.o"
+  },
+  {
+    "directory": "/home/test/meson_test_files/build",
+    "command": "c++ -Ia_subdir/hello2.p -Ia_subdir -I../a_subdir -Xclang -fcolor-diagnostics -pipe -std=c++11 -Wall -Wextra -MD -MQ a_subdir/hello2.p/main.cpp.o -MF a_subdir/hello2.p/main.cpp.o.d -o a_subdir/hello2.p/main.cpp.o -c ../a_subdir/main.cpp",
+    "file": "../a_subdir/main.cpp",
+    "output": "a_subdir/hello2.p/main.cpp.o"
+  }
+]

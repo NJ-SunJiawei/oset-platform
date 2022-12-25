@@ -1,0 +1,13 @@
+<configuration name="demo.conf" description="demo Configuration">
+
+  <settings>
+    <!--the tims(s) of pod timestep scheduler -->
+    <param name="time-of-step" value="15"/>
+
+    <!--the max num(s) of timestep -->
+    <param name="max-step-num" value="200"/>
+
+  </settings>
+
+</configuration>
+

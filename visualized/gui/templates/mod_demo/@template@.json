@@ -1,0 +1,21 @@
+{ "app": {
+   
+   "title": "app_demo",
+   "version": "1.0.0",
+   "owner": "OpenSET",
+   "url": "NULL",
+
+   "description": [
+      "Demonstrates an application using the Framework. It also serves",
+      "as the final app that is developed during the Code-As-You-Go(CAYG)",
+      "app development tutorial."
+   ],
+
+   "others": {
+      "type": "APP",
+      "obj": "libapp_@template@.so"
+   }
+   
+}}
+
+

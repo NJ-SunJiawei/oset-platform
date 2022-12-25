@@ -1,0 +1,18 @@
+<configuration name="modules.conf" description="Modules">
+  <modules>
+    <!--module required-->
+    <load module="libmod_console"/>
+    <load module="libmod_logfile"/>
+    <load module="libmod_api"/>
+    <load module="libmod_app"/>
+    <load module="libmod_event_socket"/>
+    <!--module optional-->
+    <load module="libmod_credis"/>
+    <load module="libmod_hiredis"/>
+    <load module="libmod_syslog"/>
+    <load module="libmod_FSPL"/>
+    <load module="libmod_MTE"/>
+     <!--APP-->
+    <!--load module="libapp_om"/-->
+  </modules>
+</configuration>

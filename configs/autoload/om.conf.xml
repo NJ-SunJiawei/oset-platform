@@ -1,0 +1,43 @@
+<configuration name="om.conf" description="OM Configuration">
+
+  <settings>
+    <!--the tims(s) of pod timestep scheduler -->
+    <param name="time-of-step" value="15"/>
+
+    <!--the max num(s) of timestep -->
+    <param name="max-step-num" value="200"/>
+
+    <!--the tims(s) of pod num pre report -->
+    <param name="time-of-pod-num-pre-report" value="3"/>
+
+    <!--the tims(s) of pod heartbeat check -->
+    <param name="time-of-pod-hb-check" value="15"/>
+
+    <!--the tims(s) of massive static report scheduler -->
+    <param name="time-of-massive-report" value="15"/>
+ 
+    <!--the configure of om -->
+    <!--<param name="om-udp-addr" value="10.37.6.43"/> -->
+    <param name="om-udp-port-omc" value="20086"/>
+    <param name="om-udp-port-pod" value="20087"/>
+
+     <!--the configure of protocol pod-->
+    <param name="max-pod-num" value="100"/>
+ 
+    <!--the configure of rocketmq -->
+    <param name="rocketmq-server-addr" value="10.37.0.207"/>
+    <param name="rocketmq-server-port" value="9876"/>
+    <param name="rocketmq-group-id" value="Group_producer"/>
+
+    <!--the size of main threads queue -->
+    <param name="omc-thread-queue-size" value="100"/>
+    <!--the size of main threads queue -->
+    <param name="pod-thread-queue-size" value="200"/>
+    <!--the number of worker threads in om -->
+    <param name="worker-thread-num" value="5"/>
+    <!--the size of worker threads queue -->
+    <param name="worker-thread-queue-size" value="200"/>
+  </settings>
+
+</configuration>
+

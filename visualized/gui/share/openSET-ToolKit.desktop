@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=OSET ToolKit
+Comment=A Platform ToolKit
+Path=/usr/local/install/sset/gui/app
+Exec=python3 openSET.py %F
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=Utility;Development;TextEditor;
+Icon=/usr/local/install/sset/gui/share/openSET-ToolKit.png

@@ -1,0 +1,28 @@
+FIND_PATH(OSET_RTMQ_INCLUDE_DIRS 
+NAMES
+    asyncProducer.h
+PATHS
+	#/usr/local/install/oset/mods/m_rocketmq/include
+	${CMAKE_INSTALL_PREFIX}/install/oset/mods/m_rocketmq/include
+)
+
+find_library(OSET_RTMQ_LIBRARIES
+NAMES 
+    oset-rocketmq
+PATHS 
+	#/usr/local/install/oset/lib
+	${CMAKE_INSTALL_PREFIX}/install/oset/lib
+)
+
+mark_as_advanced(OSET_RTMQ_INCLUDE_DIRS OSET_RTMQ_LIBRARIES)
+
+
+INCLUDE(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(OSET-RTMQ DEFAULT_MSG OSET_RTMQ_INCLUDE_DIRS OSET_RTMQ_LIBRARIES)
+
+IF(OSET_FOUND)
+   SET( OSET_RTMQ_LIBRARIES ${OSET_RTMQ_LIBRARIES})
+ELSE(OSET_FOUND)
+   SET( OSET_RTMQ_LIBRARIES )
+ENDIF(OSET_FOUND)
+message (STATUS "OSET-RTMQ found: YES ${OSET_RTMQ_INCLUDE_DIRS} ${OSET_RTMQ_LIBRARIES}")
