@@ -69,3 +69,29 @@ int prach_worker_init(uint32_t		   cc_idx,
   return OSET_OK;
 }
 
+
+ void *gnb_prach_task(oset_threadplus_t *thread, void *data)
+ {
+	 msg_def_t *received_msg = NULL;
+	 uint32_t length = 0;
+	 task_map_t *task = task_map_self(TASK_PRACH);
+	 int rv = 0;
+	 oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting PHY prach thread");
+ 
+	  for ( ;; ){
+		  rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
+		  if(rv != OSET_OK)
+		  {
+			 if (rv == OSET_DONE)
+				 break;
+		  
+			 if (rv == OSET_RETRY){
+				 continue;
+			 }
+		  }
+		  //func
+		  received_msg = NULL;
+		  length = 0;
+	 }
+ }
+

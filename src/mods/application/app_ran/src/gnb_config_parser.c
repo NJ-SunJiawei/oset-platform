@@ -1078,7 +1078,7 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
           oset_lnode2_t *node = NULL;
 		  struct rrc_cell_cfg_nr_t *cell = NULL； 
 		  node = oset_list2_find(rrc_nr_cfg_->cell_list, 0);
-	      cell = (struct rrc_cell_cfg_nr_t *)node;
+	      cell = (struct rrc_cell_cfg_nr_t *)node->data;
 		  // SA mode. Update NGAP args
 	      args_->nr_stack.ngap.cell_id = cell->phy_cell.cell_id;
 		  args_->nr_stack.ngap.tac	 = cell->tac;

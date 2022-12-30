@@ -26,6 +26,7 @@ int prach_worker_init(uint32_t		   cc_idx,
                              const srsran_cell_t *cell_,
                              const srsran_prach_cfg_t  *prach_cfg_,
                              uint32_t nof_workers_);
+void *gnb_prach_task(oset_threadplus_t *thread, void *data);
 
 #ifdef __cplusplus
 }

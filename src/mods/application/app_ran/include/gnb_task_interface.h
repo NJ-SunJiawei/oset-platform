@@ -9,6 +9,12 @@
 #ifndef GNB_TASK_INTERFACE_H_
 #define GNB_TASK_INTERFACE_H_
 
+#include "txrx.h"
+#include "phy.h"
+#include "mac.h"
+#include "rrc.h"
+
+
 /*3gPP message def*/
 #include "def/phy_messages_types.h"
 #include "def/mac_messages_types.h"
@@ -147,9 +153,9 @@ int task_thread_create(task_id_t task_id, void *data);
 
 /********************************************************/
 void *gnb_timer_task(oset_threadplus_t *thread, void *data);
-void *gnb_prach_task(oset_threadplus_t *thread, void *data);
-void *gnb_txrx_task(oset_threadplus_t *thread, void *data);
-void *gnb_rrc_task(oset_threadplus_t *thread, void *data);
+//void *gnb_prach_task(oset_threadplus_t *thread, void *data);
+//void *gnb_txrx_task(oset_threadplus_t *thread, void *data);
+//void *gnb_rrc_task(oset_threadplus_t *thread, void *data);
 
 #ifdef __cplusplus
 }

@@ -131,7 +131,7 @@ static void phy_manager_destory(void)
 bool dl_channel_emulator(const phy_args_t *params, const phy_cfg_t *cfg)
 {
 	phy_manager.workers_common.cell_list_nr = cfg->phy_cell_cfg_nr;
-	struct phy_cell_cfg_nr_t * cell_nr = oset_list2_find(cfg->phy_cell_cfg_nr, 0);
+	struct phy_cell_cfg_nr_t * cell_nr = oset_list2_find(cfg->phy_cell_cfg_nr, 0)->data;
 
 	// Instantiate DL channel emulator
 	if (params->dl_channel_args.enable) {
@@ -238,7 +238,7 @@ static int init_nr(const phy_args_t& args, const phy_cfg_t& cfg)
   if (0 == cfg->phy_cell_cfg_nr->count) {
     return OSET_ERROR;
   }
-  struct phy_cell_cfg_nr_t * cell_nr = oset_list2_find(cfg->phy_cell_cfg_nr, 0);
+  struct phy_cell_cfg_nr_t * cell_nr = oset_list2_find(cfg->phy_cell_cfg_nr, 0)->data;
 
   phy_manager.worker_args.nof_prach_workers = args->nof_prach_threads;//0 or 1 allow
   phy_manager.worker_args.nof_phy_threads = args->nof_phy_threads;

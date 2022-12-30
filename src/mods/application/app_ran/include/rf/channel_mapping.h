@@ -10,6 +10,8 @@
 #ifndef CHANNEL_MAPPING_H_
 #define CHANNEL_MAPPING_H_
 
+#include "oset-core.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

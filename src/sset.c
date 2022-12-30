@@ -1,5 +1,5 @@
 /************************************************************************
- *File name: om.c
+ *File name: sset.c
  *Description:
  *
  *Current Version:

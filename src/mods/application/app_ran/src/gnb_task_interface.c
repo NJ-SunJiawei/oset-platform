@@ -6,11 +6,11 @@
  *Author: create by sunjiawei
  *Date: 2022.12
 ************************************************************************/
-
 #include "gnb_common.h"
-#include "phy.h"
-#include "mac.h"
-#include "rrc.h"
+
+
+#undef  OSET_LOG2_DOMAIN
+#define OSET_LOG2_DOMAIN   "gnb-task"
 
 static task_map_t *taskmap[TASK_MAX] = {NULL};
 static int nb_queues=0;
@@ -173,83 +173,4 @@ void *gnb_timer_task(oset_threadplus_t *thread, void *data)
 		}
 	}
 }
-
-
-void *gnb_prach_task(oset_threadplus_t *thread, void *data)
-{
-    msg_def_t *received_msg = NULL;
-	uint32_t length = 0;
-    task_map_t *task = taskmap[TASK_PRACH];
-    int rv = 0;
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting PHY prach thread");
-
-     for ( ;; ){
-		 rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
-		 if(rv != OSET_OK)
-		 {
-			if (rv == OSET_DONE)
-				break;
-		 
-			if (rv == OSET_RETRY){
-				continue;
-			}
-		 }
-		 //func
-		 received_msg = NULL;
-		 length = 0;
-	}
-}
-
-
-void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
-{
-    msg_def_t *received_msg = NULL;
-	uint32_t length = 0;
-    task_map_t *task = taskmap[TASK_TXRX];
-    int rv = 0;
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting PHY txrx thread");
-
-     for ( ;; ){
-		 rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
-		 if(rv != OSET_OK)
-		 {
-			if (rv == OSET_DONE)
-				break;
-		 
-			if (rv == OSET_RETRY){
-				continue;
-			}
-		 }
-		 //func
-		 received_msg = NULL;
-		 length = 0;
-	}
-}
-
-
-void *gnb_rrc_task(oset_threadplus_t *thread, void *data)
-{
-    msg_def_t *received_msg = NULL;
-	uint32_t length = 0;
-    task_map_t *task = taskmap[TASK_TIMER];
-    int rv = 0;
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting RRC layer thread");
-
-     for ( ;; ){
-		 rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
-		 if(rv != OSET_OK)
-		 {
-			if (rv == OSET_DONE)
-				break;
-		 
-			if (rv == OSET_RETRY){
-				continue;
-			}
-		 }
-		 //func
-		 received_msg = NULL;
-		 length = 0;
-	}
-}
-
 

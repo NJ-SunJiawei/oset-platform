@@ -15,11 +15,6 @@
 
 #define  MAX_DEVICE_NUM 10
 
-typedef struct rf_timestamp_s{
-    srsran_timestamp_t	default_ts;
-    srsran_timestamp_t  timestamps[SRSRAN_MAX_CHANNELS];
-}rf_timestamp_t;
-
 typedef struct rf_manager_s{
 	oset_apr_memory_pool_t *app_pool;
 
@@ -52,7 +47,7 @@ typedef struct rf_manager_s{
 	double			  freq_offset;
 	double			  cur_tx_srate;
 	double			  cur_rx_srate;
-	double			  fix_srate_hz;
+	double			  fix_srate_hz;//Force Tx and Rx sampling rate in Hz
 	uint32_t		  nof_antennas;
 	uint32_t		  nof_channels;
 	uint32_t		  nof_channels_x_dev;
@@ -428,11 +423,224 @@ int radio_init(void)
 }
 
 
+void set_rx_srate(const double srate)
+{
+  int i = 0;
+
+  if (!rf_manager.is_initialized) {
+	  return;
+  }
+
+  // If fix sampling rate...
+  if (rf_manager.fix_srate_hz) {
+    rf_manager.decimator_busy = true;
+    oset_apr_mutex_init(&rf_manager.rx_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
+
+    // If the sampling rate was not set, set it
+    if (!rf_manager.cur_rx_srate) {
+      for (i = 0; i < rf_manager.nof_device_args; ++i) {
+        rf_manager.cur_rx_srate = srsran_rf_set_rx_srate(&rf_manager.rf_devices[i], rf_manager.fix_srate_hz);
+      }
+    }
+
+    // Assert ratio is integer
+    ERROR_IF_NOT(((uint32_t)rf_manager.cur_rx_srate % (uint32_t)srate) == 0,
+                  "The sampling rate ratio is not integer (%.2f MHz / %.2f MHz = %.3f)",
+                  rf_manager.cur_rx_srate / 1e6,
+                  srate / 1e6,
+                  rf_manager.cur_rx_srate / srate);
+    oset_assert(((uint32_t)rf_manager.cur_rx_srate % (uint32_t)srate) == 0);
+
+    // Update decimators
+    uint32_t ratio = (uint32_t)ceil(rf_manager.cur_rx_srate / srate);
+    for (uint32_t ch = 0; ch < rf_manager.nof_channels; ch++) {
+      srsran_resampler_fft_init(&rf_manager.decimators[ch], SRSRAN_RESAMPLER_MODE_DECIMATE, ratio);
+    }
+
+    rf_manager.decimator_busy = false;
+  } else {
+      for (i = 0; i < rf_manager.nof_device_args; ++i) {
+      rf_manager.cur_rx_srate = srsran_rf_set_rx_srate(&rf_manager.rf_devices[i], srate);
+    }
+  }
+}
+
+
+static double get_dev_cal_tx_adv_sec(const char *device_name)
+{
+  int nsamples = 0;
+  /* Set time advance for each known device if in auto mode */
+  if (tx_adv_auto) {
+    /* This values have been calibrated using the prach_test_usrp tool in srsRAN */
+
+    if (!strcmp(device_name, "uhd_b200")) {
+      double srate_khz = round(rf_manager.cur_tx_srate / 1e3);
+      if (srate_khz == 1.92e3) {
+        // 6 PRB
+        nsamples = 57;
+      } else if (srate_khz == 3.84e3) {
+        // 15 PRB
+        nsamples = 60;
+      } else if (srate_khz == 5.76e3) {
+        // 25 PRB
+        nsamples = 92;
+      } else if (srate_khz == 11.52e3) {
+        // 50 PRB
+        nsamples = 120;
+      } else if (srate_khz == 15.36e3) {
+        // 75 PRB
+        nsamples = 80;
+      } else if (srate_khz == 23.04e3) {
+        // 100 PRB
+        nsamples = 160;
+      } else {
+        /* Interpolate from known values */
+        oset_warn(
+            "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n",
+            rf_manager.cur_tx_srate);
+        nsamples = rf_manager.uhd_default_tx_adv_samples + (int)(rf_manager.cur_tx_srate * rf_manager.uhd_default_tx_adv_offset_sec);
+      }
+
+    } else if (!strcmp(device_name, "uhd_usrp2")) {
+      double srate_khz = round(rf_manager.cur_tx_srate / 1e3);
+      if (srate_khz == 1.92e3) {
+        nsamples = 14; // estimated
+      } else if (srate_khz == 3.84e3) {
+        nsamples = 32;
+      } else if (srate_khz == 5.76e3) {
+        nsamples = 43;
+      } else if (srate_khz == 11.52e3) {
+        nsamples = 54;
+      } else if (srate_khz == 15.36e3) {
+        nsamples = 65; // to calc
+      } else if (srate_khz == 23.04e3) {
+        nsamples = 80; // to calc
+      } else {
+        /* Interpolate from known values */
+        oset_warn(
+            "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n",
+            rf_manager.cur_tx_srate);
+        nsamples = rf_manager.uhd_default_tx_adv_samples + (int)(rf_manager.cur_tx_srate * rf_manager.uhd_default_tx_adv_offset_sec);
+      }
+
+    } else if (!strcmp(device_name, "lime")) {
+      double srate_khz = round(rf_manager.cur_tx_srate / 1e3);
+      if (srate_khz == 1.92e3) {
+        nsamples = 28;
+      } else if (srate_khz == 3.84e3) {
+        nsamples = 51;
+      } else if (srate_khz == 5.76e3) {
+        nsamples = 74;
+      } else if (srate_khz == 11.52e3) {
+        nsamples = 78;
+      } else if (srate_khz == 15.36e3) {
+        nsamples = 86;
+      } else if (srate_khz == 23.04e3) {
+        nsamples = 102;
+      } else {
+        /* Interpolate from known values */
+        oset_warn(
+            "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n",
+            rf_manager.cur_tx_srate);
+        nsamples = rf_manager.lime_default_tx_adv_samples + (int)(rf_manager.cur_tx_srate * rf_manager.lime_default_tx_adv_offset_sec);
+      }
+
+    } else if (!strcmp(device_name, "uhd_x300")) {
+      // In X300 TX/RX offset is independent of sampling rate
+      nsamples = 45;
+    } else if (!strcmp(device_name, "bladerf")) {
+      double srate_khz = round(rf_manager.cur_tx_srate / 1e3);
+      if (srate_khz == 1.92e3) {
+        nsamples = 16;
+      } else if (srate_khz == 3.84e3) {
+        nsamples = 18;
+      } else if (srate_khz == 5.76e3) {
+        nsamples = 16;
+      } else if (srate_khz == 11.52e3) {
+        nsamples = 21;
+      } else if (srate_khz == 15.36e3) {
+        nsamples = 14;
+      } else if (srate_khz == 23.04e3) {
+        nsamples = 21;
+      } else {
+        /* Interpolate from known values */
+        oset_warn(
+            "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n",
+            rf_manager.cur_tx_srate);
+        nsamples = rf_manager.blade_default_tx_adv_samples + (int)(rf_manager.blade_default_tx_adv_offset_sec * rf_manager.cur_tx_srate);
+      }
+    } else if (!strcmp(device_name, "zmq")) {
+      nsamples = 0;
+    }
+  } else {
+    nsamples = rf_manager.tx_adv_nsamples;
+    oset_warn("Setting manual TX/RX offset to %d samples\n", nsamples);
+  }
+
+  // Calculate TX advance in seconds from samples and sampling rate
+  return (double)nsamples / rf_manager.cur_tx_srate;
+}
+
+void set_tx_srate(const double srate)
+{
+  int i = 0;
+
+  oset_apr_mutex_init(&rf_manager.tx_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
+
+  if (!rf_manager.is_initialized) {
+    return;
+  }
+
+  // If fix sampling rate...
+  if (rf_manager.fix_srate_hz) {
+    // If the sampling rate was not set, set it
+    if (!rf_manager.cur_tx_srate)) {
+		for (i = 0; i < rf_manager.nof_device_args; ++i) {
+            rf_manager.cur_tx_srate = srsran_rf_set_tx_srate(&rf_manager.rf_devices[i], rf_manager.fix_srate_hz);
+      }
+    }
+
+    // Assert ratio is integer
+    srsran_assert(((uint32_t)rf_manager.cur_tx_srate % (uint32_t)srate) == 0,
+                  "The sampling rate ratio is not integer (%.2f MHz / %.2f MHz = %.3f)",
+                  rf_manager.cur_rx_srate / 1e6,
+                  srate / 1e6,
+                  rf_manager.cur_rx_srate / srate);
+    oset_assert(((uint32_t)rf_manager.cur_rx_srate % (uint32_t)srate) == 0);
+
+    // Update interpolators
+    uint32_t ratio = (uint32_t)ceil(rf_manager.cur_tx_srate / srate);
+    for (uint32_t ch = 0; ch < rf_manager.nof_channels; ch++) {
+      srsran_resampler_fft_init(&rf_manager.interpolators[ch], SRSRAN_RESAMPLER_MODE_INTERPOLATE, ratio);
+    }
+  } else {
+	for (i = 0; i < rf_manager.nof_device_args; ++i) {
+      rf_manager.cur_tx_srate = srsran_rf_set_tx_srate(&rf_manager.rf_devices[i], srate);
+    }
+  }
+
+  // Get calibrated advanced
+  rf_manager.tx_adv_sec = get_dev_cal_tx_adv_sec(srsran_rf_name(&rf_manager.rf_devices[0]));
+
+  if (rf_manager.tx_adv_sec < 0) {
+    rf_manager.tx_adv_sec *= -1;
+    rf_manager.tx_adv_negative = true;
+  }
+}
+
+
 int radio_destory(void)
 {
     int i = -1;
+	uint32_t ch = 0;
 
     //todo
+
+    for (ch = 0; ch < rf_manager.nof_channels; ch++) {
+      srsran_resampler_fft_free(&rf_manager.interpolators[ch]);
+      srsran_resampler_fft_free(&rf_manager.decimators[ch]);
+    }
+
 	oset_free(rf_manager.zeros);
 
 	for (i = 0; i< SRSRAN_MAX_CHANNELS; ++i) {

@@ -14,6 +14,10 @@
 extern "C" {
 #endif
 
+uint32_t get_nof_carriers_nr();
+uint32_t get_nof_carriers();
+uint32_t get_nof_ports(uint32_t cc_idx);
+uint32_t get_nof_prb(uint32_t cc_idx);
 uint32_t get_nof_rf_channels();
 
 #ifdef __cplusplus
