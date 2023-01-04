@@ -45,6 +45,9 @@ int radio_init(void);
 int radio_destory(void);
 void set_rx_srate(const double srate);
 void set_tx_srate(const double srate);
+void release_freq(const uint32_t carrier_idx);
+void set_rx_freq(const uint32_t carrier_idx, const double freq);
+void set_tx_freq(const uint32_t carrier_idx, const double freq);
 
 #ifdef __cplusplus
 }

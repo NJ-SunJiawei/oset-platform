@@ -39,7 +39,7 @@ typedef struct {
 }slot_worker_args_t;
 
 typedef struct slot_worker_s{
-	oset_thread_pool_t     *th_pools;
+	oset_thread_pool_t   *th_pools;
 	uint32_t			sf_len;
 	uint32_t			cell_index;
 	uint32_t			rf_port;
@@ -55,7 +55,6 @@ typedef struct slot_worker_s{
 
 typedef struct {
 	//oset_thread_mutex_t	   *grant_mutex;
-
 	oset_list2_t           *cell_list_nr;//phy_cell_cfg_nr_t
 	//oset_apr_mutex_t	   *cell_gain_mutex;
 	srsran_cfr_cfg_t        cfr_config;
@@ -68,14 +67,17 @@ typedef struct phy_manager_s{
 	oset_apr_memory_pool_t *app_pool;
 
 	//txrx				   tx_rx;
-	//srsran_prach_cfg_t     prach_cfg;
+	//srsran_prach_cfg_t   prach_cfg;
 	common_cfg_t	       common_cfg;  //from rrc layer cofig
 	phy_common			   workers_common;
-
 	phy_work_args_t        worker_args;
+
 	slot_worker_args_t     slot_args;
 	slot_worker_t          slot_worker;
 
+	oset_apr_mutex_t	   *mutex;
+	oset_apr_thread_cond_t *cond;
+	uint32_t               tti;//txrx
 }phy_manager_t;
 
 
@@ -91,7 +93,7 @@ static phy_manager_t phy_manager = {
 	.slot_args.pusch_max_its = 10,
 	.slot_args.pusch_min_snr_dB = -10.0f,
 	.slot_args.srate_hz = 0.0,
-
+	.tti = 0,
 };
 
 rf_manager_t *phy_manager_self(void)
@@ -102,27 +104,14 @@ rf_manager_t *phy_manager_self(void)
 static void phy_manager_init(void)
 {
 	phy_manager.app_pool = gnb_manager_self()->app_pool;
+	oset_apr_mutex_init(&phy_manager.mutex, OSET_MUTEX_NESTED, phy_manager.app_pool);
+	oset_apr_thread_cond_create(&phy_manager.cond, phy_manager.app_pool);
 }
 
 static void phy_manager_destory(void)
 {
-    int i = -1;
-
-    //slot_worker
-	oset_threadpool_destory(phy_manager.slot_worker.th_pools);
-	for (i = 0; i < (phy_manager.slot_args.nof_rx_ports; i++){
-        free(phy_manager.slot_worker.rx_buffer[i]);
-	}
-	oset_free(phy_manager.slot_worker.rx_buffer);
-
-	for (i = 0; i < (phy_manager.slot_args.nof_tx_ports; i++){
-        free(phy_manager.slot_worker.tx_buffer[i]);
-	}
-	oset_free(phy_manager.slot_worker.tx_buffer);
-
-
-	srsran_gnb_dl_free(&phy_manager.slot_worker.gnb_dl);
-	srsran_gnb_ul_free(&phy_manager.slot_worker.gnb_ul);
+	oset_apr_mutex_destroy(phy_manager.mutex);
+	oset_apr_thread_cond_destroy(phy_manager.cond);
 
     //pool
 	phy_manager.app_pool = NULL; /*app_pool release by openset process*/
@@ -373,7 +362,24 @@ int phy_init(void)
 
 int phy_destory(void)
 {
-  /*todo*/
+    int i = -1;
+
+    //slot_worker
+	oset_threadpool_destory(phy_manager.slot_worker.th_pools);
+	for (i = 0; i < (phy_manager.slot_args.nof_rx_ports; i++){
+        free(phy_manager.slot_worker.rx_buffer[i]);
+	}
+	oset_free(phy_manager.slot_worker.rx_buffer);
+
+	for (i = 0; i < (phy_manager.slot_args.nof_tx_ports; i++){
+        free(phy_manager.slot_worker.tx_buffer[i]);
+	}
+	oset_free(phy_manager.slot_worker.tx_buffer);
+
+
+	srsran_gnb_dl_free(&phy_manager.slot_worker.gnb_dl);
+	srsran_gnb_ul_free(&phy_manager.slot_worker.gnb_ul);
+
    return OSET_OK;
 }
 

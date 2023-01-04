@@ -61,6 +61,7 @@ OSET_MODULE_SHUTDOWN_FUNCTION(app_gnb_shutdown)
 	destory_gnb_layer_tasks();
 	task_queue_end(tasks_info);
 
+
 	phy_manager_destory();
 	rf_manager_destory();
 	gnb_manager_destory();

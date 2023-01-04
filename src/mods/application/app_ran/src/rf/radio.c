@@ -18,8 +18,8 @@
 typedef struct rf_manager_s{
 	oset_apr_memory_pool_t *app_pool;
 
-	channel_mapping rx_channel_mapping;
-	channel_mapping tx_channel_mapping;
+	channel_mapping     rx_channel_mapping;
+	channel_mapping     tx_channel_mapping;
 	srsran_rf_t		    rf_devices[MAX_DEVICE_NUM];//std::vector
 	srsran_rf_info_t	rf_info[MAX_DEVICE_NUM];//std::vector
 	int32_t			    rx_offset_n[MAX_DEVICE_NUM];//std::vector
@@ -154,18 +154,19 @@ bool config_rf_channels(const rf_args_t* args)
   channel_cfg_t carriers[2][SRSRAN_MAX_CARRIERS] = {0};
 
   // Generate RF-Channel to Carrier map
-  oset_list2_t *dl_rf_channels = oset_list2_create();
-  oset_list2_t *ul_rf_channels = oset_list2_create();
+  rf_manager.rx_channel_mapping.available_channels = oset_list2_create();
+  rf_manager.tx_channel_mapping.available_channels = oset_list2_create();
 
   for(uint32_t i = 0; i < args->nof_carriers; i++){
     channel_cfg_t *c_rx = &carriers[0][i];
     c_rx->carrier_idx = i;
+    c_rx->used = false;
 
     // Parse DL band for this channel
     c_rx->band.low_freq = args->ch_rx_bands[i].min;
     c_rx->band.high_freq = args->ch_rx_bands[i].max;
 
-    oset_list2_add(dl_rf_channels, c_rx);
+    oset_list2_add(rf_manager.rx_channel_mapping.available_channels, c_rx);
     oset_info("Configuring physical DL channel %d with band-pass filter (%.1f, %.1f)",
                 i,
                 c_rx->band.low_freq,
@@ -173,18 +174,16 @@ bool config_rf_channels(const rf_args_t* args)
 
     // Parse UL band for this channel
 	channel_cfg_t *c_tx = &carriers[1][i];
-    c_tx->band.low_freq = args->ch_rx_bands[i].min;
-    c_tx->band.high_freq = args->ch_rx_bands[i].max;
-    oset_list2_add(ul_rf_channels, c_tx);
+    c_tx->carrier_idx = i;
+    c_tx->used = false;
+    c_tx->band.low_freq = args->ch_tx_bands[i].min;
+    c_tx->band.high_freq = args->ch_tx_bands[i].max;
+    oset_list2_add(rf_manager.tx_channel_mapping.available_channels, c_tx);
     oset_info("Configuring physical UL channel %d with band-pass filter (%.1f, %.1f)",
                 i,
                 c_tx->band.low_freq,
                 c_tx->band.high_freq);
   }
-
-  rf_manager.rx_channel_mapping.available_channels = dl_rf_channels;
-  rf_manager.tx_channel_mapping.available_channels = ul_rf_channels;
-
   return true;
 }
 
@@ -418,10 +417,66 @@ int radio_init(void)
 	  rf_manager.dummy_buffers[i] = (cf_t *)oset_malloc(SRSRAN_SF_LEN_MAX * SRSRAN_NOF_SF_X_FRAME*sizeof(cf_t));
 	}
 
+	oset_apr_mutex_init(&rf_manager.tx_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
+    oset_apr_mutex_init(&rf_manager.rx_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
+    oset_apr_mutex_init(&rf_manager.metrics_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
+
 	oset_info("radio layer init success");
 	return OSET_OK;
 }
 
+void set_rx_freq(const uint32_t carrier_idx, const double freq)
+{
+  if (!rf_manager.is_initialized) {
+    return;
+  }
+
+  // Map carrier index to physical channel
+  if (allocate_freq(&rf_manager.rx_channel_mapping, carrier_idx, freq)) {
+    device_mapping_t device_mapping = get_device_mapping(&rf_manager.rx_channel_mapping, carrier_idx, 0);
+    if (device_mapping.channel_idx >= rf_manager.nof_channels_x_dev) {
+      oset_error("Invalid mapping physical channel %d to logical carrier %d on f_rx=%.1f MHz (nof_channels_x_dev=%d, device_idx=%d)",
+                   device_mapping.channel_idx,
+                   carrier_idx,
+                   freq / 1e6, rf_manager.nof_channels_x_dev, device_mapping.device_idx);
+      return;
+    }
+
+    oset_info("Mapping RF channel %d (device=%d, channel=%d) to logical carrier %d on f_rx=%.1f MHz",
+                device_mapping.carrier_idx,
+                device_mapping.device_idx,
+                device_mapping.channel_idx,
+                carrier_idx,
+                freq / 1e6);
+    if (rf_manager.cur_rx_freqs[device_mapping.carrier_idx] != freq) {
+      if ((device_mapping.carrier_idx + 1) * rf_manager.nof_antennas <= rf_manager.nof_channels) {
+        rf_manager.cur_rx_freqs[device_mapping.carrier_idx] = freq;
+        for (uint32_t i = 0; i < rf_manager.nof_antennas; i++) {
+          device_mapping_t dm = get_device_mapping(&rf_manager.rx_channel_mapping, carrier_idx, i);
+          if (dm.device_idx >= rf_manager.nof_device_args || dm.channel_idx >= rf_manager.nof_channels_x_dev) {
+            oset_error("Invalid port mapping %d:%d to logical carrier %d on f_rx=%.1f MHz",
+                         dm.device_idx,
+                         dm.channel_idx,
+                         carrier_idx,
+                         freq / 1e6);
+            return;
+          }
+
+          srsran_rf_set_rx_freq(&rf_manager.rf_devices[dm.device_idx], dm.channel_idx, freq + rf_manager.freq_offset);
+        }
+      } else {
+        oset_error("set_rx_freq: physical_channel_idx=%d for %d antennas exceeds maximum channels (%d)",
+                     device_mapping.carrier_idx,
+                     rf_manager.nof_antennas,
+                     rf_manager.nof_channels);
+      }
+    } else {
+      oset_info("RF Rx channel %d already on freq", device_mapping.carrier_idx);
+    }
+  } else {
+    oset_error("set_rx_freq: Could not allocate frequency %.1f MHz to carrier %d", freq / 1e6, carrier_idx);
+  }
+}
 
 void set_rx_srate(const double srate)
 {
@@ -434,7 +489,7 @@ void set_rx_srate(const double srate)
   // If fix sampling rate...
   if (rf_manager.fix_srate_hz) {
     rf_manager.decimator_busy = true;
-    oset_apr_mutex_init(&rf_manager.rx_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
+	//oset_apr_mutex_lock(rf_manager.rx_mutex);
 
     // If the sampling rate was not set, set it
     if (!rf_manager.cur_rx_srate) {
@@ -458,6 +513,7 @@ void set_rx_srate(const double srate)
     }
 
     rf_manager.decimator_busy = false;
+	//oset_apr_mutex_unlock(rf_manager.rx_mutex);
   } else {
       for (i = 0; i < rf_manager.nof_device_args; ++i) {
       rf_manager.cur_rx_srate = srsran_rf_set_rx_srate(&rf_manager.rf_devices[i], srate);
@@ -581,11 +637,65 @@ static double get_dev_cal_tx_adv_sec(const char *device_name)
   return (double)nsamples / rf_manager.cur_tx_srate;
 }
 
+
+void set_tx_freq(const uint32_t carrier_idx, const double freq)
+{
+  if (!rf_manager.is_initialized) {
+    return;
+  }
+
+  // Map carrier index to physical channel
+  if (allocate_freq(&rf_manager.tx_channel_mapping, carrier_idx, freq)) {
+    device_mapping_t device_mapping = get_device_mapping(&rf_manager.tx_channel_mapping, carrier_idx, 0);
+    if (device_mapping.channel_idx >= rf_manager.nof_channels_x_dev) {
+      oset_error("Invalid mapping physical channel %d to logical carrier %d on f_tx=%.1f MHz",
+                   device_mapping.channel_idx,
+                   carrier_idx,
+                   freq / 1e6);
+      return;
+    }
+
+    oset_info("Mapping RF channel %d (device=%d, channel=%d) to logical carrier %d on f_tx=%.1f MHz",
+                device_mapping.carrier_idx,
+                device_mapping.device_idx,
+                device_mapping.channel_idx,
+                carrier_idx,
+                freq / 1e6);
+    if (rf_manager.cur_tx_freqs[device_mapping.carrier_idx] != freq) {
+      if ((device_mapping.carrier_idx + 1) * rf_manager.nof_antennas <= rf_manager.nof_channels) {
+        rf_manager.cur_tx_freqs[device_mapping.carrier_idx] = freq;
+        for (uint32_t i = 0; i < rf_manager.nof_antennas; i++) {
+          device_mapping = get_device_mapping(&rf_manager.tx_channel_mapping, carrier_idx, i);
+          if (device_mapping.device_idx >= rf_manager.nof_device_args || device_mapping.channel_idx >= rf_manager.nof_channels_x_dev) {
+            oset_error("Invalid port mapping %d:%d to logical carrier %d on f_rx=%.1f MHz",
+                         device_mapping.device_idx,
+                         device_mapping.channel_idx,
+                         carrier_idx,
+                         freq / 1e6);
+            return;
+          }
+
+          srsran_rf_set_tx_freq(&rf_manager.rf_devices[device_mapping.device_idx], device_mapping.channel_idx, freq + rf_manager.freq_offset);
+        }
+      } else {
+        oset_error("set_tx_freq: physical_channel_idx=%d for %d antennas exceeds maximum channels (%d)",
+                     device_mapping.carrier_idx,
+                     rf_manager.nof_antennas,
+                     rf_manager.nof_channels);
+      }
+    } else {
+      oset_info("RF Tx channel %d already on freq", device_mapping.carrier_idx);
+    }
+  } else {
+    oset_error("set_tx_freq: Could not allocate frequency %.1f MHz to carrier %d", freq / 1e6, carrier_idx);
+  }
+}
+
 void set_tx_srate(const double srate)
 {
   int i = 0;
 
-  oset_apr_mutex_init(&rf_manager.tx_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
+  //oset_apr_mutex_lock(rf_manager.tx_mutex);
 
   if (!rf_manager.is_initialized) {
     return;
@@ -628,6 +738,11 @@ void set_tx_srate(const double srate)
   }
 }
 
+void release_freq(const uint32_t carrier_idx)
+{
+  release_freq_(&rf_manager.rx_channel_mapping, carrier_idx);
+  release_freq_(&rf_manager.tx_channel_mapping, carrier_idx);
+}
 
 int radio_destory(void)
 {
@@ -635,6 +750,9 @@ int radio_destory(void)
 	uint32_t ch = 0;
 
     //todo
+	oset_apr_mutex_destroy(rf_manager.tx_mutex);
+	oset_apr_mutex_destroy(rf_manager.rx_mutex);
+	oset_apr_mutex_destroy(rf_manager.metrics_mutex);
 
     for (ch = 0; ch < rf_manager.nof_channels; ch++) {
       srsran_resampler_fft_free(&rf_manager.interpolators[ch]);
@@ -656,6 +774,7 @@ int radio_destory(void)
 
 	oset_list2_free(rf_manager.rx_channel_mapping.available_channels);
 	oset_list2_free(rf_manager.tx_channel_mapping.available_channels);
+
 
 	oset_info("radio layer destory success");
     return OSET_OK;

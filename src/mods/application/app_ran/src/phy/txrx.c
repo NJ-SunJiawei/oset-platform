@@ -11,6 +11,7 @@
 #include "txrx.h"
 #include "radio.h"
 #include "phy_util.h"
+#include "lib/common/common.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "txrx"
@@ -37,7 +38,7 @@ void txrx_task_init(void)
 {
 	rf_buffer_t    buffer	 = {0};
 	rf_timestamp_t timestamp = {0};
-	uint32_t			   sf_len	 = SRSRAN_SF_LEN_PRB(get_nof_prb(0));
+	uint32_t			   sf_len	 = SRSRAN_SF_LEN_PRB(get_nof_prb(0));//15khz   5G 1slot
 	
 	float samp_rate = srsran_sampling_freq_hz(get_nof_prb(0));
 	// Calculate the number of FFT bins required for the specified system bandwidth. 
@@ -65,6 +66,13 @@ void txrx_task_init(void)
 	  set_rx_freq(rf_port, rx_freq_hz);
 	}
 
+	// Set channel emulator sampling rate
+	if (gnb_manager_self()->ul_channel) {
+	    channel_set_srate(gnb_manager_self()->ul_channel ,(uint32_t)samp_rate);
+	}
+	oset_info("Starting RX/TX thread nof_prb=%d, sf_len=%d", get_nof_prb(0), sf_len);
+
+
 }
 
 
@@ -77,7 +85,25 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting PHY txrx thread");
 
 	txrx_task_init();
+    phy_manager_self()->tti = TTI_SUB(0, FDD_HARQ_DELAY_UL_MS + 1);
+
+	// Main loop
     while(gnb_manager_self()->running){
+		////1ms调度一次 	  (系统帧号1024循环	    1帧=10子帧=10ms)      for 5G  SCS=15khz 1slot=1ms=14+1symbols
+		phy_manager_self()->tti = TTI_ADD(phy_manager_self()->tti, 1);
+	    
+		if ((NULL == phy_manager_self()->slot_worker.th_pools) || (get_nof_carriers_nr() <= 0)) {
+			oset_error("%s run error",__OSET_FUNC__);
+			break;
+		}
+
+		oset_debug("%s:threadpool current task %d",__OSET_FUNC__, oset_threadpool_tasks_count(phy_manager_self()->slot_worker.th_pools));
+		if(oset_threadpool_tasks_count(phy_manager_self()->slot_worker.th_pools) >= 10)
+		{
+			oset_apr_mutex_lock(phy_manager_self()->mutex);
+			oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);
+			oset_apr_mutex_unlock(phy_manager_self()->mutex);
+		}
 
 	}
 }

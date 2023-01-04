@@ -19,6 +19,10 @@ uint32_t get_nof_carriers();
 uint32_t get_nof_ports(uint32_t cc_idx);
 uint32_t get_nof_prb(uint32_t cc_idx);
 uint32_t get_nof_rf_channels();
+double get_ul_freq_hz(uint32_t cc_idx);
+double get_dl_freq_hz(uint32_t cc_idx);
+double get_ssb_freq_hz(uint32_t cc_idx);
+uint32_t get_rf_port(uint32_t cc_idx);
 
 #ifdef __cplusplus
 }
