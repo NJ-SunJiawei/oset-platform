@@ -10,12 +10,11 @@
 #ifndef BAND_HELPER_2C_H_
 #define BAND_HELPER_2C_H_
 
+#include "band_helper.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct band_helper_t  band_helper_t;
-
 
 band_helper_t *band_helper_create(void);
 uint32_t get_ul_arfcn_from_dl_arfcn_2c(band_helper_t *band_helper, uint32_t dl_arfcn);

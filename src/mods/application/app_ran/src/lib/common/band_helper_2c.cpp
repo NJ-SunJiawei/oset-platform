@@ -7,7 +7,7 @@
  *Date: 2022.12
 ************************************************************************/
 #include "oset-core.h"
-#include "band_helper.h"
+#include "band_helper_2c.h"
 
 using namespace srsran;
 

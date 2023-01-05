@@ -8,13 +8,20 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "channel_2c.h"
-#include "txrx.h"
 #include "radio.h"
 #include "phy_util.h"
-#include "lib/common/common.h"
+#include "txrx.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "txrx"
+
+void txrx_stop(void)
+{
+	oset_apr_mutex_lock(phy_manager_self()->mutex);
+	oset_apr_thread_cond_broadcast(phy_manager_self()->cond);
+	oset_apr_mutex_unlock(phy_manager_self()->mutex);
+	oset_threadplus_destroy(task_map_self(TASK_RXTX)->thread);
+}
 
 void txrx_init(void)
 {
@@ -36,10 +43,6 @@ void txrx_init(void)
 
 void txrx_task_init(void)
 {
-	rf_buffer_t    buffer	 = {0};
-	rf_timestamp_t timestamp = {0};
-	uint32_t			   sf_len	 = SRSRAN_SF_LEN_PRB(get_nof_prb(0));//15khz   5G 1slot
-	
 	float samp_rate = srsran_sampling_freq_hz(get_nof_prb(0));
 	// Calculate the number of FFT bins required for the specified system bandwidth. 
 	//It derives system bandwidth from nof_prb and then figure out FFT size based on the derived BW.
@@ -70,9 +73,6 @@ void txrx_task_init(void)
 	if (gnb_manager_self()->ul_channel) {
 	    channel_set_srate(gnb_manager_self()->ul_channel ,(uint32_t)samp_rate);
 	}
-	oset_info("Starting RX/TX thread nof_prb=%d, sf_len=%d", get_nof_prb(0), sf_len);
-
-
 }
 
 
@@ -82,9 +82,15 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 	uint32_t length = 0;
     task_map_t *task = task_map_self(TASK_TXRX);
     int rv = 0;
+	rf_buffer_t    buffer	 = {0};
+	rf_timestamp_t timestamp = {0};
+	uint32_t	   sf_len	 = SRSRAN_SF_LEN_PRB(get_nof_prb(0));//15khz   5G 1slot
+
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting PHY txrx thread");
 
 	txrx_task_init();
+	oset_info("Starting RX/TX thread nof_prb=%d, sf_len=%d", get_nof_prb(0), sf_len);
+
     phy_manager_self()->tti = TTI_SUB(0, FDD_HARQ_DELAY_UL_MS + 1);
 
 	// Main loop
@@ -104,6 +110,22 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 			oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);
 			oset_apr_mutex_unlock(phy_manager_self()->mutex);
 		}
+
+		// Multiple cell buffer mapping
+		{
+		  uint32_t cc = 0;
+		  for (uint32_t cc_nr = 0; cc_nr < get_nof_carriers_nr(); cc_nr++, cc++) {
+			uint32_t rf_port = get_rf_port(cc);
+		
+			for (uint32_t p = 0; p < get_nof_ports(cc); p++) {
+			  // WARNING:
+			  // - The number of ports for all cells must be the same
+			  // - Only one NR cell is currently supported
+				buffer.set(rf_port, p, worker_com->get_nof_ports(0), get_buffer_rx(p));
+			}
+		  }
+		}
+
 
 	}
 }

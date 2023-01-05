@@ -13,11 +13,6 @@
 #define OSET_LOG2_DOMAIN   "rrc"
 
 
-typedef struct rrc_manager_s{
-	oset_apr_memory_pool_t *app_pool;
-}rrc_manager_t;
-
-
 static rrc_manager_t rrc_manager = {0};
 
 rrc_manager_t *rrc_manager_self(void)

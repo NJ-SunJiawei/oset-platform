@@ -11,7 +11,6 @@
 #include "gnb_config_parser.h"
 #include "rrc_nr_config.h"
 #include "phy_nr_config.h"
-#include "srsran.h"
 
 void gnb_arg_default(void)
 {

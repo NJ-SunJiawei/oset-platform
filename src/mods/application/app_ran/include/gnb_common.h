@@ -11,11 +11,11 @@
 #define GNB_COMMON_H_
 
 #include "oset-core.h"
-
 #include "bcd_helper.h"
 #include "util_helper.h"
 #include "band_helper_2c.h"
 #include "lib/common/security.h"
+#include "lib/common/common.h"
 #include "gnb_task_interface.h"
 #include "rrc_interface_types.h"
 #include "srsran/srsran.h"
@@ -27,15 +27,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct {
-  srsran_carrier_nr_t	carrier;
-  srsran_pdcch_cfg_nr_t pdcch;
-  srsran_prach_cfg_t	prach;
-  srsran_ssb_cfg_t		ssb;
-  srsran_duplex_mode_t	duplex_mode;
-}common_cfg_t;
-
 
 typedef struct gnb_manager_s gnb_manager_t;
 typedef struct rf_manager_s rf_manager_t;

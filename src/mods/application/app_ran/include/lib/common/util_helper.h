@@ -23,7 +23,7 @@ extern "C" {
 
 #define ERROR_IF_NOT(x, ...)                                                                                      \
 	  do {																												   \
-		if (oset_likely(x));
+		if (x);
 		else{																									   \
 		  oset_error(__VA_ARGS__);															   \
 		  return OSET_ERROR;																							   \

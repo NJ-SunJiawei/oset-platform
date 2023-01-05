@@ -16,13 +16,6 @@ static task_map_t *taskmap[TASK_MAX] = {NULL};
 static int nb_queues=0;
 #define NUM_OF_TASK_TIMER      1
 
-typedef struct task_map_s {
-  task_info_t info;
-  int         task_id;
-  oset_threadplus_t   *thread;
-  oset_ring_queue_t   *msg_queue;
-} task_map_t;
-
 
 static int task_queue_create(const task_info_t *taskInfo) 
 {

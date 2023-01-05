@@ -6,24 +6,10 @@
  *Author: create by sunjiawei
  *Date: 2022.12
 ************************************************************************/
+
 #include "gnb_common.h"
 #include "gnb_manager.h"
-#include "gnb_config_parser.h"
 
-typedef struct gnb_manager_s{
-	bool                   running;
-	oset_apr_memory_pool_t *app_pool;
-	oset_timer_mgr_t       *app_timer;
-	band_helper_t          *band_helper;
-    all_args_t             args;
-	phy_cfg_t	           phy_cfg;
-	rrc_cfg_t	           rrc_cfg;
-	rrc_nr_cfg_t           rrc_nr_cfg;
-
-	/*UL/DL channel emulator*/
-	channel_t              *dl_channel;
-	channel_t              *ul_channel;
-}gnb_manager_t;
 
 #define NUM_OF_APP_TIMER      2
 static gnb_manager_t gnb_manager = {0};
@@ -32,7 +18,6 @@ gnb_manager_t *gnb_manager_self(void)
 {
     return &gnb_manager;
 }
-
 
 void gnb_manager_init(void)
 {

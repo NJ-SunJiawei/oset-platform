@@ -10,19 +10,7 @@
 #include "prach_work.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "prach-work"
-
-typedef struct{
-	uint32_t		   cc_idx;
-	srsran_cell_t	   cell;
-	srsran_prach_cfg_t prach_cfg;
-	srsran_prach_t	   prach;
-	sf_buffer*		   current_buffer;
-	float			   max_prach_offset_us;
-	uint32_t		   nof_sf;
-	uint32_t		   sf_cnt;
-	uint32_t		   nof_workers;
-}prach_worker_manager_t;
+#define OSET_LOG2_DOMAIN   "prach"
 
 static prach_worker_manager_t prach_work_manager = {
     .max_prach_offset_us = 50,

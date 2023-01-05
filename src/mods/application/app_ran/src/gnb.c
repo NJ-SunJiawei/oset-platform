@@ -37,13 +37,9 @@ OSET_MODULE_LOAD_FUNCTION(app_gnb_load)
 	}
 
 	gnb_manager_init();
-	rf_manager_init();
-	phy_manager_init();
-
-
 	task_queue_init(tasks_info);
 	create_gnb_layer_tasks();
-	radio_init();
+	rf_init();
 	phy_init();
 
 
@@ -56,14 +52,10 @@ OSET_MODULE_SHUTDOWN_FUNCTION(app_gnb_shutdown)
 {
 	gnb_manager_self()->running = false;
 	task_queue_termination();//stop queue
-	radio_destory();
+	rf_destory();
 	phy_destory();
 	destory_gnb_layer_tasks();
 	task_queue_end(tasks_info);
-
-
-	phy_manager_destory();
-	rf_manager_destory();
 	gnb_manager_destory();
 	return OSET_STATUS_SUCCESS;
 }

@@ -10,9 +10,6 @@
 #ifndef MAC_H_
 #define MAC_H_
 
-#undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "mac"
-
 
 #ifdef __cplusplus
 extern "C" {

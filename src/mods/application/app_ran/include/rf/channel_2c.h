@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-#include "lib/srsran/config.h"
+#include "srsran/srsran.h"
 
 typedef struct channel_t  channel_t;
 

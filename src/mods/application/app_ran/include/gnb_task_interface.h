@@ -10,7 +10,7 @@
 #define GNB_TASK_INTERFACE_H_
 
 #include "txrx.h"
-#include "phy.h"
+#include "prach_work.h"
 #include "mac.h"
 #include "rrc.h"
 
@@ -68,7 +68,12 @@ typedef enum {
   FOREACH_TASK(TASK_ENUM)
 } task_id_t;
 
-typedef struct task_map_s task_map_t;
+typedef struct task_map_s {
+  task_info_t info;
+  int         task_id;
+  oset_threadplus_t   *thread;
+  oset_ring_queue_t   *msg_queue;
+} task_map_t;
 
 /*************************************************************/
 
@@ -153,10 +158,6 @@ int task_thread_create(task_id_t task_id, void *data);
 
 /********************************************************/
 void *gnb_timer_task(oset_threadplus_t *thread, void *data);
-//void *gnb_prach_task(oset_threadplus_t *thread, void *data);
-//void *gnb_txrx_task(oset_threadplus_t *thread, void *data);
-//void *gnb_rrc_task(oset_threadplus_t *thread, void *data);
-
 #ifdef __cplusplus
 }
 #endif
