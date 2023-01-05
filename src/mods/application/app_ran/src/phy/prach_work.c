@@ -10,7 +10,7 @@
 #include "prach_work.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "prach"
+#define OSET_LOG2_DOMAIN   "app-gnb-prach"
 
 static prach_worker_manager_t prach_work_manager = {
     .max_prach_offset_us = 50,

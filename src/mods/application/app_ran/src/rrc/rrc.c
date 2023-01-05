@@ -10,7 +10,7 @@
 #include "rrc.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "rrc"
+#define OSET_LOG2_DOMAIN   "app-gnb-rrc"
 
 
 static rrc_manager_t rrc_manager = {0};

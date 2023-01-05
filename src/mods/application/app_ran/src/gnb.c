@@ -13,7 +13,7 @@
 #include "phy.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "gnb"
+#define OSET_LOG2_DOMAIN   "app-gnb"
 
 OSET_MODULE_LOAD_FUNCTION(app_gnb_load);
 OSET_MODULE_SHUTDOWN_FUNCTION(app_gnb_shutdown);

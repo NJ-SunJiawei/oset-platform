@@ -13,7 +13,7 @@
 #include "txrx.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "txrx"
+#define OSET_LOG2_DOMAIN   "app-gnb-txrx"
 
 void txrx_stop(void)
 {

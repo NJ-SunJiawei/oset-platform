@@ -10,7 +10,7 @@
 #include "mac.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "mac"
+#define OSET_LOG2_DOMAIN   "app-gnb-mac"
 
 	
 typedef struct mac_manager_s{

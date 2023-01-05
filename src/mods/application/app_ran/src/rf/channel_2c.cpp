@@ -8,7 +8,7 @@
 ************************************************************************/
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "channel"
+#define OSET_LOG2_DOMAIN   "app-gnb-channel"
 
 #include <srsran/phy/channel/channel.h>
 #include "channel_2c.h"

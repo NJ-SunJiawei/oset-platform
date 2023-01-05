@@ -35,6 +35,9 @@
 #include <stdio.h>
 #include <sys/time.h>
 
+#undef  OSET_LOG2_DOMAIN
+#define OSET_LOG2_DOMAIN   "app-gnb-lphy"
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus

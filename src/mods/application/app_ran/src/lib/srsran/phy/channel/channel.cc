@@ -26,7 +26,7 @@
 #include <srsran/srsran.h>
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "channel"
+#define OSET_LOG2_DOMAIN   "app-gnb-channel"
 
 using namespace srsran;
 

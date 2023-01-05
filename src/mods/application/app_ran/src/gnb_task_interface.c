@@ -10,7 +10,7 @@
 
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "gnb-task"
+#define OSET_LOG2_DOMAIN   "app-gnb-task"
 
 static task_map_t *taskmap[TASK_MAX] = {NULL};
 static int nb_queues=0;

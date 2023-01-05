@@ -14,7 +14,7 @@
 #include "srsran/phy/utils/phy_logger.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "phy"
+#define OSET_LOG2_DOMAIN   "app-gnb-hphy"
 
 #ifdef DEBUG_WRITE_FILE
 	FILE*           f;
