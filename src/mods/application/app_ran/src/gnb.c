@@ -33,12 +33,13 @@ OSET_MODULE_LOAD_FUNCTION(app_gnb_load)
     /*todo CPU_SET*/
 
 	if (mlockall((uint32_t)MCL_CURRENT | (uint32_t)MCL_FUTURE) == -1) {
-		oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "Failed to `mlockall`: {}", errno);
+		oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "Failed to `mlockall`: {%d}", errno);
 	}
 
 	gnb_manager_init();
 	task_queue_init(tasks_info);
-	create_gnb_layer_tasks();
+	gnb_layer_tasks_args_init();
+	gnb_layer_tasks_create();
 	rf_init();
 	phy_init();
 
@@ -56,7 +57,7 @@ OSET_MODULE_SHUTDOWN_FUNCTION(app_gnb_shutdown)
 	phy_destory();
 	destory_gnb_layer_tasks();
 	task_queue_end(tasks_info);
-	gnb_manager_destory();
+	gnb_layer_tasks_destory();
 	return OSET_STATUS_SUCCESS;
 }
 

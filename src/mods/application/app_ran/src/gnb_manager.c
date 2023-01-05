@@ -10,6 +10,11 @@
 #include "gnb_common.h"
 #include "gnb_manager.h"
 
+#include "txrx.h"
+#include "prach_work.h"
+#include "mac.h"
+#include "rrc.h"
+
 
 #define NUM_OF_APP_TIMER      2
 static gnb_manager_t gnb_manager = {0};
@@ -53,7 +58,16 @@ void gnb_manager_destory(void)
 
 }
 
-int create_gnb_layer_tasks(void)
+void gnb_layer_tasks_args_init(void)
+{
+	task_map_self(TASK_TIMER)->info.func = gnb_timer_task;
+	task_map_self(TASK_PRACH)->info.func = gnb_prach_task;
+	task_map_self(TASK_TXRX)->info.func = gnb_txrx_task;
+	task_map_self(TASK_RRC)->info.func = gnb_rrc_task;
+}
+
+
+int gnb_layer_tasks_create(void)
 {
 	/*todo bind CPU*/
 
@@ -70,7 +84,7 @@ int create_gnb_layer_tasks(void)
     return OSET_OK;
 }
 
-void destory_gnb_layer_tasks(void)
+void gnb_layer_tasks_destory(void)
 {
 	oset_threadplus_destroy(task_map_self(TASK_TIMER)->thread);
 	oset_threadplus_destroy(task_map_self(TASK_RRC)->thread);

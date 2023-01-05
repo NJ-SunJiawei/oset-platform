@@ -9,12 +9,6 @@
 #ifndef GNB_TASK_INTERFACE_H_
 #define GNB_TASK_INTERFACE_H_
 
-#include "txrx.h"
-#include "prach_work.h"
-#include "mac.h"
-#include "rrc.h"
-
-
 /*3gPP message def*/
 #include "def/phy_messages_types.h"
 #include "def/mac_messages_types.h"
@@ -49,10 +43,10 @@ typedef struct {
 
 #define FOREACH_TASK(TASK_DEF) \
   TASK_DEF(TASK_UNKNOWN,  TASK_PRIORITY_MED,       10,  NULL)  \
-  TASK_DEF(TASK_TIMER,    TASK_PRIORITY_MED_LEAST, 200, gnb_timer_task)  \
-  TASK_DEF(TASK_PRACH,	  TASK_PRIORITY_MED,       200, gnb_prach_task)  \
-  TASK_DEF(TASK_TXRX,     TASK_PRIORITY_MIN_PLUS,  200, gnb_txrx_task)  \
-  TASK_DEF(TASK_RRC,      TASK_PRIORITY_MED,       200, gnb_rrc_task)  \
+  TASK_DEF(TASK_TIMER,    TASK_PRIORITY_MED_LEAST, 200, NULL)  \
+  TASK_DEF(TASK_PRACH,	  TASK_PRIORITY_MED,       200, NULL)  \
+  TASK_DEF(TASK_TXRX,     TASK_PRIORITY_MIN_PLUS,  200, NULL)  \
+  TASK_DEF(TASK_RRC,      TASK_PRIORITY_MED,       200, NULL)  \
   TASK_DEF(TASK_NGAP,     TASK_PRIORITY_MED,       200, NULL)  \
   TASK_DEF(TASK_SCTP,     TASK_PRIORITY_MED,       200, NULL)  \
   TASK_DEF(TASK_MAX,      TASK_PRIORITY_MED,       200, NULL)

@@ -11,6 +11,7 @@
 #include "phy.h"
 #include "prach_work.h"
 #include "txrx.h"
+#include "srsran/phy/utils/phy_logger.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "phy"
@@ -302,6 +303,8 @@ uint32_t get_buffer_len()
 int phy_init(void)
 {
 	phy_manager_init();
+
+	srsran_phy_log_register_handler(true);
 
 	phy_args_t *args = &gnb_manager_self()->args.phy;
 	phy_cfg_t *cfg = &gnb_manager_self()->phy_cfg;

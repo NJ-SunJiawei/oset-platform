@@ -33,17 +33,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "oset-core.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
-typedef enum { LOG_LEVEL_INFO_S, LOG_LEVEL_DEBUG_S, LOG_LEVEL_ERROR_S } phy_logger_level_t;
+typedef enum {LOG_LEVEL_ERROR_S= 3, LOG_LEVEL_INFO_S = 6, LOG_LEVEL_DEBUG_S = 7,} phy_logger_level_t;
 
-typedef void (*phy_log_handler_t)(phy_logger_level_t log_level, void* ctx, char* str);
+#define srsran_phy_log_print(log_level, fmt, ...) \
+	    oset_log2_printf(OSET_CHANNEL_ID_LOG, OSET_LOG2_DOMAIN, __FILE__, __OSET_FUNC__, __LINE__, NULL, log_level, fmt ,##__VA_ARGS__)
 
-void srsran_phy_log_register_handler(void* ctx, phy_log_handler_t handler);
-
-void srsran_phy_log_print(phy_logger_level_t log_level, const char* format, ...);
+void srsran_phy_log_register_handler(bool oset_print);
 
 #ifdef __cplusplus
 }

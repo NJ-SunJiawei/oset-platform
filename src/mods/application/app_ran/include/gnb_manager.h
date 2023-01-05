@@ -38,8 +38,9 @@ typedef struct gnb_manager_s{
 
 void gnb_manager_init(void);
 void gnb_manager_destory(void);
-int create_gnb_layer_tasks(void);
-void destory_gnb_layer_tasks(void);
+void gnb_layer_tasks_args_init(void);
+int gnb_layer_tasks_create(void);
+void gnb_layer_tasks_destory(void);
 
 #ifdef __cplusplus
 }
