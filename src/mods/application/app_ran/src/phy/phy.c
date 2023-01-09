@@ -95,7 +95,7 @@ static void phy_parse_common_config(const phy_cfg_t *cfg)
 static bool init_slot_worker(const slot_worker_args_t *args)
 {
 	// Calculate subframe length
-	phy_manager.slot_worker.sf_len = (uint32_t)(args->srate_hz / 1000.0);
+	phy_manager.slot_worker.sf_len = (uint32_t)(args->srate_hz / 1000.0);//1/(15000*2048)~15symbol*2048FFT
 
 	// Copy common configurations
 	phy_manager.slot_worker.cell_index = args->cell_index;
@@ -114,7 +114,7 @@ static bool init_slot_worker(const slot_worker_args_t *args)
 	// Allocate Rx buffers
 	phy_manager.slot_worker.rx_buffer = (cf_t **)oset_malloc(args->nof_rx_ports*sizeof(cf_t *));
 	for (uint32_t i = 0; i < args->nof_rx_ports; i++) {
-	  phy_manager.slot_worker.rx_buffer[i] = srsran_vec_cf_malloc(sf_len);
+	  phy_manager.slot_worker.rx_buffer[i] = srsran_vec_cf_malloc(phy_manager.slot_worker.sf_len);
 	  if (phy_manager.slot_worker.rx_buffer[i] == NULL) {
 		oset_error("Error allocating Rx buffer");
 		return false;
@@ -185,7 +185,7 @@ static int init_nr(const phy_args_t& args, const phy_cfg_t& cfg)
   if(args->nr_pusch_max_its)   phy_manager.slot_args.pusch_max_its = args->nr_pusch_max_its;
 
   if (0 == phy_manager.slot_args.srate_hz) {
-     phy_manager.slot_args.srate_hz = SRSRAN_SUBC_SPACING_NR(cell_nr->carrier.scs) * srsran_min_symbol_sz_rb(cell_nr->carrier.nof_prb);
+     phy_manager.slot_args.srate_hz = SRSRAN_SUBC_SPACING_NR(cell_nr->carrier.scs) * srsran_min_symbol_sz_rb(cell_nr->carrier.nof_prb);//15k*2048=30.72MHz
   }
 
   if(!init_slot_worker(&phy_manager.slot_args)) return OSET_ERROR;

@@ -188,186 +188,6 @@ static bool open_dev(const uint32_t device_idx, const char *device_name, const c
   return true;
 }
 
-
-int rf_init(void)
-{
-	rf_manager_init();
-
-    int i = -1;
-	rf_args_t *args = &gnb_manager_self()->args.rf;
-
-	if (args->nof_antennas > SRSRAN_MAX_PORTS) {
-	  oset_error("Maximum number of antennas exceeded (%d > %d)", args->nof_antennas, SRSRAN_MAX_PORTS);
-	  return OSET_ERROR;
-	}
-	
-	if (args->nof_carriers > SRSRAN_MAX_CARRIERS) {
-	  oset_error("Maximum number of carriers exceeded (%d > %d)", args->nof_carriers, SRSRAN_MAX_CARRIERS);
-	  return OSET_ERROR;
-	}
-	
-	if (!config_rf_channels(args)) {
-	  oset_error("Error configuring RF channels");
-	  return OSET_ERROR;
-	}
-
-	rf_manager.nof_channels = args->nof_antennas * args->nof_carriers;
-	rf_manager.nof_antennas = args->nof_antennas;
-	rf_manager.nof_carriers = args->nof_carriers;
-	rf_manager.fix_srate_hz = args->srate_hz;
-
-	rf_manager.nof_device_args = oset_split(args->device_args, ';', rf_manager.device_args_list);
-	// Add auto if list is empty
-    if(0 == rf_manager.nof_device_args){
-		rf_manager.nof_device_args = 1;
-		rf_manager.device_args_list[0] = "auto";
-	}
-
-	// Avoid opening more RF devices than necessary
-	if (rf_manager.nof_channels < rf_manager.nof_device_args) {
-	   rf_manager.nof_device_args = rf_manager.nof_channels;
-	}
-
-	// Makes sure it is possible to have the same number of RF channels in each RF device
-	if (rf_manager.nof_channels % rf_manager.nof_device_args != 0) {
-		oset_error(
-		    "Error: The number of required RF channels (%d) is not divisible between the number of RF devices (%zd).\n",
-		    rf_manager.nof_channels,
-		    rf_manager.nof_device_args);
-	    return OSET_ERROR;
-	}
-    rf_manager.nof_channels_x_dev = rf_manager.nof_channels / rf_manager.nof_device_args;   
-
-	// Allocate RF devices
-	rf_manager.tx_channel_mapping.nof_channels_x_dev = rf_manager.nof_channels_x_dev;
-	rf_manager.tx_channel_mapping.nof_antennas = rf_manager.nof_antennas;
-
-	rf_manager.rx_channel_mapping.nof_channels_x_dev = rf_manager.nof_channels_x_dev;
-	rf_manager.rx_channel_mapping.nof_antennas = rf_manager.nof_antennas;
-
-
-	// Init and start Radios
-	if (strcmp(args->device_name ,"file") || strcmp(rf_manager.device_args_list[0] ,"auto")) {
-	  // regular RF device
-	  for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_manager.nof_device_args; device_idx++) {
-		if (not open_dev(device_idx, args->device_name, rf_manager.device_args_list[device_idx])) {
-		  oset_error("Error opening RF device %d", device_idx);
-		  return OSET_ERROR;
-		}
-	  }
-	} else {
-	  // file-based RF device abstraction using pre-opened FILE* objects
-	  if (args->rx_files == nullptr && args->tx_files == nullptr) {
-		oset_error("File-based RF device abstraction requested, but no files provided");
-		return OSET_ERROR;
-	  }
-	  for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_manager.nof_device_args; device_idx++) {
-		if (not open_file_dev(device_idx,
-						 &args->rx_files[device_idx * rf_manager.nof_channels_x_dev],
-						 &args->tx_files[device_idx * rf_manager.nof_channels_x_dev],
-						 rf_manager.nof_channels_x_dev,
-						 args->srate_hz)) {
-		  oset_error("Error opening RF device %d", device_idx);
-		  return OSET_ERROR;
-		}
-	  }
-	}
-	
-	rf_manager.is_start_of_burst = true;
-	rf_manager.is_initialized	 = true;
-
-	// Set RF options
-	rf_manager.tx_adv_auto = true;
-	if (args->time_adv_nsamples != "auto") {
-	  int t = (int)strtol(args->time_adv_nsamples, nullptr, 10);
-	  set_tx_adv(abs(t));
-	  set_tx_adv_neg(t < 0);
-	}
-	rf_manager.continuous_tx = true;
-	if (args->continuous_tx != "auto") {
-	  rf_manager.continuous_tx = (args->continuous_tx == "yes");
-	}
-	
-	// Set fixed gain options
-	if (args->rx_gain < 0) {
-	  start_agc(false);
-	} else {
-	  set_rx_gain(args->rx_gain);
-	}
-	// Set gain for all channels
-	if (args->tx_gain > 0) {
-	  set_tx_gain(args->tx_gain);
-	} else {
-	  // Set same gain than for RX until power control sets a gain
-	  set_tx_gain(args->rx_gain);
-	  oset_info("\nWarning: TX gain was not set. Using open-loop power control (not working properly)");
-	}
-	
-	// Set individual gains
-	for (uint32_t i = 0; i < args->nof_carriers; i++) {
-	  if (args->tx_gain_ch[i] > 0) {
-		for (uint32_t j = 0; j < rf_manager.nof_antennas; j++) {
-		  uint32_t phys_antenna_idx = i * rf_manager.nof_antennas + j;
-	
-		  // From channel number deduce RF device index and channel
-		  uint32_t rf_device_idx  = phys_antenna_idx / rf_manager.nof_channels_x_dev;
-		  uint32_t rf_channel_idx = phys_antenna_idx % rf_manager.nof_channels_x_dev;
-	
-		  oset_info("Setting individual tx_gain=%.1f on dev=%d ch=%d", args->tx_gain_ch[i], rf_device_idx, rf_channel_idx);
-		  if (srsran_rf_set_tx_gain_ch(&rf_manager.rf_devices[rf_device_idx], rf_channel_idx, args->tx_gain_ch[i]) < 0) {
-			oset_error("Setting channel tx_gain=%.1f on dev=%d ch=%d", args->tx_gain_ch[i], rf_device_idx, rf_channel_idx);
-		  }
-		}
-	  }
-	}
-	
-	// Set individual gains
-	for (uint32_t i = 0; i < args->nof_carriers; i++) {
-	  if (args->rx_gain_ch[i] > 0) {
-		for (uint32_t j = 0; j < rf_manager.nof_antennas; j++) {
-		  uint32_t phys_antenna_idx = i * rf_manager.nof_antennas + j;
-	
-		  // From channel number deduce RF device index and channel
-		  uint32_t rf_device_idx  = phys_antenna_idx / rf_manager.nof_channels_x_dev;
-		  uint32_t rf_channel_idx = phys_antenna_idx % rf_manager.nof_channels_x_dev;
-	
-		  oset_info("Setting individual rx_gain=%.1f on dev=%d ch=%d", args->rx_gain_ch[i], rf_device_idx, rf_channel_idx);
-		  if (srsran_rf_set_rx_gain_ch(&rf_manager.rf_devices[rf_device_idx], rf_channel_idx, args->rx_gain_ch[i]) < 0) {
-			 oset_error("Setting channel rx_gain=%.1f on dev=%d ch=%d", args->rx_gain_ch[i], rf_device_idx, rf_channel_idx);
-		  }
-		}
-	  }
-	}
-	
-	// It is not expected that any application tries to receive more than max_resamp_buf_sz_ms
-	if (rf_manager.fix_srate_hz) {
-	  int resamp_buf_sz = (rf_manager.max_resamp_buf_sz_ms * rf_manager.fix_srate_hz) / 1000;
-	  for (i = 0; i< SRSRAN_MAX_CHANNELS; ++i) {
-		rf_manager.rx_buffer[i] = (cf_t *)oset_malloc(resamp_buf_sz*sizeof(cf_t));
-	  }
-	  for (i = 0; i< SRSRAN_MAX_CHANNELS; ++i) {
-		rf_manager.tx_buffer[i] = (cf_t *)oset_malloc(resamp_buf_sz*sizeof(cf_t));
-	  }
-	}
-	
-	// Frequency offset
-	rf_manager.freq_offset = args->freq_offset;
-
-
-	rf_manager.zeros = (cf_t *)oset_malloc(SRSRAN_SF_LEN_MAX*sizeof(cf_t));
-
-	for (i = 0; i < SRSRAN_MAX_CHANNELS; ++i) {
-	  rf_manager.dummy_buffers[i] = (cf_t *)oset_malloc(SRSRAN_SF_LEN_MAX * SRSRAN_NOF_SF_X_FRAME*sizeof(cf_t));
-	}
-
-	oset_apr_mutex_init(&rf_manager.tx_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
-    oset_apr_mutex_init(&rf_manager.rx_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
-    oset_apr_mutex_init(&rf_manager.metrics_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
-
-	oset_info("radio layer init success");
-	return OSET_OK;
-}
-
 void set_rx_freq(const uint32_t carrier_idx, const double freq)
 {
   if (!rf_manager.is_initialized) {
@@ -687,6 +507,185 @@ void release_freq(const uint32_t carrier_idx)
   release_freq_(&rf_manager.tx_channel_mapping, carrier_idx);
 }
 
+int rf_init(void)
+{
+	rf_manager_init();
+
+    int i = -1;
+	rf_args_t *args = &gnb_manager_self()->args.rf;
+
+	if (args->nof_antennas > SRSRAN_MAX_PORTS) {
+	  oset_error("Maximum number of antennas exceeded (%d > %d)", args->nof_antennas, SRSRAN_MAX_PORTS);
+	  return OSET_ERROR;
+	}
+	
+	if (args->nof_carriers > SRSRAN_MAX_CARRIERS) {
+	  oset_error("Maximum number of carriers exceeded (%d > %d)", args->nof_carriers, SRSRAN_MAX_CARRIERS);
+	  return OSET_ERROR;
+	}
+	
+	if (!config_rf_channels(args)) {
+	  oset_error("Error configuring RF channels");
+	  return OSET_ERROR;
+	}
+
+	rf_manager.nof_channels = args->nof_antennas * args->nof_carriers;
+	rf_manager.nof_antennas = args->nof_antennas;
+	rf_manager.nof_carriers = args->nof_carriers;
+	rf_manager.fix_srate_hz = args->srate_hz;
+
+	rf_manager.nof_device_args = oset_split(args->device_args, ';', rf_manager.device_args_list);
+	// Add auto if list is empty
+    if(0 == rf_manager.nof_device_args){
+		rf_manager.nof_device_args = 1;
+		rf_manager.device_args_list[0] = "auto";
+	}
+
+	// Avoid opening more RF devices than necessary
+	if (rf_manager.nof_channels < rf_manager.nof_device_args) {
+	   rf_manager.nof_device_args = rf_manager.nof_channels;
+	}
+
+	// Makes sure it is possible to have the same number of RF channels in each RF device
+	if (rf_manager.nof_channels % rf_manager.nof_device_args != 0) {
+		oset_error(
+		    "Error: The number of required RF channels (%d) is not divisible between the number of RF devices (%zd).\n",
+		    rf_manager.nof_channels,
+		    rf_manager.nof_device_args);
+	    return OSET_ERROR;
+	}
+    rf_manager.nof_channels_x_dev = rf_manager.nof_channels / rf_manager.nof_device_args;   
+
+	// Allocate RF devices
+	rf_manager.tx_channel_mapping.nof_channels_x_dev = rf_manager.nof_channels_x_dev;
+	rf_manager.tx_channel_mapping.nof_antennas = rf_manager.nof_antennas;
+
+	rf_manager.rx_channel_mapping.nof_channels_x_dev = rf_manager.nof_channels_x_dev;
+	rf_manager.rx_channel_mapping.nof_antennas = rf_manager.nof_antennas;
+
+
+	// Init and start Radios
+	if (strcmp(args->device_name ,"file") || strcmp(rf_manager.device_args_list[0] ,"auto")) {
+	  // regular RF device
+	  for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_manager.nof_device_args; device_idx++) {
+		if (not open_dev(device_idx, args->device_name, rf_manager.device_args_list[device_idx])) {
+		  oset_error("Error opening RF device %d", device_idx);
+		  return OSET_ERROR;
+		}
+	  }
+	} else {
+	  // file-based RF device abstraction using pre-opened FILE* objects
+	  if (args->rx_files == nullptr && args->tx_files == nullptr) {
+		oset_error("File-based RF device abstraction requested, but no files provided");
+		return OSET_ERROR;
+	  }
+	  for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_manager.nof_device_args; device_idx++) {
+		if (not open_file_dev(device_idx,
+						 &args->rx_files[device_idx * rf_manager.nof_channels_x_dev],
+						 &args->tx_files[device_idx * rf_manager.nof_channels_x_dev],
+						 rf_manager.nof_channels_x_dev,
+						 args->srate_hz)) {
+		  oset_error("Error opening RF device %d", device_idx);
+		  return OSET_ERROR;
+		}
+	  }
+	}
+	
+	rf_manager.is_start_of_burst = true;
+	rf_manager.is_initialized	 = true;
+
+	// Set RF options
+	rf_manager.tx_adv_auto = true;
+	if (args->time_adv_nsamples != "auto") {
+	  int t = (int)strtol(args->time_adv_nsamples, nullptr, 10);
+	  set_tx_adv(abs(t));
+	  set_tx_adv_neg(t < 0);
+	}
+	rf_manager.continuous_tx = true;
+	if (args->continuous_tx != "auto") {
+	  rf_manager.continuous_tx = (args->continuous_tx == "yes");
+	}
+	
+	// Set fixed gain options
+	if (args->rx_gain < 0) {
+	  start_agc(false);
+	} else {
+	  set_rx_gain(args->rx_gain);
+	}
+	// Set gain for all channels
+	if (args->tx_gain > 0) {
+	  set_tx_gain(args->tx_gain);
+	} else {
+	  // Set same gain than for RX until power control sets a gain
+	  set_tx_gain(args->rx_gain);
+	  oset_info("\nWarning: TX gain was not set. Using open-loop power control (not working properly)");
+	}
+	
+	// Set individual gains
+	for (uint32_t i = 0; i < args->nof_carriers; i++) {
+	  if (args->tx_gain_ch[i] > 0) {
+		for (uint32_t j = 0; j < rf_manager.nof_antennas; j++) {
+		  uint32_t phys_antenna_idx = i * rf_manager.nof_antennas + j;
+	
+		  // From channel number deduce RF device index and channel
+		  uint32_t rf_device_idx  = phys_antenna_idx / rf_manager.nof_channels_x_dev;
+		  uint32_t rf_channel_idx = phys_antenna_idx % rf_manager.nof_channels_x_dev;
+	
+		  oset_info("Setting individual tx_gain=%.1f on dev=%d ch=%d", args->tx_gain_ch[i], rf_device_idx, rf_channel_idx);
+		  if (srsran_rf_set_tx_gain_ch(&rf_manager.rf_devices[rf_device_idx], rf_channel_idx, args->tx_gain_ch[i]) < 0) {
+			oset_error("Setting channel tx_gain=%.1f on dev=%d ch=%d", args->tx_gain_ch[i], rf_device_idx, rf_channel_idx);
+		  }
+		}
+	  }
+	}
+	
+	// Set individual gains
+	for (uint32_t i = 0; i < args->nof_carriers; i++) {
+	  if (args->rx_gain_ch[i] > 0) {
+		for (uint32_t j = 0; j < rf_manager.nof_antennas; j++) {
+		  uint32_t phys_antenna_idx = i * rf_manager.nof_antennas + j;
+	
+		  // From channel number deduce RF device index and channel
+		  uint32_t rf_device_idx  = phys_antenna_idx / rf_manager.nof_channels_x_dev;
+		  uint32_t rf_channel_idx = phys_antenna_idx % rf_manager.nof_channels_x_dev;
+	
+		  oset_info("Setting individual rx_gain=%.1f on dev=%d ch=%d", args->rx_gain_ch[i], rf_device_idx, rf_channel_idx);
+		  if (srsran_rf_set_rx_gain_ch(&rf_manager.rf_devices[rf_device_idx], rf_channel_idx, args->rx_gain_ch[i]) < 0) {
+			 oset_error("Setting channel rx_gain=%.1f on dev=%d ch=%d", args->rx_gain_ch[i], rf_device_idx, rf_channel_idx);
+		  }
+		}
+	  }
+	}
+	
+	// It is not expected that any application tries to receive more than max_resamp_buf_sz_ms
+	if (rf_manager.fix_srate_hz) {
+	  int resamp_buf_sz = (rf_manager.max_resamp_buf_sz_ms * rf_manager.fix_srate_hz) / 1000;
+	  for (i = 0; i< SRSRAN_MAX_CHANNELS; ++i) {
+		rf_manager.rx_buffer[i] = (cf_t *)oset_malloc(resamp_buf_sz*sizeof(cf_t));
+	  }
+	  for (i = 0; i< SRSRAN_MAX_CHANNELS; ++i) {
+		rf_manager.tx_buffer[i] = (cf_t *)oset_malloc(resamp_buf_sz*sizeof(cf_t));
+	  }
+	}
+	
+	// Frequency offset
+	rf_manager.freq_offset = args->freq_offset;
+
+
+	rf_manager.zeros = (cf_t *)oset_malloc(SRSRAN_SF_LEN_MAX*sizeof(cf_t));
+
+	for (i = 0; i < SRSRAN_MAX_CHANNELS; ++i) {
+	  rf_manager.dummy_buffers[i] = (cf_t *)oset_malloc(SRSRAN_SF_LEN_MAX * SRSRAN_NOF_SF_X_FRAME*sizeof(cf_t));//rf rx buffer ~ 10*(15*2048)
+	}
+
+	oset_apr_mutex_init(&rf_manager.tx_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
+    oset_apr_mutex_init(&rf_manager.rx_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
+    oset_apr_mutex_init(&rf_manager.metrics_mutex, OSET_MUTEX_NESTED, rf_manager.app_pool);
+
+	oset_info("radio layer init success");
+	return OSET_OK;
+}
+
 int rf_destory(void)
 {
     int i = -1;
@@ -721,5 +720,134 @@ int rf_destory(void)
 	rf_manager_destory();
 	oset_info("radio layer destory success");
     return OSET_OK;
+}
+
+
+bool rx_dev(const uint32_t device_idx, rf_buffer_t *buffer, srsran_timestamp_t* rxd_time)
+{
+  if (!rf_manager.is_initialized) {
+    return false;
+  }
+
+  time_t* full_secs = rxd_time ? &rxd_time->full_secs : NULL;
+  double* frac_secs = rxd_time ? &rxd_time->frac_secs : NULL;
+
+  void* radio_buffers[SRSRAN_MAX_CHANNELS] = {};
+
+  // Discard channels not allocated, need to point to valid buffer
+  for (uint32_t i = 0; i < SRSRAN_MAX_CHANNELS; i++) {
+    radio_buffers[i] = rf_manager.dummy_buffers[i];//rf dev buf map
+  }
+
+  if (not map_channels(rx_channel_mapping, device_idx, 0, buffer, radio_buffers)) {
+    logger.error("Mapping logical channels to physical channels for transmission");
+    return false;
+  }
+
+  // Apply Rx offset into the number of samples and reset value
+  int      nof_samples_offset = rx_offset_n.at(device_idx);
+  uint32_t nof_samples        = buffer.get_nof_samples();
+
+  // Number of samples adjust from device time offset
+  if (nof_samples_offset < 0 and (uint32_t)(-nof_samples_offset) > nof_samples) {
+    // Avoid overflow subtraction
+    nof_samples = 0;
+  } else {
+    // Limit the number of samples to a maximum of 2 times the requested number of samples
+    nof_samples = SRSRAN_MIN(nof_samples + nof_samples_offset, 2 * nof_samples);
+  }
+
+  // Subtract number of offset samples
+  rx_offset_n.at(device_idx) = nof_samples_offset - ((int)nof_samples - (int)buffer.get_nof_samples());
+
+  int ret =
+      srsran_rf_recv_with_time_multi(&rf_devices[device_idx], radio_buffers, nof_samples, true, full_secs, frac_secs);
+
+  // If the number of received samples filled the buffer, there is nothing else to do
+  if (buffer.get_nof_samples() <= nof_samples) {
+    return ret > 0;
+  }
+
+  // Otherwise, set rest of buffer to zero
+  uint32_t nof_zeros = buffer.get_nof_samples() - nof_samples;
+  for (auto& b : radio_buffers) {
+    if (b != nullptr) {
+      cf_t* ptr = (cf_t*)b;
+      srsran_vec_cf_zero(&ptr[nof_samples], nof_zeros);
+    }
+  }
+
+  return ret > 0;
+}
+
+bool rx_now(rf_buffer_t *buffer, rf_timestamp_t *rxd_time)
+{
+  //std::unique_lock<std::mutex> lock(rx_mutex);
+  int   i = -1;
+  bool                         ret = true;
+  rf_buffer_t                  buffer_rx = {0};
+  int resamp_buf_sz = (rf_manager.max_resamp_buf_sz_ms * rf_manager.fix_srate_hz) / 1000;
+
+  // Extract decimation ratio. As the decimation may take some time to set a new ratio, deactivate the decimation and
+  // keep receiving samples to avoid stalling the RX stream
+  uint32_t ratio = 1; // No decimation by default
+  if (rf_manager.decimator_busy) {
+    //oset_apr_mutex_unlock(rf_manager.rx_mutex);//???
+  } else if (rf_manager.decimators[0].ratio > 1) {
+    ratio = rf_manager.decimators[0].ratio;
+  }
+
+  // Calculate number of samples, considering the decimation ratio
+  uint32_t nof_samples = buffer->nof_samples * ratio;
+
+  // Check decimation buffer protection
+  if (ratio > 1 && nof_samples > resamp_buf_sz) {
+    // This is a corner case that could happen during sample rate change transitions, as it does not have a negative
+    // impact, log it as info.
+    oset_info("Rx number of samples ({}/{}) exceeds buffer size ({})",
+                   buffer->nof_samples,
+                   buffer->nof_samples * ratio,
+                   resamp_buf_sz);
+    // Limit number of samples to receive
+    nof_samples = resamp_buf_sz;
+  }
+
+  // Set new buffer size
+  buffer_rx.nof_samples= nof_samples;
+
+  // If the interpolator have been set, interpolate
+  for (uint32_t ch = 0; ch < rf_manager.nof_channels; ch++) {
+    // Use rx buffer if decimator is required
+	buffer_rx.sample_buffer[ch] = (ratio > 1 ? rf_manager.rx_buffer[ch] : buffer->sample_buffer[ch]);//?  :slot buffer
+  }
+
+  if (!rf_manager.radio_is_streaming) {
+	for (i = 0; i < rf_manager.nof_device_args; ++i) {
+      srsran_rf_start_rx_stream(&rf_manager.rf_devices[i], false);
+    }
+    rf_manager.radio_is_streaming = true;
+
+    // Flush buffers to compensate settling time
+    if (rf_manager.nof_device_args > 1) {
+	  for (i = 0; i < rf_manager.nof_device_args; ++i) {
+        srsran_rf_flush_buffer(&rf_manager.rf_devices[i]);
+      }
+    }
+  }
+
+  for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_manager.nof_device_args; device_idx++) {
+    ret &= rx_dev(device_idx, &buffer_rx, rxd_time->timestamps[device_idx]); //dev access
+  }
+
+  // Perform decimation
+  if (ratio > 1) {
+    for (uint32_t ch = 0; ch < rf_manager.nof_channels; ch++) {
+      if (buffer->sample_buffer[ch] && buffer_rx.sample_buffer[ch]) {//buffer out
+        srsran_resampler_fft_run(&rf_manager.decimators[ch], buffer_rx.sample_buffer[ch], buffer->sample_buffer[ch], buffer_rx.nof_samples;
+      }
+    }
+  }
+
+  return ret;
 }
 

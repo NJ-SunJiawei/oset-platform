@@ -27,8 +27,7 @@ typedef struct rf_timestamp_s{
 
 typedef struct rf_buffer_s{
 	cf_t                                   *sample_buffer[SRSRAN_MAX_CHANNELS];
-	bool								   allocated;
-	uint32_t							   nof_subframes;
+	//uint32_t							   nof_subframes;
 	uint32_t							   nof_samples;
 }rf_buffer_t;
 
@@ -51,7 +50,7 @@ typedef struct rf_manager_s{
 	rf_metrics_t		rf_metrics;
 	oset_apr_mutex_t	*metrics_mutex;
 	cf_t             	*zeros;
-	cf_t		        *dummy_buffers[SRSRAN_MAX_CHANNELS];
+	cf_t		        *dummy_buffers[SRSRAN_MAX_CHANNELS];//rf rx buffer ~ 1 frame len
 	oset_apr_mutex_t	*tx_mutex;
 	oset_apr_mutex_t	*rx_mutex;
 	cf_t                *tx_buffer[SRSRAN_MAX_CHANNELS];
@@ -74,7 +73,7 @@ typedef struct rf_manager_s{
 	double			  cur_rx_srate;
 	double			  fix_srate_hz;//Force Tx and Rx sampling rate in Hz
 	uint32_t		  nof_antennas;
-	uint32_t		  nof_channels;
+	uint32_t		  nof_channels;//logical channel
 	uint32_t		  nof_channels_x_dev;
 	uint32_t		  nof_carriers;
 	
@@ -105,6 +104,7 @@ void set_tx_srate(const double srate);
 void release_freq(const uint32_t carrier_idx);
 void set_rx_freq(const uint32_t carrier_idx, const double freq);
 void set_tx_freq(const uint32_t carrier_idx, const double freq);
+bool rx_now(rf_buffer_t *buffer, rf_timestamp_t *rxd_time);
 
 #ifdef __cplusplus
 }

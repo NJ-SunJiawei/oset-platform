@@ -99,7 +99,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		phy_manager_self()->tti = TTI_ADD(phy_manager_self()->tti, 1);
 	    
 		if ((NULL == phy_manager_self()->slot_worker.th_pools) || (get_nof_carriers_nr() <= 0)) {
-			oset_error("%s run error",__OSET_FUNC__);
+			oset_error("%s run error",OSET_FILE_LINE);
 			break;
 		}
 
@@ -113,19 +113,21 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 
 		// Multiple cell buffer mapping
 		{
-		  uint32_t cc = 0;
-		  for (uint32_t cc_nr = 0; cc_nr < get_nof_carriers_nr(); cc_nr++, cc++) {
-			uint32_t rf_port = get_rf_port(cc);
+		  for (uint32_t cc_nr = 0; cc_nr < get_nof_carriers_nr(); cc_nr++) {
+			uint32_t rf_port = get_rf_port(cc_nr);
 		
-			for (uint32_t p = 0; p < get_nof_ports(cc); p++) {
-			  // WARNING:
-			  // - The number of ports for all cells must be the same
-			  // - Only one NR cell is currently supported
-				buffer.set(rf_port, p, worker_com->get_nof_ports(0), get_buffer_rx(p));
+			for (uint32_t p = 0; p < get_nof_ports(cc_nr); p++) {
+			    // WARNING:
+			    // - The number of ports for all cells must be the same
+			    // - Only one NR cell is currently supported
+			    //channel_idx = logical_ch * nof_antennas + port_idx
+				buffer.sample_buffer[rf_port * get_nof_ports(0) + p] = get_buffer_rx(p);//Logical Port=Physical Port Mapping
 			}
 		  }
 		}
 
+        buffer.nof_samples = sf_len;
+		rx_now(&buffer, &timestamp)
 
 	}
 }

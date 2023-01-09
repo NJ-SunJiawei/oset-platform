@@ -483,7 +483,7 @@ struct mac_main_cfg_s {
 
 /*******************phy_cell_cfg_nr_t************************/
 typedef struct phy_cell_cfg_nr_s {
-  srsran_carrier_nr_t carrier;
+  srsran_carrier_nr_t carrier;//phy cell
   uint32_t            rf_port;
   uint32_t            cell_id;
   float               gain_db;

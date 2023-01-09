@@ -35,8 +35,8 @@ typedef struct {
 typedef struct {
   uint32_t					  cell_index;
   uint32_t					  nof_max_prb;
-  uint32_t					  nof_tx_ports;//SRSRAN_MAX_PORTS
-  uint32_t					  nof_rx_ports;//SRSRAN_MAX_PORTS
+  uint32_t					  nof_tx_ports;//1
+  uint32_t					  nof_rx_ports;//1
   uint32_t					  rf_port;
   srsran_subcarrier_spacing_t scs;
   uint32_t					  pusch_max_its;
@@ -55,8 +55,8 @@ typedef struct slot_worker_s{
 	srsran_pdcch_cfg_nr_t pdcch_cfg;
 	srsran_gnb_dl_t 	  gnb_dl;
 	srsran_gnb_ul_t 	  gnb_ul;
-	cf_t                  **tx_buffer; ///< Baseband transmit buffers
-	cf_t                  **rx_buffer; ///< Baseband receive buffers
+	cf_t                  **tx_buffer; ///< Baseband transmit buffers ~1 subframe len
+	cf_t                  **rx_buffer; ///< Baseband receive buffers ~1 subframe len
 }slot_worker_t;
 
 typedef struct {

@@ -64,7 +64,7 @@ typedef struct rf_args_band_s{
 
 typedef struct rf_args_s{
   char* 	  type;
-  double	  srate_hz;
+  double	  srate_hz;//Force Tx and Rx sampling rate in Hz
   float 	  dl_freq;
   float 	  ul_freq;
   float 	  freq_offset;
