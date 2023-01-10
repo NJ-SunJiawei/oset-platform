@@ -13,6 +13,8 @@
 #include "oset-core.h"
 #include "channel_mapping.h"
 #include "phy_common.h"
+#include "timestamp.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,7 +61,7 @@ typedef struct rf_manager_s{
 	srsran_resampler_fft_t            decimators[SRSRAN_MAX_CHANNELS];
 	bool         decimator_busy; ///< Indicates the decimator is changing the rate
 	
-	rf_timestamp_t	  end_of_burst_time;
+	srsran_timestamp_t	  end_of_burst_time[SRSRAN_MAX_CHANNELS];//????//rf_timestamp_t    end_of_burst_time
 	bool              is_start_of_burst;
 	uint32_t		  tx_adv_nsamples;
 	double			  tx_adv_sec; // Transmission time advance to compensate for antenna->timestamp delay
@@ -105,6 +107,9 @@ void release_freq(const uint32_t carrier_idx);
 void set_rx_freq(const uint32_t carrier_idx, const double freq);
 void set_tx_freq(const uint32_t carrier_idx, const double freq);
 bool rx_now(rf_buffer_t *buffer, rf_timestamp_t *rxd_time);
+void tx_end();
+void tx_end_nolock();
+bool tx(rf_buffer_t *buffer, rf_timestamp_t *tx_time);
 
 #ifdef __cplusplus
 }

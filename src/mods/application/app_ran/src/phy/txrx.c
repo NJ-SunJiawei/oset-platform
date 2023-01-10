@@ -9,11 +9,55 @@
 #include "gnb_common.h"
 #include "channel_2c.h"
 #include "radio.h"
-#include "phy_util.h"
 #include "txrx.h"
+#include "prach_work.h"
+#include "phy_util.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-txrx"
+
+
+typedef struct worker_context_s {
+  uint32_t		 sf_idx;	   ///< Subframe index
+  void* 		 worker_ptr; ///< Worker pointer for wait/release semaphore
+  bool			 last;   ///< Indicates this worker is the last one in the sub-frame processing
+  rf_timestamp_t tx_time;	   ///< Transmit time, used only by last worker
+}worker_context_t;
+
+static void set_context(worker_context_t *w_ctx)
+{
+	phy_manager_self()->slot_worker.ul_slot_cfg.idx = w_ctx->sf_idx;
+	phy_manager_self()->slot_worker.dl_slot_cfg.idx = TTI_ADD(w_ctx->sf_idx, FDD_HARQ_DELAY_UL_MS);
+    //???w_ctx->sf_idx change
+	phy_manager_self()->slot_worker.context = w_ctx;
+}
+
+
+/*************time util*****************/
+
+/**
+ * Add a given amount of seconds to all the timestamps
+ * @param secs number of seconds
+ */
+void timestamp_add(srsran_timestamp_t timestamps[],double secs)
+{
+  for (int i = 0; i < SRSRAN_MAX_CHANNELS; ++i) {
+	srsran_timestamp_add(&timestamps[i], 0, secs);
+  }
+}
+
+/**
+ * Subtract a given amount of seconds to all the timestamps
+ * @param secs number of seconds
+ */
+void timestamp_sub(srsran_timestamp_t timestamps[], double secs)
+{
+  for (int i = 0; i < SRSRAN_MAX_CHANNELS; ++i) {
+	srsran_timestamp_sub(&timestamps[i], 0, secs);
+  }
+}
+
+/*************txrx*****************/
 
 void txrx_stop(void)
 {
@@ -85,6 +129,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 	rf_buffer_t    buffer	 = {0};
 	rf_timestamp_t timestamp = {0};
 	uint32_t	   sf_len	 = SRSRAN_SF_LEN_PRB(get_nof_prb(0));//15khz   5G 1slot
+	worker_context_t context = {0};
 
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting PHY txrx thread");
 
@@ -128,6 +173,32 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 
         buffer.nof_samples = sf_len;
 		rx_now(&buffer, &timestamp)
+
+		if (gnb_manager_self()->ul_channel) {
+		    channel_run(gnb_manager_self()->ul_channel, buffer.sample_buffer, buffer.sample_buffer, sf_len, timestamp.timestamps[0]);
+		}
+
+		// Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time
+		timestamp_add(timestamp.timestamps, FDD_HARQ_DELAY_UL_MS * 1e-3);
+
+		oset_debug("Setting TTI=%d, tx_time=%ld:%f to slot worker pool %p",
+			  phy_manager_self()->tti,
+			  timestamp.timestamps[0].full_secs,
+			  timestamp.timestamps[0].frac_secs,
+			  phy_manager_self()->slot_worker.th_pools);
+
+			  
+	    // Set NR worker context and start
+        memset(&context, 0,sizeof(worker_context_t));
+		context.sf_idx     = phy_manager_self()->tti;
+		context.worker_ptr = phy_manager_self()->slot_worker.th_pools;
+		context.last	   = true;
+		context.tx_time    = timestamp;
+		set_context(&context);
+		
+		// Feed PRACH detection before start processing 
+		prach_new_tti(0, context.sf_idx, get_buffer_rx(0));
+
 
 	}
 }

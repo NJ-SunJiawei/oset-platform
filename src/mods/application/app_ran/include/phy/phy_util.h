@@ -24,6 +24,7 @@ double get_dl_freq_hz(uint32_t cc_idx);
 double get_ssb_freq_hz(uint32_t cc_idx);
 uint32_t get_rf_port(uint32_t cc_idx);
 
+
 #ifdef __cplusplus
 }
 #endif

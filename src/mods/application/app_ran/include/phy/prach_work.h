@@ -26,11 +26,10 @@ typedef struct{
 }sf_buffer;
 
 typedef struct{
-	uint32_t		   cc_idx;
 	srsran_cell_t	   cell;
 	srsran_prach_cfg_t prach_cfg;
 	srsran_prach_t	   prach;
-	sf_buffer*		   current_buffer;
+	sf_buffer		   *current_buffer;
 	float			   max_prach_offset_us;
 	uint32_t		   nof_sf;
 	uint32_t		   sf_cnt;
@@ -41,6 +40,8 @@ int prach_worker_init(uint32_t		   cc_idx,
                              const srsran_cell_t *cell_,
                              const srsran_prach_cfg_t  *prach_cfg_,
                              uint32_t nof_workers_);
+void prach_worker_stop(uint32_t cc_idx);
+int prach_new_tti(uint32_t cc_idx, uint32_t tti_rx, cf_t* buffer_rx);
 void *gnb_prach_task(oset_threadplus_t *thread, void *data);
 
 #ifdef __cplusplus

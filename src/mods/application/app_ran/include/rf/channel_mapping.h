@@ -44,6 +44,7 @@ typedef struct {
 bool allocate_freq(channel_mapping *channel_mapping, const uint32_t logical_ch, const float freq);
 void release_freq_(channel_mapping *channel_mapping, const uint32_t logical_ch);
 device_mapping_t get_device_mapping(channel_mapping *channel_mapping, const uint32_t logical_ch, const uint32_t antenna_idx);
+bool is_allocated(channel_mapping *channel_mapping, const uint32_t logical_ch);
 
 #ifdef __cplusplus
 }

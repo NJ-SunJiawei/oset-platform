@@ -73,3 +73,12 @@ device_mapping_t get_device_mapping(channel_mapping *channel_mapping, const uint
   return {UINT32_MAX, UINT32_MAX, UINT32_MAX};
 }
 
+bool is_allocated(channel_mapping *channel_mapping, const uint32_t logical_ch)
+{
+  //std::lock_guard<std::mutex> lock(mutex);
+  if (channel_mapping->allocated_channels[logical_ch] && (true == channel_mapping->allocated_channels[logical_ch]->used)) {
+  	return true;
+  }
+  return false;
+}
+

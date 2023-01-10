@@ -51,7 +51,7 @@ typedef struct slot_worker_s{
 	uint32_t			rf_port;
 	srsran_slot_cfg_t	dl_slot_cfg;
 	srsran_slot_cfg_t	ul_slot_cfg;
-	//worker_context_t    context;
+	worker_context_t    *context;
 	srsran_pdcch_cfg_nr_t pdcch_cfg;
 	srsran_gnb_dl_t 	  gnb_dl;
 	srsran_gnb_ul_t 	  gnb_ul;
