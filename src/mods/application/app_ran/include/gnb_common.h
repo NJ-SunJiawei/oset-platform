@@ -17,9 +17,10 @@
 #include "lib/common/security.h"
 #include "lib/common/common.h"
 #include "gnb_task_interface.h"
-#include "rrc_interface_types.h"
+#include "common_interface.h"
 #include "srsran/srsran.h"
 
+#include "gnb_interface.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb"

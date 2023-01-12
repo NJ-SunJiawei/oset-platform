@@ -61,13 +61,63 @@ int prach_worker_init(uint32_t		   cc_idx,
 
   prach_work_manager[cc_idx].sf_cnt = 0;
 
+#if defined(ENABLE_GUI) and ENABLE_PRACH_GUI
+  //todo
+#endif // defined(ENABLE_GUI) and ENABLE_PRACH_GUI
+
   return OSET_OK;
 }
 
 void prach_worker_stop(uint32_t cc_idx)
 {
+    //????todo
     oset_pool_final(&pool_buffer[cc_idx]);
 }
+
+int prach_worker_run_tti(uint32_t cc_idx, sf_buffer* b)
+{
+  uint32_t prach_nof_det = 0;
+  if (srsran_prach_tti_opportunity(&prach_work_manager[cc_idx].prach, b->tti, -1)) {
+    // Detect possible PRACHs
+    if (srsran_prach_detect_offset(&prach_work_manager[cc_idx].prach,
+                                   prach_work_manager[cc_idx].prach_cfg.freq_offset,
+                                   &b->samples[prach_work_manager[cc_idx].prach.N_cp],
+                                   prach_work_manager[cc_idx].nof_sf * SRSRAN_SF_LEN_PRB(cell.nof_prb) - prach_work_manager[cc_idx].prach.N_cp,
+                                   prach_work_manager[cc_idx].prach_indices,
+                                   prach_work_manager[cc_idx].prach_offsets,
+                                   prach_work_manager[cc_idx].prach_p2avg,
+                                   &prach_nof_det)) {
+      oset_error("Error detecting PRACH");
+      return SRSRAN_ERROR;
+    }
+
+    if (prach_nof_det) {
+      for (uint32_t i = 0; i < prach_nof_det; i++) {
+        oset_info("PRACH: cc=%d, %d/%d, preamble=%d, offset=%.1f us, peak2avg=%.1f, max_offset=%.1f us",
+                    cc_idx,
+                    i,
+                    prach_nof_det,
+                    prach_work_manager[cc_idx].prach_indices[i],//preamble
+                    prach_work_manager[cc_idx].prach_offsets[i] * 1e6,
+                    prach_work_manager[cc_idx].prach_p2avg[i],
+                    prach_work_manager[cc_idx].max_prach_offset_us);
+
+        if (prach_work_manager[cc_idx].prach_offsets[i] * 1e6 < prach_work_manager[cc_idx].max_prach_offset_us) {
+          // Convert time offset to Time Alignment command
+          uint32_t n_ta = (uint32_t)(prach_work_manager[cc_idx].prach_offsets[i] / (16 * SRSRAN_LTE_TS));
+
+          mac_rach_detected(b->tti, prach_work_manager[cc_idx].prach_indices[i], n_ta); //mac access
+
+#if defined(ENABLE_GUI) and ENABLE_PRACH_GUI
+        //todo
+#endif // defined(ENABLE_GUI) and ENABLE_PRACH_GUI
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 
 int prach_new_tti(uint32_t cc_idx, uint32_t tti_rx, cf_t* buffer_rx)
 {
@@ -84,6 +134,9 @@ int prach_new_tti(uint32_t cc_idx, uint32_t tti_rx, cf_t* buffer_rx)
 		 oset_error("PRACH: Expected available current_buffer");
 		 return -1;
 	   }
+
+       prach_work_manager[cc_idx].current_buffer.cc_id = cc_idx;
+	   
 	   if (prach_work_manager[cc_idx].current_buffer->nof_samples + SRSRAN_SF_LEN_PRB(prach_work_manager[cc_idx].cell.nof_prb) < sf_buffer_sz) {
 		 memcpy(&prach_work_manager[cc_idx].current_buffer->samples[prach_work_manager[cc_idx].sf_cnt * SRSRAN_SF_LEN_PRB(prach_work_manager[cc_idx].cell.nof_prb)],
 				buffer_rx,
@@ -97,14 +150,15 @@ int prach_new_tti(uint32_t cc_idx, uint32_t tti_rx, cf_t* buffer_rx)
 		 return -1;
 	   }
 	   prach_work_manager[cc_idx].sf_cnt++;
-	   if (prach_work_manager[cc_idx].sf_cnt == nof_sf) {
+	   if (prach_work_manager[cc_idx].sf_cnt == prach_work_manager[cc_idx].nof_sf) {
 		 prach_work_manager[cc_idx].sf_cnt = 0;
 		 if (prach_work_manager[cc_idx].nof_workers == 0) {
-		   run_tti(current_buffer);
-		   current_buffer->reset();
-		   buffer_pool.deallocate(current_buffer);
+		   prach_worker_run_tti(cc_idx, prach_work_manager[cc_idx].current_buffer);
+		   oset_pool_free(&pool_buffer, prach_work_manager[cc_idx].current_buffer);
 		 } else {
-		   pending_buffers.push(current_buffer);
+		   oset_ring_queue_put(task_map_self(TASK_PRACH)->msg_queue,\
+		   	                   &prach_work_manager[cc_idx].current_buffer,\
+		   	                   &sizeof(sf_buffer));
 		 }
 	   }
 	 }
@@ -115,14 +169,13 @@ int prach_new_tti(uint32_t cc_idx, uint32_t tti_rx, cf_t* buffer_rx)
 
  void *gnb_prach_task(oset_threadplus_t *thread, void *data)
  {
-	 msg_def_t *received_msg = NULL;
+	 sf_buffer    *current_buffer = NULL;
 	 uint32_t length = 0;
-	 task_map_t *task = task_map_self(TASK_PRACH);
 	 int rv = 0;
 	 oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting PHY prach thread");
  
 	  for ( ;; ){
-		  rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
+		  rv = oset_ring_queue_try_get(task_map_self(TASK_PRACH)->msg_queue, &current_buffer, &length);
 		  if(rv != OSET_OK)
 		  {
 			 if (rv == OSET_DONE)
@@ -132,8 +185,9 @@ int prach_new_tti(uint32_t cc_idx, uint32_t tti_rx, cf_t* buffer_rx)
 				 continue;
 			 }
 		  }
-		  //func
-		  received_msg = NULL;
+		  prach_worker_run_tti(current_buffer->cc_id, current_buffer);
+		  oset_pool_free(&pool_buffer, current_buffer);
+		  current_buffer = NULL;
 		  length = 0;
 	 }
  }

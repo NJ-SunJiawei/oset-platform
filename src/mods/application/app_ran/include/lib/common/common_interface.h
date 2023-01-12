@@ -7,8 +7,8 @@
  *Date: 2022.12
 ************************************************************************/
 
-#ifndef RRC_INTERFACE_TYPES_H_
-#define RRC_INTERFACE_TYPES_H_
+#ifndef COMMON_INTERFACE_H_
+#define COMMON_INTERFACE_H_
 
 #ifdef __cplusplus
 extern "C" {

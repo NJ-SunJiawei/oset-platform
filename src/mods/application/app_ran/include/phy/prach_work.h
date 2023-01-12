@@ -23,9 +23,15 @@ typedef struct{
 	cf_t     samples[sf_buffer_sz];
 	uint32_t nof_samples;
 	uint32_t tti;
+	uint32_t cc_id;//cell_id
 }sf_buffer;
 
+
 typedef struct{
+	uint32_t prach_indices[165];
+	float	 prach_offsets[165];
+	float	 prach_p2avg[165];
+
 	srsran_cell_t	   cell;
 	srsran_prach_cfg_t prach_cfg;
 	srsran_prach_t	   prach;
