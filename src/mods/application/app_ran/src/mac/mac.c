@@ -12,11 +12,6 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-mac"
 
-	
-typedef struct mac_manager_s{
-	oset_apr_memory_pool_t *app_pool;
-}mac_manager_t;
-
 
 static mac_manager_t mac_manager = {0};
 
@@ -40,6 +35,7 @@ static void mac_manager_destory(void)
 void mac_rach_detected(rach_info_t *rach_info)
 {
   uint32_t enb_cc_idx = 0;
+  /*to change*/
   stack_task_queue.push([this, rach_info, enb_cc_idx]() mutable {
 
     uint16_t rnti = alloc_ue(enb_cc_idx);//申请rnti
@@ -51,7 +47,7 @@ void mac_rach_detected(rach_info_t *rach_info)
     }
 
     // Trigger scheduler RACH
-    srsenb::sched_nr_interface::rar_info_t rar_info = {};
+    rar_info_t rar_info = {};
     rar_info.cc                                     = enb_cc_idx;
     rar_info.preamble_idx                           = rach_info.preamble;
     rar_info.temp_crnti                             = rnti;
@@ -74,4 +70,31 @@ void mac_rach_detected(rach_info_t *rach_info)
                     rnti);
   });
 }
+
+
+void *gnb_mac_task(oset_threadplus_t *thread, void *data)
+{
+    msg_def_t *received_msg = NULL;
+	uint32_t length = 0;
+    task_map_t *task = task_map_self(TASK_MAC);
+    int rv = 0;
+	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting MAC layer thread");
+
+     for ( ;; ){
+		 rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
+		 if(rv != OSET_OK)
+		 {
+			if (rv == OSET_DONE)
+				break;
+		 
+			if (rv == OSET_RETRY){
+				continue;
+			}
+		 }
+		 //func
+		 received_msg = NULL;
+		 length = 0;
+	}
+}
+
 

@@ -46,6 +46,7 @@ typedef struct {
   TASK_DEF(TASK_TIMER,    TASK_PRIORITY_MED_LEAST, 200, NULL)  \
   TASK_DEF(TASK_PRACH,	  TASK_PRIORITY_MED,       200, NULL)  \
   TASK_DEF(TASK_TXRX,     TASK_PRIORITY_MIN_PLUS,  200, NULL)  \
+  TASK_DEF(TASK_MAC, 	  TASK_PRIORITY_MED,       200, NULL)  \
   TASK_DEF(TASK_RRC,      TASK_PRIORITY_MED,       200, NULL)  \
   TASK_DEF(TASK_NGAP,     TASK_PRIORITY_MED,       200, NULL)  \
   TASK_DEF(TASK_SCTP,     TASK_PRIORITY_MED,       200, NULL)  \
@@ -149,9 +150,6 @@ msg_def_t *task_alloc_msg(task_id_t origin_task_id, msg_ids_t message_id);
 int task_send_msg(task_id_t destination_task_id, msg_def_t *message);
 int task_thread_create(task_id_t task_id, void *data);
 
-
-/********************************************************/
-void *gnb_timer_task(oset_threadplus_t *thread, void *data);
 #ifdef __cplusplus
 }
 #endif

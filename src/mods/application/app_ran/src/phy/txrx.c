@@ -76,8 +76,8 @@ void txrx_init(void)
     gnb_manager_self()->ul_channel = channel_create(worker_com->params.ul_channel_args));
   }
 
-  if (OSET_ERROR == task_thread_create(TASK_RXTX, NULL)) {
-	oset_error("Create task for gNB rxtx failed");
+  if (OSET_ERROR == task_thread_create(TASK_TXRX, NULL)) {
+	oset_error("Create task for gNB txrx failed");
 	return OSET_ERROR;
   }
 

@@ -70,7 +70,7 @@ int task_queue_end(const task_info_t *tasks)
 
 msg_def_t *task_alloc_msg(task_id_t origin_task_id, msg_ids_t message_id)
 {
-    int size=sizeof(msg_def_t) + messages_info[message_id].size;
+    int size=sizeof(msg_header_t) + messages_info[message_id].size;
     msg_def_t *temp = (msg_def_t *)oset_malloc(size);
     oset_expect_or_return_val(temp, NULL);
     temp->msg_header.message_id = message_id;
@@ -85,6 +85,8 @@ int task_send_msg(task_id_t destination_task_id, msg_def_t *message)
 {
     int ret = OSET_ERROR;
     task_map_t *t=taskmap[destination_task_id];
+
+	message->msg_header.det_task_id = destination_task_id;
     ret = oset_ring_queue_put(t->msg_queue, (uint8_t *)message, message->msg_header.size);
     if (OSET_ERROR == ret) {
 	    oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "task send msg[%s] to %s failed",get_message_name(message->msg_header.message_id), get_task_name(destination_task_id));
@@ -137,33 +139,5 @@ int task_thread_create(task_id_t task_id, void *data)
     /*CPU_SET*/
     /*pthread_attr_setaffinity_np*/
 	return OSET_OK;
-}
-
-void *gnb_timer_task(oset_threadplus_t *thread, void *data)
-{
-    msg_def_t *received_msg = NULL;
-	uint32_t length = 0;
-    task_map_t *task = taskmap[TASK_TIMER];
-    int rv = 0;
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting Timer thread");
-
-    while(gnb_manager_self()->running){
-         oset_timer_mgr_expire(gnb_manager_self()->app_timer);         
-	     for ( ;; ){
-			 rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
-			 if(rv != OSET_OK)
-			 {
-				if (rv == OSET_DONE)
-					return;
-			 
-				if (rv == OSET_RETRY){
-					break;
-				}
-			 }
-			 //func
-			 received_msg = NULL;
-			 length = 0;
-		}
-	}
 }
 
