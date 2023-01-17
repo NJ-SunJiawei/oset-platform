@@ -10,14 +10,16 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-channel"
 
-#include <srsran/phy/channel/channel.h>
+#include "srsran/phy/channel/channel.h"
 #include "channel_2c.h"
 #include "phy_util.h"
+#include "gnb_config_parser.h"
+
 
 using namespace srsran;
 
 
-channel_t *channel_create(srsran::channel::args_t &arg)
+channel_t *channel_create(channel_args_t &arg)
 {
 	channel *channel_helper = channel_ptr(new channel(arg, get_nof_rf_channels()));
     return (channel_t *) channel_helper;

@@ -12,7 +12,7 @@
 
 #include <ctype.h>
 #include <stdint.h>
-#include <string>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {

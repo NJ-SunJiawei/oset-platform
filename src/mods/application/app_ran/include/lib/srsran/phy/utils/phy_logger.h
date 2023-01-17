@@ -27,12 +27,6 @@
 #ifndef SRSRAN_PHY_LOGGER_H
 #define SRSRAN_PHY_LOGGER_H
 
-#include <errno.h>
-#include <pthread.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "oset-core.h"
 
 #ifdef __cplusplus

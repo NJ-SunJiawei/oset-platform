@@ -33,41 +33,42 @@
 
 namespace srsran {
 
+
+struct args_t {
+  // General
+  bool enable;                 // = false
+
+  // AWGN options
+  bool	awgn_enable;           // = false
+  float awgn_signal_power_dBfs;// = 0.0f
+  float awgn_snr_dB;           // = 30.0f
+
+  // Fading options
+  bool		  fading_enable;  // = false
+  char		  *fading_model;  // = "none"
+
+  // High Speed Train options
+  bool	hst_enable;           // = false
+  float hst_fd_hz;            // = 750.0f
+  float hst_period_s;         // = 7.2f
+  float hst_init_time_s;      // = 0.0f
+
+  // Delay options
+  bool	delay_enable;        //	= false
+  float delay_min_us;        //	= 10
+  float delay_max_us;        //	= 100
+  float delay_period_s;      //	= 3600
+  float delay_init_time_s;   // = 0
+
+  // RLF options
+  bool	   rlf_enable;      // = false
+  uint32_t rlf_t_on_ms;     // = 10000
+  uint32_t rlf_t_off_ms;    // = 2000
+};
+
 class channel
 {
 public:
-  struct args_t {
-    // General
-    bool enable = false;
-
-    // AWGN options
-    bool  awgn_enable            = false;
-    float awgn_signal_power_dBfs = 0.0f;
-    float awgn_snr_dB            = 30.0f;
-
-    // Fading options
-    bool        fading_enable = false;
-    char        *fading_model  = "none";
-
-    // High Speed Train options
-    bool  hst_enable      = false;
-    float hst_fd_hz       = 750.0f;
-    float hst_period_s    = 7.2f;
-    float hst_init_time_s = 0.0f;
-
-    // Delay options
-    bool  delay_enable      = false;
-    float delay_min_us      = 10;
-    float delay_max_us      = 100;
-    float delay_period_s    = 3600;
-    float delay_init_time_s = 0;
-
-    // RLF options
-    bool     rlf_enable   = false;
-    uint32_t rlf_t_on_ms  = 10000;
-    uint32_t rlf_t_off_ms = 2000;
-  };
-
   channel(const args_t& channel_args, uint32_t _nof_channels);
   ~channel();
   void set_srate(uint32_t srate);

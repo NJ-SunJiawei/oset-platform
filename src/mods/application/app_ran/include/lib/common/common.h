@@ -14,11 +14,11 @@
 /*******************************************************************************
                               INCLUDES
 *******************************************************************************/
-#include <chrono>
-#include <cstring>
-#include <memory>
+//#include <chrono>
+//#include <cstring>
+#include <memory.h>
 #include <stdint.h>
-#include <string>
+#include <string.h>
 #include <sys/time.h>
 
 /*******************************************************************************

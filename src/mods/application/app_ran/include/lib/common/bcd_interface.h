@@ -10,6 +10,8 @@
 #ifndef COMMON_INTERFACE_H_
 #define COMMON_INTERFACE_H_
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -19,7 +19,6 @@
  *
  */
 
-
 #include "oset-core.h"
 #include <cstdlib>
 #include <srsran/phy/channel/channel.h>
@@ -30,7 +29,7 @@
 
 using namespace srsran;
 
-channel::channel(const channel::args_t& channel_args, uint32_t _nof_channels) :
+channel::channel(args_t& channel_args, uint32_t _nof_channels) :
 {
   int      ret         = SRSRAN_SUCCESS;
   uint32_t srate_max   = (uint32_t)srsran_symbol_sz(SRSRAN_MAX_PRB) * 15000;

@@ -11,16 +11,19 @@
 #define GNB_COMMON_H_
 
 #include "oset-core.h"
+#include "lib/common/security.h"
+#include "lib/common/common.h"
+#include "srsran/srsran.h"
+
 #include "bcd_helper.h"
 #include "util_helper.h"
 #include "band_helper_2c.h"
-#include "lib/common/security.h"
-#include "lib/common/common.h"
+#include "bcd_interface.h"
 #include "gnb_task_interface.h"
-#include "common_interface.h"
-#include "srsran/srsran.h"
 
+#include "buffer_interface.h"
 #include "gnb_interface.h"
+
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb"

@@ -10,7 +10,6 @@
 #define GNB_LAYER_TASK_H_
 
 #include "oset-core.h"
-#include "band_helper_2c.h"
 #include "channel_2c.h"
 #include "gnb_config_parser.h"
 #include "phy_nr_config.h"
@@ -20,6 +19,8 @@
 extern "C" {
 #endif
 #define SRSENB_MAX_UES   64
+
+typedef struct band_helper_t band_helper_t;
 
 typedef struct gnb_manager_s{
 	bool                   running;

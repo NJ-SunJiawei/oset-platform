@@ -11,8 +11,8 @@
 #include "gnb_manager.h"
 
 #include "gnb_timer.h"
-#include "txrx.h"
 #include "prach_work.h"
+#include "txrx.h"
 #include "mac.h"
 #include "rrc.h"
 

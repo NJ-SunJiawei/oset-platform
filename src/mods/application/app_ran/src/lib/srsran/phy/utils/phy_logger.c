@@ -20,14 +20,7 @@
  */
 
 #include "srsran/phy/utils/phy_logger.h"
-#include "srsran/srsran.h"
-#include <errno.h>
-#include <pthread.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
+
 /*********************************************************************
     Functions for external logging
 *********************************************************************/
