@@ -11,7 +11,7 @@
 #define PHY_H_
 
 #include "oset-core.h"
-#include "srsran/srsran.h"
+#include "lib/srsran/srsran.h"
 
 
 #ifdef __cplusplus

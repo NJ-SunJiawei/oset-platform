@@ -7,7 +7,7 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-#include "prach_work.h"
+#include "phy/prach_work.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-prach"

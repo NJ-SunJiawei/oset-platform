@@ -6,11 +6,4 @@
  *Author: create by sunjiawei
  *Date: 2022.12
 ************************************************************************/
-#include "gnb_common.h"
-#include "mac/ue_nr.h"
-
-
-
-#undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-ue_nr"
-
+#include "phy_cfg_nr.h"

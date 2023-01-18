@@ -11,11 +11,12 @@
 #define MAC_H_
 
 #include "oset-core.h"
-#include "buffer_interface.h"
-#include "srsran/srsran.h"
-
-//#include "ue_nr.h"
-//#include "sched_nr.h"
+#include "lib/common/buffer_interface.h"
+#include "lib/srsran/srsran.h"
+#include "lib/common/phy_cfg_nr.h"
+#include "lib/common/mac_pcap.h"
+#include "mac/sched_nr.h"
+//#include "mac/ue_nr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,17 +39,19 @@ typedef struct mac_manager_s{
 	oset_apr_thread_cond_t   *cond;
 	oset_apr_thread_rwlock_t *rwmutex;
 
-	//std::unique_ptr<srsenb::sched_nr> sched;
-	oset_list2_t           *cell_config;//sched_nr_cell_cfg_t
+	mac_nr_args_t		   args;
 
-	
+	// initial UE config, before RRC setup (without UE-dedicated)
+    phy_cfg_nr_t           default_ue_phy_cfg;
+	mac_pcap               *pcap;
+
+	bool                   started;
+	sched_nr               *sched;
+	oset_list2_t           *cell_config;//sched_nr_cell_cfg_t
 	// Map of active UEs
 	oset_list2_t           *ue_db;//SRSENB_MAX_UES  //ue_nr
 	//oset_hash_t            *ue_db_ht;//<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES>
-
-	uint16_t ue_counter;
-
-
+	uint16_t               ue_counter;
 	oset_list2_t           *bcch_dlsch_payload; //sib_info_t
 	byte_buffer_t          *bcch_bch_payload;
 	// Number of rach preambles detected for a CC

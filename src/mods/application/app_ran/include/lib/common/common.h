@@ -65,6 +65,12 @@
 #define SRSRAN_MAX_BUFFER_SIZE_BITS (SRSRAN_MAX_TBSIZE_BITS + SRSRAN_BUFFER_HEADER_OFFSET)
 #define SRSRAN_MAX_BUFFER_SIZE_BYTES (SRSRAN_MAX_TBSIZE_BITS / 8 + SRSRAN_BUFFER_HEADER_OFFSET)
 
+/*******************************************************************************
+                              TYPEDEFS
+*******************************************************************************/
+typedef enum srsran_rat_e { lte, nr, nulltype } srsran_rat_t;
+
+
 #ifdef __cplusplus
 }
 #endif

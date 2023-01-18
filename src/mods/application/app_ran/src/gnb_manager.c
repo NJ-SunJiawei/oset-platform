@@ -11,10 +11,10 @@
 #include "gnb_manager.h"
 
 #include "gnb_timer.h"
-#include "prach_work.h"
-#include "txrx.h"
-#include "mac.h"
-#include "rrc.h"
+#include "phy/prach_work.h"
+#include "phy/txrx.h"
+#include "mac/mac.h"
+#include "rrc/rrc.h"
 
 
 #define NUM_OF_APP_TIMER      2

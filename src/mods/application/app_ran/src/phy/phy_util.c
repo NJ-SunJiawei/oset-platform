@@ -7,7 +7,7 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-#include "phy.h"
+#include "phy/phy.h"
 
 uint32_t get_nof_carriers_nr() { return phy_manager_self()->workers_common.cell_list_nr.count; }
 uint32_t get_nof_carriers() { return phy_manager_self()->workers_common.cell_list_nr.count; }

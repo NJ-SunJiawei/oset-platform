@@ -10,7 +10,7 @@
 #ifndef MAC_METRICS_H_
 #define MAC_METRICS_H_
 
-#include "srsran/phy/common/phy_common.h"
+#include "lib/srsran/phy/common/phy_common.h"
 
 #ifdef __cplusplus
 extern "C" {

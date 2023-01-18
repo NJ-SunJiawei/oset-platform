@@ -10,7 +10,7 @@
 #ifndef RRC_NR_CONFIG_H_
 #define RRC_NR_CONFIG_H_
 
-#include "phy_nr_config.h"
+#include "phy/phy_nr_config.h"
 #include "asn/rrc/ASN_RRC_RLC-Config.h"
 #include "asn/rrc/ASN_RRC_PDCP-Config.h"
 #include "asn/rrc/ASN_RRC_PDCCH-ConfigCommon.h"
@@ -925,6 +925,105 @@ struct ant_info_ded_s {
   enum tx_mode_opts           tx_mode;
   struct codebook_subset_restrict_c_ codebook_subset_restrict;
   struct ue_tx_ant_sel_c_            ue_tx_ant_sel;
+};
+
+
+enum subcarrier_spacing_e { khz15, khz30, khz60, khz120, khz240, spare3, spare2, spare1, nulltype };
+
+// SCS-SpecificCarrier ::= SEQUENCE
+struct scs_specific_carrier_s {
+  bool                 ext;
+  uint16_t             offset_to_carrier;
+  enum subcarrier_spacing_e subcarrier_spacing;
+  uint16_t             carrier_bw;//1
+  // ...
+  // group 0
+  bool     tx_direct_current_location_present;
+  uint16_t tx_direct_current_location;
+};
+
+// NR-NS-PmaxValue ::= SEQUENCE
+struct nr_ns_pmax_value_s {
+  bool    add_pmax_present;
+  int8_t  add_pmax;//-30
+  uint8_t add_spec_emission;
+};
+
+// NR-MultiBandInfo ::= SEQUENCE
+struct nr_multi_band_info_s {
+  bool              freq_band_ind_nr_present;
+  uint16_t          freq_band_ind_nr;//1
+  struct nr_ns_pmax_value_s nr_ns_pmax_list[8];// NR-NS-PmaxList ::= SEQUENCE (SIZE (1..8)) OF NR-NS-PmaxValue
+};
+
+
+// FrequencyInfoDL-SIB ::= SEQUENCE
+struct freq_info_dl_sib_s {
+  // member variables
+  struct nr_multi_band_info_s       freq_band_list[8];//// MultiFrequencyBandListNR-SIB ::= SEQUENCE (SIZE (1..8)) OF NR-MultiBandInfo
+  uint16_t                          offset_to_point_a;
+  struct scs_specific_carrier_s     scs_specific_carrier_list[5];//???5 dyn_array
+};
+
+// BWP ::= SEQUENCE
+struct bwp_s {
+  bool                 cp_present;
+  uint16_t             location_and_bw;
+  subcarrier_spacing_e subcarrier_spacing;
+};
+
+// BWP-DownlinkCommon ::= SEQUENCE
+struct bwp_dl_common_s {
+  bool                                ext;
+  bool                                pdcch_cfg_common_present;
+  bool                                pdsch_cfg_common_present;
+  struct bwp_s                        generic_params;
+  struct pdcch_cfg_common_s           pdcch_cfg_common;
+  struct pdsch_cfg_common_s           pdsch_cfg_common;
+};
+
+// DownlinkConfigCommonSIB ::= SEQUENCE
+struct dl_cfg_common_sib_s {
+  bool               ext;
+  struct freq_info_dl_sib_s freq_info_dl;
+  struct bwp_dl_common_s    init_dl_bwp;
+  struct bcch_cfg_s         bcch_cfg;
+  struct pcch_cfg_s         pcch_cfg;
+};
+
+
+// FrequencyInfoUL-SIB ::= SEQUENCE
+struct freq_info_ul_sib_s {
+  // member variables
+  bool                          ext;
+  bool                          absolute_freq_point_a_present;
+  bool                          p_max_present;
+  bool                          freq_shift7p5khz_present;
+  struct nr_multi_band_info_s   freq_band_list;
+  uint32_t                      absolute_freq_point_a;
+  struct scs_specific_carrier_s scs_specific_carrier_list[5];//???5
+  int8_t                        p_max;//-30
+};
+
+// BWP-UplinkCommon ::= SEQUENCE
+struct bwp_ul_common_s {
+  bool                       ext;
+  bool                       rach_cfg_common_present;
+  bool                       pusch_cfg_common_present;
+  bool                       pucch_cfg_common_present;
+  struct bwp_s               generic_params;
+  struct rach_cfg_common_s   rach_cfg_common;
+  struct pusch_cfg_common_s  pusch_cfg_common;
+  struct pucch_cfg_common_s  pucch_cfg_common;
+};
+
+enum time_align_timer_e { ms500, ms750, ms1280, ms1920, ms2560, ms5120, ms10240, infinity, nulltype };
+
+// UplinkConfigCommonSIB ::= SEQUENCE
+struct ul_cfg_common_sib_s {
+  freq_info_ul_sib_s freq_info_ul;
+  bwp_ul_common_s    init_ul_bwp;
+  enum time_align_timer_e time_align_timer_common;
 };
 
 /***************rrc_cell_cfg_nr_t****************************/

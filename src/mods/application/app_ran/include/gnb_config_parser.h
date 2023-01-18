@@ -9,7 +9,7 @@
 #ifndef GNB_CONFIG_PARSER_H_
 #define GNB_CONFIG_PARSER_H_
 
-#include "srsran/phy/common/phy_common.h"
+#include "lib/srsran/phy/common/phy_common.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -193,7 +193,6 @@ typedef struct gnb_stack_args_s{
   ngap_args_t	   ngap;
   pcap_args_t	   ngap_pcap;
 }gnb_stack_args_t;
-
 
 typedef struct all_args_s{
   enb_args_t		enb;

@@ -10,7 +10,7 @@
 #ifndef MAC_SCH_PDU_NR_H_
 #define MAC_SCH_PDU_NR_H_
 
-#include "buffer_interface.h"
+#include "lib/common/buffer_interface.h"
 
 #ifdef __cplusplus
 extern "C" {

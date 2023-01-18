@@ -7,11 +7,11 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-#include "channel_2c.h"
-#include "radio.h"
-#include "txrx.h"
-#include "prach_work.h"
-#include "phy_util.h"
+#include "rf/channel_2c.h"
+#include "rf/radio.h"
+#include "phy/txrx.h"
+#include "phy/prach_work.h"
+#include "phy/phy_util.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-txrx"

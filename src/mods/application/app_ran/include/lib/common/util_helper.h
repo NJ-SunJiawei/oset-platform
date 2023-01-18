@@ -25,7 +25,7 @@ extern "C" {
 	  do {																												   \
 		if (x);
 		else{																									   \
-		  oset_error(__VA_ARGS__);															   \
+		  oset_error(##__VA_ARGS__);															   \
 		  return OSET_ERROR;																							   \
 		}																												   \
 	  } while (0)
@@ -45,7 +45,7 @@ inline void bit_set(uint8_t* ptr, uint32_t idx, bool value)
   if (value) {
     ptr[byte_idx] |= (1u << offset);
   } else {
-    ptr[byte_idx] &= ((uint16_t)(1u << 8u) - 1u) - (1u << offset);//~
+    ptr[byte_idx] &= ((uint16_t)(1u << 8u) - 1u) - (1u << offset);//??? ~(1u << offset)
   }
 }
 

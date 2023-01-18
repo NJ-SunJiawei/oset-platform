@@ -7,7 +7,7 @@
  *Date: 2022.12
 ************************************************************************/
 #include "channel_mapping.h"
-#include "radio.h"
+#include "rf/radio.h"
 
 static bool contains(band_cfg *band, float freq)
 {

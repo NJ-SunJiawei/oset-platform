@@ -22,6 +22,10 @@
 #ifndef SRSRAN_CONFIG_H
 #define SRSRAN_CONFIG_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Generic helper definitions for shared library support
 #if defined _WIN32 || defined __CYGWIN__
 #define SRSRAN_IMPORT __declspec(dllimport)
@@ -70,5 +74,9 @@ typedef _Complex float cf_t;
 #ifdef ENABLE_C16
 typedef _Complex short int c16_t;
 #endif /* ENABLE_C16 */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSRAN_CONFIG_H

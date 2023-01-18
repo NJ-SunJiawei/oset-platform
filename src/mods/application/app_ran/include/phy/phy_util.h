@@ -10,6 +10,8 @@
 #ifndef PHY_UTIL_H_
 #define PHY_UTIL_H_
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

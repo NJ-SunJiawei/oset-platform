@@ -9,8 +9,8 @@
 
 #include "gnb_common.h"
 #include "gnb_manager.h"
-#include "radio.h"
-#include "phy.h"
+#include "rf/radio.h"
+#include "phy/phy.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb"

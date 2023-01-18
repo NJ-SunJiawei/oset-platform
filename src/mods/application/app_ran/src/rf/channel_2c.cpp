@@ -11,7 +11,7 @@
 #define OSET_LOG2_DOMAIN   "app-gnb-channel"
 
 #include "srsran/phy/channel/channel.h"
-#include "channel_2c.h"
+#include "rf/channel_2c.h"
 #include "phy_util.h"
 #include "gnb_config_parser.h"
 

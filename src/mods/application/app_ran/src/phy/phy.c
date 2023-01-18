@@ -7,11 +7,11 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-#include "channel_2c.h"
-#include "phy.h"
-#include "prach_work.h"
-#include "txrx.h"
-#include "srsran/phy/utils/phy_logger.h"
+#include "rf/channel_2c.h"
+#include "phy/phy.h"
+#include "phy/prach_work.h"
+#include "phy/txrx.h"
+#include "lib/srsran/phy/utils/phy_logger.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-hphy"

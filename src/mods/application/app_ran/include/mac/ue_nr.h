@@ -10,9 +10,9 @@
 #ifndef UE_NR_H_
 #define UE_NR_H_
 
-#include "buffer_interface.h"
-#include "mac_metrics.h"
-#include "mac_sch_pdu_nr.h"
+#include "lib/common/buffer_interface.h"
+#include "mac/mac_metrics.h"
+#include "mac/mac_sch_pdu_nr.h"
 
 #ifdef __cplusplus
 extern "C" {

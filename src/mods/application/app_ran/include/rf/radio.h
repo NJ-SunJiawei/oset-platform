@@ -13,7 +13,7 @@
 #include "oset-core.h"
 #include "channel_mapping.h"
 #include "phy_common.h"
-#include "timestamp.h"
+#include "lib/srsran/srsran.h"
 
 
 #ifdef __cplusplus

@@ -24,7 +24,7 @@ typedef struct byte_buffer_s
 
   struct buffer_metadata_t {
     uint32_t            pdcp_sn;
-    //oset_time_t         tp;//???
+    int64_t             tp;//???//oset_time_t
   } md;
 }byte_buffer_t;
 
