@@ -262,12 +262,11 @@ void set_rx_srate(const double srate)
     }
 
     // Assert ratio is integer
-    ERROR_IF_NOT(((uint32_t)rf_manager.cur_rx_srate % (uint32_t)srate) == 0,
+    ASSERT_IF_NOT(((uint32_t)rf_manager.cur_rx_srate % (uint32_t)srate) == 0,
                   "The sampling rate ratio is not integer (%.2f MHz / %.2f MHz = %.3f)",
                   rf_manager.cur_rx_srate / 1e6,
                   srate / 1e6,
                   rf_manager.cur_rx_srate / srate);
-    oset_assert(((uint32_t)rf_manager.cur_rx_srate % (uint32_t)srate) == 0);
 
     // Update decimators
     uint32_t ratio = (uint32_t)ceil(rf_manager.cur_rx_srate / srate);

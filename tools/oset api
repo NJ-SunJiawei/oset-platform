@@ -1,0 +1,132 @@
+strcmp
+strcasecmp（不区分大小写）
+
+oset-conv.c  （hex string转换）
+
+oset_msprintf
+oset_snprintf
+sprintf
+snprintf
+oset_apr_snprintf
+
+oset_core_memory_init        runtime.memory_pool
+oset_core_permanent_alloc
+oset_core_permanent_strdup
+
+
+oset_core_new_memory_pool
+oset_core_destroy_memory_pool
+oset_core_alloc
+oset_core_session_alloc
+oset_core_memory_pool_set_data//key value
+oset_core_memory_pool_get_data
+
+oset_core_strdup
+oset_sys_strdup
+oset_strdup
+
+
+oset_session_set_variable
+oset_core_session_get_pool
+oset_core_session_strdup
+oset_core_session_sprintf
+oset_core_sprintf
+
+
+oset_apr_snprintf
+oset_snprintf
+
+oset_safe_free
+oset_free
+
+oset_scheduler_del_task_group
+oset_scheduler_add_task
+oset_scheduler_del_task_id
+
+
+oset_core_hash_init
+oset_core_hash_insert
+oset_core_hash_delete
+
+oset_apr_mutex_lock
+oset_apr_mutex_unlock
+oset_apr_mutex_init
+oset_apr_thread_cond_timedwait
+
+oset_apr_file_open
+
+oset_core_get_uuid
+
+oset_apr_uuid_get(&uuid);
+oset_apr_uuid_format(system->common->uuid_str, &uuid);
+oset_core_session_get_uuid
+
+oset_core_session_get_id
+
+OpenAPI_list_add
+
+oset_sys_assert
+oset_assert
+oset_expect_or_return_val
+oset_assert_if_reached()
+
+oset_test_flag
+
+oset_core_timer_init
+oset_core_timer_next
+oset_core_timer_step
+oset_core_timer_check
+oset_core_timer_destroy
+
+
+oset_core_set_variable//快捷hash
+oset_core_get_variable
+
+oset_event_create_plain//貌似hash+list
+		for (hp = log_fields->headers; hp; hp = hp->next) {
+oset_event_get_header
+oset_event_del_header
+oset_event_del_header_val
+oset_event_add_header_string
+oset_event_safe_destroy
+oset_event_add_body
+
+oset_apr_mutex_lock(runtime.session_hash_mutex);
+session_manager.others_count[0]++;
+oset_apr_mutex_unlock(runtime.session_hash_mutex);
+oset_apr_mutex_lock(runtime.session_hash_mutex);
+oset_core_hash_insert(session_manager.session_table, session->common->uuid_str, session);
+session_manager.session_count++;
+oset_apr_mutex_unlock(runtime.session_hash_mutex);
+
+
+
+oset_apr_mutex_lock(session->common->profile_mutex);
+oset_event_destroy(&session->common->variables);
+oset_apr_mutex_unlock(session->common->profile_mutex);
+
+ //链表和红黑色，参考oai
+  if (instance_p == NULL) {
+    STAILQ_FOREACH(instance_p, &ngap_gNB_internal_data.ngap_gNB_instances_head,
+                   ngap_gNB_entries) {
+      found = RB_FIND(ngap_amf_map, &instance_p->ngap_amf_head, &temp);
+
+      if (found != NULL) {
+        return found;
+      }
+    }
+}
+
+int nas_timer_init(void) 定时器 OAI5g
+
+
+ngap_messages_callback oai状态机回调
+
+
+    asn::SetOctetString(rrcSetupIEs->masterCellGroup,
+                        rrc::encode::EncodeS(asn_DEF_ASN_RRC_CellGroupConfig, &masterCellGroup));  ueran编解码
+						
+						
+  NR_COMMON_channels_t common_channels[NFAPI_CC_MAX];  oai5g configure
+  static void init_NR_SI(gNB_RRC_INST *rrc, gNB_RrcConfigurationReq *configuration) 
+  rrc->carrier.pdcch_ConfigSIB1 = calloc(1,sizeof(NR_PDCCH_ConfigSIB1_t));

@@ -1141,7 +1141,7 @@ OSET_STANDARD_API(status_function)
 
 	if (html) {
 		/* don't bother cli with heading and timestamp */
-		stream->write_function(stream, "%sset-om Status%s", "<h1>", "</h1>\n");
+		stream->write_function(stream, "%sset-platform Status%s", "<h1>", "</h1>\n");
 		stream->write_function(stream, "%s%s", oset_event_get_header(stream->param_event,"Event-Date-Local"), nl);
 	}
 

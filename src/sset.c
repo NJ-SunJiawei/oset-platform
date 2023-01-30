@@ -114,7 +114,7 @@ static int oset_kill_background()
 		fprintf(stderr, "Killing: %d\n", (int) pid);
 #ifdef WIN32
 		/* for windows we need the event to signal for shutting down a background FreeSWITCH */
-		snprintf(path, sizeof(path), "Global\\sset-om.%d", pid);
+		snprintf(path, sizeof(path), "Global\\sset-platform.%d", pid);
 
 		/* open the event so we can signal it */
 		shutdown_event = OpenEvent(EVENT_MODIFY_STATE, FALSE, path);
