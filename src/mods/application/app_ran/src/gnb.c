@@ -55,9 +55,8 @@ OSET_MODULE_SHUTDOWN_FUNCTION(app_gnb_shutdown)
 	task_queue_termination();//stop queue
 	rf_destory();
 	phy_destory();
-	destory_gnb_layer_tasks();
-	task_queue_end(tasks_info);
 	gnb_layer_tasks_destory();
+	task_queue_end(tasks_info);
 	return OSET_STATUS_SUCCESS;
 }
 

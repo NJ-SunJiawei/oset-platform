@@ -12,6 +12,8 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-mac"
 
+//static OSET_POOL(bcch_bch_payload_pool, byte_buffer_t);
+//static OSET_POOL(rar_pdu_buffer_pool, byte_buffer_t);
 
 static mac_manager_t mac_manager = {0};
 
@@ -31,6 +33,24 @@ static void mac_manager_destory(void)
 	mac_manager.app_pool = NULL; /*app_pool release by openset process*/
 }
 
+int mac_init(void)
+{
+	mac_manager_init();
+	//oset_pool_init(&bcch_bch_payload_pool, 64);
+	//oset_pool_init(&rar_pdu_buffer_pool, 64*4);
+
+    //todo
+    return OSET_OK;
+}
+
+int mac_destory(void)
+{
+    //todo
+	//oset_pool_final(&bcch_bch_payload_pool);
+	//oset_pool_final(&rar_pdu_buffer_pool);
+	mac_manager_destory();
+    return OSET_OK;
+}
 
 void mac_rach_detected(rach_info_t *rach_info)
 {

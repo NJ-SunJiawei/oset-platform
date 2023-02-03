@@ -40,7 +40,6 @@ typedef struct mac_manager_s{
 	oset_apr_thread_rwlock_t *rwmutex;
 
 	mac_nr_args_t		   args;
-
 	// initial UE config, before RRC setup (without UE-dedicated)
     phy_cfg_nr_t           default_ue_phy_cfg;
 	mac_pcap               *pcap;
@@ -56,6 +55,8 @@ typedef struct mac_manager_s{
 	byte_buffer_t          *bcch_bch_payload;
 	// Number of rach preambles detected for a CC
 	uint32_t               detected_rachs[SRSRAN_MAX_CARRIERS];
+	// Decoding of UL PDUs
+	void                   *rx;
 }mac_manager_t;
 
 void *gnb_mac_task(oset_threadplus_t *thread, void *data);
