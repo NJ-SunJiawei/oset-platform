@@ -4,29 +4,28 @@
  *
  *Current Version:
  *Author: create by sunjiawei
- *Date: 2022.12
+ *Date: 2023.02
 ************************************************************************/
 
-#ifndef SCHED_NR_H_
-#define SCHED_NR_H_
+#ifndef SCHED_NR_WORKER_H_
+#define SCHED_NR_WORKER_H_
 
 #include "mac/sched_nr_cfg.h"
-#include "lib/srsran/config.h"
-#include "lib/common/slot_point.h"
+#include "mac/sched_nr_interface.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct {
-  // args
-  sched_params_t cfg;
-  // slot-specific
-  slot_point     current_slot_tx;
-  int            worker_count;
-  oset_list2_t   *cc_workers; //struct cc_worker
+	// const params
+     cell_config_manager  *cfg;
 
-}sched_nr;
+	// cc-specific resources
+	oset_list2_t *bwps; //bwp_manager bwps[SCHED_NR_MAX_BWP_PER_CELL]
+	
+
+}cc_worker;
 
 
 #ifdef __cplusplus

@@ -29,6 +29,7 @@ extern "C" {
 #include <complex.h>
 #endif
 
+#include "oset-core.h"
 #include <math.h>
 
 #include "srsran/config.h"

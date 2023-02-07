@@ -49,6 +49,23 @@ extern "C" {
 		} \
 	  } while (0)
 
+typedef struct {
+	uint8_t *buf;	/* BIT STRING body */
+	size_t size;	/* Size of the above buffer */
+	int bits_unused;/* Unused trailing bits in the last octet (0..7) */
+} bitstring;
+
+inline uint32_t ceil_frac(uint32_t n, uint32_t d)
+{
+  return (n + (d - 1)) / d;
+}
+
+inline uint32_t nof_octets(uint32_t nof_bits) 
+{ 
+
+    return ceil_frac(nof_bits, 8u);
+}
+
 
 inline bool bit_get(const uint8_t* ptr, uint32_t idx)
 {
@@ -57,6 +74,7 @@ inline bool bit_get(const uint8_t* ptr, uint32_t idx)
   return (ptr[byte_idx] & (1u << offset)) > 0;
 }
 
+//((uint16_t)(1u << 8u) - 1u) = 0xFF
 inline void bit_set(uint8_t* ptr, uint32_t idx, bool value)
 {
   uint32_t byte_idx = idx / 8;

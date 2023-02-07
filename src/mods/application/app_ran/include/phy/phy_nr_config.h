@@ -196,7 +196,7 @@ struct pdcch_cfg_common_s {
   struct ctrl_res_set_s       common_ctrl_res_set;
   uint8_t                     search_space_zero;
   uint8_t                     nof_common_search_space;
-  struct search_space_s       common_search_space_list[12];//oset_list2_t//dyn_array<search_space_s>
+  A_DYN_ARRAY_OF(struct search_space_s)  common_search_space_list;//dyn_array<search_space_s>
   uint8_t                     search_space_sib1;
   uint8_t                     search_space_other_sys_info;
   uint8_t                     paging_search_space;
@@ -212,11 +212,11 @@ struct pdcch_cfg_s {
   bool                                 tpc_pucch_present;
   bool                                 tpc_srs_present;
   int                                  nof_ctrl_res_set_to_add_mod;
-  struct ctrl_res_set_s                ctrl_res_set_to_add_mod_list[12];//oset_list2_t//dyn_array<ctrl_res_set_s>
-  uint8_t                              ctrl_res_set_to_release_list[3];
-  int                                  nof_search_spaces_to_add_mod;
-  struct search_space_s                search_spaces_to_add_mod_list[12];//oset_list2_t//dyn_array<ctrl_res_set_s>
-  uint8_t                              search_spaces_to_release_list[10];
+  A_DYN_ARRAY_OF(struct ctrl_res_set_s) ctrl_res_set_to_add_mod_list;//dyn_array<ctrl_res_set_s>
+  uint8_t                               ctrl_res_set_to_release_list[3];
+  int                                   nof_search_spaces_to_add_mod;
+  A_DYN_ARRAY_OF(struct search_space_s) search_spaces_to_add_mod_list;//dyn_array<ctrl_res_set_s>
+  uint8_t                               search_spaces_to_release_list[10];
 };
 
 // PDSCH-ConfigCommon
@@ -492,9 +492,11 @@ typedef struct phy_cell_cfg_nr_s {
 
 
 /*******************phy_cfg_t************************/
+typedef oset_list2_t phy_cell_cfg_list_nr_t;
+
 typedef struct phy_cfg_s {
   // Individual cell/sector configuration list
-  oset_list2_t                   *phy_cell_cfg_nr; //phy_cell_cfg_nr_t
+  phy_cell_cfg_list_nr_t          *phy_cell_cfg_nr; //phy_cell_cfg_nr_t
 
   // Common configuration for all cells
   struct prach_cfg_sib_s          prach_cnfg;//4G??

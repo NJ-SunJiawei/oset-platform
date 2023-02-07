@@ -11,7 +11,7 @@
 #define PRACH_WORK_H_
 
 #include "oset-core.h"
-#include "srsran/srsran.h"
+#include "lib/srsran/srsran.h"
 
 #define sf_buffer_sz  128 * 1024
 

@@ -11,5 +11,5 @@
 		
 		
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-sched"
+#define OSET_LOG2_DOMAIN   "app-gnb-sched-rb"
 

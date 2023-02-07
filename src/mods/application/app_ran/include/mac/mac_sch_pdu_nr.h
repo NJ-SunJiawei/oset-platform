@@ -10,6 +10,7 @@
 #ifndef MAC_SCH_PDU_NR_H_
 #define MAC_SCH_PDU_NR_H_
 
+#include "oset-core.h"
 #include "lib/common/buffer_interface.h"
 
 #ifdef __cplusplus
@@ -23,7 +24,6 @@ extern "C" {
 #define mac_ce_payload_len  (8 + 1) // Long BSR has max. 9 octets (see sizeof_ce() too)
 
 typedef uint8_t ue_con_res_id_t[ue_con_res_id_len];
-typedef struct oset_list2_s oset_list2_t;
 
 // BSR
 typedef struct lcg_bsr_s {

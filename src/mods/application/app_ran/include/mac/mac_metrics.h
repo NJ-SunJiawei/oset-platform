@@ -10,13 +10,12 @@
 #ifndef MAC_METRICS_H_
 #define MAC_METRICS_H_
 
+#include "oset-core.h"
 #include "lib/srsran/phy/common/phy_common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct oset_list2_s oset_list2_t;
 
 /// MAC metrics per user
 typedef struct mac_ue_metrics_s {

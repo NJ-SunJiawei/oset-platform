@@ -10,6 +10,7 @@
 #ifndef SCHED_NR_CFG_H_
 #define SCHED_NR_CFG_H_
 
+#include "oset-core.h"
 #include "lib/srsran/srsran.h"
 #include "lib/common/phy_cfg_nr.h"
 #include "mac/sched_nr_rb.h"
@@ -20,7 +21,6 @@
 extern "C" {
 #endif
 
-typedef struct oset_list2_s oset_list2_t;
 typedef struct sched_args_s sched_args_t;
 
 typedef struct sched_nr_bwp_cfg_s {
@@ -38,7 +38,7 @@ typedef struct sched_nr_bwp_cfg_s {
 
 
 /************************************************************************/
-typedef oset_list2_t cce_pos_list[MAX_NOF_AGGR_LEVELS];//<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
+typedef oset_list2_t cce_pos_list[MAX_NOF_AGGR_LEVELS];//pdcch_cce_pos_list == <uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
 typedef cce_pos_list bwp_cce_pos_list[SRSRAN_NOF_SF_X_FRAME];
 
 

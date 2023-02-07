@@ -10,7 +10,6 @@
 #ifndef SCHED_NR_RB_H_
 #define SCHED_NR_RB_H_
 
-#include "lib/srsran/phy/common/phy_common_nr.h"
 #include "lib/common/bitset_helper.h"
 
 #define SCHED_NR_MAX_NOF_RBGS  18

@@ -8,14 +8,12 @@
 ************************************************************************/
 
 
-#ifndef SRSRAN_COMMON_H
-#define SRSRAN_COMMON_H
+#ifndef COMMON_H
+#define COMMON_H
 
 /*******************************************************************************
                               INCLUDES
 *******************************************************************************/
-//#include <chrono>
-//#include <cstring>
 #include <memory.h>
 #include <stdint.h>
 #include <string.h>
