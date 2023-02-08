@@ -19,10 +19,10 @@ extern "C" {
 
 typedef struct {
 	// const params
-     cell_config_manager  *cfg;
+    cell_config_manager     *cfg;
 
 	// cc-specific resources
-	oset_list2_t *bwps; //bwp_manager bwps[SCHED_NR_MAX_BWP_PER_CELL]
+	A_DYN_ARRAY_OF(bwp_manager) bwps; //bounded_vector<bwp_manager, SCHED_NR_MAX_BWP_PER_CELL>
 	
 
 }cc_worker;

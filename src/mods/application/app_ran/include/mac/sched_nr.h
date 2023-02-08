@@ -24,7 +24,7 @@ typedef struct {
   // slot-specific
   slot_point     current_slot_tx;
   int            worker_count;
-  oset_list2_t   *cc_workers; //struct cc_worker
+  A_DYN_ARRAY_OF(cc_worker)   cc_workers; //std::vector<std::unique_ptr<sched_nr_impl::cc_worker> >
 
 }sched_nr;
 

@@ -3760,7 +3760,7 @@ typedef struct rrc_cfg_s{
 typedef oset_list2_t rrc_cell_list_nr_t;
 
 typedef struct rrc_nr_cfg_s{
-  rrc_cell_list_nr_t *cell_list; //rrc_cell_cfg_nr_t
+  rrc_cell_list_nr_t *cell_list; //std::vector<rrc_cell_cfg_nr_t>
   uint32_t           inactivity_timeout_ms;//100000
   uint32_t           enb_id;
   uint16_t           mcc;

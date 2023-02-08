@@ -10,6 +10,7 @@
 #ifndef PHY_NR_CONFIG_H_
 #define PHY_NR_CONFIG_H_
 
+#include "oset-dyn_array.h"
 #include "phy_common_nr.h"
 #include "ASN_RRC_PDSCH-ConfigCommon.h"
 #include "ASN_RRC_PUSCH-ConfigCommon.h"
@@ -49,8 +50,8 @@ struct ctrl_res_set_s {
   uint8_t                             dur;//1
   struct cce_reg_map_type_c_          cce_reg_map_type;
   enum precoder_granularity_opts      precoder_granularity;
-  uint8_t                             tci_states_pdcch_to_add_list[10];//oset_list2_t
-  uint8_t                             tci_states_pdcch_to_release_list[10];//oset_list2_t
+  A_DYN_ARRAY_OF(uint8_t)             tci_states_pdcch_to_add_list;//dyn_array<uint8_t>
+  A_DYN_ARRAY_OF(uint8_t)             tci_states_pdcch_to_release_list;//dyn_array<uint8_t>
   uint32_t                            pdcch_dmrs_scrambling_id;
 };
 
@@ -496,7 +497,7 @@ typedef oset_list2_t phy_cell_cfg_list_nr_t;
 
 typedef struct phy_cfg_s {
   // Individual cell/sector configuration list
-  phy_cell_cfg_list_nr_t          *phy_cell_cfg_nr; //phy_cell_cfg_nr_t
+  phy_cell_cfg_list_nr_t          *phy_cell_cfg_nr; //std::vector<phy_cell_cfg_nr_t>
 
   // Common configuration for all cells
   struct prach_cfg_sib_s          prach_cnfg;//4G??

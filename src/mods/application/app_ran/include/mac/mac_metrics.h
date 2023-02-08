@@ -59,9 +59,9 @@ typedef struct mac_cc_info_s {
 /// Main MAC metrics.
 typedef struct mac_metrics_s {
   /// Per CC info.
-  mac_cc_info_t cc_info[SRSRAN_MAX_CARRIERS];
+  A_DYN_ARRAY_OF(mac_cc_info_t) cc_info;//SRSRAN_MAX_CARRIERS//std::vector
   /// Per UE MAC metrics.
-  oset_list2_t  *ues;//SRSENB_MAX_UES//mac_ue_metrics_t
+  A_DYN_ARRAY_OF(mac_ue_metrics_t) ues;//SRSENB_MAX_UES//std::vector
 }mac_metrics_t;
 
 

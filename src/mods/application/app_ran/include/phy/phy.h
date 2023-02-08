@@ -61,7 +61,7 @@ typedef struct slot_worker_s{
 
 typedef struct {
 	//oset_thread_mutex_t	   *grant_mutex;
-	oset_list2_t           *cell_list_nr;//phy_cell_cfg_nr_t
+	oset_list2_t           *cell_list_nr;//std::vector<phy_cell_cfg_nr_t>
 	//oset_apr_mutex_t	   *cell_gain_mutex;
 	srsran_cfr_cfg_t        cfr_config;
 	srsran_refsignal_dmrs_pusch_cfg_t dmrs_pusch_cfg;

@@ -34,7 +34,7 @@ typedef struct {
 } device_mapping_t;
 
 typedef struct {
-	oset_list2_t		         *available_channels;//channel_cfg_t
+	oset_list2_t		         *available_channels;//std::list<channel_cfg_t>
 	channel_cfg_t                *allocated_channels[SRSRAN_MAX_CARRIERS];//std::map<uint32_t, channel_cfg_t>
 	//oset_apr_mutex_t	         *mutex;
 	uint32_t				     nof_antennas;//1

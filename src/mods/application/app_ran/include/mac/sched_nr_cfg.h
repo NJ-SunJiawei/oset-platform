@@ -38,12 +38,13 @@ typedef struct sched_nr_bwp_cfg_s {
 
 
 /************************************************************************/
-typedef oset_list2_t cce_pos_list[MAX_NOF_AGGR_LEVELS];//pdcch_cce_pos_list == <uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
-typedef cce_pos_list bwp_cce_pos_list[SRSRAN_NOF_SF_X_FRAME];
+typedef A_DYN_ARRAY_OF(uint32_t)  pdcch_cce_pos_list;//bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
+typedef pdcch_cce_pos_list cce_pos_list_tmp[MAX_NOF_AGGR_LEVELS];
+typedef cce_pos_list_tmp bwp_cce_pos_list[SRSRAN_NOF_SF_X_FRAME];//using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
 
 
 /// Table specifying if a slot has DL or UL enabled
-typedef struct {
+typedef struct slot_cfg_s{
   bool is_dl;
   bool is_ul;
 }slot_cfg;
@@ -76,36 +77,36 @@ typedef struct bwp_params_s {
   uint32_t              P;
   uint32_t              N_rbg;
   uint32_t              nof_prb;
-  oset_list2_t          *slots;//<slot_cfg, SRSRAN_NOF_SF_X_FRAME>
-  oset_list2_t          *pusch_ra_list;//pusch_ra_time_cfg
+  A_DYN_ARRAY_OF(struct slot_cfg_s) slots;//<slot_cfg, SRSRAN_NOF_SF_X_FRAME>
+  A_DYN_ARRAY_OF(pusch_ra_time_cfg) pusch_ra_list;//std::vector<pusch_ra_time_cfg>
 
-  bwp_cce_pos_list      *rar_cce_list;//<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
-  oset_list2_t          *common_cce_list; //bwp_cce_pos_list
-  bwp_rb_bitmap         cached_empty_prb_mask;
-  oset_list2_t          *coresets;//coreset_cached_params
+  bwp_cce_pos_list                  rar_cce_list;
+  A_DYN_ARRAY_OF(bwp_cce_pos_list)  common_cce_list; //optional_vector<bwp_cce_pos_list>
+  bwp_rb_bitmap                     cached_empty_prb_mask;
+  A_DYN_ARRAY_OF(coreset_cached_params)  coresets;//optional_vector<coreset_cached_params>
 }bwp_params_t;
 
 
 /// Structure packing a single cell config params, and sched args
-typedef struct cell_config_manager {
+typedef struct {
   uint32_t                        cc;
   srsran_carrier_nr_t             carrier;
   srsran_mib_nr_t                 mib;
   ssb_cfg_t                       ssb;
-  oset_list2_t                    *bwps;  //bwp_params_t// idx0 for BWP-common
-  oset_list2_t                    *sibs; //sched_nr_cell_cfg_sib_t
+  A_DYN_ARRAY_OF(bwp_params_t)             bwps; //std::vector<bwp_params_t>// idx0 for BWP-common
+  A_DYN_ARRAY_OF(sched_nr_cell_cfg_sib_t)  sibs; //std::vector<sched_nr_cell_cfg_sib_t>
   struct dl_cfg_common_sib_s      dl_cfg_common;
   struct ul_cfg_common_sib_s      ul_cfg_common;
   srsran_duplex_config_nr_t       duplex;
   sched_args_t                    sched_args;
   phy_cfg_nr_t                    default_ue_phy_cfg;
-};
+}cell_config_manager;
 
 
 /// Structure packing both the sched args and all gNB NR cell configurations
 typedef struct sched_params_s {
-  sched_args_t                     sched_cfg;
-  oset_list2_t                     *cells; //cell_config_manager
+  sched_args_t                         sched_cfg;
+  A_DYN_ARRAY_OF(cell_config_manager)  *cells; //std::vector<cell_config_manager> 
 }sched_params_t;
 
 

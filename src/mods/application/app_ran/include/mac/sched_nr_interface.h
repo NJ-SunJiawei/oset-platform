@@ -51,14 +51,14 @@ typedef struct sched_nr_ue_lc_ch_cfg_s {
 }sched_nr_ue_lc_ch_cfg_t;
 
 typedef struct  {
-  uint32_t            maxharq_tx;//=4
-  oset_list2_t        *carriers;//bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> 
-  phy_cfg_nr_t        phy_cfg;
+  uint32_t                                  maxharq_tx;//=4
+  A_DYN_ARRAY_OF(sched_nr_ue_cc_cfg_t)      carriers;//bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> 
+  phy_cfg_nr_t                              phy_cfg;
   struct  mac_cell_group_cfg_s              mac_cell_group_cfg;
   struct  phys_cell_group_cfg_s             phy_cell_group_cfg;
   struct  sp_cell_cfg_s                     sp_cell_cfg;
-  oset_list2_t       *lc_ch_to_add;//sched_nr_ue_lc_ch_cfg_t
-  oset_list2_t       *lc_ch_to_rem;//uint32_t
+  A_DYN_ARRAY_OF(sched_nr_ue_lc_ch_cfg_t)   lc_ch_to_add;//sched_nr_ue_lc_ch_cfg_t
+  A_DYN_ARRAY_OF(uint32_t)                  lc_ch_to_rem;//uint32_t
 }sched_nr_ue_cfg_t;
 
 typedef struct  {

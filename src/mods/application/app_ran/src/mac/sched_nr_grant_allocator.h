@@ -28,9 +28,9 @@ typedef struct {
   uint32_t            slot_idx;
   bwp_params_t        *cfg;
 
-  dl_res_t            dl;
-  ul_sched_t          ul;
-  oset_list2_t        *pending_acks;//<harq_ack_t, MAX_GRANTS>;
+  dl_res_t                    dl;
+  ul_sched_t                  ul;
+  A_DYN_ARRAY_OF(harq_ack_t)  pending_acks;//bounded_vector<harq_ack_t, MAX_GRANTS>;
   bwp_pdcch_allocator pdcchs; /// slot PDCCH resource allocator
   pdsch_allocator     pdschs; /// slot PDSCH resource allocator
   pusch_allocator     puschs; /// slot PUSCH resource allocator
@@ -42,7 +42,7 @@ typedef struct {
 typedef struct {
   bwp_params_t  *cfg;
   // TTIMOD_SZ is the longest allocation in the future
-  oset_list2_t  *slots;//bwp_slot_grid  slots[TTIMOD_SZ];
+  A_DYN_ARRAY_OF(bwp_slot_grid) slots;//bounded_vector<bwp_slot_grid, TTIMOD_SZ>;
 }bwp_res_grid;
 
 
