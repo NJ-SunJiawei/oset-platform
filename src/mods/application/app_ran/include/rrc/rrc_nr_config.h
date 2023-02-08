@@ -3016,7 +3016,6 @@ struct srs_carrier_switching_s {
   uint8_t        monitoring_cells[32];//bounded_array<uint8_t, 32>
 };
 
-
 // UplinkConfig ::= SEQUENCE
 struct ul_cfg_s {
   // member variables
@@ -3036,6 +3035,617 @@ struct ul_cfg_s {
   bool                               pwr_boost_pi2_bpsk_present;
   bool                               pwr_boost_pi2_bpsk;
   A_DYN_ARRAY_OF(struct scs_specific_carrier_s) ul_ch_bw_per_scs_list;//dyn_array<scs_specific_carrier_s>
+};
+
+// SlotFormatCombination ::= SEQUENCE
+struct slot_format_combination_s {
+  // member variables
+  uint16_t        slot_format_combination_id;
+  A_DYN_ARRAY_OF(uint16_t) slot_formats;//dyn_array<uint16_t>
+};
+
+// SlotFormatCombinationsPerCell ::= SEQUENCE
+struct slot_format_combinations_per_cell_s {
+  // member variables
+  bool                        ext;
+  bool                        subcarrier_spacing2_present;
+  bool                        position_in_dci_present;
+  uint8_t                     serving_cell_id;
+  enum subcarrier_spacing_e        subcarrier_spacing;
+  enum subcarrier_spacing_e        subcarrier_spacing2;
+  A_DYN_ARRAY_OF(struct slot_format_combination_s) slot_format_combinations;//dyn_array<slot_format_combination_s>
+  uint8_t                     position_in_dci;
+};
+
+// SlotFormatIndicator ::= SEQUENCE
+struct slot_format_ind_s {
+  // member variables
+  bool                                ext;
+  uint32_t                            sfi_rnti;
+  uint8_t                             dci_payload_size;//1
+  A_DYN_ARRAY_OF(struct slot_format_combinations_per_cell_s) slot_format_comb_to_add_mod_list;//dyn_array<slot_format_combinations_per_cell_s>
+  uint8_t slot_format_comb_to_release_list[16];//bounded_array<uint8_t, 16>
+};
+
+// PDCCH-ServingCellConfig ::= SEQUENCE
+struct pdcch_serving_cell_cfg_s {
+  bool                               ext;
+  bool                               slot_format_ind_present;
+  setup_release_c(struct slot_format_ind_s) slot_format_ind;
+};
+
+enum max_code_block_groups_per_transport_block_e_ { n2, n4, n6, n8, nulltype };
+
+// PDSCH-CodeBlockGroupTransmission ::= SEQUENCE
+struct pdsch_code_block_group_tx_s {
+  // member variables
+  bool                                         ext;
+  enum max_code_block_groups_per_transport_block_e_ max_code_block_groups_per_transport_block;
+  bool                                         code_block_group_flush_ind;
+};
+
+enum xoverhead_e_ { xoh6, xoh12, xoh18, nulltype };
+enum nrof_harq_processes_for_pdsch_e_ { n2, n4, n6, n10, n12, n16, nulltype };
+
+// PDSCH-ServingCellConfig ::= SEQUENCE
+struct pdsch_serving_cell_cfg_s {
+  // member variables
+  bool                                         ext;
+  bool                                         code_block_group_tx_present;
+  bool                                         xoverhead_present;
+  bool                                         nrof_harq_processes_for_pdsch_present;
+  bool                                         pucch_cell_present;
+  setup_release_c(struct pdsch_code_block_group_tx_s) code_block_group_tx;
+  enum xoverhead_e_                            xoverhead;
+  enum nrof_harq_processes_for_pdsch_e_        nrof_harq_processes_for_pdsch;
+  uint8_t                                      pucch_cell;
+  // ...
+  // group 0
+  bool    max_mimo_layers_present;
+  bool    processing_type2_enabled_present;
+  uint8_t max_mimo_layers;//1
+  bool    processing_type2_enabled;
+};
+
+enum pwr_ctrl_offset_ss_e_ { db_minus3, db0, db3, db6, nulltype };
+
+// NZP-CSI-RS-Resource ::= SEQUENCE
+struct nzp_csi_rs_res_s {
+  // member variables
+  bool                             ext;
+  bool                             pwr_ctrl_offset_ss_present;
+  bool                             periodicity_and_offset_present;
+  bool                             qcl_info_periodic_csi_rs_present;
+  uint8_t                          nzp_csi_rs_res_id;
+  struct csi_rs_res_map_s          res_map;
+  int8_t                           pwr_ctrl_offset;//-8
+  enum pwr_ctrl_offset_ss_e_       pwr_ctrl_offset_ss;
+  uint16_t                         scrambling_id;
+  struct csi_res_periodicity_and_offset_c periodicity_and_offset;
+  uint8_t                          qcl_info_periodic_csi_rs;
+};
+
+enum repeat_e_ { on, off, nulltype };
+// NZP-CSI-RS-ResourceSet ::= SEQUENCE
+struct nzp_csi_rs_res_set_s {
+  // member variables
+  bool              ext;
+  bool              repeat_present;
+  bool              aperiodic_trigger_offset_present;
+  bool              trs_info_present;
+  uint8_t           nzp_csi_res_set_id;
+  A_DYN_ARRAY_OF(uint8_t) nzp_csi_rs_res;//dyn_array<uint8_t>
+  enum repeat_e_    repeat;
+  uint8_t           aperiodic_trigger_offset;
+};
+
+enum subcarrier_location_p0_e_ { s0, s2, s4, s6, s8, s10, nulltype };
+struct pattern0_s_ {
+  // member variables
+  enum subcarrier_location_p0_e_ subcarrier_location_p0;
+  uint8_t					symbol_location_p0;
+};
+
+struct pattern1_s_ {
+	enum subcarrier_location_p1_e_ { s0, s4, s8, nulltype };
+
+  // member variables
+  enum subcarrier_location_p1_e_ subcarrier_location_p1;
+  uint8_t					symbol_location_p1;
+};
+
+struct csi_im_res_elem_pattern_c_ {
+  enum types { pattern0, pattern1, nulltype } type_;
+  union{
+  	    struct pattern0_s_ pattern0;
+		struct pattern1_s_ pattern1;} c;//choice_buffer_t
+};
+
+// CSI-IM-Resource ::= SEQUENCE
+struct csi_im_res_s {
+  // member variables
+  bool                             ext;
+  bool                             csi_im_res_elem_pattern_present;
+  bool                             freq_band_present;
+  bool                             periodicity_and_offset_present;
+  uint8_t                          csi_im_res_id;
+  struct csi_im_res_elem_pattern_c_       csi_im_res_elem_pattern;
+  struct csi_freq_occupation_s            freq_band;
+  struct csi_res_periodicity_and_offset_c periodicity_and_offset;
+};
+
+// CSI-IM-ResourceSet ::= SEQUENCE
+struct csi_im_res_set_s {
+  // member variables
+  bool          ext;
+  uint8_t       csi_im_res_set_id;
+  uint8_t       csi_im_res[8];//bounded_array<uint8_t, 8>
+};
+
+// CSI-SSB-ResourceSet ::= SEQUENCE
+struct csi_ssb_res_set_s {
+  // member variables
+  bool                ext;
+  uint8_t             csi_ssb_res_set_id;
+  A_DYN_ARRAY_OF(uint8_t) csi_ssb_res_list;//dyn_array<uint8_t>
+};
+
+
+struct nzp_csi_rs_ssb_s_ {
+  // member variables
+  bool		 csi_ssb_res_set_list_present;
+  uint8_t	 nzp_csi_rs_res_set_list[16];//bounded_array<uint8_t, 16>
+  uint8_t	 csi_ssb_res_set_list;//std::array<uint8_t, 1>
+};
+
+struct csi_rs_res_set_list_c_ {
+  enum types { nzp_csi_rs_ssb, csi_im_res_set_list, nulltype } type_;
+  union{
+		  uint8_t csi_im_res_set_list[16];//bounded_array<uint8_t, 16>
+		  struct nzp_csi_rs_ssb_s_ nzp_csi_rs_ssb;
+		} c;//choice_buffer_t
+};
+
+enum res_type_e_ { aperiodic, semi_persistent, periodic, nulltype };
+
+// CSI-ResourceConfig ::= SEQUENCE
+struct csi_res_cfg_s {
+  // member variables
+  bool                   ext;
+  uint8_t                csi_res_cfg_id;
+  struct csi_rs_res_set_list_c_ csi_rs_res_set_list;
+  uint8_t                bwp_id;
+  enum res_type_e_       res_type;
+};
+
+// PUCCH-CSI-Resource ::= SEQUENCE
+struct pucch_csi_res_s {
+  uint8_t ul_bw_part_id;
+  uint8_t pucch_res;
+};
+
+// CSI-ReportPeriodicityAndOffset ::= CHOICE
+struct csi_report_periodicity_and_offset_c {
+      enum types {
+      slots4,
+      slots5,
+      slots8,
+      slots10,
+      slots16,
+      slots20,
+      slots40,
+      slots80,
+      slots160,
+      slots320,
+      nulltype
+    }type_;
+    void *c;//pod_choice_buffer_t
+};
+
+struct periodic_s_ {
+  // member variables
+  struct csi_report_periodicity_and_offset_c  report_slot_cfg;
+  A_DYN_ARRAY_OF(struct pucch_csi_res_s) 	  pucch_csi_res_list;//dyn_array<pucch_csi_res_s>
+};
+struct semi_persistent_on_pucch_s_ {
+  // member variables
+  struct csi_report_periodicity_and_offset_c report_slot_cfg;
+  A_DYN_ARRAY_OF(struct pucch_csi_res_s) 	 pucch_csi_res_list;//dyn_array<pucch_csi_res_s>
+};
+
+enum report_slot_cfg_e_ { sl5, sl10, sl20, sl40, sl80, sl160, sl320, nulltype };
+struct semi_persistent_on_pusch_s_ {
+  // member variables
+  enum report_slot_cfg_e_    report_slot_cfg;
+  uint8_t                    report_slot_offset_list[16];//bounded_array<uint8_t, 16>
+  uint8_t					 p0alpha;
+};
+
+struct aperiodic_s_ {
+  // member variables
+  uint8_t report_slot_offset_list[16];//bounded_array<uint8_t, 16>
+};
+
+struct report_cfg_type_c_ {
+  enum types { periodic, semi_persistent_on_pucch, semi_persistent_on_pusch, aperiodic, nulltype }	type_;
+  union{
+		  struct aperiodic_s_ aperiodic;
+		  struct periodic_s_ periodic;
+		  struct semi_persistent_on_pucch_s_ semi_persistent_on_pucch;
+		  struct semi_persistent_on_pusch_s_ semi_persistent_on_pusch;
+	   } c;//choice_buffer_t
+};
+
+enum pdsch_bundle_size_for_csi_e_ { n2, n4, nulltype };
+struct cri_ri_i1_cqi_s_ {
+  // member variables
+  bool						   pdsch_bundle_size_for_csi_present;
+  enum pdsch_bundle_size_for_csi_e_ pdsch_bundle_size_for_csi;
+};
+
+struct report_quant_c_ {
+  enum types {
+	  none,
+	  cri_ri_pmi_cqi,
+	  cri_ri_i1,
+	  cri_ri_i1_cqi,
+	  cri_ri_cqi,
+	  cri_rsrp,
+	  ssb_idx_rsrp,
+	  cri_ri_li_pmi_cqi,
+	  nulltype
+	}type_;
+  struct cri_ri_i1_cqi_s_ c;
+};
+
+enum cqi_format_ind_e_ { wideband_cqi, subband_cqi, nulltype };
+enum pmi_format_ind_e_ { wideband_pmi, subband_pmi, nulltype };
+
+struct csi_report_band_c_ {
+  enum types {
+	  subbands3,
+	  subbands4,
+	  subbands5,
+	  subbands6,
+	  subbands7,
+	  subbands8,
+	  subbands9,
+	  subbands10,
+	  subbands11,
+	  subbands12,
+	  subbands13,
+	  subbands14,
+	  subbands15,
+	  subbands16,
+	  subbands17,
+	  subbands18,
+	  subbands19_v1530,
+	  nulltype
+	}  type_;
+  uint8_t c[3];//choice_buffer_t//fixed_bitstring<19>
+};
+
+struct report_freq_cfg_s_ {
+  // member variables
+  bool				 cqi_format_ind_present;
+  bool				 pmi_format_ind_present;
+  bool				 csi_report_band_present;
+  enum cqi_format_ind_e_  cqi_format_ind;
+  enum pmi_format_ind_e_  pmi_format_ind;
+  struct csi_report_band_c_ csi_report_band;
+};
+
+enum time_restrict_for_ch_meass_e_ { cfgured, not_cfgured, nulltype };
+enum time_restrict_for_interference_meass_e_ { cfgured, not_cfgured, nulltype };
+enum dummy_e_ { n1, n2, nulltype };
+enum nrof_reported_rs_e_ { n1, n2, n3, n4, nulltype };
+struct disabled_s_ {
+  // member variables
+  bool				  nrof_reported_rs_present;
+  enum nrof_reported_rs_e_ nrof_reported_rs;
+};
+
+struct group_based_beam_report_c_ {
+  enum types { enabled, disabled, nulltype }	 type_;
+  struct disabled_s_ c;
+};
+
+enum cqi_table_e_ { table1, table2, table3, spare1, nulltype };
+enum subband_size_e_ { value1, value2, nulltype };
+enum report_slot_cfg_v1530_e_ { sl4, sl8, sl16, nulltype };
+struct semi_persistent_on_pusch_v1530_s_ {
+	// member variables
+	enum report_slot_cfg_v1530_e_ report_slot_cfg_v1530;
+};
+
+struct port_idx8_s_ {
+  // member variables
+  bool			  rank1_minus8_present;
+  bool			  rank2_minus8_present;
+  bool			  rank3_minus8_present;
+  bool			  rank4_minus8_present;
+  bool			  rank5_minus8_present;
+  bool			  rank6_minus8_present;
+  bool			  rank7_minus8_present;
+  bool			  rank8_minus8_present;
+  uint8_t		  rank1_minus8;
+  uint8_t		  rank2_minus8[2];
+  uint8_t		  rank3_minus8[3];
+  uint8_t		  rank4_minus8[4];
+  uint8_t		  rank5_minus8[5];
+  uint8_t		  rank6_minus8[6];
+  uint8_t		  rank7_minus8[7];
+  uint8_t		  rank8_minus8[8];
+};
+
+struct port_idx4_s_ {
+  // member variables
+  bool			  rank1_minus4_present;
+  bool			  rank2_minus4_present;
+  bool			  rank3_minus4_present;
+  bool			  rank4_minus4_present;
+  uint8_t		  rank1_minus4;
+  uint8_t         rank2_minus4[2];
+  uint8_t         rank3_minus4[3];
+  uint8_t         rank4_minus4[4];
+};
+
+struct port_idx2_s_ {
+  // member variables
+  bool			  rank1_minus2_present;
+  bool			  rank2_minus2_present;
+  uint8_t		  rank1_minus2;
+  uint8_t		  rank2_minus2[2];
+};
+
+// PortIndexFor8Ranks ::= CHOICE
+struct port_idx_for8_ranks_c {
+  enum types { port_idx8, port_idx4, port_idx2, port_idx1, nulltype }      type_;
+  union{struct port_idx2_s_ port_idx2; struct port_idx4_s_ port_idx4; struct port_idx8_s_ port_idx8;}  c;//choice_buffer_t
+};
+
+struct two_s_ {
+  uint8_t two_tx_codebook_subset_restrict;//fixed_bitstring<6>
+};
+
+struct n1_n2_c_ {
+  enum types {
+	  two_one_type_i_single_panel_restrict,
+	  two_two_type_i_single_panel_restrict,
+	  four_one_type_i_single_panel_restrict,
+	  three_two_type_i_single_panel_restrict,
+	  six_one_type_i_single_panel_restrict,
+	  four_two_type_i_single_panel_restrict,
+	  eight_one_type_i_single_panel_restrict,
+	  four_three_type_i_single_panel_restrict,
+	  six_two_type_i_single_panel_restrict,
+	  twelve_one_type_i_single_panel_restrict,
+	  four_four_type_i_single_panel_restrict,
+	  eight_two_type_i_single_panel_restrict,
+	  sixteen_one_type_i_single_panel_restrict,
+	  nulltype
+	}		   type_;
+  uint8_t c[32];//choice_buffer_t<fixed_bitstring<256> >
+};
+
+struct more_than_two_s_ {
+  // member variables
+  bool				  type_i_single_panel_codebook_subset_restrict_i2_present;
+  struct n1_n2_c_	  n1_n2;
+  uint8_t             type_i_single_panel_codebook_subset_restrict_i2[2];//fixed_bitstring<16>
+};
+
+struct nr_of_ant_ports_c_ {
+  enum types { two, more_than_two, nulltype }	  type_;
+  union{struct more_than_two_s_ more_than_two; struct two_s_ two;}c;//choice_buffer_t
+};
+
+struct type_i_single_panel_s_ {
+  // member variables
+  struct nr_of_ant_ports_c_ nr_of_ant_ports;
+  uint8_t type_i_single_panel_ri_restrict;//fixed_bitstring<8>
+};
+
+struct ng_n1_n2_c_ {
+  enum types {
+	  two_two_one_type_i_multi_panel_restrict,
+	  two_four_one_type_i_multi_panel_restrict,
+	  four_two_one_type_i_multi_panel_restrict,
+	  two_two_two_type_i_multi_panel_restrict,
+	  two_eight_one_type_i_multi_panel_restrict,
+	  four_four_one_type_i_multi_panel_restrict,
+	  two_four_two_type_i_multi_panel_restrict,
+	  four_two_two_type_i_multi_panel_restrict,
+	  nulltype
+	}	 type_;
+  uint8_t c[16];//choice_buffer_t<fixed_bitstring<128>>
+};
+
+struct type_i_multi_panel_s_ {
+  // member variables
+  ng_n1_n2_c_  ng_n1_n2;
+  uint8_t	   ri_restrict;//fixed_bitstring<4>
+};
+
+struct type1_s_ {
+  // member variables
+  struct sub_type_c_ {
+	  enum types { type_i_single_panel, type_i_multi_panel, nulltype }		  type_;
+	  union{struct type_i_multi_panel_s_ type_i_multi_panel; struct type_i_single_panel_s_ type_i_single_panel;} c;//choice_buffer_t
+  } sub_type;
+  uint8_t	  codebook_mode;//1
+};
+
+struct n1_n2_codebook_subset_restrict_c_ {
+  enum types {
+	  two_one,
+	  two_two,
+	  four_one,
+	  three_two,
+	  six_one,
+	  four_two,
+	  eight_one,
+	  four_three,
+	  six_two,
+	  twelve_one,
+	  four_four,
+	  eight_two,
+	  sixteen_one,
+	  nulltype
+	}  type_;
+  uint8_t c[18];//choice_buffer_t<fixed_bitstring<139> >
+};
+
+struct type_ii_s_ {
+  // member variables
+  struct n1_n2_codebook_subset_restrict_c_ n1_n2_codebook_subset_restrict;
+  uint8_t				 type_ii_ri_restrict;//fixed_bitstring<2>
+};
+
+enum port_sel_sampling_size_e_ { n1, n2, n3, n4, nulltype };
+struct type_ii_port_sel_s_ {
+  // member variables
+  bool						port_sel_sampling_size_present;
+  enum port_sel_sampling_size_e_ port_sel_sampling_size;
+  uint8_t					type_ii_port_sel_ri_restrict;//fixed_bitstring<2> 
+};
+
+enum phase_alphabet_size_e_ { n4, n8, nulltype };
+enum nof_beams_e_ { two, three, four, nulltype };
+
+struct type2_s_ {
+  // member variables
+  struct sub_type_c_ {
+	  enum types { type_ii, type_ii_port_sel, nulltype }  type_;
+	  union{struct type_ii_port_sel_s_ type_ii_port_sel; struct type_ii_s_ type_ii;} c;//choice_buffer_t
+  } sub_type;
+  enum phase_alphabet_size_e_ phase_alphabet_size;
+  bool					 subband_amplitude;
+  enum nof_beams_e_			 nof_beams;
+};
+
+struct codebook_type_c_ {
+  enum types { type1, type2, nulltype }   type_;
+  union{struct type1_s_ type1; struct type2_s_ type2;} c;//choice_buffer_t
+};
+
+// CodebookConfig ::= SEQUENCE
+struct codebook_cfg_s {
+  // member variables
+  struct codebook_type_c_ codebook_type;
+};
+
+// CSI-ReportConfig ::= SEQUENCE
+struct csi_report_cfg_s {
+  // member variables
+  bool                                    ext;
+  bool                                    carrier_present;
+  bool                                    csi_im_res_for_interference_present;
+  bool                                    nzp_csi_rs_res_for_interference_present;
+  bool                                    report_freq_cfg_present;
+  bool                                    codebook_cfg_present;
+  bool                                    dummy_present;
+  bool                                    cqi_table_present;
+  uint8_t                                 report_cfg_id;
+  uint8_t                                 carrier;
+  uint8_t                                 res_for_ch_meas;
+  uint8_t                                 csi_im_res_for_interference;
+  uint8_t                                 nzp_csi_rs_res_for_interference;
+  struct report_cfg_type_c_                    report_cfg_type;
+  struct report_quant_c_                       report_quant;
+  struct report_freq_cfg_s_                    report_freq_cfg;
+  enum time_restrict_for_ch_meass_e_           time_restrict_for_ch_meass;
+  enum time_restrict_for_interference_meass_e_ time_restrict_for_interference_meass;
+  struct codebook_cfg_s                        codebook_cfg;
+  enum dummy_e_                                dummy;
+  struct group_based_beam_report_c_            group_based_beam_report;
+  enum cqi_table_e_                            cqi_table;
+  enum subband_size_e_                         subband_size;
+  A_DYN_ARRAY_OF(struct port_idx_for8_ranks_c) non_pmi_port_ind;//dyn_array<port_idx_for8_ranks_c>
+  // ...
+  // group 0
+  struct semi_persistent_on_pusch_v1530_s_ semi_persistent_on_pusch_v1530;
+};
+
+struct nzp_csi_rs_s_ {
+  // member variables
+  uint8_t	  res_set;//1
+  uint8_t	  qcl_info[16];//bounded_array<uint8_t, 16>
+};
+
+struct res_for_ch_c_ {
+  enum types { nzp_csi_rs, csi_ssb_res_set, nulltype }	type_;
+  struct nzp_csi_rs_s_	c;//choice_buffer_t
+};
+
+// CSI-AssociatedReportConfigInfo ::= SEQUENCE
+struct csi_associated_report_cfg_info_s {
+  // member variables
+  bool          ext;
+  bool          csi_im_res_for_interference_present;
+  bool          nzp_csi_rs_res_for_interference_present;
+  uint8_t       report_cfg_id;
+  struct res_for_ch_c_ res_for_ch;
+  uint8_t       csi_im_res_for_interference;//1
+  uint8_t       nzp_csi_rs_res_for_interference;//1
+};
+
+// CSI-AperiodicTriggerState ::= SEQUENCE
+struct csi_aperiodic_trigger_state_s {
+  bool                               ext;
+  A_DYN_ARRAY_OF(struct csi_associated_report_cfg_info_s) associated_report_cfg_info_list;//dyn_array<csi_associated_report_cfg_info_s>
+};
+
+// CSI-SemiPersistentOnPUSCH-TriggerState ::= SEQUENCE
+struct csi_semi_persistent_on_pusch_trigger_state_s {
+  bool    ext;
+  uint8_t associated_report_cfg_info;
+};
+
+// CSI-MeasConfig ::= SEQUENCE
+struct csi_meas_cfg_s {
+  // member variables
+  bool                                  ext;
+  bool                                  report_trigger_size_present;
+  bool                                  aperiodic_trigger_state_list_present;
+  bool                                  semi_persistent_on_pusch_trigger_state_list_present;
+  A_DYN_ARRAY_OF(struct nzp_csi_rs_res_s)  nzp_csi_rs_res_to_add_mod_list;//dyn_array<nzp_csi_rs_res_s>
+  A_DYN_ARRAY_OF(uint8_t)                  nzp_csi_rs_res_to_release_list;//dyn_array<uint8_t>
+  A_DYN_ARRAY_OF(struct nzp_csi_rs_res_set_s)  nzp_csi_rs_res_set_to_add_mod_list;//dyn_array<nzp_csi_rs_res_set_s>
+  A_DYN_ARRAY_OF(uint8_t)                      nzp_csi_rs_res_set_to_release_list;//dyn_array<uint8_t>
+  A_DYN_ARRAY_OF(struct csi_im_res_s)          csi_im_res_to_add_mod_list;//dyn_array<csi_im_res_s>
+  uint8_t                                      csi_im_res_to_release_list[32];//bounded_array<uint8_t, 32>
+  A_DYN_ARRAY_OF(struct csi_im_res_set_s)      csi_im_res_set_to_add_mod_list;//dyn_array<csi_im_res_set_s>
+  A_DYN_ARRAY_OF(uint8_t)                      csi_im_res_set_to_release_list;//dyn_array<uint8_t>
+  A_DYN_ARRAY_OF(struct csi_ssb_res_set_s)     csi_ssb_res_set_to_add_mod_list;//dyn_array<csi_ssb_res_set_s>
+  A_DYN_ARRAY_OF(uint8_t)                      csi_ssb_res_set_to_release_list;//dyn_array<uint8_t>
+  A_DYN_ARRAY_OF(struct csi_res_cfg_s)         csi_res_cfg_to_add_mod_list;//dyn_array<csi_res_cfg_s>
+  A_DYN_ARRAY_OF(uint8_t)                      csi_res_cfg_to_release_list;//dyn_array<uint8_t>
+  A_DYN_ARRAY_OF(struct csi_report_cfg_s)      csi_report_cfg_to_add_mod_list;//dyn_array<csi_report_cfg_s>
+  A_DYN_ARRAY_OF(uint8_t)                      csi_report_cfg_to_release_list;//dyn_array<uint8_t>
+  uint8_t                               report_trigger_size;
+  setup_release_c(A_DYN_ARRAY_OF(struct csi_aperiodic_trigger_state_s))  aperiodic_trigger_state_list;//dyn_seq_of<csi_aperiodic_trigger_state_s, 1, 128> 
+  setup_release_c(A_DYN_ARRAY_OF(struct csi_semi_persistent_on_pusch_trigger_state_s))  semi_persistent_on_pusch_trigger_state_list;//dyn_seq_of<csi_semi_persistent_on_pusch_trigger_state_s, 1, 64>
+};
+
+struct own_s_ {
+  bool cif_presence;
+};
+struct other_s_ {
+  uint8_t sched_cell_id;//0
+  uint8_t cif_in_sched_cell;//1
+};
+
+struct sched_cell_info_c_ {
+  enum types { own, other, nulltype }  type_;
+  union{struct other_s_ other; struct own_s_ own;} c;//choice_buffer_t
+};
+
+// CrossCarrierSchedulingConfig ::= SEQUENCE
+struct cross_carrier_sched_cfg_s {
+  // member variables
+  bool               ext;
+  struct sched_cell_info_c_ sched_cell_info;
 };
 
 enum pathloss_ref_linking_e_ { sp_cell, scell, nulltype };
@@ -3068,14 +3678,14 @@ struct serving_cell_cfg_s {
   uint8_t                                   default_dl_bwp_id;
   struct ul_cfg_s                                  ul_cfg;
   struct ul_cfg_s                                  supplementary_ul;
-  setup_release_c<struct pdcch_serving_cell_cfg_s> pdcch_serving_cell_cfg;
-  setup_release_c<struct pdsch_serving_cell_cfg_s> pdsch_serving_cell_cfg;
-  setup_release_c<struct csi_meas_cfg_s>           csi_meas_cfg;
-  enum scell_deactivation_timer_e_          scell_deactivation_timer;
+  setup_release_c(struct pdcch_serving_cell_cfg_s) pdcch_serving_cell_cfg;
+  setup_release_c(struct pdsch_serving_cell_cfg_s) pdsch_serving_cell_cfg;
+  setup_release_c(struct csi_meas_cfg_s)           csi_meas_cfg;
+  enum scell_deactivation_timer_e_                 scell_deactivation_timer;
   struct cross_carrier_sched_cfg_s                 cross_carrier_sched_cfg;
-  uint8_t                                   tag_id;
-  enum pathloss_ref_linking_e_              pathloss_ref_linking;
-  uint8_t                                   serving_cell_mo;//1
+  uint8_t                                          tag_id;
+  enum pathloss_ref_linking_e_                     pathloss_ref_linking;
+  uint8_t                                          serving_cell_mo;//1
   // ...
   // group 0
   setup_release_c(struct rate_match_pattern_lte_crs_s) lte_crs_to_match_around;
@@ -3083,7 +3693,6 @@ struct serving_cell_cfg_s {
   uint8_t                              rate_match_pattern_to_release_list[4];//bounded_array<uint8_t, 4>
   A_DYN_ARRAY_OF(struct scs_specific_carrier_s)   dl_ch_bw_per_scs_list;//dyn_array<scs_specific_carrier_s>
 };
-
 
 // SpCellConfig ::= SEQUENCE
 struct sp_cell_cfg_s {
@@ -3098,7 +3707,6 @@ struct sp_cell_cfg_s {
   setup_release_c(struct rlf_timers_and_consts_s) rlf_timers_and_consts;
   struct serving_cell_cfg_s                       sp_cell_cfg_ded;
 };
-
 
 
 /***************rrc_cell_cfg_nr_t****************************/
