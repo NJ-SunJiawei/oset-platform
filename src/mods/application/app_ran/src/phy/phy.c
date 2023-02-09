@@ -10,7 +10,6 @@
 #include "rf/channel_2c.h"
 #include "phy/phy.h"
 #include "phy/prach_work.h"
-#include "phy/txrx.h"
 #include "lib/srsran/phy/utils/phy_logger.h"
 
 #undef  OSET_LOG2_DOMAIN

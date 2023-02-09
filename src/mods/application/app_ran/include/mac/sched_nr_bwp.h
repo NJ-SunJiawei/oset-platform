@@ -10,10 +10,8 @@
 #ifndef SCHED_NR_BWP_H_
 #define SCHED_NR_BWP_H_
 
-#include "mac/sched_nr_cfg.h"
 #include "mac/sched_nr_grant_allocator.h"
-#include "lib/common/slot_point.h"
-#include "lib/common/slot_interval.h"
+#include "mac/sched_nr_signalling.h"
 
 
 #ifdef __cplusplus
@@ -36,8 +34,7 @@ typedef struct {
 
 
 typedef struct {
-  bwp_params_t* cfg;
-
+  bwp_params_t                   *cfg;
   // channel-specific schedulers
   si_sched                       si;
   ra_sched                       ra;

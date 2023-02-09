@@ -12,7 +12,7 @@
 
 #include "srsran/phy/channel/channel.h"
 #include "rf/channel_2c.h"
-#include "phy_util.h"
+#include "phy/phy_util.h"
 #include "gnb_config_parser.h"
 
 

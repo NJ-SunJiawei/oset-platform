@@ -10,8 +10,9 @@
 #ifndef MAC_PCAP_H_
 #define MAC_PCAP_H_
 
-#include "lib/common/buffer_interface.h"
+#include "oset-core.h"
 #include "lib/srsran/srsran.h"
+#include "lib/common/buffer_interface.h"
 #include "lib/common/pcap.h"
 
 #ifdef __cplusplus

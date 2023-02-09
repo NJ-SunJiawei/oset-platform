@@ -10,10 +10,7 @@
 #ifndef MAC_H_
 #define MAC_H_
 
-#include "oset-core.h"
 #include "lib/common/buffer_interface.h"
-#include "lib/srsran/srsran.h"
-#include "lib/common/phy_cfg_nr.h"
 #include "lib/common/mac_pcap.h"
 #include "mac/sched_nr.h"
 //#include "mac/ue_nr.h"

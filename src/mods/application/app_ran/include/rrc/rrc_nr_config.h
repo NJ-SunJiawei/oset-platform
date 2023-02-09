@@ -10,7 +10,6 @@
 #ifndef RRC_NR_CONFIG_H_
 #define RRC_NR_CONFIG_H_
 
-#include "oset-core.h"
 #include "phy/phy_nr_config.h"
 #include "asn/rrc/ASN_RRC_RLC-Config.h"
 #include "asn/rrc/ASN_RRC_PDCP-Config.h"
@@ -3706,6 +3705,18 @@ struct sp_cell_cfg_s {
   struct recfg_with_sync_s                 recfg_with_sync;
   setup_release_c(struct rlf_timers_and_consts_s) rlf_timers_and_consts;
   struct serving_cell_cfg_s                       sp_cell_cfg_ded;
+};
+
+struct ssb_positions_in_burst_s_ {
+  bool				 group_presence_present;
+  uint8_t            in_one_group;//fixed_bitstring<8>
+  uint8_t            group_presence;//fixed_bitstring<8>
+};
+
+// PDCCH-ConfigSIB1 ::= SEQUENCE
+struct pdcch_cfg_sib1_s {
+  uint8_t ctrl_res_set_zero;
+  uint8_t search_space_zero;
 };
 
 

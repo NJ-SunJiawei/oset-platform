@@ -7,23 +7,19 @@
  *Date: 2023.02
 ************************************************************************/
 
-#ifndef SCHED_NR_WORKER_H_
-#define SCHED_NR_WORKER_H_
+#ifndef RF_TIMESTAMP_H
+#define RF_TIMESTAMP_H
 
-#include "mac/sched_nr_cfg.h"
+#include "lib/srsran/phy/common/timestamp.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct {
-	// const params
-    cell_config_manager     *cfg;
-	// cc-specific resources
-	A_DYN_ARRAY_OF(bwp_manager) bwps; //bounded_vector<bwp_manager, SCHED_NR_MAX_BWP_PER_CELL>
-	
-}cc_worker;
-
+typedef struct rf_timestamp_s{
+    srsran_timestamp_t	default_ts;
+    srsran_timestamp_t  timestamps[SRSRAN_MAX_CHANNELS];
+}rf_timestamp_t;
 
 #ifdef __cplusplus
 }

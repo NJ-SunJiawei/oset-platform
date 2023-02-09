@@ -11,9 +11,10 @@
 #define RADIO_H_
 
 #include "oset-core.h"
-#include "channel_mapping.h"
-#include "phy_common.h"
 #include "lib/srsran/srsran.h"
+#include "lib/rf/rf_buffer.h"
+#include "lib/rf/rf_timestamp.h"
+#include "rf/channel_mapping.h"
 
 
 #ifdef __cplusplus
@@ -21,18 +22,6 @@ extern "C" {
 #endif
 
 #define  MAX_DEVICE_NUM 10
-
-typedef struct rf_timestamp_s{
-    srsran_timestamp_t	default_ts;
-    srsran_timestamp_t  timestamps[SRSRAN_MAX_CHANNELS];
-}rf_timestamp_t;
-
-typedef struct rf_buffer_s{
-	cf_t                                   *sample_buffer[SRSRAN_MAX_CHANNELS];
-	//uint32_t							   nof_subframes;
-	uint32_t							   nof_samples;
-}rf_buffer_t;
-
 
 typedef struct {
   uint32_t rf_o;

@@ -10,6 +10,7 @@
 #ifndef PHY_CFG_NR_H_
 #define PHY_CFG_NR_H_
 
+#include "oset-core.h"
 #include "lib/srsran/srsran.h"
 
 #ifdef __cplusplus

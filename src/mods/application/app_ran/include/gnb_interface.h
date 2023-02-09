@@ -10,11 +10,22 @@
 #ifndef GNB_INTERFACE_H_
 #define GNB_INTERFACE_H_
 
+#include "oset-core.h"
 #include "lib/srsran/srsran.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/****phy_interface_rrc_nr****/
+typedef struct {
+  srsran_carrier_nr_t	carrier;
+  srsran_pdcch_cfg_nr_t pdcch;
+  srsran_prach_cfg_t	prach;
+  srsran_ssb_cfg_t		ssb;
+  srsran_duplex_mode_t	duplex_mode;
+}common_cfg_t;
+
 
 /****mac_interface_phy_nr****/
 #define MAX_SSB			       4

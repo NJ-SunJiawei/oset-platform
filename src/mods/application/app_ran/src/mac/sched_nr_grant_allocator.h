@@ -10,9 +10,8 @@
 #ifndef SCHED_NR_GRANT_ALLOCATOR_H
 #define SCHED_NR_GRANT_ALLOCATOR_H
 
-#include "gnb_interface.h"
-#include "mac/sched_nr_cfg.h"
-#include "lib/common/phy_cfg_nr.h"
+#include "mac/sched_nr_pdcch.h"
+#include "mac/sched_nr_sch.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -10,8 +10,7 @@
 #ifndef PHY_NR_CONFIG_H_
 #define PHY_NR_CONFIG_H_
 
-#include "oset-dyn_array.h"
-#include "phy_common_nr.h"
+#include "lib/srsran/srsran.h"
 #include "ASN_RRC_PDSCH-ConfigCommon.h"
 #include "ASN_RRC_PUSCH-ConfigCommon.h"
 #include "ASN_RRC_PUCCH-ConfigCommon.h"

@@ -10,10 +10,11 @@
 #ifndef SCHED_NR_INTERFACE_H_
 #define SCHED_NR_INTERFACE_H_
 
-#include "oset-core.h"
-#include "lib/srsran/srsran.h"
+#include "gnb_interface.h"
 #include "lib/common/phy_cfg_nr.h"
 #include "lib/common/common_nr.h"
+#include "lib/common/slot_point.h"
+#include "lib/common/slot_interval.h"
 #include "rrc/rrc_nr_config.h"
 
 #ifdef __cplusplus
@@ -62,15 +63,15 @@ typedef struct  {
 }sched_nr_ue_cfg_t;
 
 typedef struct  {
-  uint32_t                 start_rb        = 0;
-  uint32_t                 rb_width        = 100;
-  srsran_pdcch_cfg_nr_t    pdcch           = {};
-  srsran_sch_hl_cfg_nr_t   pdsch           = {};
-  srsran_sch_hl_cfg_nr_t   pusch           = {};
-  srsran_pucch_nr_hl_cfg_t pucch           = {};
-  srsran_harq_ack_cfg_hl_t harq_ack        = {};
-  uint32_t                 rar_window_size = 10; // See TS 38.331, ra-ResponseWindow: {1, 2, 4, 8, 10, 20, 40, 80}
-  uint32_t                 numerology_idx  = 0;
+  uint32_t                 start_rb;
+  uint32_t                 rb_width;//100
+  srsran_pdcch_cfg_nr_t    pdcch;
+  srsran_sch_hl_cfg_nr_t   pdsch;
+  srsran_sch_hl_cfg_nr_t   pusch;
+  srsran_pucch_nr_hl_cfg_t pucch;
+  srsran_harq_ack_cfg_hl_t harq_ack;
+  uint32_t                 rar_window_size;//10 // See TS 38.331, ra-ResponseWindow: {1, 2, 4, 8, 10, 20, 40, 80}
+  uint32_t                 numerology_idx;
 }sched_nr_bwp_cfg_t;
 
 typedef struct  {
@@ -79,38 +80,68 @@ typedef struct  {
   uint32_t si_window_slots;
 }sched_nr_cell_cfg_sib_t;
 
-typedef struct sched_nr_cell_cfg_t {
-  static const size_t MAX_SIBS   = 2;
-  using ssb_positions_in_burst_t = asn1::rrc_nr::serving_cell_cfg_common_sib_s::ssb_positions_in_burst_s_;
+#define MAX_SIBS  2
 
+typedef struct {
   uint32_t                                               nof_layers;
   uint32_t                                               pci;
   uint32_t                                               ssb_offset;
   uint32_t                                               dl_cell_nof_prb;
   uint32_t                                               ul_cell_nof_prb;
-  dl_cfg_common_sib_s                                    dl_cfg_common;
-  ul_cfg_common_sib_s                                    ul_cfg_common;
-  srsran::optional<asn1::rrc_nr::tdd_ul_dl_cfg_common_s> tdd_ul_dl_cfg_common;
-  ssb_positions_in_burst_t                               ssb_positions_in_burst;
+  struct dl_cfg_common_sib_s                             dl_cfg_common;
+  struct ul_cfg_common_sib_s                             ul_cfg_common;
+  struct tdd_ul_dl_cfg_common_s                          tdd_ul_dl_cfg_common;
+  struct ssb_positions_in_burst_s_                       ssb_positions_in_burst;
   uint32_t                                               ssb_periodicity_ms;
-  dmrs_type_a_position_e_                                dmrs_type_a_position;
-  subcarrier_spacing_e                                   ssb_scs;
-  pdcch_cfg_sib1_s                                       pdcch_cfg_sib1;
-  int                                                    ss_pbch_block_power = 0;
+  enum dmrs_type_a_position_e_                           dmrs_type_a_position;
+  enum subcarrier_spacing_e                              ssb_scs;
+  struct pdcch_cfg_sib1_s                                pdcch_cfg_sib1;
+  int                                                    ss_pbch_block_power;
   // Extras
-  std::vector<sched_nr_bwp_cfg_t>      bwps{1}; // idx0 for BWP-common
-  std::vector<sched_nr_cell_cfg_sib_t> sibs;
+  A_DYN_ARRAY_OF(sched_nr_bwp_cfg_t)        bwps; //std::vector<sched_nr_bwp_cfg_t> bwps{1}// idx0 for BWP-common
+  A_DYN_ARRAY_OF(sched_nr_cell_cfg_sib_t)   sibs;// std::vector<sched_nr_cell_cfg_sib_t>
   double                               dl_center_frequency_hz;
   double                               ul_center_frequency_hz;
   double                               ssb_center_freq_hz;
+}sched_nr_cell_cfg_t;
+
+////// RA signalling //////
+
+#define MAX_SUBPDUS  8
+
+typedef struct rar_info_s {
+  uint32_t	 msg3_size;//7
+  uint32_t	 cc;
+  uint16_t	 temp_crnti;
+  slot_point prach_slot;
+  uint32_t	 ofdm_symbol_idx;
+  uint32_t	 freq_idx;
+  uint32_t	 preamble_idx;
+  uint32_t	 ta_cmd;
+}rar_info_t;
+
+typedef struct msg3_grant_s {
+  rar_info_t		 data;
+  srsran_dci_ul_nr_t msg3_dci;
+}msg3_grant_t;
+
+typedef struct rar_s {
+  A_DYN_ARRAY_OF(msg3_grant_t) grants;//srsran::bounded_vector<msg3_grant_t, MAX_GRANTS>
+}rar_t;
+
+
+////// DL data signalling //////
+typedef struct dl_pdu_s {
+   A_DYN_ARRAY_OF(uint32_t) subpdus;//srsran::bounded_vector<uint32_t, MAX_SUBPDUS>
+}dl_pdu_t;
 
 
 /***sched_nr_interface***/
 typedef struct dl_res_s{
-  dl_sched_t		  phy;
-  sched_dl_pdu_list_t data; //bounded_vector<dl_pdu_t, MAX_GRANTS>
-  sched_rar_list_t	  rar; //bounsed_vector<rar_t, MAX_GRANTS>;
-  sched_sib_list_t	  sib_idxs;//bounded_vector<uint32_t, MAX_GRANTS>//list of SI indexes
+  dl_sched_t		       phy;
+  A_DYN_ARRAY_OF(dl_pdu_t) data; //bounded_vector<dl_pdu_t, MAX_GRANTS>
+  A_DYN_ARRAY_OF(rar_t)	   rar; //bounsed_vector<rar_t, MAX_GRANTS>;
+  A_DYN_ARRAY_OF(uint32_t) sib_idxs;//bounded_vector<uint32_t, MAX_GRANTS>//list of SI indexes
 }dl_res_t;
 
 #ifdef __cplusplus

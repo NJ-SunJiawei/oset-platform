@@ -17,13 +17,6 @@
 #define OSET_LOG2_DOMAIN   "app-gnb-txrx"
 
 
-typedef struct worker_context_s {
-  uint32_t		 sf_idx;	   ///< Subframe index
-  void* 		 worker_ptr; ///< Worker pointer for wait/release semaphore
-  bool			 last;   ///< Indicates this worker is the last one in the sub-frame processing
-  rf_timestamp_t tx_time;	   ///< Transmit time, used only by last worker
-}worker_context_t;
-
 static void set_context(worker_context_t *w_ctx)
 {
 	phy_manager_self()->slot_worker.ul_slot_cfg.idx = w_ctx->sf_idx;

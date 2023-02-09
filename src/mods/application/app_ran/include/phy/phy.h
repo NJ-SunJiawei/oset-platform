@@ -10,21 +10,14 @@
 #ifndef PHY_H_
 #define PHY_H_
 
-#include "oset-core.h"
-#include "lib/srsran/srsran.h"
+#include "gnb_interface.h"
+#include "gnb_config_parser.h"
+#include "phy/txrx.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct {
-  srsran_carrier_nr_t	carrier;
-  srsran_pdcch_cfg_nr_t pdcch;
-  srsran_prach_cfg_t	prach;
-  srsran_ssb_cfg_t		ssb;
-  srsran_duplex_mode_t	duplex_mode;
-}common_cfg_t;
 
 
 typedef struct {

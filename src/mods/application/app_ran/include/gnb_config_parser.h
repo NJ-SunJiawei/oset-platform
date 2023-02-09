@@ -9,15 +9,14 @@
 #ifndef GNB_CONFIG_PARSER_H_
 #define GNB_CONFIG_PARSER_H_
 
-#include "lib/srsran/phy/common/phy_common.h"
+#include "oset-core.h"
+#include "lib/srsran/srsran.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*************args struct******************/
-typedef struct srsran_cfr_mode_t srsran_cfr_mode_t;
-
 typedef struct enb_args_s{
   uint32_t enb_id;
   uint32_t dl_earfcn; // By default the EARFCN from rr.conf's cell list are used but this value can be used for single

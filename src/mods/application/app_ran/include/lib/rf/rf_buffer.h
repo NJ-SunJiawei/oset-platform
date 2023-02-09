@@ -7,23 +7,20 @@
  *Date: 2023.02
 ************************************************************************/
 
-#ifndef SCHED_NR_WORKER_H_
-#define SCHED_NR_WORKER_H_
+#ifndef RF_BUFFER_H_
+#define RF_BUFFER_H_
 
-#include "mac/sched_nr_cfg.h"
+#include "lib/srsran/phy/common/phy_common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct {
-	// const params
-    cell_config_manager     *cfg;
-	// cc-specific resources
-	A_DYN_ARRAY_OF(bwp_manager) bwps; //bounded_vector<bwp_manager, SCHED_NR_MAX_BWP_PER_CELL>
-	
-}cc_worker;
-
+typedef struct rf_buffer_s{
+	cf_t                                   *sample_buffer[SRSRAN_MAX_CHANNELS];
+	//uint32_t							   nof_subframes;
+	uint32_t							   nof_samples;
+}rf_buffer_t;
 
 #ifdef __cplusplus
 }

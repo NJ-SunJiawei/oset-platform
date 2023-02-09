@@ -10,7 +10,6 @@
 #ifndef UE_NR_H_
 #define UE_NR_H_
 
-#include "lib/common/buffer_interface.h"
 #include "mac/mac_metrics.h"
 #include "mac/mac_sch_pdu_nr.h"
 

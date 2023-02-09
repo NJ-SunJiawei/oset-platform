@@ -15,10 +15,10 @@ extern "C" {
 #endif
 
 #include "lib/common/common.h"
-#include "srsran/phy/common/timestamp.h"
+#include "lib/srsran/srsran.h"
 
 typedef struct channel_t  channel_t;
-typedef struct channel_args_s ;
+typedef struct channel_args_s channel_args_t;
 
 channel_t *channel_create(channel_args_t &arg);
 void channel_run(channel_t *channel_helper, 

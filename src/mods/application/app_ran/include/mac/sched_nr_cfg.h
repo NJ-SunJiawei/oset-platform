@@ -10,9 +10,7 @@
 #ifndef SCHED_NR_CFG_H_
 #define SCHED_NR_CFG_H_
 
-#include "oset-core.h"
-#include "lib/srsran/srsran.h"
-#include "lib/common/phy_cfg_nr.h"
+#include "mac/sched_nr_interface.h"
 #include "mac/sched_nr_rb.h"
 
 #define MAX_NOF_AGGR_LEVELS  5
@@ -23,21 +21,6 @@ extern "C" {
 
 typedef struct sched_args_s sched_args_t;
 
-typedef struct sched_nr_bwp_cfg_s {
-  uint32_t                 start_rb;//0
-  uint32_t                 rb_width;//100
-  srsran_pdcch_cfg_nr_t    pdcch;
-  srsran_sch_hl_cfg_nr_t   pdsch;
-  srsran_sch_hl_cfg_nr_t   pusch;
-  srsran_pucch_nr_hl_cfg_t pucch;
-  srsran_harq_ack_cfg_hl_t harq_ack;
-  uint32_t                 rar_window_size;//10 // See TS 38.331, ra-ResponseWindow: {1, 2, 4, 8, 10, 20, 40, 80}
-  uint32_t                 numerology_idx;//0
-}sched_nr_bwp_cfg_t;
-
-
-
-/************************************************************************/
 typedef A_DYN_ARRAY_OF(uint32_t)  pdcch_cce_pos_list;//bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
 typedef pdcch_cce_pos_list cce_pos_list_tmp[MAX_NOF_AGGR_LEVELS];
 typedef cce_pos_list_tmp bwp_cce_pos_list[SRSRAN_NOF_SF_X_FRAME];//using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;

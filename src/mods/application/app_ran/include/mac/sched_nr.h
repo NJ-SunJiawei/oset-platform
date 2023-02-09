@@ -11,8 +11,6 @@
 #define SCHED_NR_H_
 
 #include "mac/sched_nr_cfg.h"
-#include "lib/srsran/config.h"
-#include "lib/common/slot_point.h"
 
 #ifdef __cplusplus
 extern "C" {

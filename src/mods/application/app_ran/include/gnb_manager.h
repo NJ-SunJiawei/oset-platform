@@ -9,11 +9,11 @@
 #ifndef GNB_LAYER_TASK_H_
 #define GNB_LAYER_TASK_H_
 
-#include "oset-core.h"
+#include "gnb_config_parser.h"
 #include "rf/channel_2c.h"
 #include "phy/phy_nr_config.h"
 #include "rrc/rrc_nr_config.h"
-#include "gnb_config_parser.h"
+
 
 #ifdef __cplusplus
 extern "C" {
