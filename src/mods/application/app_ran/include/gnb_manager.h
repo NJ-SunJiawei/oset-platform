@@ -18,7 +18,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define SRSENB_MAX_UES   64
 
 typedef struct band_helper_t band_helper_t;
 

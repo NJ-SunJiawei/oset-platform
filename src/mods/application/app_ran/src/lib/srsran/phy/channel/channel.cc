@@ -19,7 +19,6 @@
  *
  */
 
-#include "oset-core.h"
 #include <cstdlib>
 #include <srsran/phy/channel/channel.h>
 #include <srsran/srsran.h>

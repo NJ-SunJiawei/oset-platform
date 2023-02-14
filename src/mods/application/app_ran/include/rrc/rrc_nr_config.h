@@ -465,9 +465,9 @@ struct rohc_s_ {
   };
 
   // member variables
-  bool		  max_cid_present			= false;
-  bool		  drb_continue_rohc_present = false;
-  uint16_t	  max_cid					= 1;
+  bool		  max_cid_present;
+  bool		  drb_continue_rohc_present;
+  uint16_t	  max_cid;//1
   profiles_s_ profiles;
 };
 
@@ -522,12 +522,12 @@ struct pdcp_cfg_s {
 };
 
 typedef struct srb_5g_cfg_s{
-  bool                    present;false
+  bool                    present;
   struct rlc_cfg_c        rlc_cfg;//ASN_RRC_RLC_Config_t
 }srb_5g_cfg_t;
 
 typedef struct rrc_nr_cfg_five_qi_s{
-  bool           configured = false;
+  bool           configured;
   uint32_t       five_qi;
   struct pdcp_cfg_s    pdcp_cfg;//ASN_RRC_PDCP_Config_t
   struct rlc_cfg_c     rlc_cfg;//ASN_RRC_RLC_Config_t
@@ -1284,7 +1284,7 @@ struct sched_request_to_add_mod_s {
 struct sched_request_cfg_s {
   // member variables
   A_DYN_ARRAY_OF(struct sched_request_to_add_mod_s) sched_request_to_add_mod_list;//dyn_array<sched_request_to_add_mod_s>
-  uint8_t sched_request_to_release_list[8];//bounded_array<uint8_t, 8>
+  A_DYN_ARRAY_OF(uint8_t) sched_request_to_release_list;//bounded_array<uint8_t, 8>
 };
 
 enum periodic_bsr_timer_e_ {
@@ -1350,7 +1350,7 @@ struct tag_s {
 // TAG-Config ::= SEQUENCE
 struct tag_cfg_s {
   // member variables
-  uint8_t        tag_to_release_list[4];//bounded_array<uint8_t, 4>
+  A_DYN_ARRAY_OF(uint8_t)        tag_to_release_list;//bounded_array<uint8_t, 4>
   A_DYN_ARRAY_OF(struct tag_s)   tag_to_add_mod_list;// dyn_array<tag_s>
 };
 
@@ -1550,7 +1550,7 @@ struct freq_info_dl_s {
   bool                         ext;
   bool                         absolute_freq_ssb_present;
   uint32_t                     absolute_freq_ssb;
-  uint16_t                     freq_band_list[8];//bounded_array<uint16_t, 8>//// MultiFrequencyBandListNR ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..1024)
+  A_DYN_ARRAY_OF(uint16_t)     freq_band_list;//bounded_array<uint16_t, 8>//// MultiFrequencyBandListNR ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..1024)
   uint32_t                     absolute_freq_point_a;
   A_DYN_ARRAY_OF(struct scs_specific_carrier_s)  scs_specific_carrier_list;//dyn_array<scs_specific_carrier_s>
 };
@@ -1609,7 +1609,7 @@ struct freq_info_ul_s {
   bool                         add_spec_emission_present;
   bool                         p_max_present;
   bool                         freq_shift7p5khz_present;
-  uint16_t                        freq_band_list[8];//bounded_array<uint16_t, 8>//// MultiFrequencyBandListNR ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..1024)
+  A_DYN_ARRAY_OF(uint16_t)        freq_band_list;//bounded_array<uint16_t, 8>//// MultiFrequencyBandListNR ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..1024)
   uint32_t                        absolute_freq_point_a;
   A_DYN_ARRAY_OF(struct scs_specific_carrier_s)   scs_specific_carrier_list;//dyn_array<scs_specific_carrier_s>
   uint8_t                         add_spec_emission;
@@ -1714,7 +1714,7 @@ struct serving_cell_cfg_common_s {
   enum dmrs_type_a_position_e_                  dmrs_type_a_position;
   setup_release_c(struct rate_match_pattern_lte_crs_s) lte_crs_to_match_around;
   A_DYN_ARRAY_OF(struct rate_match_pattern_s)    rate_match_pattern_to_add_mod_list;//dyn_array<rate_match_pattern_s>
-  uint8_t                                       rate_match_pattern_to_release_list[4];//bounded_array<uint8_t, 4>
+  A_DYN_ARRAY_OF(uint8_t)                       rate_match_pattern_to_release_list;//bounded_array<uint8_t, 4>
   enum subcarrier_spacing_e                     ssb_subcarrier_spacing;
   struct tdd_ul_dl_cfg_common_s                 tdd_ul_dl_cfg_common;
   int8_t                                        ss_pbch_block_pwr;//-60
@@ -2032,7 +2032,7 @@ struct zp_csi_rs_res_set_s {
   // member variables
   bool                     ext;
   uint8_t                  zp_csi_rs_res_set_id;
-  uint8_t                  zp_csi_rs_res_id_list[16];//bounded_array<uint8_t, 16>
+  A_DYN_ARRAY_OF(uint8_t)  zp_csi_rs_res_id_list;//bounded_array<uint8_t, 16>
 };
 
 // PDSCH-Config ::= SEQUENCE
@@ -2058,7 +2058,7 @@ struct pdsch_cfg_s {
   setup_release_c(A_DYN_ARRAY_OF(struct pdsch_time_domain_res_alloc_s))  pdsch_time_domain_alloc_list;//dyn_seq_of<pdsch_time_domain_res_alloc_s, 1, 16>
   pdsch_aggregation_factor_e_                                        pdsch_aggregation_factor;
   A_DYN_ARRAY_OF(struct rate_match_pattern_s)                        rate_match_pattern_to_add_mod_list;
-  uint8_t                                                            rate_match_pattern_to_release_list[4];//bounded_array<uint8_t, 4>
+  A_DYN_ARRAY_OF(uint8_t)                                            rate_match_pattern_to_release_list;//bounded_array<uint8_t, 4>
   A_DYN_ARRAY_OF(struct rate_match_pattern_group_item_c_)            rate_match_pattern_group1;//dyn_array<rate_match_pattern_group_item_c_>//// RateMatchPatternGroup ::= SEQUENCE (SIZE (1..8)) OF RateMatchPatternGroup-item
   A_DYN_ARRAY_OF(struct rate_match_pattern_group_item_c_)            rate_match_pattern_group2;
   enum rbg_size_e_                                                   rbg_size;
@@ -2066,11 +2066,11 @@ struct pdsch_cfg_s {
   enum max_nrof_code_words_sched_by_dci_e_                           max_nrof_code_words_sched_by_dci;
   struct prb_bundling_type_c_                                        prb_bundling_type;
   A_DYN_ARRAY_OF(struct zp_csi_rs_res_s)                             zp_csi_rs_res_to_add_mod_list;
-  uint8_t                                                            zp_csi_rs_res_to_release_list[32];//bounded_array<uint8_t, 32>
+  A_DYN_ARRAY_OF(uint8_t)                                            zp_csi_rs_res_to_release_list;//bounded_array<uint8_t, 32>
   A_DYN_ARRAY_OF(struct zp_csi_rs_res_set_s)                         aperiodic_zp_csi_rs_res_sets_to_add_mod_list;
-  uint8_t                                                            aperiodic_zp_csi_rs_res_sets_to_release_list[16];//bounded_array<uint8_t, 16>
+  A_DYN_ARRAY_OF(uint8_t)                                            aperiodic_zp_csi_rs_res_sets_to_release_list;//bounded_array<uint8_t, 16>
   A_DYN_ARRAY_OF(struct zp_csi_rs_res_set_s)                         sp_zp_csi_rs_res_sets_to_add_mod_list;
-  uint8_t                                                            sp_zp_csi_rs_res_sets_to_release_list[16];//bounded_array<uint8_t, 16>
+  A_DYN_ARRAY_OF(uint8_t)                                            sp_zp_csi_rs_res_sets_to_release_list;//bounded_array<uint8_t, 16>
   setup_release_c(struct zp_csi_rs_res_set_s)  p_zp_csi_rs_res_set;
 };
 
@@ -2132,7 +2132,7 @@ struct radio_link_monitoring_cfg_s {
   bool                                  beam_fail_instance_max_count_present;
   bool                                  beam_fail_detection_timer_present;
   A_DYN_ARRAY_OF(struct radio_link_monitoring_rs_s) fail_detection_res_to_add_mod_list;//dyn_array<radio_link_monitoring_rs_s>
-  uint8_t                               fail_detection_res_to_release_list[10];//bounded_array<uint8_t, 10>
+  A_DYN_ARRAY_OF(uint8_t)                           fail_detection_res_to_release_list;//bounded_array<uint8_t, 10>
   enum beam_fail_instance_max_count_e_       beam_fail_instance_max_count;
   enum beam_fail_detection_timer_e_          beam_fail_detection_timer;
 };
@@ -2166,7 +2166,7 @@ struct pucch_res_set_s {
   // member variables
   bool        max_payload_size_present;
   uint8_t     pucch_res_set_id;
-  uint8_t     res_list[32];//bounded_array<uint8_t, 32>
+  A_DYN_ARRAY_OF(uint8_t) res_list;//bounded_array<uint8_t, 32>
   uint16_t    max_payload_size;//4
 };
 
@@ -2350,7 +2350,7 @@ struct pucch_cfg_s {
   bool                                     format4_present;
   bool                                     pucch_pwr_ctrl_present;
   A_DYN_ARRAY_OF(struct pucch_res_set_s)   res_set_to_add_mod_list;//dyn_array<pucch_res_set_s>
-  uint8_t                                  res_set_to_release_list[4];//bounded_array<uint8_t, 4>
+  A_DYN_ARRAY_OF(uint8_t)                  res_set_to_release_list;//bounded_array<uint8_t, 4>
   A_DYN_ARRAY_OF(struct pucch_res_s)       res_to_add_mod_list;//dyn_array<pucch_res_s>
   A_DYN_ARRAY_OF(struct uint8_t)           res_to_release_list;//dyn_array<uint8_t>
   setup_release_c<pucch_format_cfg_s>      format1;
@@ -2358,11 +2358,11 @@ struct pucch_cfg_s {
   setup_release_c<pucch_format_cfg_s>      format3;
   setup_release_c<pucch_format_cfg_s>      format4;
   A_DYN_ARRAY_OF(struct sched_request_res_cfg_s)   sched_request_res_to_add_mod_list;//dyn_array<sched_request_res_cfg_s>
-  uint8_t                                          sched_request_res_to_release_list[8];//bounded_array<uint8_t, 8>
-  uint8_t                                          multi_csi_pucch_res_list[2];//bounded_array<uint8_t, 2>
-  uint8_t                                          dl_data_to_ul_ack[8];//bounded_array<uint8_t, 8>
+  A_DYN_ARRAY_OF(uint8_t)                          sched_request_res_to_release_list;//bounded_array<uint8_t, 8>
+  A_DYN_ARRAY_OF(uint8_t)                          multi_csi_pucch_res_list;//bounded_array<uint8_t, 2>
+  A_DYN_ARRAY_OF(uint8_t)                          dl_data_to_ul_ack;//bounded_array<uint8_t, 8>
   A_DYN_ARRAY_OF(struct pucch_spatial_relation_info_s)   spatial_relation_info_to_add_mod_list;//dyn_array<pucch_spatial_relation_info_s>
-  uint8_t                                                spatial_relation_info_to_release_list[8];//bounded_array<uint8_t, 8>
+  A_DYN_ARRAY_OF(uint8_t)                                spatial_relation_info_to_release_list;//bounded_array<uint8_t, 8>
   struct pucch_pwr_ctrl_s                                pucch_pwr_ctrl;
 };
 
@@ -2489,9 +2489,9 @@ struct pusch_pwr_ctrl_s {
   int16_t                            p0_nominal_without_grant;//-202
   A_DYN_ARRAY_OF(struct p0_pusch_alpha_set_s)    p0_alpha_sets;//dyn_array<p0_pusch_alpha_set_s>
   A_DYN_ARRAY_OF(struct pusch_pathloss_ref_rs_s) pathloss_ref_rs_to_add_mod_list;//dyn_array<pusch_pathloss_ref_rs_s>
-  uint8_t                                        pathloss_ref_rs_to_release_list[4];//bounded_array<uint8_t, 4>
+  A_DYN_ARRAY_OF(uint8_t)                        pathloss_ref_rs_to_release_list;//bounded_array<uint8_t, 4>
   A_DYN_ARRAY_OF(struct sri_pusch_pwr_ctrl_s)    sri_pusch_map_to_add_mod_list;//dyn_array<sri_pusch_pwr_ctrl_s>
-  uint8_t                                        sri_pusch_map_to_release_list[16];//bounded_array<uint8_t, 16>
+  A_DYN_ARRAY_OF(uint8_t)                        sri_pusch_map_to_release_list;//bounded_array<uint8_t, 16>
 };
 
 enum map_type_e_ { type_a, type_b, nulltype };
@@ -2567,7 +2567,7 @@ struct pusch_cfg_s {
   setup_release_c(struct dmrs_ul_cfg_s)                                 dmrs_ul_for_pusch_map_type_b;
   struct pusch_pwr_ctrl_s                                               pusch_pwr_ctrl;
   enum freq_hop_e_                                                      freq_hop;
-  uint16_t                                                              freq_hop_offset_lists[4];//bounded_array<uint16_t, 4>
+  A_DYN_ARRAY_OF(uint16_t)                                              freq_hop_offset_lists;//bounded_array<uint16_t, 4>
   enum res_alloc_e_                                                     res_alloc;
   setup_release_c(A_DYN_ARRAY_OF(struct pusch_time_domain_res_alloc_s)) pusch_time_domain_alloc_list;//dyn_seq_of<pusch_time_domain_res_alloc_s, 1, 16>
   enum pusch_aggregation_factor_e_                                      pusch_aggregation_factor;
@@ -2701,7 +2701,7 @@ struct aperiodic_s_ {
   uint8_t aperiodic_srs_res_trigger;//1
   uint8_t csi_rs;
   uint8_t slot_offset;//1
-  uint8_t aperiodic_srs_res_trigger_list[2];//bounded_array<uint8_t, 2>
+  A_DYN_ARRAY_OF(uint8_t) aperiodic_srs_res_trigger_list;//bounded_array<uint8_t, 2>
 };
 
 struct semi_persistent_s_ {
@@ -2738,7 +2738,7 @@ struct srs_res_set_s {
   bool                              pathloss_ref_rs_present;
   bool                              srs_pwr_ctrl_adjustment_states_present;
   uint8_t                           srs_res_set_id;
-  uint8_t                           srs_res_id_list[16];//bounded_array<uint8_t, 16>
+  A_DYN_ARRAY_OF(uint8_t)           srs_res_id_list;//bounded_array<uint8_t, 16>
   struct res_type_c_                res_type;
   enum usage_e_                     usage;
   enum alpha_e                      alpha;
@@ -2866,7 +2866,7 @@ struct srs_cfg_s {
   // member variables
   bool                           ext;
   bool                           tpc_accumulation_present;
-  uint8_t                        srs_res_set_to_release_list[16];//bounded_array<uint8_t, 16>
+  A_DYN_ARRAY_OF(uint8_t)        srs_res_set_to_release_list;//bounded_array<uint8_t, 16>
   A_DYN_ARRAY_OF(struct srs_res_set_s) srs_res_set_to_add_mod_list;//dyn_array<srs_res_set_s>
   A_DYN_ARRAY_OF(uint8_t)              srs_res_to_release_list;//dyn_array<uint8_t>
   A_DYN_ARRAY_OF(struct srs_res_s)     srs_res_to_add_mod_list;//dyn_array<srs_res_s>
@@ -3012,7 +3012,7 @@ struct srs_carrier_switching_s {
   uint8_t                    srs_switch_from_serv_cell_idx;
   enum srs_switch_from_carrier_e_   srs_switch_from_carrier;
   struct srs_tpc_pdcch_group_c_     srs_tpc_pdcch_group;
-  uint8_t        monitoring_cells[32];//bounded_array<uint8_t, 32>
+  A_DYN_ARRAY_OF(uint8_t)           monitoring_cells;//bounded_array<uint8_t, 32>
 };
 
 // UplinkConfig ::= SEQUENCE
@@ -3024,7 +3024,7 @@ struct ul_cfg_s {
   bool                                      pusch_serving_cell_cfg_present;
   bool                                      carrier_switching_present;
   struct bwp_ul_ded_s                       init_ul_bwp;
-  uint8_t                                   ul_bwp_to_release_list[4];//bounded_array<uint8_t, 4>
+  A_DYN_ARRAY_OF(uint8_t)                   ul_bwp_to_release_list;//bounded_array<uint8_t, 4>
   A_DYN_ARRAY_OF(struct bwp_ul_s)           ul_bwp_to_add_mod_list;//dyn_array<bwp_ul_s>
   uint8_t                                   first_active_ul_bwp_id;
   setup_release_c(struct pusch_serving_cell_cfg_s) pusch_serving_cell_cfg;
@@ -3063,7 +3063,7 @@ struct slot_format_ind_s {
   uint32_t                            sfi_rnti;
   uint8_t                             dci_payload_size;//1
   A_DYN_ARRAY_OF(struct slot_format_combinations_per_cell_s) slot_format_comb_to_add_mod_list;//dyn_array<slot_format_combinations_per_cell_s>
-  uint8_t slot_format_comb_to_release_list[16];//bounded_array<uint8_t, 16>
+  A_DYN_ARRAY_OF(uint8_t) slot_format_comb_to_release_list;//bounded_array<uint8_t, 16>
 };
 
 // PDCCH-ServingCellConfig ::= SEQUENCE
@@ -3178,7 +3178,7 @@ struct csi_im_res_set_s {
   // member variables
   bool          ext;
   uint8_t       csi_im_res_set_id;
-  uint8_t       csi_im_res[8];//bounded_array<uint8_t, 8>
+  A_DYN_ARRAY_OF(uint8_t) csi_im_res;//bounded_array<uint8_t, 8>
 };
 
 // CSI-SSB-ResourceSet ::= SEQUENCE
@@ -3193,14 +3193,14 @@ struct csi_ssb_res_set_s {
 struct nzp_csi_rs_ssb_s_ {
   // member variables
   bool		 csi_ssb_res_set_list_present;
-  uint8_t	 nzp_csi_rs_res_set_list[16];//bounded_array<uint8_t, 16>
+  A_DYN_ARRAY_OF(uint8_t)	 nzp_csi_rs_res_set_list;//bounded_array<uint8_t, 16>
   uint8_t	 csi_ssb_res_set_list;//std::array<uint8_t, 1>
 };
 
 struct csi_rs_res_set_list_c_ {
   enum types { nzp_csi_rs_ssb, csi_im_res_set_list, nulltype } type_;
   union{
-		  uint8_t csi_im_res_set_list[16];//bounded_array<uint8_t, 16>
+		  A_DYN_ARRAY_OF(uint8_t) csi_im_res_set_list;//bounded_array<uint8_t, 16>
 		  struct nzp_csi_rs_ssb_s_ nzp_csi_rs_ssb;
 		} c;//choice_buffer_t
 };
@@ -3256,13 +3256,13 @@ enum report_slot_cfg_e_ { sl5, sl10, sl20, sl40, sl80, sl160, sl320, nulltype };
 struct semi_persistent_on_pusch_s_ {
   // member variables
   enum report_slot_cfg_e_    report_slot_cfg;
-  uint8_t                    report_slot_offset_list[16];//bounded_array<uint8_t, 16>
+  A_DYN_ARRAY_OF(uint8_t)    report_slot_offset_list;//bounded_array<uint8_t, 16>
   uint8_t					 p0alpha;
 };
 
 struct aperiodic_s_ {
   // member variables
-  uint8_t report_slot_offset_list[16];//bounded_array<uint8_t, 16>
+  A_DYN_ARRAY_OF(uint8_t)   report_slot_offset_list;//bounded_array<uint8_t, 16>
 };
 
 struct report_cfg_type_c_ {
@@ -3569,7 +3569,7 @@ struct csi_report_cfg_s {
 struct nzp_csi_rs_s_ {
   // member variables
   uint8_t	  res_set;//1
-  uint8_t	  qcl_info[16];//bounded_array<uint8_t, 16>
+  A_DYN_ARRAY_OF(uint8_t) qcl_info;//bounded_array<uint8_t, 16>
 };
 
 struct res_for_ch_c_ {
@@ -3613,7 +3613,7 @@ struct csi_meas_cfg_s {
   A_DYN_ARRAY_OF(struct nzp_csi_rs_res_set_s)  nzp_csi_rs_res_set_to_add_mod_list;//dyn_array<nzp_csi_rs_res_set_s>
   A_DYN_ARRAY_OF(uint8_t)                      nzp_csi_rs_res_set_to_release_list;//dyn_array<uint8_t>
   A_DYN_ARRAY_OF(struct csi_im_res_s)          csi_im_res_to_add_mod_list;//dyn_array<csi_im_res_s>
-  uint8_t                                      csi_im_res_to_release_list[32];//bounded_array<uint8_t, 32>
+  A_DYN_ARRAY_OF(uint8_t)                      csi_im_res_to_release_list;//bounded_array<uint8_t, 32>
   A_DYN_ARRAY_OF(struct csi_im_res_set_s)      csi_im_res_set_to_add_mod_list;//dyn_array<csi_im_res_set_s>
   A_DYN_ARRAY_OF(uint8_t)                      csi_im_res_set_to_release_list;//dyn_array<uint8_t>
   A_DYN_ARRAY_OF(struct csi_ssb_res_set_s)     csi_ssb_res_set_to_add_mod_list;//dyn_array<csi_ssb_res_set_s>
@@ -3670,7 +3670,7 @@ struct serving_cell_cfg_s {
   bool                                      serving_cell_mo_present;
   struct tdd_ul_dl_cfg_ded_s                tdd_ul_dl_cfg_ded;
   struct bwp_dl_ded_s                       init_dl_bwp;
-  uint8_t                                   dl_bwp_to_release_list[4];//bounded_array<uint8_t, 4>
+  A_DYN_ARRAY_OF(uint8_t)                   dl_bwp_to_release_list;//bounded_array<uint8_t, 4>
   A_DYN_ARRAY_OF(struct bwp_dl_s)           dl_bwp_to_add_mod_list;
   uint8_t                                   first_active_dl_bwp_id;
   enum bwp_inactivity_timer_e_              bwp_inactivity_timer;
@@ -3689,7 +3689,7 @@ struct serving_cell_cfg_s {
   // group 0
   setup_release_c(struct rate_match_pattern_lte_crs_s) lte_crs_to_match_around;
   A_DYN_ARRAY_OF(struct rate_match_pattern_s)     rate_match_pattern_to_add_mod_list;//dyn_array<rate_match_pattern_s>
-  uint8_t                              rate_match_pattern_to_release_list[4];//bounded_array<uint8_t, 4>
+  A_DYN_ARRAY_OF(uint8_t)                         rate_match_pattern_to_release_list;//bounded_array<uint8_t, 4>
   A_DYN_ARRAY_OF(struct scs_specific_carrier_s)   dl_ch_bw_per_scs_list;//dyn_array<scs_specific_carrier_s>
 };
 

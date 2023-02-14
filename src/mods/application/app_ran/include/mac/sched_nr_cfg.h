@@ -12,6 +12,7 @@
 
 #include "mac/sched_nr_interface.h"
 #include "mac/sched_nr_rb.h"
+#include "mac/harq_softbuffer.h"//???
 
 #define MAX_NOF_AGGR_LEVELS  5
 

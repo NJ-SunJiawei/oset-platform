@@ -22,7 +22,7 @@ typedef struct {
   uint16_t	     ra_rnti;
   slot_point	 prach_slot;
   slot_interval  rar_win;
-  A_DYN_ARRAY_OF(dl_sched_rar_info_t)  msg3_grant;//bounded_vector<dl_sched_rar_info_t, MAX_GRANTS>
+  A_DYN_ARRAY_OF(rar_info_t)  msg3_grant;//bounded_vector<dl_sched_rar_info_t, MAX_GRANTS>
 }pending_rar_t;
 
 /// RAR/Msg3 scheduler
@@ -32,14 +32,12 @@ typedef struct {
   oset_queue_t   *pending_rars;//pending_rar_t
 }ra_sched;
 
-
 typedef struct {
   bwp_params_t                   *cfg;
   // channel-specific schedulers
   si_sched                       si;
   ra_sched                       ra;
-  sched_nr_base                  *data_sched;
-
+  void                           *data_sched;//sched_nr_base
   // Stores pending allocations and PRB bitmaps
   bwp_res_grid grid;
 }bwp_manager;

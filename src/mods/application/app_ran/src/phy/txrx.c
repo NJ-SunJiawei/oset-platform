@@ -142,7 +142,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		}
 
 		oset_debug("%s:threadpool current task %d",__OSET_FUNC__, oset_threadpool_tasks_count(phy_manager_self()->slot_worker.th_pools));
-		if(oset_threadpool_tasks_count(phy_manager_self()->slot_worker.th_pools) >= 10)
+		if(oset_threadpool_tasks_count(phy_manager_self()->slot_worker.th_pools) > 10)
 		{
 			oset_apr_mutex_lock(phy_manager_self()->mutex);
 			oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);
@@ -168,7 +168,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		rx_now(&buffer, &timestamp)
 
 		if (gnb_manager_self()->ul_channel) {
-		    channel_run(gnb_manager_self()->ul_channel, buffer.sample_buffer, buffer.sample_buffer, sf_len, timestamp.timestamps[0]);
+	    channel_run(gnb_manager_self()->ul_channel, buffer.sample_buffer, buffer.sample_buffer, sf_len, timestamp.timestamps[0]);
 		}
 
 		// Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time

@@ -18,9 +18,9 @@ extern "C" {
 #endif
 
 #define MIN_RLC_PDU_LEN  5 ///< minimum bytes that need to be available in a MAC PDU for attempting to add another RLC SDU
-typedef struct oset_apr_mutex_t oset_apr_mutex_t;
 
 typedef struct {
+    oset_lnode_t         lnode;
 	uint64_t             conres_id;
 	uint16_t             rnti;
 	uint32_t             last_tti;
@@ -46,6 +46,10 @@ typedef struct {
 	byte_buffer_t    *last_msg3; ///< holds UE ID received in Msg3 for ConRes CE
 }ue_nr;
 
+ue_nr *ue_nr_add(uint16_t rnti);
+void ue_nr_remove(ue_nr *ue_nr_ct);
+ue_nr *ue_nr_find_by_rnti(uint16_t rnti);
+int ue_nr_set_rnti(ue_nr *ue_nr_ct, uint16_t rnti);
 
 #ifdef __cplusplus
 }

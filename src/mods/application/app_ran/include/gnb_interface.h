@@ -109,8 +109,6 @@ typedef struct pusch_info_s {
   srsran_csi_trs_measurements_t csi; ///< DMRS based signal Channel State Information (CSI)
 }pusch_info_t;
 
-
-
 typedef struct rach_info_s {
   uint32_t slot_index;
   uint32_t preamble;

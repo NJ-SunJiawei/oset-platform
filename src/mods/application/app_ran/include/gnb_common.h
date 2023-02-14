@@ -29,6 +29,8 @@
 extern "C" {
 #endif
 
+#define SRSENB_MAX_UES   64
+
 typedef struct gnb_manager_s gnb_manager_t;
 typedef struct rf_manager_s rf_manager_t;
 typedef struct phy_manager_s phy_manager_t;
