@@ -38,7 +38,7 @@ void *gnb_rrc_task(oset_threadplus_t *thread, void *data)
 	uint32_t length = 0;
     task_map_t *task = task_map_self(TASK_RRC);
     int rv = 0;
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting RRC layer thread");
+	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "Starting RRC layer thread");
 
      for ( ;; ){
 		 rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);

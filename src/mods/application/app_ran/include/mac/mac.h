@@ -58,6 +58,7 @@ typedef struct mac_manager_s{
 }mac_manager_t;
 
 void *gnb_mac_task(oset_threadplus_t *thread, void *data);
+void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv);
 
 #ifdef __cplusplus
 }

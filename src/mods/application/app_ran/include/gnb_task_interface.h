@@ -9,10 +9,18 @@
 #ifndef GNB_TASK_INTERFACE_H_
 #define GNB_TASK_INTERFACE_H_
 
-/*3gPP message def*/
-#include "def/phy_messages_types.h"
+#include <stdint.h>
+
+typedef struct msg_text_s  msg_text_t;
+typedef struct msg_empty_s msg_empty_t;
+typedef struct timer_expired_s timer_expired_t;
+typedef void* context_t;
+
+
+/*L1/L2/L3 message types*/
+//#include "def/phy_messages_types.h"
 #include "def/mac_messages_types.h"
-//#include "def/rlc_messages_types.h"
+#include "def/rlc_messages_types.h"
 //#include "def/pdcp_messages_types.h"
 //#include "def/rrc_messages_types.h"
 //#include "def/ngap_messages_types.h"
@@ -71,38 +79,26 @@ typedef struct task_map_s {
 } task_map_t;
 
 /*************************************************************/
+typedef struct msg_text_s {
+  uint32_t  size;
+  char      text[];
+} msg_text_t;
 
 typedef struct msg_empty_s {
 } msg_empty_t;
 
-typedef struct {
+typedef struct timer_expired_s{
     long  timer_id;
     void *arg;
 } timer_expired_t;
 
-typedef struct phy_time_s {
-    uint32_t frame;
-    uint8_t  slot;
-} phy_time_t;
-
-
-typedef enum message_priorities_e {
-    MESSAGE_PRIORITY_MAX       = 100,
-    MESSAGE_PRIORITY_MAX_LEAST = 85,
-    MESSAGE_PRIORITY_MED_PLUS  = 70,
-    MESSAGE_PRIORITY_MED       = 55,
-    MESSAGE_PRIORITY_MED_LEAST = 40,
-    MESSAGE_PRIORITY_MIN_PLUS  = 25,
-    MESSAGE_PRIORITY_MIN       = 10,
-} message_priorities_t;
-
 
 #define FOREACH_MSG(INTERNAL_MSG)         \
-  INTERNAL_MSG(TIMER_HAS_EXPIRED,  MESSAGE_PRIORITY_MED, timer_expired_t, timer_expired_message) \
-  INTERNAL_MSG(MESSAGE_TEST,       MESSAGE_PRIORITY_MED, msg_empty_t, message_test)
+  INTERNAL_MSG(TIMER_HAS_EXPIRED, timer_expired_t, timer_expired_message) \
+  INTERNAL_MSG(MESSAGE_TEST, msg_empty_t, message_test)
 
 typedef enum {
-#define MESSAGE_DEF(iD, pRIO, sTRUCT, fIELDnAME) iD,
+#define MESSAGE_DEF(iD, sTRUCT, fIELDnAME) iD,
   FOREACH_MSG(MESSAGE_DEF)
 #include "all_msg_def.h"
 #undef MESSAGE_DEF
@@ -110,29 +106,29 @@ typedef enum {
 } msg_ids_t;
 
 typedef union msg_s {
-#define MESSAGE_DEF(iD, pRIO, sTRUCT, fIELDnAME) sTRUCT fIELDnAME;
+#define MESSAGE_DEF(iD, sTRUCT, fIELDnAME) sTRUCT fIELDnAME;
   FOREACH_MSG(MESSAGE_DEF)
 #include "all_msg_def.h"
 #undef MESSAGE_DEF
 } msg_body_t;
 
 typedef struct msg_header_s {
-    msg_ids_t  message_id;           /**< Unique message id as referenced in enum MessagesIds */
+    msg_ids_t  message_id;          /**< Unique message id as referenced in enum MessagesIds */
     task_id_t  ori_task_id;         /**< ID of the sender task */
     task_id_t  det_task_id;         /**< ID of the destination task */
-    phy_time_t phy_time;            /**phy slot time*/
-    uint32_t   size;            /**< Message size (not including header size) */
+    context_t  context;             /**< temp context point */
+    uint32_t   tti;                 /**< slot time */
+    uint32_t   size;                /**< Message size (not including header size) */
 } msg_header_t;
 
 typedef struct message_info_s {
     int id;
-    message_priorities_t priority;
     uint32_t   size;
     const char name[256];
 } message_info_t;
 
 static const message_info_t messages_info[] = {
-#define MESSAGE_DEF(iD, pRIO, sTRUCT, fIELDnAME) { iD, pRIO, sizeof(sTRUCT), #iD },
+#define MESSAGE_DEF(iD, sTRUCT, fIELDnAME) { iD, sizeof(sTRUCT), #iD },
   FOREACH_MSG(MESSAGE_DEF)
 #include "all_msg_def.h"
 #undef MESSAGE_DEF
@@ -142,6 +138,19 @@ typedef struct msg_def_s {
     msg_header_t  msg_header; /*< Message header */
     msg_body_t    msg_body;
 } msg_def_t;
+
+/* Extract the instance from a message */
+#define RQUE_MSG_ID(msgPtr)                 ((msgPtr)->msg_header.message_id)
+#define RQUE_MSG_ORIGIN_ID(msgPtr)          ((msgPtr)->msg_header.ori_task_id)
+#define RQUE_MSG_DESTINATION_ID(msgPtr)     ((msgPtr)->msg_header.det_task_id)
+#define RQUE_MSG_CONTEXT(msgPtr)            ((msgPtr)->msg_header.context)
+#define RQUE_MSG_TTI(msgPtr)                ((msgPtr)->msg_header.tti)
+
+#define RQUE_MSG_NAME(msgPtr)                    get_message_name(RQUE_MSG_ID(msgPtr))
+#define RQUE_MSG_ORIGIN_TASK_NAME(msgPtr)        get_task_name(RQUE_MSG_ORIGIN_ID(msgPtr))
+#define RQUE_MSG_DESTINATION_TASK_NAME(msgPtr)   get_task_name(RQUE_MSG_DESTINATION_ID(msgPtr))
+
+#define TIMER_HAS_EXPIRED(msgPtr)           (msgPtr)->msg_body.timer_expired_message
 
 int task_queue_init(const task_info_t *tasks);
 int task_queue_end(const task_info_t *tasks);

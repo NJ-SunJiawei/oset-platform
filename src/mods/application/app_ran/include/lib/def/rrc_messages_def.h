@@ -1,3 +1,12 @@
+/************************************************************************
+ *File name:
+ *Description:
+ *
+ *Current Version:
+ *Author: create by sunjiawei
+ *Date: 2022.12
+************************************************************************/
+
 #if defined(DISABLE_ITTI_XER_PRINT)
 MESSAGE_DEF(RRC_DL_BCCH_MESSAGE,        MESSAGE_PRIORITY_MED_PLUS,  RrcDlBcchMessage,           rrc_dl_bcch_message)
 MESSAGE_DEF(RRC_DL_CCCH_MESSAGE,        MESSAGE_PRIORITY_MED_PLUS,  RrcDlCcchMessage,           rrc_dl_ccch_message)

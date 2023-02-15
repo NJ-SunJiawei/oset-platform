@@ -110,6 +110,7 @@ typedef struct pusch_info_s {
 }pusch_info_t;
 
 typedef struct rach_info_s {
+  uint32_t enb_cc_idx;
   uint32_t slot_index;
   uint32_t preamble;
   uint32_t time_adv;

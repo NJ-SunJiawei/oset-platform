@@ -8,6 +8,7 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "phy/prach_work.h"
+#include "mac/mac.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-prach"
@@ -105,8 +106,8 @@ int prach_worker_run_tti(uint32_t cc_idx, sf_buffer* b)
         if (prach_work_manager[cc_idx].prach_offsets[i] * 1e6 < prach_work_manager[cc_idx].max_prach_offset_us) {
           // Convert time offset to Time Alignment command
           uint32_t n_ta = (uint32_t)(prach_work_manager[cc_idx].prach_offsets[i] / (16 * SRSRAN_LTE_TS));
-
-          mac_rach_detected(b->tti, prach_work_manager[cc_idx].prach_indices[i], n_ta); //mac access
+		  
+          mac_rach_detected(b->tti, cc_idx, prach_work_manager[cc_idx].prach_indices[i], n_ta); //mac access
 
 #if defined(ENABLE_GUI) and ENABLE_PRACH_GUI
         //todo
@@ -172,7 +173,7 @@ int prach_new_tti(uint32_t cc_idx, uint32_t tti_rx, cf_t* buffer_rx)
 	 sf_buffer    *current_buffer = NULL;
 	 uint32_t length = 0;
 	 int rv = 0;
-	 oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting PHY prach thread");
+	 oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "Starting PHY prach thread");
  
 	  for ( ;; ){
 		  rv = oset_ring_queue_try_get(task_map_self(TASK_PRACH)->msg_queue, &current_buffer, &length);

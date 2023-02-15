@@ -48,8 +48,8 @@ typedef struct {
 
 ue_nr *ue_nr_add(uint16_t rnti);
 void ue_nr_remove(ue_nr *ue_nr_ct);
-ue_nr *ue_nr_find_by_rnti(uint16_t rnti);
 int ue_nr_set_rnti(ue_nr *ue_nr_ct, uint16_t rnti);
+ue_nr *ue_nr_find_by_rnti(uint16_t rnti);
 
 #ifdef __cplusplus
 }

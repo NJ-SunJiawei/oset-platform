@@ -507,7 +507,7 @@ static void *om_worker_handle_thread(oset_threadplus_t *thread, void *data)
 
     //id = *(uint32_t *)(ts->objs[0]);
     id = *(uint32_t *)(data);
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "om_worker_deal_thread[%p][id = %d] running", thread, id);
+	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "om_worker_deal_thread[%p][id = %d] running", thread, id);
 
     while(self.running) {
         oset_timer_mgr_expire(self.worker_timer[id]);
@@ -649,7 +649,7 @@ static void *om_omc_handle_thread(oset_threadplus_t *thread, void *data)
 	om_event_t *e = NULL;
 	uint32_t len = 0;
 
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "om_omc_handle_thread[%p] running", thread);
+	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "om_omc_handle_thread[%p] running", thread);
 
     while(self.running) {
 		//oset_timer_mgr_expire(self.omc_timer);
@@ -729,7 +729,7 @@ static void *om_pod_handle_thread(oset_threadplus_t *thread, void *data)
 	om_event_t *e = NULL;
 	uint32_t len = 0;
 
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "om_pod_handle_thread[%p] running", thread);
+	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "om_pod_handle_thread[%p] running", thread);
 
    while(self.running) {
 		//oset_timer_mgr_expire(self.pod_timer);
@@ -816,7 +816,7 @@ static void *om_main_listen_thread(oset_threadplus_t *thread, void *data)
 	om_event_t *e = NULL;
 	uint32_t len = 0;
 
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "om_main_listen_thread[%p] running", thread);
+	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "om_main_listen_thread[%p] running", thread);
 
     while(self.running) {
         oset_pollset_poll(self.pollset, oset_time_from_msec(100));

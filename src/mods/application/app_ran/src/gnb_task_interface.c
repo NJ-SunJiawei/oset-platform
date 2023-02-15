@@ -8,7 +8,6 @@
 ************************************************************************/
 #include "gnb_common.h"
 
-
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-task"
 
@@ -75,16 +74,23 @@ msg_def_t *task_alloc_msg(task_id_t origin_task_id, msg_ids_t message_id)
     oset_expect_or_return_val(temp, NULL);
     temp->msg_header.message_id = message_id;
     temp->msg_header.ori_task_id = origin_task_id;
-    temp->msg_header.det_task_id=TASK_UNKNOWN;
-    temp->msg_header.phy_time = {0};
+    temp->msg_header.det_task_id = TASK_UNKNOWN;
+    temp->msg_header.context = NULL;
+    temp->msg_header.tti = 0;
     temp->msg_header.size = size;
     return temp;
+}
+
+void task_free_msg(task_id_t task_id, void *ptr)
+{
+    ASSERT_IF_NOT(ptr != NULL, "Trying to free a NULL pointer (%d)!\n", task_id);
+    oset_free(ptr);
 }
 
 int task_send_msg(task_id_t destination_task_id, msg_def_t *message)
 {
     int ret = OSET_ERROR;
-    task_map_t *t=taskmap[destination_task_id];
+    task_map_t *t = taskmap[destination_task_id];
 
 	message->msg_header.det_task_id = destination_task_id;
     ret = oset_ring_queue_put(t->msg_queue, (uint8_t *)message, message->msg_header.size);
@@ -92,6 +98,8 @@ int task_send_msg(task_id_t destination_task_id, msg_def_t *message)
 	    oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "task send msg[%s] to %s failed",get_message_name(message->msg_header.message_id), get_task_name(destination_task_id));
 	    oset_free(message);
     }
+	oset_log_hexdump(OSET_LOG2_DEBUG, (unsigned char *)cp_order, sizeof(om_transfer_order_c_t));
+	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_DEBUG, "task send msg[%s] to %s success",get_message_name(message->msg_header.message_id), get_task_name(destination_task_id));
     return ret;
 }
 

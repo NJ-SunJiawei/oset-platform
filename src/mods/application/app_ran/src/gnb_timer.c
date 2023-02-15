@@ -17,7 +17,7 @@ void *gnb_timer_task(oset_threadplus_t *thread, void *data)
 	uint32_t length = 0;
 	task_map_t *task = taskmap[TASK_TIMER];
 	int rv = 0;
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting Timer thread");
+	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "Starting Timer thread");
 
 	while(gnb_manager_self()->running){
 		 oset_timer_mgr_expire(gnb_manager_self()->app_timer);		   
