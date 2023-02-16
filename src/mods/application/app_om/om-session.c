@@ -676,22 +676,22 @@ static void *om_omc_handle_thread(oset_threadplus_t *thread, void *data)
 
 static void deal_om_pod_handle_thread(om_event_t *e)
 {
-    int rv = OSET_ERROR;
-    oset_pkbuf_t *pkbuf = NULL;
-    om_inner_worker_message_t *pod_msg = NULL;
+	int rv = OSET_ERROR;
+	oset_pkbuf_t *pkbuf = NULL;
+	om_inner_worker_message_t *pod_msg = NULL;
 	om_msg_header_t *header = NULL;
 	uint32_t id = 0;
 
-    oset_sys_assert(e);
+	oset_sys_assert(e);
 	pkbuf = e->pkbuf;
-    oset_sys_assert(pkbuf);
+	oset_sys_assert(pkbuf);
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_DEBUG1, "%s(): %s", __func__, om_event_get_name(e));
 
-    switch (e->id) {
-    case OM_POD_MSG:
+	switch (e->id) {
+	case OM_POD_MSG:
 		header = (om_msg_header_t *)(pkbuf->data);
 
-        id = hash_calculate(header->system_id,strlen(header->system_id))%self.worker_thread_num;
+	    id = hash_calculate(header->system_id,strlen(header->system_id))%self.worker_thread_num;
 
 	    pod_msg = (om_inner_worker_message_t *)oset_ring_buf_get(self.worker_buf[id]);
 		if(NULL == pod_msg) {
@@ -713,7 +713,7 @@ static void deal_om_pod_handle_thread(om_event_t *e)
 			oset_ring_buf_ret((uint8_t *)pod_msg);
 	        oset_pkbuf_free(pkbuf);
 	    }    
-        break;
+	    break;
 
 	default:
 		oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "pod No handler for event %s", om_event_get_name(e));
@@ -725,13 +725,13 @@ static void deal_om_pod_handle_thread(om_event_t *e)
 //static void *om_pod_handle_thread(oset_apr_thread_t *thread, void *obj)
 static void *om_pod_handle_thread(oset_threadplus_t *thread, void *data)
 {
-    int rv = OSET_ERROR;
+	int rv = OSET_ERROR;
 	om_event_t *e = NULL;
 	uint32_t len = 0;
 
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "om_pod_handle_thread[%p] running", thread);
 
-   while(self.running) {
+	while(self.running) {
 		//oset_timer_mgr_expire(self.pod_timer);
 		rv = oset_ring_queue_try_get(self.pod_queue, (uint8_t **)&e, &len);
 		if(rv != OSET_OK)
@@ -749,7 +749,7 @@ static void *om_pod_handle_thread(oset_threadplus_t *thread, void *data)
 		om_pod_event_free(e);
 		e = NULL;
 		len = 0;
-    }
+	}
 	//oset_apr_thread_exit(thread, 0);
 	return NULL;
 }
@@ -757,25 +757,24 @@ static void *om_pod_handle_thread(oset_threadplus_t *thread, void *data)
 
 static void deal_om_main_listen_thread(om_event_t *e)
  {
- 
 	 int rv = OSET_ERROR;
 	 om_event_t *tmp_e = NULL;
- 
+
 	 oset_sys_assert(e);
 	 oset_sys_assert(e->pkbuf);
 	 oset_sys_assert(e->sock->fd != INVALID_SOCKET);
- 
+
 	 oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_DEBUG1, "%s(): %s", __func__, om_event_get_name(e));
- 
+
 	 switch (e->id) {
 	 case OM_LISTEN_MSG:
 		 if(OSET_PORT(&(e->sock->local_addr)) == self.om_sock.udp_port_pod){
 			 tmp_e = om_pod_event_new(OM_POD_MSG);
 			 oset_sys_assert(tmp_e);
- 
+
 			 tmp_e->sock = e->sock;
 			 tmp_e->pkbuf = e->pkbuf;
- 			 tmp_e->from = e->from;
+				 tmp_e->from = e->from;
 
 			 rv = oset_ring_queue_put(self.pod_queue, (uint8_t *)tmp_e, sizeof(*tmp_e));
 			 if (rv != OSET_OK) {
@@ -789,7 +788,7 @@ static void deal_om_main_listen_thread(om_event_t *e)
 			 
 			 tmp_e->sock = e->sock;
 			 tmp_e->pkbuf = e->pkbuf;
- 			 tmp_e->from = e->from;
+				 tmp_e->from = e->from;
 
 			 rv = oset_ring_queue_put(self.omc_queue, (uint8_t *)tmp_e, sizeof(*tmp_e));
 			 if (rv != OSET_OK) {
@@ -801,7 +800,7 @@ static void deal_om_main_listen_thread(om_event_t *e)
 			 oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "unkown error udp msg, local receive port[%d]",OSET_PORT(&(e->sock->local_addr)));
 		 }		 
 		 break;
- 
+
 	 default:
 		 oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "No handler for event %s", om_event_get_name(e));
 		 break;
@@ -812,21 +811,21 @@ static void deal_om_main_listen_thread(om_event_t *e)
 //static void *om_main_listen_thread(oset_apr_thread_t *thread, void *obj)
 static void *om_main_listen_thread(oset_threadplus_t *thread, void *data)
 {
-    int rv = OSET_ERROR;
+	int rv = OSET_ERROR;
 	om_event_t *e = NULL;
 	uint32_t len = 0;
 
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "om_main_listen_thread[%p] running", thread);
 
-    while(self.running) {
-        oset_pollset_poll(self.pollset, oset_time_from_msec(100));
+	while(self.running) {
+	    oset_pollset_poll(self.pollset, oset_time_from_msec(100));
 	    //oset_pollset_poll(self.pollset, OSET_INFINITE_TIME);
 	    for ( ;; ) {
 			rv = oset_ring_queue_try_get(self.listen_queue, (uint8_t **)&e, &len);
 			if(rv != OSET_OK)
 			{
 		       if (rv == OSET_DONE)
-                   goto done;
+	               goto done;
 
 			   if (rv == OSET_RETRY){
 			       oset_usleep(500);			   	
@@ -835,12 +834,12 @@ static void *om_main_listen_thread(oset_threadplus_t *thread, void *data)
 
 			}
 			deal_om_main_listen_thread(e);
-            om_listen_event_free(e);
-            e = NULL;
-            len = 0;
+	        om_listen_event_free(e);
+	        e = NULL;
+	        len = 0;
 	    }
-    }
-done:
+	}
+	done:
 	//oset_apr_thread_exit(thread, 0);
 	return NULL;
 }
@@ -850,35 +849,35 @@ done:
  OSET_DECLARE(int) om_add_thread_task(oset_apr_memory_pool_t *pool)
  {
 	 int rv = OSET_ERROR;
- 
+
 	 /*for (uint32_t i = 0; i < self.worker_thread_num; i++) {
 		 oset_core_launch_thread(om_worker_handle_thread, (void *)&i, pool);
 		 oset_msleep(10);
 	 }	 
 	 oset_core_launch_thread(om_pod_handle_thread, NULL, pool);
 	 oset_msleep(10);
- 
+
 	 oset_core_launch_thread(om_omc_handle_thread, NULL, pool);
 	 oset_msleep(10);
- 
+
 	 oset_core_launch_thread(om_main_listen_thread, NULL, pool);*/
- 
- 
+
+
 	 /*use thread pools*/
 	for (uint32_t i = 0; i < self.worker_thread_num; i++) {
 		 rv = oset_threadpool_push(runtime.thrp, om_worker_handle_thread, (void *)&i, PRIORITY_LEVEL_3, "worker_deal_thread");
 		 oset_sys_assert(OSET_OK == rv);
 		 oset_msleep(10);
 	 }
- 
+
 	 rv = oset_threadpool_push(runtime.thrp, om_pod_handle_thread, NULL, PRIORITY_LEVEL_2, "pod_handle_thread");
 	 oset_sys_assert(OSET_OK == rv);
 	 oset_msleep(10);
- 
+
 	 rv = oset_threadpool_push(runtime.thrp, om_omc_handle_thread, NULL, PRIORITY_LEVEL_2, "omc_handle_thread");
 	 oset_sys_assert(OSET_OK == rv);
 	 oset_msleep(10);
- 
+
 	 rv = oset_threadpool_push(runtime.thrp, om_main_listen_thread, NULL, PRIORITY_LEVEL_1, "main_listen_thread");
 	 oset_sys_assert(OSET_OK == rv);
 	 return OSET_OK;

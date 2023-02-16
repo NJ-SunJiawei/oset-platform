@@ -716,7 +716,7 @@ OSET_DECLARE(oset_status_t) sset_core_init(oset_core_flag_t flags, oset_bool_t c
 	char guess_ip6[256];
 	int mask = 0;
 	struct in_addr in;
-    apr_status_t rv;
+	apr_status_t rv;
 
 	if (runtime.runlevel > 0) {
 		/* one per customer */

@@ -45,39 +45,39 @@ int mac_init(void)
 	mac_manager_init();
 	//oset_pool_init(&bcch_bch_payload_pool, SRSENB_MAX_UES);
 	//oset_pool_init(&rar_pdu_buffer_pool, SRSENB_MAX_UES*4);
-    oset_pool_init(&mac_manager.ue_nr_pool, SRSENB_MAX_UES);
-    oset_list_init(&mac_manager.ue_db);
-    mac_manager.ue_db_ht = oset_hash_make();
+	oset_pool_init(&mac_manager.ue_nr_pool, SRSENB_MAX_UES);
+	oset_list_init(&mac_manager.ue_db);
+	mac_manager.ue_db_ht = oset_hash_make();
 
-    //todo
-    return OSET_OK;
+	//todo
+	return OSET_OK;
 }
 
 int mac_destory(void)
 {
-    //todo
-    oset_assert(mac_manager.ue_db_ht);
-    oset_hash_destroy(mac_manager.ue_db_ht);
+	//todo
+	oset_assert(mac_manager.ue_db_ht);
+	oset_hash_destroy(mac_manager.ue_db_ht);
 	oset_pool_final(&mac_manager.ue_nr_pool);
 	//oset_pool_final(&bcch_bch_payload_pool);
 	//oset_pool_final(&rar_pdu_buffer_pool);
 	mac_manager_destory();
-    return OSET_OK;
+	return OSET_OK;
 }
 
 static bool is_rnti_valid(uint16_t rnti)
 {
 	if (!mac_manager.started) {
-	oset_error("RACH ignored as eNB is being shutdown");
-	return false;
+		oset_error("RACH ignored as eNB is being shutdown");
+		return false;
 	}
 	if (oset_hash_count(&mac_manager.ue_db_ht) > SRSENB_MAX_UES) {
-	oset_error("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
-	return false;
+		oset_error("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
+		return false;
 	}
 	if (ue_nr_find_by_rnti(rnti)) {
-	oset_error("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
-	return false;
+		oset_error("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
+		return false;
 	}
 	return true;
 }
@@ -129,7 +129,7 @@ void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
 static void mac_handle_rach_info(rach_info_t *rach_info)
 {
 	uint16_t rnti = FIRST_RNTI;
-	
+
 	rnti = mac_alloc_ue(rach_info->enb_cc_idx);//alloc rnti
 	{
 		//srsran::rwlock_write_guard lock(rwmutex);
@@ -143,8 +143,8 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 	rar_info.ta_cmd		 = rach_info->time_adv;
 	slot_point_init(&rar_info.prach_slot, NUMEROLOGY_IDX, rach_info->slot_index);
 
-	sched->dl_rach_info(rar_info); //int sched_nr::dl_rach_info(const rar_info_t& rar_info)
-	rrc->add_user(rnti, rach_info->enb_cc_idx);
+	sched->dl_rach_info(rar_info); //int sched_nr::dl_rach_info(const rar_info_t& rar_info)//todo
+	rrc->add_user(rnti, rach_info->enb_cc_idx);//todo
 
 	oset_info("RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
 			  rach_info->slot_index,
@@ -156,31 +156,30 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 
 static void gnb_mac_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 {
-    oset_assert(msg_p);
+	oset_assert(msg_p);
 	oset_assert(msg_l > 0);
 	switch (RQUE_MSG_ID(msg_p)) {	
 	  case RACH_MAC_DETECTED_INFO: {
-        /*rach info handle*/
+	    /*rach info handle*/
 		mac_handle_rach_info(&RACH_MAC_DETECTED_INFO(msg_p));
 	  }
 	  break;
-	
+
 	  default:
 		oset_error("Received unhandled message: %d:%s",  RQUE_MSG_ID(msg_p), RQUE_MSG_NAME(msg_p));
 		break;
 	}
 }
 
-
 void *gnb_mac_task(oset_threadplus_t *thread, void *data)
 {
-    msg_def_t *received_msg = NULL;
+	msg_def_t *received_msg = NULL;
 	uint32_t length = 0;
-    task_map_t *task = task_map_self(TASK_MAC);
-    int rv = 0;
+	task_map_t *task = task_map_self(TASK_MAC);
+	int rv = 0;
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "Starting MAC layer thread");
 
-     for ( ;; ){
+	 for ( ;; ){
 		 rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
 		 if(rv != OSET_OK)
 		 {
