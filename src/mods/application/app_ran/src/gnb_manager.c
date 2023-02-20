@@ -11,6 +11,8 @@
 #include "gnb_manager.h"
 
 #include "gnb_timer.h"
+#include "rf/radio.h"
+#include "phy/phy.h"
 #include "phy/prach_work.h"
 #include "phy/txrx.h"
 #include "mac/mac.h"
@@ -31,7 +33,7 @@ void gnb_manager_init(void)
 	gnb_manager.app_timer = oset_timer_mgr_create(SRSENB_MAX_UES * NUM_OF_APP_TIMER);
 	oset_assert(gnb_manager.app_timer);
 	gnb_manager.band_helper = band_helper_create();
-	gnb_arg_default();
+	gnb_arg_default(&gnb_manager.args);
 	gnb_arg_second(&gnb_manager.args);
 	parse_cfg_files(&gnb_manager.args, &gnb_manager.rrc_cfg, &gnb_manager.rrc_nr_cfg, &gnb_manager.phy_cfg);
 }
@@ -88,13 +90,18 @@ int gnb_layer_tasks_create(void)
 	  return OSET_ERROR;
 	}
 
+	rf_init();
+	phy_init();
     return OSET_OK;
 }
 
 void gnb_layer_tasks_destory(void)
 {
-	oset_threadplus_destroy(task_map_self(TASK_TIMER)->thread);
-	oset_threadplus_destroy(task_map_self(TASK_RRC)->thread);
+	phy_destory();
+	rf_destory();
 	oset_threadplus_destroy(task_map_self(TASK_MAC)->thread);
+	oset_threadplus_destroy(task_map_self(TASK_RRC)->thread);
+	oset_threadplus_destroy(task_map_self(TASK_TIMER)->thread);
+
 }
 

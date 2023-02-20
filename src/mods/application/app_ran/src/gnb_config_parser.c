@@ -12,128 +12,133 @@
 #include "rrc/rrc_nr_config.h"
 #include "phy/phy_nr_config.h"
 
-void gnb_arg_default(void)
+void gnb_arg_default(all_args_t      *args)
 {
     //enb.conf
-	gnb_manager_self()->args.enb.enb_id = 0x0; //gnb_manager_self()->config.nr_stack.ngap.gnb_id=0x0;
-	gnb_manager_self()->args.enb.n_prb = 50;
-	gnb_manager_self()->args.enb.nof_ports = 1;
-	gnb_manager_self()->args.enb.transmission_mode = 1;
-	gnb_manager_self()->args.enb.p_a = 0;//Power allocation rho_a (-6, -4.77, -3, -1.77, 0, 1, 2, 3)
-	gnb_manager_self()->args.enb_files.sib_config = "sib.conf";
-	gnb_manager_self()->args.enb_files.rr_config = "rr.conf";
-	gnb_manager_self()->args.enb_files.rb_config = "rb.conf";
-	gnb_manager_self()->args.enb.dl_earfcn = 0;
-	gnb_manager_self()->args.rf.srate_hz = 0;
-	gnb_manager_self()->args.rf.rx_gain = 50;
-	gnb_manager_self()->args.rf.tx_gain = 80;
-	gnb_manager_self()->args.rf.tx_gain_ch[0] = -1;
-	gnb_manager_self()->args.rf.tx_gain_ch[1] = -1;
-	gnb_manager_self()->args.rf.tx_gain_ch[2] = -1;
-	gnb_manager_self()->args.rf.tx_gain_ch[3] = -1;
-	gnb_manager_self()->args.rf.tx_gain_ch[4] = -1;
-	gnb_manager_self()->args.rf.dl_freq = -1;
-	gnb_manager_self()->args.rf.ul_freq = -1;
-	gnb_manager_self()->args.rf.device_name = "zmq";
-	gnb_manager_self()->args.rf.device_args = "fail_on_disconnect=true,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001,id=enb,base_srate=11.52e6";
-	gnb_manager_self()->args.rf.time_adv_nsamples = "auto";
+	args->enb.enb_id = 0x0; //gnb_manager_self()->config.nr_stack.ngap.gnb_id=0x0;
+	args->enb.n_prb = 50;
+	args->enb.nof_ports = 1;
+	args->enb.transmission_mode = 1;
+	args->enb.p_a = 0;//Power allocation rho_a (-6, -4.77, -3, -1.77, 0, 1, 2, 3)
+	args->enb_files.sib_config = "sib.conf";
+	args->enb_files.rr_config = "rr.conf";
+	args->enb_files.rb_config = "rb.conf";
+	args->enb.dl_earfcn = 0;
+	args->rf.srate_hz = 0;
+	args->rf.rx_gain = 50;
+	args->rf.tx_gain = 80;
+	args->rf.tx_gain_ch[0] = -1;
+	args->rf.tx_gain_ch[1] = -1;
+	args->rf.tx_gain_ch[2] = -1;
+	args->rf.tx_gain_ch[3] = -1;
+	args->rf.tx_gain_ch[4] = -1;
+	args->rf.dl_freq = -1;
+	args->rf.ul_freq = -1;
+	args->rf.device_name = "zmq";
+	args->rf.device_args = "fail_on_disconnect=true,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001,id=enb,base_srate=11.52e6";
+	args->rf.time_adv_nsamples = "auto";
     /* Downlink Channel emulator section */
-	gnb_manager_self()->args.phy.dl_channel_args.enable = false;
-	gnb_manager_self()->args.phy.dl_channel_args.awgn_enable = false;
-	gnb_manager_self()->args.phy.dl_channel_args.awgn_signal_power_dBfs = 0;
-	gnb_manager_self()->args.phy.dl_channel_args.awgn_snr_dB = 30;
-	gnb_manager_self()->args.phy.dl_channel_args.fading_enable = false;
-	gnb_manager_self()->args.phy.dl_channel_args.fading_model = "none"
-	gnb_manager_self()->args.phy.dl_channel_args.delay_enable = false;
-	gnb_manager_self()->args.phy.dl_channel_args.delay_min_us = 10;
-	gnb_manager_self()->args.phy.dl_channel_args.delay_max_us = 100;
-	gnb_manager_self()->args.phy.dl_channel_args.delay_period_s = 3600;
-	gnb_manager_self()->args.phy.dl_channel_args.delay_init_time_s = 0;
-	gnb_manager_self()->args.phy.dl_channel_args.rlf_enable = false;
-	gnb_manager_self()->args.phy.dl_channel_args.rlf_t_on_ms = 10000;
-	gnb_manager_self()->args.phy.dl_channel_args.rlf_t_off_ms = 2000;
-	gnb_manager_self()->args.phy.dl_channel_args.hst_enable = false;
-	gnb_manager_self()->args.phy.dl_channel_args.hst_period_s = 7.2;
-	gnb_manager_self()->args.phy.dl_channel_args.hst_fd_hz = 750;
-	gnb_manager_self()->args.phy.dl_channel_args.hst_init_time_s =0;
-	gnb_manager_self()->args.phy.ul_channel_args.enable = false;
-	gnb_manager_self()->args.phy.ul_channel_args.awgn_enable = false;
-	gnb_manager_self()->args.phy.ul_channel_args.awgn_signal_power_dBfs = 30;
-	gnb_manager_self()->args.phy.ul_channel_args.awgn_snr_dB = 30;
-	gnb_manager_self()->args.phy.ul_channel_args.fading_enable = false;
-	gnb_manager_self()->args.phy.ul_channel_args.fading_model = "none";
-	gnb_manager_self()->args.phy.ul_channel_args.delay_enable = false;
-	gnb_manager_self()->args.phy.ul_channel_args.delay_period_s = 3600;
-	gnb_manager_self()->args.phy.ul_channel_args.delay_init_time_s = 0;
-	gnb_manager_self()->args.phy.ul_channel_args.delay_max_us = 100;
-	gnb_manager_self()->args.phy.ul_channel_args.delay_min_us = 10;
-	gnb_manager_self()->args.phy.ul_channel_args.rlf_enable = false;
-	gnb_manager_self()->args.phy.ul_channel_args.rlf_t_on_ms = 10000;
-	gnb_manager_self()->args.phy.ul_channel_args.rlf_t_off_ms = 2000;
-	gnb_manager_self()->args.phy.ul_channel_args.hst_enable = false;
-	gnb_manager_self()->args.phy.ul_channel_args.hst_period_s = 7.2;
-	gnb_manager_self()->args.phy.ul_channel_args.hst_fd_hz = 750;
-	gnb_manager_self()->args.phy.ul_channel_args.hst_init_time_s = 0;
+	args->phy.dl_channel_args.enable = false;
+	args->phy.dl_channel_args.awgn_enable = false;
+	args->phy.dl_channel_args.awgn_signal_power_dBfs = 0;
+	args->phy.dl_channel_args.awgn_snr_dB = 30;
+	args->phy.dl_channel_args.fading_enable = false;
+	args->phy.dl_channel_args.fading_model = "none"
+	args->phy.dl_channel_args.delay_enable = false;
+	args->phy.dl_channel_args.delay_min_us = 10;
+	args->phy.dl_channel_args.delay_max_us = 100;
+	args->phy.dl_channel_args.delay_period_s = 3600;
+	args->phy.dl_channel_args.delay_init_time_s = 0;
+	args->phy.dl_channel_args.rlf_enable = false;
+	args->phy.dl_channel_args.rlf_t_on_ms = 10000;
+	args->phy.dl_channel_args.rlf_t_off_ms = 2000;
+	args->phy.dl_channel_args.hst_enable = false;
+	args->phy.dl_channel_args.hst_period_s = 7.2;
+	args->phy.dl_channel_args.hst_fd_hz = 750;
+	args->phy.dl_channel_args.hst_init_time_s =0;
+	args->phy.ul_channel_args.enable = false;
+	args->phy.ul_channel_args.awgn_enable = false;
+	args->phy.ul_channel_args.awgn_signal_power_dBfs = 30;
+	args->phy.ul_channel_args.awgn_snr_dB = 30;
+	args->phy.ul_channel_args.fading_enable = false;
+	args->phy.ul_channel_args.fading_model = "none";
+	args->phy.ul_channel_args.delay_enable = false;
+	args->phy.ul_channel_args.delay_period_s = 3600;
+	args->phy.ul_channel_args.delay_init_time_s = 0;
+	args->phy.ul_channel_args.delay_max_us = 100;
+	args->phy.ul_channel_args.delay_min_us = 10;
+	args->phy.ul_channel_args.rlf_enable = false;
+	args->phy.ul_channel_args.rlf_t_on_ms = 10000;
+	args->phy.ul_channel_args.rlf_t_off_ms = 2000;
+	args->phy.ul_channel_args.hst_enable = false;
+	args->phy.ul_channel_args.hst_period_s = 7.2;
+	args->phy.ul_channel_args.hst_fd_hz = 750;
+	args->phy.ul_channel_args.hst_init_time_s = 0;
     /* CFR section */
-	gnb_manager_self()->args.phy.cfr_args.enable = false;
-	gnb_manager_self()->args.phy.cfr_args.enable = "manual";//SRSRAN_CFR_THR_MANUAL
-	gnb_manager_self()->args.phy.cfr_args.manual_thres = 0.5;
-	gnb_manager_self()->args.phy.cfr_args.strength = 1;
-	gnb_manager_self()->args.phy.cfr_args.auto_target_papr = 8;
-	gnb_manager_self()->args.phy.cfr_args.ema_alpha = 0.0143;//1.0f / (float)SRSRAN_CP_NORM_NSYMB;
+	args->phy.cfr_args.enable = false;
+	args->phy.cfr_args.enable = "manual";//SRSRAN_CFR_THR_MANUAL
+	args->phy.cfr_args.manual_thres = 0.5;
+	args->phy.cfr_args.strength = 1;
+	args->phy.cfr_args.auto_target_papr = 8;
+	args->phy.cfr_args.ema_alpha = 0.0143;//1.0f / (float)SRSRAN_CP_NORM_NSYMB;
 
 	/* Expert section */
-	gnb_manager_self()->args.general.metrics_period_secs = 1.0;
-	gnb_manager_self()->args.general.metrics_csv_enable = false;
-	gnb_manager_self()->args.general.metrics_csv_filename = "/tmp/enb_metrics.csv";
-	gnb_manager_self()->args.phy.pusch_max_its = 8;
-	gnb_manager_self()->args.phy.pusch_8bit_decoder = false;
-	gnb_manager_self()->args.phy.pusch_meas_evm = false;
-	gnb_manager_self()->args.phy.tx_amplitude = 1;
-	gnb_manager_self()->args.phy.nof_phy_threads = 1;
-	gnb_manager_self()->args.phy.nof_prach_threads = 1;
-	gnb_manager_self()->args.phy.max_prach_offset_us = 30;
-	gnb_manager_self()->args.phy.equalizer_mode = "mmse";
-	gnb_manager_self()->args.phy.estimator_fil_w = 0.1;
-	gnb_manager_self()->args.general.report_json_enable = false;
-	gnb_manager_self()->args.general.report_json_filename = "/tmp/enb_report.json";
-	gnb_manager_self()->args.general.report_json_asn1_oct = false;
-	//gnb_manager_self()->args.general.alarms_log_enable = false;
-	//gnb_manager_self()->args.general.alarms_filename = "/tmp/enb_alarms.log";
-	gnb_manager_self()->args.general.tracing_enable = false;
-	gnb_manager_self()->args.general.tracing_filename = "/tmp/enb_tracing.log";
-	gnb_manager_self()->args.general.tracing_buffcapacity = 1000000;
-	gnb_manager_self()->args.general.rrc_inactivity_timer = 30000;
-	//gnb_manager_self()->config.general.print_buffer_state = false;
-	gnb_manager_self()->args.general.eea_pref_list = "EEA0, EEA2, EEA1";
-	gnb_manager_self()->args.general.eia_pref_list = "EIA2, EIA1, EIA0";
-	gnb_manager_self()->args.general.max_mac_dl_kos = 100;
-	gnb_manager_self()->args.general.max_mac_ul_kos = 100;
-	gnb_manager_self()->args.general.rlf_release_timer_ms = 4000;
-	gnb_manager_self()->args.phy.extended_cp = false;
-	gnb_manager_self()->args.phy.rx_gain_offset = 62;
+	args->general.metrics_period_secs = 1.0;
+	args->general.metrics_csv_enable = false;
+	args->general.metrics_csv_filename = "/tmp/enb_metrics.csv";
+	//args->phy.pusch_max_its = 8;
+	args->phy.pusch_8bit_decoder = false;
+	args->phy.pusch_meas_evm = false;
+	args->phy.tx_amplitude = 1;
+	args->phy.nof_phy_threads = 1;
+	args->phy.nof_prach_threads = 1;
+	args->phy.max_prach_offset_us = 30;
+	args->phy.equalizer_mode = "mmse";
+	args->phy.estimator_fil_w = 0.1;
+	args->general.report_json_enable = false;
+	args->general.report_json_filename = "/tmp/enb_report.json";
+	args->general.report_json_asn1_oct = false;
+	//args->general.alarms_log_enable = false;
+	//args->general.alarms_filename = "/tmp/enb_alarms.log";
+	args->general.tracing_enable = false;
+	args->general.tracing_filename = "/tmp/enb_tracing.log";
+	args->general.tracing_buffcapacity = 1000000;
+	args->general.rrc_inactivity_timer = 30000;
+	//args->general.print_buffer_state = false;
+	args->general.eea_pref_list = "EEA0, EEA2, EEA1";
+	args->general.eia_pref_list = "EIA2, EIA1, EIA0";
+	args->general.max_mac_dl_kos = 100;
+	args->general.max_mac_ul_kos = 100;
+	args->general.rlf_release_timer_ms = 4000;
+	args->phy.extended_cp = false;
+	args->phy.rx_gain_offset = 62;
 
 	/* stack section */
-	gnb_manager_self()->args.nr_stack.mac_nr.sched_cfg.fixed_dl_mcs = 28;
-	gnb_manager_self()->args.nr_stack.mac_nr.sched_cfg.fixed_ul_mcs = 28;
-	gnb_manager_self()->args.nr_stack.mac_nr.sched_cfg.pdsch_enabled = true;
-	gnb_manager_self()->args.nr_stack.mac_nr.sched_cfg.pusch_enabled = true;
-	gnb_manager_self()->args.nr_stack.mac_nr.sched_cfg.auto_refill_buffer = false;
-	gnb_manager_self()->args.nr_stack.mac_nr.pcap.enable = false; 
-	gnb_manager_self()->args.nr_stack.mac_nr.pcap.filename = "/tmp/enb_mac_nr.pcap";
-	gnb_manager_self()->args.nr_stack.ngap_pcap.enable = false;
-	gnb_manager_self()->args.nr_stack.ngap_pcap.filename = "/tmp/enb_ngap.pcap";
-    gnb_manager_self()->args.nr_stack.ngap.gnb_id = gnb_manager_self()->args.enb.enb_id;
-	gnb_manager_self()->args.nr_stack.ngap.gnb_name = "app-gnb";
-	gnb_manager_self()->args.nr_stack.ngap.cell_id = 0x0;
-    gnb_manager_self()->args.nr_stack.ngap.tac= 0x0;
-    string_to_mcc("001", &gnb_manager_self()->args.nr_stack.ngap.mcc);
-    string_to_mnc("01", &gnb_manager_self()->args.nr_stack.ngap.mnc);
-    gnb_manager_self()->args.nr_stack.ngap.amf_addr = "127.0.0.2";
-    gnb_manager_self()->args.nr_stack.ngap.ngc_bind_addr = "127.0.1.1";
-    gnb_manager_self()->args.nr_stack.ngap.gtp_bind_addr = "127.0.1.1";
+	args->nr_stack.mac_nr.sched_cfg.fixed_dl_mcs = 28;
+	args->nr_stack.mac_nr.sched_cfg.fixed_ul_mcs = 28;
+	args->nr_stack.mac_nr.sched_cfg.pdsch_enabled = true;
+	args->nr_stack.mac_nr.sched_cfg.pusch_enabled = true;
+	args->nr_stack.mac_nr.sched_cfg.auto_refill_buffer = false;
+	args->nr_stack.mac_nr.pcap.enable = false; 
+	args->nr_stack.mac_nr.pcap.filename = "/tmp/enb_mac_nr.pcap";
+	args->nr_stack.ngap_pcap.enable = false;
+	args->nr_stack.ngap_pcap.filename = "/tmp/enb_ngap.pcap";
+    args->nr_stack.ngap.gnb_id = args->enb.enb_id;
+	args->nr_stack.ngap.gnb_name = "app-gnb";
+	args->nr_stack.ngap.cell_id = 0x0;
+    args->nr_stack.ngap.tac= 0x0;
+    string_to_mcc("001", &args->nr_stack.ngap.mcc);
+    string_to_mnc("01", &args->nr_stack.ngap.mnc);
+    args->nr_stack.ngap.amf_addr = "127.0.0.2";
+    args->nr_stack.ngap.ngc_bind_addr = "127.0.1.1";
+    args->nr_stack.ngap.gtp_bind_addr = "127.0.1.1";
 
 	srsran_use_standard_symbol_size(false);
+}
+
+void gnb_arg_second(all_args_t      *args)
+{
+   /*todo Parse enb.conf*/
 }
 
 
@@ -1024,12 +1029,6 @@ static int parse_cfr_args(all_args_t* args, srsran_cfr_cfg_t* cfr_config)
   }
 
   return OSET_OK;
-}
-
-
-void gnb_arg_second(all_args_t      *args)
-{
-   /*todo Parse enb.conf*/
 }
 
 int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t* phy_cfg_)

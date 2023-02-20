@@ -9,8 +9,6 @@
 
 #include "gnb_common.h"
 #include "gnb_manager.h"
-#include "rf/radio.h"
-#include "phy/phy.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb"
@@ -40,11 +38,6 @@ OSET_MODULE_LOAD_FUNCTION(app_gnb_load)
 	task_queue_init(tasks_info);
 	gnb_layer_tasks_args_init();
 	gnb_layer_tasks_create();
-	rf_init();
-	phy_init();
-
-
-
 	//OSET_ADD_API(api_interface, "gnb_trace", "Show gnb layer trace", show_gnb_layer_trace, "");
 	return OSET_STATUS_SUCCESS;
 }
@@ -53,8 +46,6 @@ OSET_MODULE_SHUTDOWN_FUNCTION(app_gnb_shutdown)
 {
 	gnb_manager_self()->running = false;
 	task_queue_termination();//stop queue
-	rf_destory();
-	phy_destory();
 	gnb_layer_tasks_destory();
 	task_queue_end(tasks_info);
 	return OSET_STATUS_SUCCESS;

@@ -15,6 +15,7 @@
 #include "lib/common/common_nr.h"
 #include "lib/common/slot_point.h"
 #include "lib/common/slot_interval.h"
+#include "mac/mac_metrics.h"
 #include "rrc/rrc_nr_config.h"
 
 #ifdef __cplusplus

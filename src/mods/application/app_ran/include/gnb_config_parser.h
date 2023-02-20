@@ -203,7 +203,7 @@ typedef struct all_args_s{
 }all_args_t;
 
 int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t* phy_cfg_);
-void gnb_arg_default(void);	
+void gnb_arg_default(all_args_t      *args);	
 void gnb_arg_second(all_args_t      *args);
 
 #ifdef __cplusplus

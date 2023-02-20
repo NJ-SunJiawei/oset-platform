@@ -12,8 +12,6 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-mac"
 
-//static OSET_POOL(bcch_bch_payload_pool, byte_buffer_t);
-//static OSET_POOL(rar_pdu_buffer_pool, byte_buffer_t);
 
 static mac_manager_t mac_manager = {0};
 
@@ -29,10 +27,18 @@ static void mac_manager_init(void)
 	oset_apr_thread_cond_create(&mac_manager.cond, mac_manager.app_pool);
 	oset_apr_thread_rwlock_create(&mac_manager.rwmutex, mac_manager.app_pool);
 
+	mac_manager.bcch_bch_payload = oset_malloc(sizeof(byte_buffer_t));
+	mac_manager.rar_pdu_buffer = oset_malloc(sizeof(byte_buffer_t));
+	sched_nr_init(&mac_manager.sched);
+
 }
 
 static void mac_manager_destory(void)
 {
+    sched_nr_destory(&mac_manager.sched);
+	oset_free(mac_manager.bcch_bch_payload);
+	oset_free(mac_manager.rar_pdu_buffer);
+
 	oset_apr_mutex_destroy(mac_manager.mutex);
 	oset_apr_thread_cond_destroy(mac_manager.cond);
 	oset_apr_thread_rwlock_destroy(mac_manager.rwmutex);
@@ -40,27 +46,25 @@ static void mac_manager_destory(void)
 	mac_manager.app_pool = NULL; /*app_pool release by openset process*/
 }
 
-int mac_init(void)
+static int mac_init(void)
 {
 	mac_manager_init();
-	//oset_pool_init(&bcch_bch_payload_pool, SRSENB_MAX_UES);
-	//oset_pool_init(&rar_pdu_buffer_pool, SRSENB_MAX_UES*4);
-	oset_pool_init(&mac_manager.ue_nr_pool, SRSENB_MAX_UES);
-	oset_list_init(&mac_manager.ue_db);
-	mac_manager.ue_db_ht = oset_hash_make();
+	mac_manager.started = true;
+	mac_manager.args = gnb_manager_self()->args.nr_stack.mac_nr;
+
+	oset_pool_init(&mac_manager.ue_nr_mac_pool, SRSENB_MAX_UES);
+	mac_manager.ue_db = oset_hash_make();
 
 	//todo
 	return OSET_OK;
 }
 
-int mac_destory(void)
+static int mac_destory(void)
 {
 	//todo
-	oset_assert(mac_manager.ue_db_ht);
-	oset_hash_destroy(mac_manager.ue_db_ht);
-	oset_pool_final(&mac_manager.ue_nr_pool);
-	//oset_pool_final(&bcch_bch_payload_pool);
-	//oset_pool_final(&rar_pdu_buffer_pool);
+	oset_hash_destroy(mac_manager.ue_db);
+	oset_pool_final(&mac_manager.ue_nr_mac_pool);
+	mac_manager.started = false;
 	mac_manager_destory();
 	return OSET_OK;
 }
@@ -71,7 +75,7 @@ static bool is_rnti_valid(uint16_t rnti)
 		oset_error("RACH ignored as eNB is being shutdown");
 		return false;
 	}
-	if (oset_hash_count(&mac_manager.ue_db_ht) > SRSENB_MAX_UES) {
+	if (oset_hash_count(&mac_manager.ue_db) > SRSENB_MAX_UES) {
 		oset_error("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
 		return false;
 	}
@@ -143,7 +147,7 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 	rar_info.ta_cmd		 = rach_info->time_adv;
 	slot_point_init(&rar_info.prach_slot, NUMEROLOGY_IDX, rach_info->slot_index);
 
-	sched->dl_rach_info(rar_info); //int sched_nr::dl_rach_info(const rar_info_t& rar_info)//todo
+	dl_rach_info(&rar_info); //int sched_nr::dl_rach_info(const rar_info_t& rar_info)//todo
 	rrc->add_user(rnti, rach_info->enb_cc_idx);//todo
 
 	oset_info("RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
@@ -177,6 +181,9 @@ void *gnb_mac_task(oset_threadplus_t *thread, void *data)
 	uint32_t length = 0;
 	task_map_t *task = task_map_self(TASK_MAC);
 	int rv = 0;
+
+	mac_init();
+
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "Starting MAC layer thread");
 
 	 for ( ;; ){
@@ -195,6 +202,7 @@ void *gnb_mac_task(oset_threadplus_t *thread, void *data)
 		 received_msg = NULL;
 		 length = 0;
 	}
+	mac_destory();
 }
 
 
