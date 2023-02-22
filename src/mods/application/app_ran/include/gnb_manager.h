@@ -25,7 +25,9 @@ typedef struct gnb_manager_s{
 	bool                   running;
 	oset_apr_memory_pool_t *app_pool;
 	oset_timer_mgr_t       *app_timer;
+
 	band_helper_t          *band_helper;
+
     all_args_t             args;
 	phy_cfg_t	           phy_cfg;
 	rrc_cfg_t	           rrc_cfg;

@@ -9,7 +9,6 @@
 #include "gnb_common.h"
 #include "mac/sched_nr.h"
 
-
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched"
 
@@ -17,15 +16,13 @@ void sched_nr_init(sched_nr *scheluder)
 {
 	oset_assert(scheluder);
 	oset_pool_init(&scheluder->ue_pool, SRSENB_MAX_UES);
-   
+	scheluder->metrics_handler.ues = scheluder->ue_db;
 }
 
 void sched_nr_destory(sched_nr *scheluder)
 {
 	oset_assert(scheluder);
 	oset_pool_final(&scheluder->ue_pool);
-
-   
 }
 
 int dl_rach_info(rar_info_t *rar_info)
@@ -33,7 +30,7 @@ int dl_rach_info(rar_info_t *rar_info)
 	ue *u = NULL; 
 
 	// create user object outside of sched main thread
-	oset_pool_alloc(&pool_omc, &u);
+	oset_pool_alloc(&mac_manager_self()->sched.ue_pool, &u);
 	unique_ue_ptr u =
 	  srsran::make_pool_obj_with_fallback<ue>(*ue_pool, rar_info.temp_crnti, rar_info.temp_crnti, rar_info.cc, cfg);
 

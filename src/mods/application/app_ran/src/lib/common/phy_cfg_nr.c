@@ -6,4 +6,4 @@
  *Author: create by sunjiawei
  *Date: 2022.12
 ************************************************************************/
-#include "phy_cfg_nr.h"
+#include "lib/common/phy_cfg_nr.h"

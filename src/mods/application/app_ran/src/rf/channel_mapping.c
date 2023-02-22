@@ -28,7 +28,6 @@ void release_freq_(channel_mapping *channel_mapping, const uint32_t logical_ch)
   }
 }
 
-
 bool allocate_freq(channel_mapping *channel_mapping, const uint32_t logical_ch, const float freq)
 {
   oset_lnode2_t* lnode = NULL;

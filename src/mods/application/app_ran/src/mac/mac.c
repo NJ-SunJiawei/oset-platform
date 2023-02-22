@@ -162,16 +162,16 @@ static void gnb_mac_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 {
 	oset_assert(msg_p);
 	oset_assert(msg_l > 0);
-	switch (RQUE_MSG_ID(msg_p)) {	
-	  case RACH_MAC_DETECTED_INFO: {
-	    /*rach info handle*/
-		mac_handle_rach_info(&RACH_MAC_DETECTED_INFO(msg_p));
-	  }
-	  break;
-
-	  default:
-		oset_error("Received unhandled message: %d:%s",  RQUE_MSG_ID(msg_p), RQUE_MSG_NAME(msg_p));
-		break;
+	switch (RQUE_MSG_ID(msg_p))
+	{	
+		case RACH_MAC_DETECTED_INFO:
+			/*rach info handle*/
+			mac_handle_rach_info(&RACH_MAC_DETECTED_INFO(msg_p));
+			break;
+		
+		default:
+			oset_error("Received unhandled message: %d:%s",  RQUE_MSG_ID(msg_p), RQUE_MSG_NAME(msg_p));
+			break;
 	}
 }
 
@@ -183,7 +183,6 @@ void *gnb_mac_task(oset_threadplus_t *thread, void *data)
 	int rv = 0;
 
 	mac_init();
-
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "Starting MAC layer thread");
 
 	 for ( ;; ){

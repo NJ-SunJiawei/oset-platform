@@ -11,6 +11,7 @@
 #define RRC_NR_CONFIG_H_
 
 #include "phy/phy_nr_config.h"
+#include "lib/common/asn_helper.h"
 #include "asn/rrc/ASN_RRC_RLC-Config.h"
 #include "asn/rrc/ASN_RRC_PDCP-Config.h"
 #include "asn/rrc/ASN_RRC_PDCCH-ConfigCommon.h"
@@ -512,7 +513,6 @@ struct more_than_one_rlc_s_ {
 };
 
 struct pdcp_cfg_s {
-  bool                 ext;
   bool                 drb_present;
   bool                 more_than_one_rlc_present;
   bool                 t_reordering_present;
@@ -748,7 +748,6 @@ struct freq_info_s_ {
 enum ul_cp_len_opts { len1, len2, nulltype };
 //RadioResourceConfigCommonSIB
 struct rr_cfg_common_sib_s {
-  bool                 ext;
   struct rach_cfg_common_s    rach_cfg_common;
   struct bcch_cfg_s           bcch_cfg;
   struct pcch_cfg_s           pcch_cfg;
@@ -938,7 +937,6 @@ enum subcarrier_spacing_e { khz15, khz30, khz60, khz120, khz240, spare3, spare2,
 
 // SCS-SpecificCarrier ::= SEQUENCE
 struct scs_specific_carrier_s {
-  bool                 ext;
   uint16_t             offset_to_carrier;
   enum subcarrier_spacing_e subcarrier_spacing;
   uint16_t             carrier_bw;//1
@@ -1332,7 +1330,6 @@ enum lc_ch_sr_delay_timer_e_ { sf20, sf40, sf64, sf128, sf512, sf1024, sf2560, s
 // BSR-Config ::= SEQUENCE
 struct bsr_cfg_s {
   // member variables
-  bool                         ext;
   bool                         lc_ch_sr_delay_timer_present;
   enum periodic_bsr_timer_e_   periodic_bsr_timer;
   enum retx_bsr_timer_e_       retx_bsr_timer;
@@ -1547,7 +1544,6 @@ enum dmrs_type_a_position_e_ { pos2, pos3, nulltype };
 // FrequencyInfoDL ::= SEQUENCE
 struct freq_info_dl_s {
   // member variables
-  bool                         ext;
   bool                         absolute_freq_ssb_present;
   uint32_t                     absolute_freq_ssb;
   A_DYN_ARRAY_OF(uint16_t)     freq_band_list;//bounded_array<uint16_t, 8>//// MultiFrequencyBandListNR ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..1024)
@@ -1593,7 +1589,6 @@ enum dummy_e_ { dynamic_value, semi_static, nulltype };
 // RateMatchPattern ::= SEQUENCE
 struct rate_match_pattern_s {
   // member variables
-  bool                 ext;
   bool                 subcarrier_spacing_present;
   uint8_t              rate_match_pattern_id;
   struct pattern_type_c_      pattern_type;
@@ -1604,7 +1599,6 @@ struct rate_match_pattern_s {
 // FrequencyInfoUL ::= SEQUENCE
 struct freq_info_ul_s {
   // member variables
-  bool                         ext;
   bool                         absolute_freq_point_a_present;
   bool                         add_spec_emission_present;
   bool                         p_max_present;
@@ -1632,7 +1626,6 @@ enum dl_ul_tx_periodicity_v1530_e_ { ms3, ms4, nulltype };
 // TDD-UL-DL-Pattern ::= SEQUENCE
 struct tdd_ul_dl_pattern_s {
   // member variables
-  bool                         ext;
   enum dl_ul_tx_periodicity_e_ dl_ul_tx_periodicity;
   uint16_t                nrof_dl_slots;
   uint8_t                 nrof_dl_symbols;
@@ -1645,7 +1638,6 @@ struct tdd_ul_dl_pattern_s {
 
 // TDD-UL-DL-ConfigCommon ::= SEQUENCE
 struct tdd_ul_dl_cfg_common_s {
-  bool                 ext;
   bool                 pattern2_present;
   enum subcarrier_spacing_e   ref_subcarrier_spacing;
   struct tdd_ul_dl_pattern_s  pattern1;
@@ -3717,6 +3709,820 @@ struct ssb_positions_in_burst_s_ {
 struct pdcch_cfg_sib1_s {
   uint8_t ctrl_res_set_zero;
   uint8_t search_space_zero;
+};
+
+enum q_hyst_e_ {
+  db0,
+  db1,
+  db2,
+  db3,
+  db4,
+  db5,
+  db6,
+  db8,
+  db10,
+  db12,
+  db14,
+  db16,
+  db18,
+  db20,
+  db22,
+  db24,
+  nulltype
+};
+enum sf_medium_e_ { db_minus6, db_minus4, db_minus2, db0, nulltype };
+enum sf_high_e_ { db_minus6, db_minus4, db_minus2, db0, nulltype };
+struct q_hyst_sf_s_ {
+  // member variables
+  enum sf_medium_e_ sf_medium;
+  enum sf_high_e_   sf_high;
+};
+
+struct speed_state_resel_pars_s_ {
+  // member variables
+  struct mob_state_params_s mob_state_params;
+  struct q_hyst_sf_s_		 q_hyst_sf;
+};
+
+// ThresholdNR ::= SEQUENCE
+struct thres_nr_s {
+  bool    thres_rsrp_present;
+  bool    thres_rsrq_present;
+  bool    thres_sinr_present;
+  uint8_t thres_rsrp;
+  uint8_t thres_rsrq;
+  uint8_t thres_sinr;
+};
+
+// Q-OffsetRange ::= ENUMERATED
+enum q_offset_range_e {
+	db_minus24,
+	db_minus22,
+	db_minus20,
+	db_minus18,
+	db_minus16,
+	db_minus14,
+	db_minus12,
+	db_minus10,
+	db_minus8,
+	db_minus6,
+	db_minus5,
+	db_minus4,
+	db_minus3,
+	db_minus2,
+	db_minus1,
+	db0,
+	db1,
+	db2,
+	db3,
+	db4,
+	db5,
+	db6,
+	db8,
+	db10,
+	db12,
+	db14,
+	db16,
+	db18,
+	db20,
+	db22,
+	db24,
+	nulltype
+};
+
+// RangeToBestCell ::= Q-OffsetRange
+typedef  q_offset_range_e  range_to_best_cell_e;
+
+struct cell_resel_info_common_s_ {
+  // member variables
+  bool						ext;
+  bool						nrof_ss_blocks_to_average_present;
+  bool						abs_thresh_ss_blocks_consolidation_present;
+  bool						range_to_best_cell_present;
+  bool						speed_state_resel_pars_present;
+  uint8_t					nrof_ss_blocks_to_average;//2
+  struct thres_nr_s			abs_thresh_ss_blocks_consolidation;
+  enum range_to_best_cell_e	range_to_best_cell;
+  enum q_hyst_e_ 			q_hyst;
+  struct speed_state_resel_pars_s_ speed_state_resel_pars;
+  // ...
+};
+
+// CellReselectionSubPriority ::= ENUMERATED
+enum cell_resel_sub_prio_e { odot2, odot4, odot6, odot8, nulltype };
+
+struct cell_resel_serving_freq_info_s_ {
+  bool					ext;
+  bool					s_non_intra_search_p_present;
+  bool					s_non_intra_search_q_present;
+  bool					thresh_serving_low_q_present;
+  bool					cell_resel_sub_prio_present;
+  uint8_t				s_non_intra_search_p;
+  uint8_t				s_non_intra_search_q;
+  uint8_t				thresh_serving_low_p;
+  uint8_t				thresh_serving_low_q;
+  uint8_t				cell_resel_prio;
+  enum cell_resel_sub_prio_e cell_resel_sub_prio;
+  // ...
+};
+
+// SS-RSSI-Measurement ::= SEQUENCE
+struct ss_rssi_meas_s {
+  uint8_t    meas_slots[10];//bounded_bitstring<1, 80>
+  uint8_t    end_symbol;
+};
+
+// SSB-ToMeasure ::= CHOICE
+struct ssb_to_measure_c {
+  enum types { short_bitmap, medium_bitmap, long_bitmap, nulltype } type_;
+  uint8_t c[8];//choice_buffer_t<fixed_bitstring<64> >
+};
+
+struct intra_freq_cell_resel_info_s_ {
+  bool							ext;
+  bool							q_rx_lev_min_sul_present;
+  bool							q_qual_min_present;
+  bool							s_intra_search_q_present;
+  bool							p_max_present;
+  bool							smtc_present;
+  bool							ss_rssi_meas_present;
+  bool							ssb_to_measure_present;
+  int8_t						q_rx_lev_min;// = -70
+  int8_t						q_rx_lev_min_sul;// = -70
+  int8_t						q_qual_min;// = -43
+  uint8_t						s_intra_search_p;
+  uint8_t						s_intra_search_q;
+  uint8_t						t_resel_nr;
+  A_DYN_ARRAY_OF(struct nr_multi_band_info_s) freq_band_list;//dyn_array<nr_multi_band_info_s>// MultiFrequencyBandListNR-SIB ::= SEQUENCE (SIZE (1..8)) OF NR-MultiBandInfo
+  A_DYN_ARRAY_OF(struct nr_multi_band_info_s) freq_band_list_sul;
+  int8_t						p_max;// = -30
+  struct ssb_mtc_s 				smtc;
+  struct ss_rssi_meas_s			ss_rssi_meas;
+  struct ssb_to_measure_c		ssb_to_measure;
+  bool							derive_ssb_idx_from_cell;
+  // ...
+  // group 0
+  struct speed_state_scale_factors_s   *t_resel_nr_sf;
+};
+
+struct thresh_x_q_r9_s_ {
+  uint8_t thresh_x_high_q_r9;
+  uint8_t thresh_x_low_q_r9;
+};
+
+// Q-OffsetRange ::= ENUMERATED
+enum q_offset_range_e {
+	db_minus24,
+	db_minus22,
+	db_minus20,
+	db_minus18,
+	db_minus16,
+	db_minus14,
+	db_minus12,
+	db_minus10,
+	db_minus8,
+	db_minus6,
+	db_minus5,
+	db_minus4,
+	db_minus3,
+	db_minus2,
+	db_minus1,
+	db0,
+	db1,
+	db2,
+	db3,
+	db4,
+	db5,
+	db6,
+	db8,
+	db10,
+	db12,
+	db14,
+	db16,
+	db18,
+	db20,
+	db22,
+	db24,
+	nulltype
+};
+
+enum allowed_meas_bw_e { mbw6, mbw15, mbw25, mbw50, mbw75, mbw100, nulltype };
+
+// InterFreqNeighCellInfo ::= SEQUENCE
+struct inter_freq_neigh_cell_info_s {
+  uint16_t         pci;
+  enum q_offset_range_e q_offset_cell;
+};
+
+enum range_e_ {
+  n4,
+  n8,
+  n12,
+  n16,
+  n24,
+  n32,
+  n48,
+  n64,
+  n84,
+  n96,
+  n128,
+  n168,
+  n252,
+  n504,
+  spare2,
+  spare1,
+  nulltype
+};
+
+// PhysCellIdRange ::= SEQUENCE
+struct pci_range_s {
+  // member variables
+  bool     range_present;
+  uint16_t start;
+  enum range_e_ range;
+};
+
+// InterFreqCarrierFreqInfo ::= SEQUENCE
+struct inter_freq_carrier_freq_info_s {
+  // member variables
+  bool                         p_max_present;
+  bool                         t_resel_eutra_sf_present;
+  bool                         cell_resel_prio_present;
+  bool                         q_offset_freq_present;
+  bool                         inter_freq_neigh_cell_list_present;
+  bool                         inter_freq_black_cell_list_present;
+  uint32_t                     dl_carrier_freq;
+  int8_t                       q_rx_lev_min;//                       = -70
+  int8_t                       p_max;//                              = -30
+  uint8_t                      t_resel_eutra;
+  struct speed_state_scale_factors_s  t_resel_eutra_sf;
+  uint8_t                      thresh_x_high;
+  uint8_t                      thresh_x_low;
+  enum allowed_meas_bw_e       allowed_meas_bw;
+  bool                         presence_ant_port1;
+  uint8_t                      cell_resel_prio;
+  uint8_t                      neigh_cell_cfg;//fixed_bitstring<2>
+  enum q_offset_range_e        q_offset_freq;
+  A_DYN_ARRAY_OF(struct inter_freq_neigh_cell_info_s) inter_freq_neigh_cell_list;// InterFreqNeighCellList ::= SEQUENCE (SIZE (1..16)) OF InterFreqNeighCellInfo
+  A_DYN_ARRAY_OF(struct pci_range_s) inter_freq_black_cell_list;// InterFreqBlackCellList ::= SEQUENCE (SIZE (1..16)) OF PhysCellIdRange
+  // ...
+  // group 0
+  bool                       q_qual_min_r9_present;
+  int8_t                     q_qual_min_r9;//         = -34
+  thresh_x_q_r9_s_           *thresh_x_q_r9;
+  // group 1
+  bool   q_qual_min_wb_r11_present;
+  int8_t q_qual_min_wb_r11;//         = -34
+};
+
+// IntraFreqNeighCellInfo ::= SEQUENCE
+struct intra_freq_neigh_cell_info_s {
+  bool             ext;
+  bool             q_rx_lev_min_offset_cell_present;
+  bool             q_rx_lev_min_offset_cell_sul_present;
+  bool             q_qual_min_offset_cell_present;
+  uint16_t         pci;
+  enum q_offset_range_e q_offset_cell;
+  uint8_t          q_rx_lev_min_offset_cell1;//     = 1
+  uint8_t          q_rx_lev_min_offset_cell_sul;//  = 1
+  uint8_t          q_qual_min_offset_cell;//        = 1
+};
+
+// SIB2 ::= SEQUENCE
+struct sib2_s {
+  // member variables
+  bool                                   ext;
+  struct cell_resel_info_common_s_       cell_resel_info_common;
+  struct cell_resel_serving_freq_info_s_ cell_resel_serving_freq_info;
+  struct intra_freq_cell_resel_info_s_   intra_freq_cell_resel_info;
+};
+
+// SIB3 ::= SEQUENCE
+struct sib3_s {
+  bool                         exte;
+  A_DYN_ARRAY_OF(struct intra_freq_neigh_cell_info_s) intra_freq_neigh_cell_list;// IntraFreqNeighCellList ::= SEQUENCE (SIZE (1..16)) OF IntraFreqNeighCellInfo
+  A_DYN_ARRAY_OF(struct pci_range_s) intra_freq_black_cell_list;// IntraFreqBlackCellList ::= SEQUENCE (SIZE (1..16)) OF PCI-Range
+  dyn_octstring                late_non_crit_ext;
+};
+
+// SIB4 ::= SEQUENCE
+struct sib4_s {
+  bool                           ext;
+  A_DYN_ARRAY_OF(struct inter_freq_carrier_freq_info_s) inter_freq_carrier_freq_list;// InterFreqCarrierFreqList ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo
+  dyn_octstring                  late_non_crit_ext;
+};
+
+struct thresh_x_q_s_ {
+  uint8_t thresh_x_high_q;
+  uint8_t thresh_x_low_q;
+};
+
+// EUTRA-NS-PmaxValue ::= SEQUENCE
+struct eutra_ns_pmax_value_s {
+  bool     add_pmax_present;
+  bool     add_spec_emission_present;
+  int8_t   add_pmax;//                  = -30
+  uint16_t add_spec_emission;//         = 1
+};
+
+// EUTRA-MultiBandInfo ::= SEQUENCE
+struct eutra_multi_band_info_s {
+  uint16_t             eutra_freq_band_ind;// = 1
+  A_DYN_ARRAY_OF(struct eutra_ns_pmax_value_s) eutra_ns_pmax_list;//// EUTRA-NS-PmaxList ::= SEQUENCE (SIZE (1..8)) OF EUTRA-NS-PmaxValue
+};
+
+enum eutra_q_offset_range_e {
+  db_minus24,
+  db_minus22,
+  db_minus20,
+  db_minus18,
+  db_minus16,
+  db_minus14,
+  db_minus12,
+  db_minus10,
+  db_minus8,
+  db_minus6,
+  db_minus5,
+  db_minus4,
+  db_minus3,
+  db_minus2,
+  db_minus1,
+  db0,
+  db1,
+  db2,
+  db3,
+  db4,
+  db5,
+  db6,
+  db8,
+  db10,
+  db12,
+  db14,
+  db16,
+  db18,
+  db20,
+  db22,
+  db24,
+  nulltype
+};
+
+// EUTRA-FreqNeighCellInfo ::= SEQUENCE
+struct eutra_freq_neigh_cell_info_s {
+  bool                   q_rx_lev_min_offset_cell_present;
+  bool                   q_qual_min_offset_cell_present;
+  uint16_t               pci;
+  enum eutra_q_offset_range_e dummy;
+  uint8_t                q_rx_lev_min_offset_cell;// = 1
+  uint8_t                q_qual_min_offset_cell;//   = 1
+};
+
+enum range_e_ {
+  n4,
+  n8,
+  n12,
+  n16,
+  n24,
+  n32,
+  n48,
+  n64,
+  n84,
+  n96,
+  n128,
+  n168,
+  n252,
+  n504,
+  spare2,
+  spare1,
+  nulltype
+};
+
+// EUTRA-PhysCellIdRange ::= SEQUENCE
+struct eutra_pci_range_s {
+  // member variables
+  bool     range_present;
+  uint16_t start;
+  range_e_ range;
+};
+
+enum eutra_allowed_meas_bw_e { mbw6, mbw15, mbw25, mbw50, mbw75, mbw100, nulltype };
+
+// CarrierFreqEUTRA ::= SEQUENCE
+struct carrier_freq_eutra_s {
+  // member variables
+  bool                         cell_resel_prio_present;
+  bool                         cell_resel_sub_prio_present;
+  bool                         thresh_x_q_present;
+  uint32_t                     carrier_freq;
+  A_DYN_ARRAY_OF(struct eutra_multi_band_info_s) eutra_multi_band_info_list;// EUTRA-MultiBandInfoList ::= SEQUENCE (SIZE (1..8)) OF EUTRA-MultiBandInfo
+  A_DYN_ARRAY_OF(struct eutra_freq_neigh_cell_info_s)  eutra_freq_neigh_cell_list;// EUTRA-FreqNeighCellList ::= SEQUENCE (SIZE (1..8)) OF EUTRA-FreqNeighCellInfo
+  A_DYN_ARRAY_OF(struct eutra_pci_range_s) eutra_black_cell_list;// EUTRA-FreqBlackCellList ::= SEQUENCE (SIZE (1..16)) OF EUTRA-PhysCellIdRange
+  enum eutra_allowed_meas_bw_e     allowed_meas_bw;
+  bool                         presence_ant_port1;
+  uint8_t                      cell_resel_prio;
+  cell_resel_sub_prio_e        cell_resel_sub_prio;
+  uint8_t                      thresh_x_high;
+  uint8_t                      thresh_x_low;
+  int8_t                       q_rx_lev_min;//  = -70
+  int8_t                       q_qual_min;//    = -34
+  int8_t                       p_max_eutra;//   = -30
+  struct thresh_x_q_s_         thresh_x_q;
+};
+
+// SIB5 ::= SEQUENCE
+struct sib5_s {
+  bool                        ext;
+  bool                        t_resel_eutra_sf_present;
+  A_DYN_ARRAY_OF(struct carrier_freq_eutra_s)   carrier_freq_list_eutra;//// CarrierFreqListEUTRA ::= SEQUENCE (SIZE (1..8)) OF CarrierFreqEUTRA
+  uint8_t                     t_resel_eutra;
+  struct speed_state_scale_factors_s t_resel_eutra_sf;
+  dyn_octstring               late_non_crit_ext;
+};
+
+// SIB6 ::= SEQUENCE
+struct sib6_s {
+  bool                ext;
+  uint8_t             msg_id[2];//fixed_bitstring<16>
+  uint8_t             serial_num[2];//fixed_bitstring<16>
+  fixed_octstring     warning_type[2];//fixed_octstring<2>
+  dyn_octstring       late_non_crit_ext;
+};
+
+enum warning_msg_segment_type_e_ { not_last_segment, last_segment, nulltype };
+
+// SIB7 ::= SEQUENCE
+struct sib7_s {
+  // member variables
+  bool                        ext;
+  bool                        data_coding_scheme_present;
+  uint8_t                     msg_id[2];//fixed_bitstring<16>
+  uint8_t                     serial_num[2];//fixed_bitstring<16>
+  enum warning_msg_segment_type_e_ warning_msg_segment_type;
+  uint8_t                     warning_msg_segment_num;
+  dyn_octstring               warning_msg_segment;
+  fixed_octstring             data_coding_scheme;//fixed_octstring<1>
+  dyn_octstring               late_non_crit_ext;
+};
+
+// SIB8 ::= SEQUENCE
+struct sib8_s {
+  // member variables
+  bool                        ext;
+  bool                        data_coding_scheme_present;
+  uint8_t                     msg_id[2];//fixed_bitstring<16>
+  uint8_t                     serial_num[2];//fixed_bitstring<16>
+  enum warning_msg_segment_type_e_ warning_msg_segment_type;
+  uint8_t                     warning_msg_segment_num;
+  dyn_octstring               warning_msg_segment;
+  fixed_octstring             data_coding_scheme;//fixed_octstring<1>
+  dyn_octstring               warning_area_coordinates_segment;
+  dyn_octstring               late_non_crit_ext;
+};
+
+
+struct time_info_s_ {
+  bool				 day_light_saving_time_present;
+  bool				 leap_seconds_present;
+  bool				 local_time_offset_present;
+  uint64_t			 time_info_utc;
+  uint8_t			 day_light_saving_time;//fixed_bitstring<2>
+  int16_t			 leap_seconds;// = -127
+  int8_t			 local_time_offset;// = -63
+};
+
+// SIB9 ::= SEQUENCE
+struct sib9_s {
+  // member variables
+  bool                 time_info_present;
+  struct time_info_s_  time_info;
+  dyn_octstring late_non_crit_ext;
+};
+
+
+struct sib_type_and_info_item_c_ {
+  enum types { sib2, sib3, sib4, sib5, sib6, sib7, sib8, sib9, /*...*/ nulltype } 	type_;
+  union{
+		struct sib2_s sib2;
+		struct sib3_s sib3;
+		struct sib4_s sib4;
+		struct sib5_s sib5;
+		struct sib6_s sib6;
+		struct sib7_s sib7;
+		struct sib8_s sib8;
+		struct sib9_s sib9;
+	   }c;
+};
+
+enum sub_carrier_spacing_common_e_ { scs15or60, scs30or120, nulltype };
+enum dmrs_type_a_position_e_ { pos2, pos3, nulltype };
+enum cell_barred_e_ { barred, not_barred, nulltype };
+enum intra_freq_resel_e_ { allowed, not_allowed, nulltype };
+
+// MIB ::= SEQUENCE
+struct mib_s {
+
+  // member variables
+  uint8_t                            sys_frame_num;//fixed_bitstring<6>
+  enum sub_carrier_spacing_common_e_ sub_carrier_spacing_common;
+  uint8_t                            ssb_subcarrier_offset;
+  enum dmrs_type_a_position_e_       dmrs_type_a_position;
+  struct pdcch_cfg_sib1_s            pdcch_cfg_sib1;
+  enum cell_barred_e_                cell_barred;
+  enum intra_freq_resel_e_           intra_freq_resel;
+  uint8_t                            spare;//fixed_bitstring<1>
+};
+
+struct cell_sel_info_s_ {
+  bool	  q_rx_lev_min_offset_present;
+  bool	  q_rx_lev_min_sul_present;
+  bool	  q_qual_min_present;
+  bool	  q_qual_min_offset_present;
+  int8_t  q_rx_lev_min;//        = -70
+  uint8_t q_rx_lev_min_offset;// = 1
+  int8_t  q_rx_lev_min_sul;//    = -70
+  int8_t  q_qual_min;//			 = -43
+  uint8_t q_qual_min_offset;//   = 1
+};
+
+// UAC-AccessCategory1-SelectionAssistanceInfo ::= ENUMERATED
+enum uac_access_category1_sel_assist_info_e { a, b, c, nulltype };
+
+struct uac_access_category1_sel_assist_info_c_ {
+  enum types { plmn_common, individual_plmn_list, nulltype }  type_;
+  A_DYN_ARRAY_OF(struct uac_access_category1_sel_assist_info_e) c;//choice_buffer_t//bounded_array<uac_access_category1_sel_assist_info_e, 12>
+};
+
+// UAC-BarringPerCat ::= SEQUENCE
+struct uac_barr_per_cat_s {
+  uint8_t access_category;//       = 1
+  uint8_t uac_barr_info_set_idx;// = 1
+};
+
+//dyn_array<uac_barr_per_cat_s>//// UAC-BarringPerCatList ::= SEQUENCE (SIZE (1..63)) OF UAC-BarringPerCat
+struct uac_ac_barr_list_type_c_ {
+  enum types { uac_implicit_ac_barr_list, uac_explicit_ac_barr_list, nulltype }    type_;
+  union {A_DYN_ARRAY_OF(struct uac_barr_per_cat_s) uac_implicit_ac_barr_l;uint8_t uac_implicit_ac_barr_l[63];} c;//choice_buffer_t<uac_barr_per_cat_list_l, uac_implicit_ac_barr_list_l_>
+};
+
+// UAC-BarringPerPLMN ::= SEQUENCE
+struct uac_barr_per_plmn_s {
+  // member variables
+  bool                     uac_ac_barr_list_type_present;
+  uint8_t                  plmn_id_idx;// = 1
+  struct uac_ac_barr_list_type_c_ uac_ac_barr_list_type;
+};
+
+enum uac_barr_factor_e_ { p00, p05, p10, p15, p20, p25, p30, p40, p50, p60, p70, p75, p80, p85, p90, p95, nulltype };
+enum uac_barr_time_e_ { s4, s8, s16, s32, s64, s128, s256, s512, nulltype };
+
+// UAC-BarringInfoSet ::= SEQUENCE
+struct uac_barr_info_set_s {
+  // member variables
+  enum uac_barr_factor_e_ uac_barr_factor;
+  enum uac_barr_time_e_   uac_barr_time;
+  uint8_t uac_barr_for_access_id;//fixed_bitstring<7>
+};
+
+struct uac_barr_info_s_ {
+  // member variables
+  bool									  uac_access_category1_sel_assist_info_present;
+  A_DYN_ARRAY_OF(struct uac_barr_per_cat_s)	 uac_barr_for_common;// UAC-BarringPerCatList ::= SEQUENCE (SIZE (1..63)) OF UAC-BarringPerCat
+  A_DYN_ARRAY_OF(struct uac_barr_per_plmn_s) uac_barr_per_plmn_list;// UAC-BarringPerPLMN-List ::= SEQUENCE (SIZE (1..12)) OF UAC-BarringPerPLMN
+  A_DYN_ARRAY_OF(struct uac_barr_info_set_s) uac_barr_info_set_list;// UAC-BarringInfoSetList ::= SEQUENCE (SIZE (1..8)) OF UAC-BarringInfoSet
+  struct uac_access_category1_sel_assist_info_c_ uac_access_category1_sel_assist_info;
+};
+
+// CellAccessRelatedInfo ::= SEQUENCE
+struct cell_access_related_info_s {
+  bool                ext;
+  bool                cell_reserved_for_other_use_present;
+  A_DYN_ARRAY_OF(struct plmn_id_info_s) plmn_id_list;// PLMN-IdentityInfoList ::= SEQUENCE (SIZE (1..12)) OF PLMN-IdentityInfo
+};
+
+enum conn_est_fail_count_e_ { n1, n2, n3, n4, nulltype };
+enum conn_est_fail_offset_validity_e_ { s30, s60, s120, s240, s300, s420, s600, s900, nulltype };
+
+// ConnEstFailureControl ::= SEQUENCE
+struct conn_est_fail_ctrl_s {
+  // member variables
+  bool                                  conn_est_fail_offset_present;
+  enum conn_est_fail_count_e_           conn_est_fail_count;
+  enum conn_est_fail_offset_validity_e_ conn_est_fail_offset_validity;
+  uint8_t                               conn_est_fail_offset;
+};
+
+enum ssb_per_rach_occasion_e_ { one_eighth, one_fourth, one_half, one, two, four, eight, sixteen, nulltype };
+struct rach_occasions_si_s_ {
+  // member variables
+  struct rach_cfg_generic_s	   rach_cfg_si;
+  enum ssb_per_rach_occasion_e_ ssb_per_rach_occasion;
+};
+
+// SI-RequestResources ::= SEQUENCE
+struct si_request_res_s {
+  bool    ra_assoc_period_idx_present;
+  bool    ra_ssb_occasion_mask_idx_present;
+  uint8_t ra_preamb_start_idx;
+  uint8_t ra_assoc_period_idx;
+  uint8_t ra_ssb_occasion_mask_idx;
+};
+
+enum si_request_period_e_ { one, two, four, six, eight, ten, twelve, sixteen, nulltype };
+
+// SI-RequestConfig ::= SEQUENCE
+struct si_request_cfg_s {
+  // member variables
+  bool                 rach_occasions_si_present;
+  bool                 si_request_period_present;
+  struct rach_occasions_si_s_ rach_occasions_si;
+  enum si_request_period_e_   si_request_period;
+  A_DYN_ARRAY_OF(struct si_request_res_s)    si_request_res;//dyn_array<si_request_res_s>
+};
+
+enum si_win_len_e_ { s5, s10, s20, s40, s80, s160, s320, s640, s1280, nulltype };
+
+// SI-SchedulingInfo ::= SEQUENCE
+struct si_sched_info_s {
+  // member variables
+  bool                ext                        = false;
+  bool                si_request_cfg_present     = false;
+  bool                si_request_cfg_sul_present = false;
+  bool                sys_info_area_id_present   = false;
+  A_DYN_ARRAY_OF(struct sched_info_s)  sched_info_list;//dyn_array<sched_info_s>
+  si_win_len_e_              si_win_len;
+  struct si_request_cfg_s    si_request_cfg;
+  struct si_request_cfg_s    si_request_cfg_sul;
+  uint8_t                    sys_info_area_id[3];//fixed_bitstring<24>
+};
+
+enum n_timing_advance_offset_e_ { n0, n25600, n39936, nulltype };
+struct ssb_positions_in_burst_s_ {
+  bool		group_presence_present;
+  uint8_t   in_one_group;//fixed_bitstring<8>
+  uint8_t   group_presence;//fixed_bitstring<8>
+};
+
+enum ssb_periodicity_serving_cell_e_ { ms5, ms10, ms20, ms40, ms80, ms160, nulltype };
+
+// ServingCellConfigCommonSIB ::= SEQUENCE
+struct serving_cell_cfg_common_sib_s {
+  // member variables
+  bool                            ext;
+  bool                            ul_cfg_common_present;
+  bool                            supplementary_ul_present;
+  bool                            n_timing_advance_offset_present;
+  bool                            tdd_ul_dl_cfg_common_present;
+  struct dl_cfg_common_sib_s             dl_cfg_common;
+  struct ul_cfg_common_sib_s             ul_cfg_common;
+  struct ul_cfg_common_sib_s             supplementary_ul;
+  enum n_timing_advance_offset_e_        n_timing_advance_offset;
+  struct ssb_positions_in_burst_s_       ssb_positions_in_burst;
+  enum ssb_periodicity_serving_cell_e_   ssb_periodicity_serving_cell;
+  struct tdd_ul_dl_cfg_common_s          tdd_ul_dl_cfg_common;
+  int8_t                                 ss_pbch_block_pwr;// = -60
+};
+
+// SIB1 ::= SEQUENCE
+struct sib1_s {
+  // member variables
+  bool                          cell_sel_info_present;
+  bool                          conn_est_fail_ctrl_present;
+  bool                          si_sched_info_present;
+  bool                          serving_cell_cfg_common_present;
+  bool                          ims_emergency_support_present;
+  bool                          ecall_over_ims_support_present;
+  bool                          ue_timers_and_consts_present;
+  bool                          uac_barr_info_present;
+  bool                          use_full_resume_id_present;
+  bool                          non_crit_ext_present;
+  struct cell_sel_info_s_              cell_sel_info;
+  struct cell_access_related_info_s    cell_access_related_info;
+  struct conn_est_fail_ctrl_s          conn_est_fail_ctrl;
+  struct si_sched_info_s               si_sched_info;
+  struct serving_cell_cfg_common_sib_s serving_cell_cfg_common;
+  struct ue_timers_and_consts_s        ue_timers_and_consts;
+  struct uac_barr_info_s_              uac_barr_info;
+  dyn_octstring                 late_non_crit_ext;
+};
+
+enum prioritised_bit_rate_e_ {
+  kbps0,
+  kbps8,
+  kbps16,
+  kbps32,
+  kbps64,
+  kbps128,
+  kbps256,
+  kbps512,
+  kbps1024,
+  kbps2048,
+  kbps4096,
+  kbps8192,
+  kbps16384,
+  kbps32768,
+  kbps65536,
+  infinity,
+  nulltype
+};
+enum bucket_size_dur_e_ {
+  ms5,
+  ms10,
+  ms20,
+  ms50,
+  ms100,
+  ms150,
+  ms300,
+  ms500,
+  ms1000,
+  spare7,
+  spare6,
+  spare5,
+  spare4,
+  spare3,
+  spare2,
+  spare1,
+  nulltype
+};
+
+enum max_pusch_dur_e_ { ms0p02, ms0p04, ms0p0625, ms0p125, ms0p25, ms0p5, spare2, spare1, nulltype };
+enum bit_rate_query_prohibit_timer_e_ { s0, s0dot4, s0dot8, s1dot6, s3, s6, s12, s30, nulltype };
+
+struct ul_specific_params_s_ {
+  // member variables
+  bool					   ext;
+  bool					   max_pusch_dur_present;
+  bool					   cfgured_grant_type1_allowed_present;
+  bool					   lc_ch_group_present;
+  bool					   sched_request_id_present;
+  uint8_t				   prio;//	 = 1
+  prioritised_bit_rate_e_  prioritised_bit_rate;
+  bucket_size_dur_e_	   bucket_size_dur;
+  A_DYN_ARRAY_OF(uint8_t)  allowed_serving_cells;//bounded_array<uint8_t, 31>
+  A_DYN_ARRAY_OF(struct subcarrier_spacing_e)  allowed_scs_list;//bounded_array<subcarrier_spacing_e, 5>
+  max_pusch_dur_e_		   max_pusch_dur;
+  uint8_t				   lc_ch_group;
+  uint8_t				   sched_request_id;
+  bool					   lc_ch_sr_mask;
+  bool					   lc_ch_sr_delay_timer_applied;
+  // ...
+  bool							   bit_rate_query_prohibit_timer_present;
+  bit_rate_query_prohibit_timer_e_ bit_rate_query_prohibit_timer;
+};
+
+// LogicalChannelConfig ::= SEQUENCE
+struct lc_ch_cfg_s {
+
+  // member variables
+  bool                  ext;
+  bool                  ul_specific_params_present;
+  struct ul_specific_params_s_ ul_specific_params;
+};
+
+struct served_radio_bearer_c_ {
+  enum types { srb_id, drb_id, nulltype }  type_;
+  void *c;//pod_choice_buffer_t
+};
+
+// RLC-BearerConfig ::= SEQUENCE
+struct rlc_bearer_cfg_s {
+  // member variables
+  bool                   ext;
+  bool                   served_radio_bearer_present;
+  bool                   reestablish_rlc_present;
+  bool                   rlc_cfg_present;
+  bool                   mac_lc_ch_cfg_present;
+  uint8_t                lc_ch_id;//   = 1
+  struct served_radio_bearer_c_ served_radio_bearer;
+  struct rlc_cfg_c       rlc_cfg;
+  struct lc_ch_cfg_s     mac_lc_ch_cfg;
+  // ...
+};
+
+// SCellConfig ::= SEQUENCE
+struct scell_cfg_s {
+  bool                      ext;
+  bool                      scell_cfg_common_present;
+  bool                      scell_cfg_ded_present;
+  uint8_t                   scell_idx;// = 1
+  struct serving_cell_cfg_common_s scell_cfg_common;
+  struct serving_cell_cfg_s        scell_cfg_ded;
+  // ...
+};
+
+// CellGroupConfig ::= SEQUENCE
+struct cell_group_cfg_s {
+  // member variables
+  bool                          ext;
+  bool                          mac_cell_group_cfg_present;
+  bool                          phys_cell_group_cfg_present;
+  bool                          sp_cell_cfg_present;
+  uint8_t                       cell_group_id;
+  A_DYN_ARRAY_OF(struct rlc_bearer_cfg_s) rlc_bearer_to_add_mod_list;//dyn_array<rlc_bearer_cfg_s>
+  A_DYN_ARRAY_OF(uint8_t)       rlc_bearer_to_release_list;//bounded_array<uint8_t, 32>
+  mac_cell_group_cfg_s          mac_cell_group_cfg;
+  phys_cell_group_cfg_s         phys_cell_group_cfg;
+  sp_cell_cfg_s                 sp_cell_cfg;
+  A_DYN_ARRAY_OF(struct scell_cfg_s)      scell_to_add_mod_list;//dyn_array<scell_cfg_s>
+  A_DYN_ARRAY_OF(uint8_t)       scell_to_release_list;//bounded_array<uint8_t, 31>
 };
 
 

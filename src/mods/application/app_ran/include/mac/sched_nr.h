@@ -17,17 +17,70 @@
 extern "C" {
 #endif
 
+typedef int (*event_callback)(void *data);
+typedef int (*ue_event_callback)(void *data);
+typedef int (*ue_cc_event_callback)(void *data);
+
+typedef struct {
+  char            *event_name;
+  event_callback  callback;
+  //void (*callback)(void *)
+}event_t;
+
+typedef struct {
+  uint16_t			 rnti;
+  char               *event_name;
+  ue_event_callback  callback;
+}ue_event_t;
+
+struct ue_cc_event_t {
+  uint16_t             rnti;
+  uint32_t			   cc;
+  char                 *event_name;
+  ue_cc_event_callback callback;
+}ue_cc_event_t;
+
+typedef struct {
+  oset_apr_mutex_t	   *event_cc_mutex;
+  oset_list_t          next_slot_ue_events, current_slot_ue_events;//srsran::deque<ue_cc_event_t>
+}cc_events;
+
+typedef struct {
+  oset_apr_mutex_t          *event_mutex;
+  oset_list_t               next_slot_events, current_slot_events;//srsran::deque<event_t>
+  oset_list_t               next_slot_ue_events, current_slot_ue_events;//srsran::deque<ue_event_t>
+  A_DYN_ARRAY_OF(cc_events) carriers;//std::vector<cc_events>
+}event_manager;
+/*****************************************************/
+
+
+typedef struct {
+  oset_hash_t			   *ues;//ue_map_t
+  oset_apr_mutex_t		   *mutex;
+  oset_apr_thread_cond_t   *cvar;
+  mac_metrics_t            pending_metrics;
+  bool                     stopped;
+}ue_metrics_manager;
+/*****************************************************/
+
+
 typedef struct {
   // args
-  sched_params_t cfg;
+  sched_params_t              cfg;
   // slot-specific
-  slot_point     current_slot_tx;
-  int            worker_count;
+  slot_point                  current_slot_tx;
+  int                         worker_count;
   A_DYN_ARRAY_OF(cc_worker)   cc_workers; //std::vector<std::unique_ptr<sched_nr_impl::cc_worker> >
   // UE Database
   OSET_POOL(ue_pool, ue);
-  oset_hash_t			 *ue_db;//static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES>
+  oset_hash_t			      *ue_db;//static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES>
+    // Feedback management
+  event_manager               pending_events;
+  // metrics extraction
+  ue_metrics_manager          metrics_handler;
 }sched_nr;
+
+
 
 void sched_nr_init(sched_nr *scheluder);
 void sched_nr_destory(sched_nr *scheluder);

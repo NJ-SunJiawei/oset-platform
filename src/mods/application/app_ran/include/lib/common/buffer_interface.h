@@ -20,7 +20,7 @@ typedef struct byte_buffer_s
 {
   uint32_t N_bytes = 0;//store msg length
   uint8_t  buffer[SRSRAN_MAX_BUFFER_SIZE_BYTES];
-  uint8_t* msg;//store ori msg
+  uint8_t  *msg;//store ori msg
 
   struct buffer_metadata_t {
     uint32_t            pdcp_sn;

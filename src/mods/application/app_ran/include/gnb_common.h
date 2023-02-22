@@ -16,9 +16,11 @@
 #include "lib/common/buffer_interface.h"
 #include "lib/common/bcd_interface.h"
 
+#include "lib/common/asn_helper.h"
 #include "lib/common/bcd_helper.h"
 #include "lib/common/util_helper.h"
 #include "lib/common/band_helper_2c.h"
+
 #include "gnb_task_interface.h"
 
 

@@ -11,6 +11,7 @@
 #define PHY_NR_CONFIG_H_
 
 #include "lib/srsran/srsran.h"
+#include "lib/common/asn_helper.h"
 #include "ASN_RRC_PDSCH-ConfigCommon.h"
 #include "ASN_RRC_PUSCH-ConfigCommon.h"
 #include "ASN_RRC_PUCCH-ConfigCommon.h"

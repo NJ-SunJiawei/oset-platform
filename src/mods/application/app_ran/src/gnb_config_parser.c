@@ -399,7 +399,7 @@ static void make_default_common_search_space(uint8_t ss_id, struct ctrl_res_set_
   ss->monitoring_slot_periodicity_and_offset.types = sl1;
   ss->monitoring_symbols_within_slot_present = true;
   memset(&ss->monitoring_symbols_within_slot[0], 0, 2);
-  bit_from_number(&ss->monitoring_symbols_within_slot[0], 0b10000000000000, 14);
+  bitstring_from_number(&ss->monitoring_symbols_within_slot[0], 0b10000000000000, 14);
   ss->search_space_type_present                                                = true;
   ss->search_space_type.c.common.dci_format0_minus0_and_format1_minus0_present = true;
   ss->nrof_candidates_present                                                  = true;
