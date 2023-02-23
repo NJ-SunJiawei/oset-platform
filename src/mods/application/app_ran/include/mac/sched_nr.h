@@ -72,8 +72,8 @@ typedef struct {
   int                         worker_count;
   A_DYN_ARRAY_OF(cc_worker)   cc_workers; //std::vector<std::unique_ptr<sched_nr_impl::cc_worker> >
   // UE Database
-  OSET_POOL(ue_pool, ue);
-  oset_hash_t			      *ue_db;//static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES>
+  OSET_POOL(ue_pool, sched_nr_ue);
+  oset_hash_t			      *ue_db;//static_circular_map<uint16_t, std::unique_ptr<sched_nr_ue>, SRSENB_MAX_UES>
     // Feedback management
   event_manager               pending_events;
   // metrics extraction

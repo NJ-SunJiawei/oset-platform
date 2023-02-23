@@ -69,7 +69,7 @@ typedef struct {
 	slot_point        last_sr_slot;
 	ue_context_common common_ctxt;
 	ue_buffer_manager buffers;
-}ue;
+}sched_nr_ue;
 
 
 

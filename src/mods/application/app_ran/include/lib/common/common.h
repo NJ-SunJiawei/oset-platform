@@ -67,6 +67,16 @@
                               TYPEDEFS
 *******************************************************************************/
 typedef enum srsran_rat_e { lte, nr, nulltype } srsran_rat_t;
+// helper functions
+inline const char* enum_to_text(const char* const array[], uint32_t nof_types, uint32_t enum_val)
+{
+  return enum_val >= nof_types ? "" : array[enum_val];
+}
+
+inline uint16_t enum_to_number(uint16_t* array, uint32_t nof_types, uint32_t enum_val)
+{
+  return enum_val >= nof_types ? -1 : array[enum_val];
+}
 
 
 #ifdef __cplusplus

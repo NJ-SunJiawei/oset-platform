@@ -168,7 +168,7 @@ static bool sib_is_present(struct sib_type1_s* sib1, enum sib_type_opts sib_num)
 static void parse_sib3(char* filename, struct sib_type3_s* data)
 {
 	// CellReselectionInfoCommon
-	data->cell_resel_info_common.q_hyst = (enum q_hyst_opts)2 ;//db2
+	data->cell_resel_info_common.q_hyst = (enum q_hyst_opts)db2 ;//db2
 	data->cell_resel_info_common.speed_state_resel_pars_present = false;
     //struct speed_state_resel_pars_s_* resel_pars = &data->cell_resel_info_common.speed_state_resel_pars;
 
@@ -207,9 +207,9 @@ static void parse_sib2(char* filename, struct sib_type2_s* data)
 	data->ue_timers_and_consts.t300 = ms2000;
 	data->ue_timers_and_consts.t301 = ms100;
 	data->ue_timers_and_consts.t310 = ms200;
-	data->ue_timers_and_consts.n310 = (enum n310_opts)0;//n1
+	data->ue_timers_and_consts.n310 = (enum n310_opts)n1;//n1
 	data->ue_timers_and_consts.t311 = ms10000;
-	data->ue_timers_and_consts.n311 = (enum n311_opts)0;//n1
+	data->ue_timers_and_consts.n311 = (enum n311_opts)n1;//n1
 
 	// Radio-resource configuration section
 	struct rr_cfg_common_sib_s* rr_cfg_common = &data->rr_cfg_common;
@@ -218,14 +218,14 @@ static void parse_sib2(char* filename, struct sib_type2_s* data)
 	rr_cfg_common->rach_cfg_common.preamb_info.nof_ra_preambs = n52;
 	rr_cfg_common->rach_cfg_common.pwr_ramp_params.preamb_init_rx_target_pwr = dbm_minus104;
 	rr_cfg_common->rach_cfg_common.pwr_ramp_params.pwr_ramp_step = db6;
-	rr_cfg_common->rach_cfg_common.ra_supervision_info.preamb_trans_max = (enum preamb_trans_max_opts)6;//n10
+	rr_cfg_common->rach_cfg_common.ra_supervision_info.preamb_trans_max = (enum preamb_trans_max_opts)n10;//n10
 	rr_cfg_common->rach_cfg_common.ra_supervision_info.ra_resp_win_size = sf10;
 	rr_cfg_common->rach_cfg_common.ra_supervision_info.mac_contention_resolution_timer = sf64;
 	rr_cfg_common->rach_cfg_common.max_harq_msg3_tx = 4;
 	rr_cfg_common->rach_cfg_common.preamb_info.preambs_group_a_cfg_present = false;
 
 	// BCCH configuration
-	rr_cfg_common->bcch_cfg.mod_period_coeff = (enum mod_period_coeff_opts)3;//n16;
+	rr_cfg_common->bcch_cfg.mod_period_coeff = (enum mod_period_coeff_opts)n16;//n16;
 
 	// PCCH configuration
 	rr_cfg_common->pcch_cfg.default_paging_cycle = rf32;
@@ -265,11 +265,11 @@ static void parse_sib2(char* filename, struct sib_type2_s* data)
 	rr_cfg_common->ul_pwr_ctrl_common.p0_nominal_pucch = -107;
 	rr_cfg_common->ul_pwr_ctrl_common.delta_preamb_msg3 =  6;
 	// Delta Flist PUCCH
-	rr_cfg_common->ul_pwr_ctrl_common.delta_flist_pucch.delta_f_pucch_format1 = (enum delta_f_pucch_format1_opts)1;//delta_f0
-	rr_cfg_common->ul_pwr_ctrl_common.delta_flist_pucch.delta_f_pucch_format1b = (enum delta_f_pucch_format1b_opts)1;//delta_f3
-	rr_cfg_common->ul_pwr_ctrl_common.delta_flist_pucch.delta_f_pucch_format2 = (enum delta_f_pucch_format2_opts)2;//delta_f1
-	rr_cfg_common->ul_pwr_ctrl_common.delta_flist_pucch.delta_f_pucch_format2a = (enum delta_f_pucch_format2a_opts)2 //delta_f2
-	rr_cfg_common->ul_pwr_ctrl_common.delta_flist_pucch.delta_f_pucch_format2b = (enum delta_f_pucch_format2b_opts)2;//delta_f2
+	rr_cfg_common->ul_pwr_ctrl_common.delta_flist_pucch.delta_f_pucch_format1 = (enum delta_f_pucch_format1_opts)delta_f0;//delta_f0
+	rr_cfg_common->ul_pwr_ctrl_common.delta_flist_pucch.delta_f_pucch_format1b = (enum delta_f_pucch_format1b_opts)delta_f3;//delta_f3
+	rr_cfg_common->ul_pwr_ctrl_common.delta_flist_pucch.delta_f_pucch_format2 = (enum delta_f_pucch_format2_opts)delta_f1;//delta_f1
+	rr_cfg_common->ul_pwr_ctrl_common.delta_flist_pucch.delta_f_pucch_format2a = (enum delta_f_pucch_format2a_opts)delta_f2;//delta_f2
+	rr_cfg_common->ul_pwr_ctrl_common.delta_flist_pucch.delta_f_pucch_format2b = (enum delta_f_pucch_format2b_opts)delta_f2;//delta_f2
 
 }
 
@@ -324,7 +324,7 @@ static int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_con
 	}
 	sib2->rr_cfg_common.srs_ul_cfg_common.types = release;
 	if (sib2->freq_info.ul_bw_present) {
-	   sib2->freq_info.ul_bw = (enum ul_bw_opts)3;//n50 //args_->enb.n_prb = 50
+	   sib2->freq_info.ul_bw = (enum ul_bw_opts)n50;//n50 //args_->enb.n_prb = 50
 	}
 
 	//if (not args_->nr_stack.embms.enable) {
@@ -464,20 +464,20 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
 	switch (rrc_cfg_->antenna_info.tx_mode) {
 	  case tm1:
 	  case tm2:
-		rrc_cfg_->antenna_info.ue_tx_ant_sel.type = (enum setup_opts)0;//release
+		rrc_cfg_->antenna_info.ue_tx_ant_sel.type = (enum setup_opts)release;//release
 		rrc_cfg_->antenna_info.codebook_subset_restrict_present = false;
 		break;
 	  case tm3:
-		rrc_cfg_->antenna_info.ue_tx_ant_sel.type = (enum setup_opts)1;//setup
-		rrc_cfg_->antenna_info.ue_tx_ant_sel.c = (enum ue_tx_ant_sel_setup_opts)1;//open_loop
+		rrc_cfg_->antenna_info.ue_tx_ant_sel.type = (enum setup_opts)setup;//setup
+		rrc_cfg_->antenna_info.ue_tx_ant_sel.c = (enum ue_tx_ant_sel_setup_opts)open_loop;//open_loop
 	
 		rrc_cfg_->antenna_info.codebook_subset_restrict_present = true;
 		rrc_cfg_->antenna_info.codebook_subset_restrict.types = n2_tx_ant_tm3;
 		rrc_cfg_->antenna_info.codebook_subset_restrict.c = 0b11;
 		break;
 	  case tm4:
-		rrc_cfg_->antenna_info.ue_tx_ant_sel.type = (enum setup_opts)1;//setup
-		rrc_cfg_->antenna_info.ue_tx_ant_sel.c = (enum ue_tx_ant_sel_setup_opts)0;//close_loop
+		rrc_cfg_->antenna_info.ue_tx_ant_sel.type = (enum setup_opts)setup;//setup
+		rrc_cfg_->antenna_info.ue_tx_ant_sel.c = (enum ue_tx_ant_sel_setup_opts)closed_loop;//closed_loop
 
 		rrc_cfg_->antenna_info.codebook_subset_restrict_present = true;
 		rrc_cfg_->antenna_info.codebook_subset_restrict.types = n2_tx_ant_tm4;
@@ -491,16 +491,16 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
 	rrc_cfg_->pdsch_cfg = db_minus6; //args_->enb.p_a = 0
 
 	/* MAC config section */
-	rrc_cfg_->mac_cnfg.phr_cfg.types = (enum setup_opts)0;//release // default is release if "phr_cnfg" is not found
+	rrc_cfg_->mac_cnfg.phr_cfg.types = (enum setup_opts)release;//release // default is release if "phr_cnfg" is not found
 
 	rrc_cfg_->mac_cnfg.ul_sch_cfg.tti_bundling = false;
 	rrc_cfg_->mac_cnfg.ul_sch_cfg.max_harq_tx_present = true;
 	rrc_cfg_->mac_cnfg.ul_sch_cfg.max_harq_tx = 4;
 	rrc_cfg_->mac_cnfg.ul_sch_cfg.periodic_bsr_timer_present = true;
-	rrc_cfg_->mac_cnfg.ul_sch_cfg.periodic_bsr_timer = (enum periodic_bsr_timer_r12_opts)3;//sf20
-    rrc_cfg_->mac_cnfg.ul_sch_cfg.retx_bsr_timer = (enum retx_bsr_timer_r12_opts)0;//sf320
+	rrc_cfg_->mac_cnfg.ul_sch_cfg.periodic_bsr_timer = (enum periodic_bsr_timer_r12_opts)sf20;//sf20
+    rrc_cfg_->mac_cnfg.ul_sch_cfg.retx_bsr_timer = (enum retx_bsr_timer_r12_opts)sf320;//sf320
 
-	rrc_cfg_->mac_cnfg.time_align_timer_ded = (enum time_align_timer_opts)7;infinity
+	rrc_cfg_->mac_cnfg.time_align_timer_ded = (enum time_align_timer_opts)infinity;//infinity
 
 	/* PHY config section */
 	//pusch_cnfg_ded
@@ -509,7 +509,7 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
 	rrc_cfg_->pusch_cfg.beta_offset_cqi_idx = 6;
 
     //sched_request_cnfg
-	rrc_cfg_->sr_cfg.dsr_max = (enum dsr_trans_max_opts)4;//n64
+	rrc_cfg_->sr_cfg.dsr_max = (enum dsr_trans_max_opts)n64;//n64
 	rrc_cfg_->sr_cfg.period = 20;
 	rrc_cfg_->sr_cfg.nof_prb = 1;
 
@@ -550,18 +550,18 @@ static void parse_srb(struct rlc_cfg_c* rlc_cfg)
 {
 	rlc_cfg->types = am;
 	struct ul_am_rlc_s* ul_am_rlc = &rlc_cfg->c.am.ul_am_rlc;
-	ul_am_rlc->sn_field_len = (enum sn_field_len_am_opts)0;//size12
+	ul_am_rlc->sn_field_len = (enum sn_field_len_am_opts)size12;//size12
 	ul_am_rlc->sn_field_len_present = true;
-	ul_am_rlc->t_poll_retx = (enum t_poll_retx_opts)8;//ms45
+	ul_am_rlc->t_poll_retx = (enum t_poll_retx_opts)ms45;//ms45
 	ul_am_rlc->poll_pdu = pinfinity;
 	ul_am_rlc->poll_byte = kbinfinity;
-	ul_am_rlc->max_retx_thres = (enum max_retx_thres_opts)5;//t8
+	ul_am_rlc->max_retx_thres = (enum max_retx_thres_opts)t8;//t8
 
 	struct dl_am_rlc_s* dl_am_rlc = &rlc_cfg->c.am.dl_am_rlc;
-	dl_am_rlc->sn_field_len = (enum sn_field_len_am_opts)0;//size12
+	dl_am_rlc->sn_field_len = (enum sn_field_len_am_opts)size12;//size12
 	dl_am_rlc->sn_field_len_present = true;
-	dl_am_rlc->t_reassembly = (enum t_reassembly_opts)7;//ms35
-	dl_am_rlc.t_status_prohibit = (enum t_status_prohibit_opts)2;//m10
+	dl_am_rlc->t_reassembly = (enum t_reassembly_opts)ms35;//ms35
+	dl_am_rlc.t_status_prohibit = (enum t_status_prohibit_opts)ms10;//ms10
 }
 
 static void parse_5qi(oset_list2_t     *five_qi_cfg_list)
@@ -574,16 +574,16 @@ static void parse_5qi(oset_list2_t     *five_qi_cfg_list)
 	struct pdcp_cfg_s* pdcp_cfg = &five_qi_cfg1->pdcp_cfg;
 	pdcp_cfg->drb_present = true;
 	struct drb_s_ *drb_cfg = &pdcp_cfg->drb
-	drb_cfg->pdcp_sn_size_ul = (enum pdcp_sn_size_ul_opts)1;//len18bits
+	drb_cfg->pdcp_sn_size_ul = (enum pdcp_sn_size_ul_opts)len18bits;//len18bits
 	drb_cfg->pdcp_sn_size_ul_present = true;
-	drb_cfg->pdcp_sn_size_dl = (enum pdcp_sn_size_dl_opts)1//len18bits
+	drb_cfg->pdcp_sn_size_dl = (enum pdcp_sn_size_dl_opts)len18bits//len18bits
 	drb_cfg->pdcp_sn_size_dl_present = true;
-	drb_cfg->discard_timer = (enum discard_timer_opts)4;//ms50
+	drb_cfg->discard_timer = (enum discard_timer_opts)ms50;//ms50
 	drb_cfg->discard_timer_present = true;
 	drb_cfg->status_report_required_present = false;
 	drb_cfg->integrity_protection_present = false;
 	drb_cfg->hdr_compress.types = not_used;
-	pdcp_cfg->t_reordering = (enum t_reordering_opts)11;//ms50
+	pdcp_cfg->t_reordering = (enum t_reordering_opts)ms50;//ms50
 	pdcp_cfg->t_reordering_present = true;
 
 	//rlc_config
@@ -593,11 +593,11 @@ static void parse_5qi(oset_list2_t     *five_qi_cfg_list)
 	struct dl_um_rlc_s *dl_um_cfg = &rlc_cfg->c.um_bi_dir.dl_um_rlc;
 	// RLC UM UL
 	ul_um_cfg->sn_field_len_present = true;
-	ul_um_cfg->sn_field_len = (enum sn_field_len_um_opts)1;//size12
+	ul_um_cfg->sn_field_len = (enum sn_field_len_um_opts)size12;//size12
 	// RLC UM DL
 	dl_um_cfg->sn_field_len_present = true;
-	dl_um_cfg->sn_field_len = (enum sn_field_len_um_opts)1;//size12;
-	dl_um_cfg->t_reassembly = (enum t_reassembly_opts)10;//ms50
+	dl_um_cfg->sn_field_len = (enum sn_field_len_um_opts)size12;//size12;
+	dl_um_cfg->t_reassembly = (enum t_reassembly_opts)ms50;//ms50
 	oset_list2_add(five_qi_cfg_list, five_qi_cfg1);
 
     /********************9**************************/
@@ -608,34 +608,34 @@ static void parse_5qi(oset_list2_t     *five_qi_cfg_list)
 	struct pdcp_cfg_s* pdcp_cfg = &five_qi_cfg2->pdcp_cfg;
 	pdcp_cfg->drb_present = true;
 	struct drb_s_ *drb_cfg = &pdcp_cfg->drb
-	drb_cfg->pdcp_sn_size_ul = (enum pdcp_sn_size_ul_opts)1;//len18bits
+	drb_cfg->pdcp_sn_size_ul = (enum pdcp_sn_size_ul_opts)len18bits;//len18bits
 	drb_cfg->pdcp_sn_size_ul_present = true;
-	drb_cfg->pdcp_sn_size_dl = (enum pdcp_sn_size_dl_opts)1//len18bits
+	drb_cfg->pdcp_sn_size_dl = (enum pdcp_sn_size_dl_opts)len18bits//len18bits
 	drb_cfg->pdcp_sn_size_dl_present = true;
-	drb_cfg->discard_timer = (enum discard_timer_opts)4;//ms50
+	drb_cfg->discard_timer = (enum discard_timer_opts)ms50;//ms50
 	drb_cfg->discard_timer_present = true;
 	drb_cfg->status_report_required_present = false;
 	drb_cfg->integrity_protection_present = false;
 	drb_cfg->hdr_compress.types = not_used;
-	pdcp_cfg->t_reordering = (enum t_reordering_opts)11;//ms50
+	pdcp_cfg->t_reordering = (enum t_reordering_opts)ms50;//ms50
 	pdcp_cfg->t_reordering_present = true;
 
 	//rlc_config
 	struct rlc_cfg_c* rlc_cfg = &five_qi_cfg2->rlc_cfg;
 	rlc_cfg->types = am;
 	struct ul_am_rlc_s* ul_am_rlc = &rlc_cfg->c.am.ul_am_rlc;
-	ul_am_rlc->sn_field_len = (enum sn_field_len_am_opts)0;//size12
+	ul_am_rlc->sn_field_len = (enum sn_field_len_am_opts)size12;//size12
 	ul_am_rlc->sn_field_len_present = true;
-	ul_am_rlc->t_poll_retx = (enum t_poll_retx_opts)8;//ms45
-	ul_am_rlc->poll_pdu = (enum poll_pdu_opts)0;//p4
-	ul_am_rlc->poll_byte = (enum poll_byte_opts)13;//kb3000
-	ul_am_rlc->max_retx_thres = (enum max_retx_thres_opts)3;//t4
+	ul_am_rlc->t_poll_retx = (enum t_poll_retx_opts)ms45;//ms45
+	ul_am_rlc->poll_pdu = (enum poll_pdu_opts)p4;//p4
+	ul_am_rlc->poll_byte = (enum poll_byte_opts)kb3000;//kb3000
+	ul_am_rlc->max_retx_thres = (enum max_retx_thres_opts)t4;//t4
 
 	struct dl_am_rlc_s* dl_am_rlc = &rlc_cfg->c.am.dl_am_rlc;
-	dl_am_rlc->sn_field_len = (enum sn_field_len_am_opts)0;//size12
+	dl_am_rlc->sn_field_len = (enum sn_field_len_am_opts)size12;//size12
 	dl_am_rlc->sn_field_len_present = true;
-	dl_am_rlc->t_reassembly = (enum t_reassembly_opts)10;//ms50
-	dl_am_rlc.t_status_prohibit = (enum t_status_prohibit_opts)10;//m50
+	dl_am_rlc->t_reassembly = (enum t_reassembly_opts)ms50;//ms50
+	dl_am_rlc.t_status_prohibit = (enum t_status_prohibit_opts)ms50;//ms50
 	oset_list2_add(five_qi_cfg_list, five_qi_cfg2);
 }
 
@@ -826,11 +826,11 @@ static int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t *cell)
     struct ctrl_res_set_s *dummy_coreset = &cell->pdcch_cfg_common.common_ctrl_res_set;//?????????
     make_default_coreset(0, cell->phy_cell.carrier.nof_prb , dummy_coreset);
     make_default_common_search_space(1, dummy_coreset, ss1);
-    ss1->nrof_candidates.aggregation_level1  = (enum aggregation_level1_opts)0//n0;
-    ss1->nrof_candidates.aggregation_level2  = (enum aggregation_level2_opts)0//n0;
-    ss1->nrof_candidates.aggregation_level4  = (enum aggregation_level4_opts)1//n1;
-    ss1->nrof_candidates.aggregation_level8  = (enum aggregation_level8_opts)0//n0;
-    ss1->nrof_candidates.aggregation_level16 = (enum aggregation_level16_opts)0//n0;
+    ss1->nrof_candidates.aggregation_level1  = (enum aggregation_level1_opts)n0//n0;
+    ss1->nrof_candidates.aggregation_level2  = (enum aggregation_level2_opts)n0//n0;
+    ss1->nrof_candidates.aggregation_level4  = (enum aggregation_level4_opts)n1//n1;
+    ss1->nrof_candidates.aggregation_level8  = (enum aggregation_level8_opts)n0//n0;
+    ss1->nrof_candidates.aggregation_level16 = (enum aggregation_level16_opts)n0//n0;
   } else {
     // Configure SearchSpace#1 -> CORESET#1
     make_default_common_search_space(1, &cell->pdcch_cfg_common.common_ctrl_res_set, ss1);
