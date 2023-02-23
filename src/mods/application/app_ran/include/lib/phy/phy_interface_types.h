@@ -11,6 +11,7 @@
 
 #include "lib/common/common.h"
 #include "lib/srsran/srsran.h"
+
 typedef struct {
   float    rsrp;
   float    rsrq;

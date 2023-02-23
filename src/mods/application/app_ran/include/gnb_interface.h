@@ -116,6 +116,15 @@ typedef struct rach_info_s {
   uint32_t time_adv;
 }rach_info_t;
 
+/*******************phy_cell_cfg_nr_t************************/
+typedef struct phy_cell_cfg_nr_s {
+  srsran_carrier_nr_t carrier;//phy cell
+  uint32_t            rf_port;
+  uint32_t            cell_id;
+  float               gain_db;
+  bool                dl_measure;
+}phy_cell_cfg_nr_t;
+
 #ifdef __cplusplus
 }
 #endif

@@ -10,9 +10,17 @@
 #ifndef RRC_NR_UE_H_
 #define RRC_NR_UE_H_
 
+#include "rrc/rrc_nr_security_context.h"
+#include "rrc/rrc_nr_config.h"
+//#include "mac/sched_nr_interface.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct  sched_nr_ue_cfg_s sched_nr_ue_cfg_t;
+
+typedef enum  { RRC_IDLE, RRC_INACTIVE, RRC_CONNECTED } rrc_nr_state_t;
 
 typedef enum activity_timeout_type_e {
   MSG3_RX_TIMEOUT = 0,	 ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
@@ -23,16 +31,15 @@ typedef enum activity_timeout_type_e {
 
 typedef struct {
   uint64_t								 setup_ue_id;
-  establishment_cause_opts				 connection_cause;
+  enum establishment_cause_e		     connection_cause;
 } ctxt_t;
 
-class 
-{
+typedef struct {
   uint16_t              rnti;// = SRSRAN_INVALID_RNTI
   // state
-  rrc_nr_state_t       state;//          = rrc_nr_state_t::RRC_IDLE
-  uint8_t              transaction_id;
-  srsran::unique_timer activity_timer; /// for basic DL/UL activity timeout
+  rrc_nr_state_t        state;//          = (rrc_nr_state_t)RRC_IDLE
+  uint8_t               transaction_id;
+  oset_time_t           activity_timer; /// for basic DL/UL activity timeout//srsran::unique_timer
 
   // RRC configs for UEs
   struct cell_group_cfg_s              cell_group_cfg, next_cell_group_cfg;
@@ -40,7 +47,7 @@ class
   A_DYN_ARRAY_OF(struct byte_buffer_t) nas_pdu_queue;//std::vector<srsran::unique_byte_buffer_t>
 
   // MAC controller
-  sched_nr_interface::ue_cfg_t uecfg{};
+  sched_nr_ue_cfg_t uecfg;
 
   const uint32_t drb1_lcid = 4;
   uint32_t       drb1_five_qi = 0; /// selected by 5GC

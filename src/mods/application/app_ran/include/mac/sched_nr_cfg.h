@@ -10,6 +10,7 @@
 #ifndef SCHED_NR_CFG_H_
 #define SCHED_NR_CFG_H_
 
+#include "gnb_config_parser.h"
 #include "mac/sched_nr_interface.h"
 #include "mac/sched_nr_rb.h"
 #include "mac/harq_softbuffer.h"//???
@@ -19,8 +20,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct sched_args_s sched_args_t;
 
 typedef A_DYN_ARRAY_OF(uint32_t)  pdcch_cce_pos_list;//bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
 typedef pdcch_cce_pos_list cce_pos_list_tmp[MAX_NOF_AGGR_LEVELS];

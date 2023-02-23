@@ -15,8 +15,9 @@
 #include "lib/common/common_nr.h"
 #include "lib/common/slot_point.h"
 #include "lib/common/slot_interval.h"
+#include "lib/common/asn_interface.h"
 #include "mac/mac_metrics.h"
-#include "rrc/rrc_nr_config.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,7 +53,7 @@ typedef struct sched_nr_ue_lc_ch_cfg_s {
   mac_lc_ch_cfg_t cfg;
 }sched_nr_ue_lc_ch_cfg_t;
 
-typedef struct  {
+typedef struct  sched_nr_ue_cfg_s{
   uint32_t                                  maxharq_tx;//=4
   A_DYN_ARRAY_OF(sched_nr_ue_cc_cfg_t)      carriers;//bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> 
   phy_cfg_nr_t                              phy_cfg;

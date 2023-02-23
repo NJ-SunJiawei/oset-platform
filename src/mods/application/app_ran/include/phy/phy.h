@@ -10,9 +10,9 @@
 #ifndef PHY_H_
 #define PHY_H_
 
-#include "gnb_interface.h"
 #include "gnb_config_parser.h"
 #include "phy/txrx.h"
+#include "phy/phy_nr_config.h"
 
 
 #ifdef __cplusplus
