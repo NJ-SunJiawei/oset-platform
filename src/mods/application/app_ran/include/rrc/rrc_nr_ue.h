@@ -10,15 +10,15 @@
 #ifndef RRC_NR_UE_H_
 #define RRC_NR_UE_H_
 
+#include "lib/common/buffer_interface.h"
+#include "lib/mac/sched_nr_interface.h"
 #include "rrc/rrc_nr_security_context.h"
 #include "rrc/rrc_nr_config.h"
-//#include "mac/sched_nr_interface.h"
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct  sched_nr_ue_cfg_s sched_nr_ue_cfg_t;
 
 typedef enum  { RRC_IDLE, RRC_INACTIVE, RRC_CONNECTED } rrc_nr_state_t;
 
@@ -33,6 +33,9 @@ typedef struct {
   uint64_t								 setup_ue_id;
   enum establishment_cause_e		     connection_cause;
 } ctxt_t;
+
+
+const uint32_t drb1_lcid = 4;
 
 typedef struct {
   uint16_t              rnti;// = SRSRAN_INVALID_RNTI
@@ -49,11 +52,10 @@ typedef struct {
   // MAC controller
   sched_nr_ue_cfg_t uecfg;
 
-  const uint32_t drb1_lcid = 4;
-  uint32_t       drb1_five_qi = 0; /// selected by 5GC
+  uint32_t       drb1_five_qi; /// selected by 5GC
 
   // Security helper
-  srsgnb::nr_security_context sec_ctx;
+  nr_security_context sec_ctx;
 
   // SA specific variables
   ctxt_t   ctxt;

@@ -35,6 +35,14 @@ typedef struct {
 	uint32_t   first_rbg_size;
 }bwp_rb_bitmap;
 
+typedef struct {
+  bool alloc_type_0;
+  union alloc_t {
+    rbg_bitmap   rbgs;
+    prb_interval interv;
+  } alloc;
+}prb_grant;
+
 
 #ifdef __cplusplus
 }

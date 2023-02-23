@@ -84,8 +84,6 @@ typedef struct {
 	sdu_buffer sdu;
 }mac_sch_subpdu_nr;
 
-
-
 typedef struct {
   bool                  ulsch;
   A_DYN_ARRAY_OF(mac_sch_subpdu_nr)  subpdus;//std::vector<mac_sch_subpdu_nr>

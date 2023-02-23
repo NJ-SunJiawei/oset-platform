@@ -34,7 +34,6 @@ typedef struct  {
   ue_buffer_manager  *parent;//???
 }pdu_builder;
 
-
 ///containing context of UE that is common to all carriers
 typedef struct {
   uint32_t pending_dl_bytes;

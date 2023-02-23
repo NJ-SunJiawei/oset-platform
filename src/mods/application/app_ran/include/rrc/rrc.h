@@ -12,7 +12,6 @@
 
 #include "lib/common/phy_cfg_nr.h"
 #include "lib/common/bearer_manager.h"
-#include "rrc/rrc_nr_config.h"
 #include "rrc/rrc_nr_ue.h"
 
 #ifdef __cplusplus

@@ -5084,6 +5084,14 @@ struct radio_bearer_cfg_s {
   struct security_cfg_s   security_cfg;
 };
 
+// UESecurityCapabilities ::= SEQUENCE
+struct ue_security_cap_s {
+  uint8_t       nrencryption_algorithms[2];//fixed_bitstring<16, true, true>
+  uint8_t       nrintegrity_protection_algorithms[2];//fixed_bitstring<16, true, true>
+  uint8_t       eutr_aencryption_algorithms[2];//fixed_bitstring<16, true, true>
+  uint8_t       eutr_aintegrity_protection_algorithms[2];//fixed_bitstring<16, true, true>
+};
+
 #ifdef __cplusplus
 }
 #endif

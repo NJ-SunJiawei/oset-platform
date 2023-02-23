@@ -24,7 +24,7 @@ typedef struct {
   srsran_softbuffer_rx_t buffer;
 }rx_harq_softbuffer;
 
-#define MAX_HARQ  16
+const static uint32_t MAX_HARQ = 16;
 
 typedef struct {
   tx_harq_softbuffer  *tx_pool[SRSRAN_MAX_PRB_NR];

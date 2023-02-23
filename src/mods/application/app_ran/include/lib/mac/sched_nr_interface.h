@@ -16,7 +16,7 @@
 #include "lib/common/slot_point.h"
 #include "lib/common/slot_interval.h"
 #include "lib/common/asn_interface.h"
-#include "mac/mac_metrics.h"
+#include "lib/common/buffer_interface.h"
 
 
 #ifdef __cplusplus

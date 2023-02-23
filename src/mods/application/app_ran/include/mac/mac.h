@@ -11,7 +11,6 @@
 #define MAC_H_
 
 #include "gnb_config_parser.h"
-#include "lib/common/buffer_interface.h"
 #include "lib/common/mac_pcap.h"
 #include "mac/sched_nr.h"
 #include "mac/ue_nr.h"
