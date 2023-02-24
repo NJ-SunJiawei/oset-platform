@@ -23,10 +23,54 @@ extern "C" {
 #define	ASN1C_ENVIRONMENT_VERSION	923	/* Compile-time version */
 int get_asn1c_environment_version(void);	/* Run-time version */
 
+#if 0 /* modified by sunjiawei */
 #define	CALLOC(nmemb, size)	calloc(nmemb, size)
 #define	MALLOC(size)		malloc(size)
 #define	REALLOC(oldptr, size)	realloc(oldptr, size)
 #define	FREEMEM(ptr)		free(ptr)
+#else
+#include "oset-core.h"
+
+static oset_inline void *oset_asn_malloc(size_t size, const char *file_line)
+{
+    void *ptr = oset_malloc(size);
+    if (!ptr) {
+        oset_error("asn_malloc() failed in `%s`", file_line);
+        oset_assert_if_reached();
+    }
+
+    return ptr;
+}
+static oset_inline void *oset_asn_calloc(
+        size_t nmemb, size_t size, const char *file_line)
+{
+    void *ptr = oset_calloc(nmemb, size);
+    if (!ptr) {
+        oset_error("asn_calloc() failed in `%s`", file_line);
+        oset_assert_if_reached();
+    }
+
+    return ptr;
+}
+static oset_inline void *oset_asn_realloc(
+        void *oldptr, size_t size, const char *file_line)
+{
+    void *ptr = oset_realloc(oldptr, size);
+    if (!ptr) {
+        oset_error("asn_realloc() failed in `%s`", file_line);
+        oset_assert_if_reached();
+    }
+
+    return ptr;
+}
+
+#define CALLOC(nmemb, size) oset_asn_calloc(nmemb, size, OSET_FILE_LINE)
+#define MALLOC(size) oset_asn_malloc(size, OSET_FILE_LINE)
+#define REALLOC(oldptr, size) oset_asn_realloc(oldptr, size, OSET_FILE_LINE)
+#define FREEMEM(ptr) oset_free(ptr)
+
+#endif
+
 
 #define	asn_debug_indent	0
 #define ASN_DEBUG_INDENT_ADD(i) do{}while(0)

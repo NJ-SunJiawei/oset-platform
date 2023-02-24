@@ -9,16 +9,19 @@
 #include "gnb_common.h"
 #include "rrc/rrc.h"
 #include "rrc/rrc_nr_du_manager.h"
-	
+#include "rrc/rrc_asn_fill.h"
+
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc"
+
 
 int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node)
 {
   // add cell
   du_cell_config  *cell = NULL;
-  
-  cell = oset_malloc(sizeof(du_cell_config));
+
+  oset_assert(rrc_manager_self()->app_pool);
+  cell = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(du_cell_config));
   oset_assert(cell);
 
   cell->cc = byn_array_get_count(rrc_manager_self()->du_cfg.cells);

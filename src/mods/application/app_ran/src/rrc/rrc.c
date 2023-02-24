@@ -63,8 +63,6 @@ static int rrc_init(void)
 		ASSERT_IF_NOT(ret == OSET_OK, "Failed to configure NR cell %d", cell.cell_idx);
 	}
 
-
-
 	return OSET_OK;
 }
 

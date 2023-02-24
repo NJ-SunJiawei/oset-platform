@@ -4679,7 +4679,6 @@ struct sib_type_and_info_item_c_ {
 };
 
 enum sub_carrier_spacing_common_e_ { scs15or60, scs30or120, nulltype };
-enum dmrs_type_a_position_e_ { pos2, pos3, nulltype };
 enum cell_barred_e_ { barred, not_barred, nulltype };
 enum intra_freq_resel_e_ { allowed, not_allowed, nulltype };
 

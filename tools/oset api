@@ -121,7 +121,7 @@ int nas_timer_init(void) 定时器 OAI5g
 
 
 ngap_messages_callback oai状态机回调
-
+f1ap_message_processing_t f1ap_messages_processing[][3] oai状态机回调
 
     asn::SetOctetString(rrcSetupIEs->masterCellGroup,
                         rrc::encode::EncodeS(asn_DEF_ASN_RRC_CellGroupConfig, &masterCellGroup));  ueran编解码
