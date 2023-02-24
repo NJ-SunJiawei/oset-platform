@@ -38,7 +38,7 @@ typedef struct mac_manager_s{
 
 	byte_buffer_t          *rar_pdu_buffer;
 
-	mac_nr_args_t		   args;
+	mac_nr_args_t		   *args;
 	// initial UE config, before RRC setup (without UE-dedicated)
     phy_cfg_nr_t           default_ue_phy_cfg;
 	mac_pcap               *pcap;
@@ -57,6 +57,7 @@ typedef struct mac_manager_s{
 	// Decoding of UL PDUs
 	void                   *rx;
 }mac_manager_t;
+mac_manager_t *mac_manager_self(void);
 
 void *gnb_mac_task(oset_threadplus_t *thread, void *data);
 void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv);

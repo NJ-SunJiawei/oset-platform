@@ -41,6 +41,7 @@ typedef struct{
 	uint32_t		   sf_cnt;
 	uint32_t		   nof_workers;
 }prach_worker_manager_t;
+prach_worker_manager_t *prach_work_manager_self(void);
 
 int prach_worker_init(uint32_t		   cc_idx,
                              const srsran_cell_t *cell_,

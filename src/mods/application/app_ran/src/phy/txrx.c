@@ -12,6 +12,7 @@
 #include "phy/txrx.h"
 #include "phy/prach_work.h"
 #include "phy/phy_util.h"
+#include "phy/phy.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-txrx"

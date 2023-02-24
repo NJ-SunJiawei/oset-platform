@@ -77,7 +77,7 @@ typedef struct phy_manager_s{
 	oset_apr_thread_cond_t *cond;
 	uint32_t               tti;//txrx
 }phy_manager_t;
-
+phy_manager_t *phy_manager_self(void);
 
 int phy_init(void);
 int phy_destory(void);

@@ -8,7 +8,6 @@
 ************************************************************************/
 
 #include "gnb_common.h"
-#include "gnb_manager.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb"

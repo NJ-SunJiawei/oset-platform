@@ -12,6 +12,7 @@
 
 #include "lib/common/phy_cfg_nr.h"
 #include "lib/common/bearer_manager.h"
+#include "rrc/rrc_nr_du_manager.h"
 #include "rrc/rrc_nr_ue.h"
 
 #ifdef __cplusplus
@@ -34,18 +35,20 @@ typedef struct rrc_manager_s{
 	oset_apr_mutex_t          *mutex;
 	oset_apr_thread_cond_t    *cond;
 
-	rrc_nr_cfg_t			  cfg;
+	rrc_nr_cfg_t			  *cfg;
 	// interfaces
 	enb_bearer_manager        *bearer_mapper;
 	// derived
 	uint32_t			      slot_dur_ms;
 	// vars
-	du_config_manager         *du_cfg;
+	du_config_manager         du_cfg;
 
 	cell_ctxt_t	              *cell_ctxt;
 	oset_hash_t               *users;//srsran::static_circular_map<uint16_t, rrc_nr_ue, SRSENB_MAX_UES>
 	bool					  running;
 }rrc_manager_t;
+
+rrc_manager_t *rrc_manager_self(void);
 
 void *gnb_rrc_task(oset_threadplus_t *thread, void *data);
 

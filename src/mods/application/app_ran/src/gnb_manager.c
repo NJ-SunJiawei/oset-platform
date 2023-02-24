@@ -8,7 +8,6 @@
 ************************************************************************/
 
 #include "gnb_common.h"
-#include "gnb_manager.h"
 
 #include "gnb_timer.h"
 #include "rf/radio.h"

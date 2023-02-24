@@ -8,6 +8,7 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "mac/ue_nr.h"
+#include "mac/mac.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-ue_nr"

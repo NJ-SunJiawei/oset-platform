@@ -34,7 +34,6 @@ typedef struct {
   enum establishment_cause_e		     connection_cause;
 } ctxt_t;
 
-
 const uint32_t drb1_lcid = 4;
 
 typedef struct {

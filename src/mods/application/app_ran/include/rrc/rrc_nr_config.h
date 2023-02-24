@@ -20,6 +20,7 @@ extern "C" {
 /***************rrc_cell_cfg_nr_t****************************/
 // Cell/Sector configuration for NR cells
 typedef struct rrc_cell_cfg_nr_s{
+  int                              cell_idx;
   phy_cell_cfg_nr_t                phy_cell; // already contains all PHY-related parameters (i.e. RF port, PCI, etc.)
   uint32_t                         tac;      // Tracking area code
   uint32_t                         dl_arfcn; // DL freq already included in carrier

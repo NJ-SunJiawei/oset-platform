@@ -87,6 +87,7 @@ typedef struct rf_manager_s{
 	char *device_args_list[MAX_DEVICE_NUM];
 }rf_manager_t;
 
+rf_manager_t *rf_manager_self(void);
 
 int rf_init(void);
 int rf_destory(void);

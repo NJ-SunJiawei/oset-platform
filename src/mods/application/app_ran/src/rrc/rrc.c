@@ -7,7 +7,7 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-#include "rrc.h"
+#include "rrc/rrc.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc"
@@ -37,9 +37,33 @@ static void rrc_manager_destory(void)
 
 static int rrc_init(void)
 {
+    oset_lnode2_t *lnode = NULL;
+
 	rrc_manager_init();
 	//todo
-	rrc_manager.cfg = ;
+	rrc_manager.cfg = &gnb_manager_self()->rrc_nr_cfg;
+
+	// log cell configs
+	oset_list2_for_each(rrc_manager.cfg.cell_list, lnode){
+	    rrc_cell_cfg_nr_t *cell =  (rrc_cell_cfg_nr_t *)lnode->data;
+		oset_notice("Cell idx=%d, pci=%d, nr_dl_arfcn=%d, nr_ul_arfcn=%d, band=%d, duplex=%s, n_rb_dl=%d, ssb_arfcn=%d",
+					cell.cell_idx,
+					cell.phy_cell.carrier.pci,
+					cell.dl_arfcn,
+					cell.ul_arfcn,
+					cell.band,
+					cell.duplex_mode == SRSRAN_DUPLEX_MODE_FDD ? "FDD" : "TDD",
+					cell.phy_cell.carrier.nof_prb,
+					cell.ssb_absolute_freq_point);
+	}
+
+	oset_list2_for_each(rrc_manager.cfg.cell_list, lnode){
+		rrc_cell_cfg_nr_t *cell =  (rrc_cell_cfg_nr_t *)lnode->data;
+		int ret = du_config_manager_add_cell(cell);
+		ASSERT_IF_NOT(ret == OSET_OK, "Failed to configure NR cell %d", cell.cell_idx);
+	}
+
+
 
 	return OSET_OK;
 }

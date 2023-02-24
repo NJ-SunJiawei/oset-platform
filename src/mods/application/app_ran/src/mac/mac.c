@@ -50,7 +50,7 @@ static int mac_init(void)
 {
 	mac_manager_init();
 	mac_manager.started = true;
-	mac_manager.args = gnb_manager_self()->args.nr_stack.mac_nr;
+	mac_manager.args = &gnb_manager_self()->args.nr_stack.mac_nr;
 
 	oset_pool_init(&mac_manager.ue_nr_mac_pool, SRSENB_MAX_UES);
 	mac_manager.ue_db = oset_hash_make();
