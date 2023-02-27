@@ -58,5 +58,5 @@ int oset_ngap_decode(oset_ngap_message_t *message, oset_pkbuf_t *pkbuf)
 void oset_ngap_free(oset_ngap_message_t *message)
 {
     oset_assert(message);
-    oset_asn_free(&asn_DEF_ASN_NGAP_NGAP_PDU, message);
+    oset_asn_free_contexts(&asn_DEF_ASN_NGAP_NGAP_PDU, message);
 }
