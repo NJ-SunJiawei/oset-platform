@@ -12,27 +12,6 @@
 
 #include "lib/common/asn_helper.h"
 
-#include "asn/rrc/ASN_RRC_RLC-Config.h"
-#include "asn/rrc/ASN_RRC_PDCP-Config.h"
-#include "asn/rrc/ASN_RRC_PDCCH-ConfigCommon.h"
-#include "asn/rrc/ASN_RRC_PDSCH-ConfigCommon.h"
-#include "asn/rrc/ASN_RRC_PUSCH-ConfigCommon.h"
-#include "asn/rrc/ASN_RRC_PUCCH-ConfigCommon.h"
-#include "asn/rrc/ASN_RRC_PDCCH-Config.h"
-#include "asn/rrc/ASN_RRC_SchedulingRequestToAddMod.h"
-#include "asn/rrc/ASN_RRC_LogicalChannelConfig.h"
-#include "asn/rrc/ASN_RRC_SIB-TypeInfo.h"
-#include "asn/rrc/ASN_RRC_MIB.h"
-#include "asn/rrc/ASN_RRC_SIB1.h"
-#include "asn/rrc/ASN_RRC_SIB2.h"
-#include "asn/rrc/ASN_RRC_SIB3.h"
-#include "asn/rrc/ASN_RRC_SIB4.h"
-#include "asn/rrc/ASN_RRC_SIB5.h"
-#include "asn/rrc/ASN_RRC_SIB6.h"
-#include "asn/rrc/ASN_RRC_SIB7.h"
-#include "asn/rrc/ASN_RRC_SIB8.h"
-#include "asn/rrc/ASN_RRC_SIB9.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -66,7 +45,6 @@ struct cce_reg_map_type_c_ {
 enum precoder_granularity_opts { same_as_reg_bundle, all_contiguous_rbs, nulltype };
 // ControlResourceSet
 struct ctrl_res_set_s {
-  bool								  ext;
   bool								  tci_present_in_dci_present;
   bool								  pdcch_dmrs_scrambling_id_present;
   uint8_t							  ctrl_res_set_id;
@@ -116,7 +94,6 @@ struct nrof_candidates_s_ {
 };
 
 struct dci_format0_minus0_and_format1_minus0_s_ {
-  bool ext;
 };
 
 enum aggregation_level1_opts { n1, n2, nulltype };
@@ -138,24 +115,20 @@ struct nrof_candidates_sfi_s_ {
 };
 
 struct dci_format2_minus0_s_ {
-  bool					 ext;
   struct nrof_candidates_sfi_s_ nrof_candidates_sfi;
   // ...
 };
 
 struct dci_format2_minus1_s_ {
-  bool ext;
   // ...
 };
 struct dci_format2_minus2_s_ {
-  bool ext;
   // ...
 };
 
 enum dummy1_opts { sl1, sl2, sl4, sl5, sl8, sl10, sl16, sl20, nulltype };
 enum dummy2_opts { n1, n2, nulltype };
 struct dci_format2_minus3_s_ {
-  bool		ext;
   bool		dummy1_present;
   enum dummy1_opts dummy1;
   enum dummy2_opts dummy2;
@@ -177,7 +150,6 @@ struct common_s_ {
 
 enum dci_formats_opts { formats0_minus0_and_minus1_minus0, formats0_minus1_and_minus1_minus1, nulltype };
 struct ue_specific_s_ {
-  bool			 ext;
   enum dci_formats_opts dci_formats;
   // ...
 };
@@ -209,7 +181,6 @@ struct search_space_s{
 
 // PDCCH-ConfigCommon
 struct pdcch_cfg_common_s {
-  bool						  ext;
   bool						  ctrl_res_set_zero_present;
   bool						  common_ctrl_res_set_present;
   bool						  search_space_zero_present;
@@ -231,7 +202,6 @@ struct pdcch_cfg_common_s {
 
 // PDCCH-Config
 struct pdcch_cfg_s {
-  bool								   ext;
   bool								   dl_preemption_present;
   bool								   tpc_pusch_present;
   bool								   tpc_pucch_present;
@@ -356,7 +326,6 @@ enum preamb_init_rx_target_pwr_opts {
 };
 
 struct preambs_group_a_cfg_s_ {
-  bool							ext;
   enum size_of_ra_preambs_group_a_opts	size_of_ra_preambs_group_a;
   enum msg_size_group_a_opts		   msg_size_group_a;
   enum msg_pwr_offset_group_b_opts	   msg_pwr_offset_group_b;
@@ -380,7 +349,6 @@ struct pwr_ramp_params_s {
 };
 
 struct rach_cfg_common_s {
-  bool					 ext;
   struct preamb_info_s_  preamb_info;
   struct pwr_ramp_params_s		pwr_ramp_params;
   struct ra_supervision_info_s_ ra_supervision_info;
@@ -497,7 +465,6 @@ enum time_align_timer_opts { sf500, sf750, sf1280, sf1920, sf2560, sf5120, sf102
 
 // MAC-MainConfig
 struct mac_main_cfg_s {
-  bool				 ext;
   bool				 ul_sch_cfg_present;
   bool				 drx_cfg_present;
   bool				 phr_cfg_present;
@@ -1237,7 +1204,6 @@ enum t301_v1310_opts { ms2500, ms3000, ms3500, ms4000, ms5000, ms6000, ms8000, m
 enum t310_v1330_opts { ms4000, ms6000, nulltype };
 enum t300_r15_opts { ms4000, ms6000, ms8000, ms10000, ms15000, ms25000, ms40000, ms60000, nulltype };
 struct ue_timers_and_consts_s {
-  bool    ext;
   enum t300_opts t300;
   enum t301_opts t301;
   enum t310_opts t310;
@@ -1267,7 +1233,6 @@ struct mbsfn_sf_cfg_s {
 
 // SystemInformationBlockType2
 struct sib_type2_s {
-  bool                   ext;
   bool                   ac_barr_info_present;
   bool                   mbsfn_sf_cfg_list_present;
   struct ac_barr_info_s_ ac_barr_info;
@@ -1359,7 +1324,6 @@ struct intra_freq_cell_resel_info_s_ {
 
 // SystemInformationBlockType3
 struct sib_type3_s {
-  bool                                   ext;
   struct cell_resel_info_common_s_       cell_resel_info_common;
   struct cell_resel_serving_freq_info_s_ cell_resel_serving_freq_info;
   struct intra_freq_cell_resel_info_s_   intra_freq_cell_resel_info;
@@ -1444,7 +1408,6 @@ struct bwp_s {
 
 // BWP-DownlinkCommon ::= SEQUENCE
 struct bwp_dl_common_s {
-  bool                                ext;
   bool                                pdcch_cfg_common_present;
   bool                                pdsch_cfg_common_present;
   struct bwp_s                        generic_params;
@@ -1454,7 +1417,6 @@ struct bwp_dl_common_s {
 
 // DownlinkConfigCommonSIB ::= SEQUENCE
 struct dl_cfg_common_sib_s {
-  bool               ext;
   struct freq_info_dl_sib_s freq_info_dl;
   struct bwp_dl_common_s    init_dl_bwp;
   struct bcch_cfg_s         bcch_cfg;
@@ -1465,7 +1427,6 @@ struct dl_cfg_common_sib_s {
 // FrequencyInfoUL-SIB ::= SEQUENCE
 struct freq_info_ul_sib_s {
   // member variables
-  bool                          ext;
   bool                          absolute_freq_point_a_present;
   bool                          p_max_present;
   bool                          freq_shift7p5khz_present;
@@ -1477,7 +1438,6 @@ struct freq_info_ul_sib_s {
 
 // BWP-UplinkCommon ::= SEQUENCE
 struct bwp_ul_common_s {
-  bool                       ext;
   bool                       rach_cfg_common_present;
   bool                       pusch_cfg_common_present;
   bool                       pucch_cfg_common_present;
@@ -1805,7 +1765,6 @@ struct bsr_cfg_s {
 
 // TAG ::= SEQUENCE
 struct tag_s {
-  bool               ext;
   uint8_t            tag_id;
   time_align_timer_e time_align_timer;
 };
@@ -1826,7 +1785,6 @@ enum phr_mode_other_cg_e_ { real, virtual_value, nulltype };
 // PHR-Config ::= SEQUENCE
 struct phr_cfg_s {
   // member variables
-  bool                        ext;
   enum  phr_periodic_timer_e_       phr_periodic_timer;
   enum  phr_prohibit_timer_e_       phr_prohibit_timer;
   enum  phr_tx_pwr_factor_change_e_ phr_tx_pwr_factor_change;
@@ -1841,7 +1799,6 @@ enum data_inactivity_timer_e { s1, s2, s3, s5, s7, s10, s15, s20, s40, s50, s60,
 
 // MAC-CellGroupConfig ::= SEQUENCE
 struct mac_cell_group_cfg_s {
-  bool                       ext;
   bool                       drx_cfg_present;
   bool                       sched_request_cfg_present;
   bool                       bsr_cfg_present;
@@ -1866,7 +1823,6 @@ enum xscale_e_ { db0, db6, spare2, spare1, nulltype };
 // PhysicalCellGroupConfig ::= SEQUENCE
 struct phys_cell_group_cfg_s {
   // member variables
-  bool                                          ext;
   bool                                          harq_ack_spatial_bundling_pucch_present;
   bool                                          harq_ack_spatial_bundling_pusch_present;
   bool                                          p_nr_fr1_present;
@@ -1905,7 +1861,6 @@ enum ra_resp_win_e_ { sl1, sl2, sl4, sl8, sl10, sl20, sl40, sl80, nulltype };
 // RACH-ConfigGeneric ::= SEQUENCE
 struct rach_cfg_generic_s {
   // member variables
-  bool                ext;
   uint16_t            prach_cfg_idx;
   enum msg1_fdm_e_    msg1_fdm;
   uint16_t            msg1_freq_start;
@@ -1926,7 +1881,6 @@ struct occasions_s_ {
 
 // CFRA-SSB-Resource ::= SEQUENCE
 struct cfra_ssb_res_s {
-  bool    ext;
   uint8_t ssb;
   uint8_t ra_preamb_idx;
 };
@@ -1940,7 +1894,6 @@ struct ssb_s_ {
 
 struct cfra_csirs_res_s {
   // member variables
-  bool                ext;
   uint8_t             csi_rs;
   A_DYN_ARRAY_OF(uint16_t) ra_occasion_list;//dyn_array<uint16_t>
   uint8_t                  ra_preamb_idx;
@@ -1961,7 +1914,6 @@ struct cfra_s {
 // CFRA ::= SEQUENCE
 struct res_c_ {
   // member variables
-  bool         ext;
   bool         occasions_present;
   struct occasions_s_ occasions;
   struct res_c_       res;
@@ -1977,7 +1929,6 @@ enum scaling_factor_bi_e_ { zero, dot25, dot5, dot75, nulltype };
 // RA-Prioritization ::= SEQUENCE
 struct ra_prioritization_s {
   // member variables
-  bool                       ext;
   bool                       scaling_factor_bi_present;
   enum pwr_ramp_step_high_prio_e_ pwr_ramp_step_high_prio;
   enum scaling_factor_bi_e_       scaling_factor_bi;
@@ -1985,7 +1936,6 @@ struct ra_prioritization_s {
 
 // RACH-ConfigDedicated ::= SEQUENCE
 struct rach_cfg_ded_s {
-  bool                ext;
   bool                cfra_present;
   bool                ra_prioritization_present;
   struct cfra_s       cfra;
@@ -2019,7 +1969,6 @@ struct freq_info_dl_s {
 
 // DownlinkConfigCommon ::= SEQUENCE
 struct dl_cfg_common_s {
-  bool            ext;
   bool            freq_info_dl_present;
   bool            init_dl_bwp_present;
   struct freq_info_dl_s  freq_info_dl;
@@ -2038,7 +1987,6 @@ struct periodicity_and_pattern_c_ {
 
 struct bitmaps_s_ {
   // member variables
-  bool						 ext;
   bool						 periodicity_and_pattern_present;
   uint8_t					 res_blocks[35];//fixed_bitstring<275>
   struct symbols_in_res_block_c_	symbols_in_res_block;
@@ -2124,7 +2072,6 @@ struct sf_alloc2_c_ {
 // EUTRA-MBSFN-SubframeConfig ::= SEQUENCE
 struct eutra_mbsfn_sf_cfg_s {
   // member variables
-  bool                       ext;
   bool                       sf_alloc2_present;
   enum radioframe_alloc_period_e_ radioframe_alloc_period;
   uint8_t                         radioframe_alloc_offset;
@@ -2151,7 +2098,6 @@ struct rate_match_pattern_lte_crs_s {
 // ServingCellConfigCommon ::= SEQUENCE
 struct serving_cell_cfg_common_s {
   // member variables
-  bool                                          ext;
   bool                                          pci_present;
   bool                                          dl_cfg_common_present;
   bool                                          ul_cfg_common_present;
@@ -2196,7 +2142,6 @@ struct ssb_mtc_s {
 // ReconfigurationWithSync ::= SEQUENCE
 struct recfg_with_sync_s {
   // member variables
-  bool                      ext;
   bool                      sp_cell_cfg_common_present;
   bool                      rach_cfg_ded_present;
   struct serving_cell_cfg_common_s sp_cell_cfg_common;
@@ -2216,7 +2161,6 @@ enum t311_e_ { ms1000, ms3000, ms5000, ms10000, ms15000, ms20000, ms30000, nullt
 // RLF-TimersAndConstants ::= SEQUENCE
 struct rlf_timers_and_consts_s {
   // member variables
-  bool    ext;
   enum t310_e_ t310;
   enum n310_e_ n310;
   enum n311_e_ n311;
@@ -2302,7 +2246,6 @@ struct tdd_ul_dl_slot_cfg_s {
 // TDD-UL-DL-ConfigDedicated ::= SEQUENCE
 struct tdd_ul_dl_cfg_ded_s {
   // member variables
-  bool                     ext;
   A_DYN_ARRAY_OF(struct tdd_ul_dl_slot_cfg_s)   slot_specific_cfgs_to_add_mod_list;//dyn_array<tdd_ul_dl_slot_cfg_s>
   A_DYN_ARRAY_OF(struct uint16_t)               slot_specific_cfgs_to_release_list;//dyn_array<uint16_t>
 };
@@ -2347,7 +2290,6 @@ enum res_elem_offset_e_ { offset01, offset10, offset11, nulltype };
 // PTRS-DownlinkConfig ::= SEQUENCE
 struct ptrs_dl_cfg_s {
   // member variables
-  bool               ext;
   bool               freq_density_present;
   bool               time_density_present;
   bool               epre_ratio_present;
@@ -2363,7 +2305,6 @@ enum dmrs_add_position_e_ { pos0, pos1, pos3, nulltype };
 // DMRS-DownlinkConfig ::= SEQUENCE
 struct dmrs_dl_cfg_s {
   // member variables
-  bool                           ext;
   bool                           dmrs_type_present;
   bool                           dmrs_add_position_present;
   bool                           max_len_present;
@@ -2386,7 +2327,6 @@ enum qcl_type_e_{ type_a, type_b, type_c, type_d, nulltype };
 // QCL-Info ::= SEQUENCE
 struct qcl_info_s {
   // member variables
-  bool        ext;
   bool        cell_present;
   bool        bwp_id_present;
   uint8_t     cell;
@@ -2398,7 +2338,6 @@ struct qcl_info_s {
 
 // TCI-State ::= SEQUENCE
 struct tci_state_s {
-  bool       ext;
   bool       qcl_type2_present;
   uint8_t    tci_state_id;
   struct qcl_info_s qcl_type1;
@@ -2434,7 +2373,6 @@ struct density_c_ {
 
 // CSI-FrequencyOccupation ::= SEQUENCE
 struct csi_freq_occupation_s {
-  bool     ext;
   uint16_t start_rb;//0
   uint16_t nrof_rbs;//24
 };
@@ -2443,7 +2381,6 @@ struct csi_freq_occupation_s {
 // CSI-RS-ResourceMapping ::= SEQUENCE
 struct csi_rs_res_map_s {
   // member variables
-  bool                  ext;
   bool                  first_ofdm_symbol_in_time_domain2_present;
   struct freq_domain_alloc_c_  freq_domain_alloc;
   enum nrof_ports_e_           nrof_ports;
@@ -2477,7 +2414,6 @@ struct csi_res_periodicity_and_offset_c {
 
 // ZP-CSI-RS-Resource ::= SEQUENCE
 struct zp_csi_rs_res_s {
-  bool                             ext;
   bool                             periodicity_and_offset_present;
   uint8_t                          zp_csi_rs_res_id;
   struct csi_rs_res_map_s          res_map;
@@ -2488,7 +2424,6 @@ struct zp_csi_rs_res_s {
 // ZP-CSI-RS-ResourceSet ::= SEQUENCE
 struct zp_csi_rs_res_set_s {
   // member variables
-  bool                     ext;
   uint8_t                  zp_csi_rs_res_set_id;
   A_DYN_ARRAY_OF(uint8_t)  zp_csi_rs_res_id_list;//bounded_array<uint8_t, 16>
 };
@@ -2496,7 +2431,6 @@ struct zp_csi_rs_res_set_s {
 // PDSCH-Config ::= SEQUENCE
 struct pdsch_cfg_s {
   // member variables
-  bool                                                               ext;
   bool                                                               data_scrambling_id_pdsch_present;
   bool                                                               dmrs_dl_for_pdsch_map_type_a_present;
   bool                                                               dmrs_dl_for_pdsch_map_type_b_present;
@@ -2555,7 +2489,6 @@ enum periodicity_e_ {
 // SPS-Config ::= SEQUENCE
 struct sps_cfg_s {
   // member variables
-  bool           ext;
   bool           n1_pucch_an_present;
   bool           mcs_table_present;
   enum periodicity_e_ periodicity;
@@ -2573,7 +2506,6 @@ struct detection_res_c_ {
 // RadioLinkMonitoringRS ::= SEQUENCE
 struct radio_link_monitoring_rs_s {
   // member variables
-  bool                  ext;
   uint8_t               radio_link_monitoring_rs_id;
   enum purpose_e_       purpose;
   struct detection_res_c_ detection_res;
@@ -2586,7 +2518,6 @@ enum beam_fail_detection_timer_e_ { pbfd1, pbfd2, pbfd3, pbfd4, pbfd5, pbfd6, pb
 // RadioLinkMonitoringConfig ::= SEQUENCE
 struct radio_link_monitoring_cfg_s {
   // member variables
-  bool                                  ext;
   bool                                  beam_fail_instance_max_count_present;
   bool                                  beam_fail_detection_timer_present;
   A_DYN_ARRAY_OF(struct radio_link_monitoring_rs_s) fail_detection_res_to_add_mod_list;//dyn_array<radio_link_monitoring_rs_s>
@@ -2598,7 +2529,6 @@ struct radio_link_monitoring_cfg_s {
 
 // BWP-DownlinkDedicated ::= SEQUENCE
 struct bwp_dl_ded_s {
-  bool                                         ext;
   bool                                         pdcch_cfg_present;
   bool                                         pdsch_cfg_present;
   bool                                         sps_cfg_present;
@@ -2611,7 +2541,6 @@ struct bwp_dl_ded_s {
 
 // BWP-Downlink ::= SEQUENCE
 struct bwp_dl_s {
-  bool            ext;
   bool            bwp_common_present;
   bool            bwp_ded_present;
   uint8_t         bwp_id;
@@ -2781,7 +2710,6 @@ struct pucch_pathloss_ref_rs_s {
 // PUCCH-PowerControl ::= SEQUENCE
 struct pucch_pwr_ctrl_s {
   // member variables
-  bool                ext;
   bool                delta_f_pucch_f0_present;
   bool                delta_f_pucch_f1_present;
   bool                delta_f_pucch_f2_present;
@@ -2801,7 +2729,6 @@ struct pucch_pwr_ctrl_s {
 // PUCCH-Config ::= SEQUENCE
 struct pucch_cfg_s {
   // member variables
-  bool                                     ext;
   bool                                     format1_present;
   bool                                     format2_present;
   bool                                     format3_present;
@@ -2836,7 +2763,6 @@ enum codebook_subset_e_ { fully_and_partial_and_non_coherent, partial_and_non_co
 
 enum dmrs_add_position_e_ { pos0, pos1, pos3, nulltype };
 struct transform_precoding_disabled_s_ {
-  bool	   ext;
   bool	   scrambling_id0_present;
   bool	   scrambling_id1_present;
   uint32_t scrambling_id0;
@@ -2844,7 +2770,6 @@ struct transform_precoding_disabled_s_ {
 };
 
 struct transform_precoding_enabled_s_ {
-  bool	   ext;
   bool	   npusch_id_present;
   bool	   seq_group_hop_present;
   bool	   seq_hop_present;
@@ -2876,7 +2801,6 @@ struct transform_precoder_enabled_s_ {
 // PTRS-UplinkConfig ::= SEQUENCE
 struct ptrs_ul_cfg_s {
   // member variables
-  bool                           ext;
   bool                           transform_precoder_disabled_present;
   bool                           transform_precoder_enabled_present;
   struct transform_precoder_disabled_s_ transform_precoder_disabled;
@@ -2887,7 +2811,6 @@ struct ptrs_ul_cfg_s {
 // DMRS-UplinkConfig ::= SEQUENCE
 struct dmrs_ul_cfg_s {
   // member variables
-  bool                            ext;
   bool                            dmrs_type_present;
   bool                            dmrs_add_position_present;
   bool                            phase_tracking_rs_present;
@@ -3002,7 +2925,6 @@ struct uci_on_pusch_s {
 // PUSCH-Config ::= SEQUENCE
 struct pusch_cfg_s {
   // member variables
-  bool                                                               ext;
   bool                                                               data_scrambling_id_pusch_present;
   bool                                                               tx_cfg_present;
   bool                                                               dmrs_ul_for_pusch_map_type_a_present;
@@ -3096,7 +3018,6 @@ enum periodicity_e_ {
 };
 
 struct rrc_cfgured_ul_grant_s_ {
-  bool				  ext;
   bool				  dmrs_seq_initization_present;
   bool				  srs_res_ind_present;
   bool				  freq_hop_offset_present;
@@ -3124,7 +3045,6 @@ struct cg_uci_on_pusch_c {
 // ConfiguredGrantConfig ::= SEQUENCE
 struct cfgured_grant_cfg_s {
   // member variables
-  bool                               ext;
   bool                               freq_hop_present;
   bool                               mcs_table_present;
   bool                               mcs_table_transform_precoder_present;
@@ -3153,7 +3073,6 @@ struct cfgured_grant_cfg_s {
 
 struct aperiodic_s_ {
   // member variables
-  bool	  ext;
   bool	  csi_rs_present;
   bool	  slot_offset_present;
   uint8_t aperiodic_srs_res_trigger;//1
@@ -3163,12 +3082,10 @@ struct aperiodic_s_ {
 };
 
 struct semi_persistent_s_ {
-  bool	  ext;
   bool	  associated_csi_rs_present;
   uint8_t associated_csi_rs;
 };
 struct periodic_s_ {
-  bool	  ext;
   bool	  associated_csi_rs_present;
   uint8_t associated_csi_rs;
 };
@@ -3190,7 +3107,6 @@ enum srs_pwr_ctrl_adjustment_states_e_ { same_as_fci2, separate_closed_loop, nul
 // SRS-ResourceSet ::= SEQUENCE
 struct srs_res_set_s {
   // member variables
-  bool                              ext;
   bool                              alpha_present;
   bool                              p0_present;
   bool                              pathloss_ref_rs_present;
@@ -3265,16 +3181,13 @@ struct freq_hop_s_ {
 enum group_or_seq_hop_e_ { neither, group_hop, seq_hop, nulltype };
 
 struct aperiodic_s_ {
-  bool ext;
 };
 
 struct semi_persistent_s_ {
-  bool						   ext;
   struct srs_periodicity_and_offset_c periodicity_and_offset_sp;
 };
 
 struct periodic_s_ {
-  bool						   ext;
   struct srs_periodicity_and_offset_c periodicity_and_offset_p;
   // ...
 };
@@ -3301,7 +3214,6 @@ struct srs_spatial_relation_info_s {
 // SRS-Resource ::= SEQUENCE
 struct srs_res_s {
   // member variables
-  bool                               ext;
   bool                               ptrs_port_idx_present;
   bool                               spatial_relation_info_present;
   uint8_t                            srs_res_id;
@@ -3322,7 +3234,6 @@ struct srs_res_s {
 // SRS-Config ::= SEQUENCE
 struct srs_cfg_s {
   // member variables
-  bool                           ext;
   bool                           tpc_accumulation_present;
   A_DYN_ARRAY_OF(uint8_t)        srs_res_set_to_release_list;//bounded_array<uint8_t, 16>
   A_DYN_ARRAY_OF(struct srs_res_set_s) srs_res_set_to_add_mod_list;//dyn_array<srs_res_set_s>
@@ -3336,7 +3247,6 @@ enum beam_fail_recovery_timer_e_ { ms10, ms20, ms40, ms60, ms80, ms100, ms150, m
 // BFR-CSIRS-Resource ::= SEQUENCE
 struct bfr_csirs_res_s {
   // member variables
-  bool                ext;
   bool                ra_preamb_idx_present;
   uint8_t             csi_rs;
   A_DYN_ARRAY_OF(uint16_t) ra_occasion_list;//dyn_array<uint16_t>
@@ -3344,7 +3254,6 @@ struct bfr_csirs_res_s {
 };
 // BFR-SSB-Resource ::= SEQUENCE
 struct bfr_ssb_res_s {
-  bool    ext;
   uint8_t ssb;
   uint8_t ra_preamb_idx;
 };
@@ -3360,7 +3269,6 @@ struct prach_res_ded_bfr_c {
 // BeamFailureRecoveryConfig ::= SEQUENCE
 struct beam_fail_recovery_cfg_s {
   // member variables
-  bool                        ext;
   bool                        root_seq_idx_bfr_present;
   bool                        rach_cfg_bfr_present;
   bool                        rsrp_thres_ssb_present;
@@ -3387,7 +3295,6 @@ struct beam_fail_recovery_cfg_s {
 
 // BWP-UplinkDedicated ::= SEQUENCE
 struct bwp_ul_ded_s {
-  bool                                      ext;
   bool                                      pucch_cfg_present;
   bool                                      pusch_cfg_present;
   bool                                      cfgured_grant_cfg_present;
@@ -3402,7 +3309,6 @@ struct bwp_ul_ded_s {
 
 // BWP-Uplink ::= SEQUENCE
 struct bwp_ul_s {
-  bool            ext;
   bool            bwp_common_present;
   bool            bwp_ded_present;
   uint8_t         bwp_id;
@@ -3415,7 +3321,6 @@ enum max_code_block_groups_per_transport_block_e_ { n2, n4, n6, n8, nulltype };
 // PUSCH-CodeBlockGroupTransmission ::= SEQUENCE
 struct pusch_code_block_group_tx_s {
   // member variables
-  bool                                         ext;
   enum max_code_block_groups_per_transport_block_e_ max_code_block_groups_per_transport_block;
 };
 
@@ -3423,7 +3328,6 @@ enum xoverhead_e_ { xoh6, xoh12, xoh18, nulltype };
 // PUSCH-ServingCellConfig ::= SEQUENCE
 struct pusch_serving_cell_cfg_s {
   // member variables
-  bool                                         ext;
   bool                                         code_block_group_tx_present;
   bool                                         rate_matching_present;
   bool                                         xoverhead_present;
@@ -3464,7 +3368,6 @@ struct srs_tpc_pdcch_group_c_ {
 // SRS-CarrierSwitching ::= SEQUENCE
 struct srs_carrier_switching_s {
   // member variables
-  bool                       ext;
   bool                       srs_switch_from_serv_cell_idx_present;
   bool                       srs_tpc_pdcch_group_present;
   uint8_t                    srs_switch_from_serv_cell_idx;
@@ -3476,7 +3379,6 @@ struct srs_carrier_switching_s {
 // UplinkConfig ::= SEQUENCE
 struct ul_cfg_s {
   // member variables
-  bool                                      ext;
   bool                                      init_ul_bwp_present;
   bool                                      first_active_ul_bwp_id_present;
   bool                                      pusch_serving_cell_cfg_present;
@@ -3504,7 +3406,6 @@ struct slot_format_combination_s {
 // SlotFormatCombinationsPerCell ::= SEQUENCE
 struct slot_format_combinations_per_cell_s {
   // member variables
-  bool                        ext;
   bool                        subcarrier_spacing2_present;
   bool                        position_in_dci_present;
   uint8_t                     serving_cell_id;
@@ -3517,7 +3418,6 @@ struct slot_format_combinations_per_cell_s {
 // SlotFormatIndicator ::= SEQUENCE
 struct slot_format_ind_s {
   // member variables
-  bool                                ext;
   uint32_t                            sfi_rnti;
   uint8_t                             dci_payload_size;//1
   A_DYN_ARRAY_OF(struct slot_format_combinations_per_cell_s) slot_format_comb_to_add_mod_list;//dyn_array<slot_format_combinations_per_cell_s>
@@ -3526,7 +3426,6 @@ struct slot_format_ind_s {
 
 // PDCCH-ServingCellConfig ::= SEQUENCE
 struct pdcch_serving_cell_cfg_s {
-  bool                               ext;
   bool                               slot_format_ind_present;
   setup_release_c(struct slot_format_ind_s) slot_format_ind;
 };
@@ -3536,7 +3435,6 @@ enum max_code_block_groups_per_transport_block_e_ { n2, n4, n6, n8, nulltype };
 // PDSCH-CodeBlockGroupTransmission ::= SEQUENCE
 struct pdsch_code_block_group_tx_s {
   // member variables
-  bool                                         ext;
   enum max_code_block_groups_per_transport_block_e_ max_code_block_groups_per_transport_block;
   bool                                         code_block_group_flush_ind;
 };
@@ -3547,7 +3445,6 @@ enum nrof_harq_processes_for_pdsch_e_ { n2, n4, n6, n10, n12, n16, nulltype };
 // PDSCH-ServingCellConfig ::= SEQUENCE
 struct pdsch_serving_cell_cfg_s {
   // member variables
-  bool                                         ext;
   bool                                         code_block_group_tx_present;
   bool                                         xoverhead_present;
   bool                                         nrof_harq_processes_for_pdsch_present;
@@ -3569,7 +3466,6 @@ enum pwr_ctrl_offset_ss_e_ { db_minus3, db0, db3, db6, nulltype };
 // NZP-CSI-RS-Resource ::= SEQUENCE
 struct nzp_csi_rs_res_s {
   // member variables
-  bool                             ext;
   bool                             pwr_ctrl_offset_ss_present;
   bool                             periodicity_and_offset_present;
   bool                             qcl_info_periodic_csi_rs_present;
@@ -3586,7 +3482,6 @@ enum repeat_e_ { on, off, nulltype };
 // NZP-CSI-RS-ResourceSet ::= SEQUENCE
 struct nzp_csi_rs_res_set_s {
   // member variables
-  bool              ext;
   bool              repeat_present;
   bool              aperiodic_trigger_offset_present;
   bool              trs_info_present;
@@ -3621,7 +3516,6 @@ struct csi_im_res_elem_pattern_c_ {
 // CSI-IM-Resource ::= SEQUENCE
 struct csi_im_res_s {
   // member variables
-  bool                             ext;
   bool                             csi_im_res_elem_pattern_present;
   bool                             freq_band_present;
   bool                             periodicity_and_offset_present;
@@ -3634,7 +3528,6 @@ struct csi_im_res_s {
 // CSI-IM-ResourceSet ::= SEQUENCE
 struct csi_im_res_set_s {
   // member variables
-  bool          ext;
   uint8_t       csi_im_res_set_id;
   A_DYN_ARRAY_OF(uint8_t) csi_im_res;//bounded_array<uint8_t, 8>
 };
@@ -3642,7 +3535,6 @@ struct csi_im_res_set_s {
 // CSI-SSB-ResourceSet ::= SEQUENCE
 struct csi_ssb_res_set_s {
   // member variables
-  bool                ext;
   uint8_t             csi_ssb_res_set_id;
   A_DYN_ARRAY_OF(uint8_t) csi_ssb_res_list;//dyn_array<uint8_t>
 };
@@ -3668,7 +3560,6 @@ enum res_type_e_ { aperiodic, semi_persistent, periodic, nulltype };
 // CSI-ResourceConfig ::= SEQUENCE
 struct csi_res_cfg_s {
   // member variables
-  bool                   ext;
   uint8_t                csi_res_cfg_id;
   struct csi_rs_res_set_list_c_ csi_rs_res_set_list;
   uint8_t                bwp_id;
@@ -3995,7 +3886,6 @@ struct codebook_cfg_s {
 // CSI-ReportConfig ::= SEQUENCE
 struct csi_report_cfg_s {
   // member variables
-  bool                                    ext;
   bool                                    carrier_present;
   bool                                    csi_im_res_for_interference_present;
   bool                                    nzp_csi_rs_res_for_interference_present;
@@ -4038,7 +3928,6 @@ struct res_for_ch_c_ {
 // CSI-AssociatedReportConfigInfo ::= SEQUENCE
 struct csi_associated_report_cfg_info_s {
   // member variables
-  bool          ext;
   bool          csi_im_res_for_interference_present;
   bool          nzp_csi_rs_res_for_interference_present;
   uint8_t       report_cfg_id;
@@ -4049,20 +3938,17 @@ struct csi_associated_report_cfg_info_s {
 
 // CSI-AperiodicTriggerState ::= SEQUENCE
 struct csi_aperiodic_trigger_state_s {
-  bool                               ext;
   A_DYN_ARRAY_OF(struct csi_associated_report_cfg_info_s) associated_report_cfg_info_list;//dyn_array<csi_associated_report_cfg_info_s>
 };
 
 // CSI-SemiPersistentOnPUSCH-TriggerState ::= SEQUENCE
 struct csi_semi_persistent_on_pusch_trigger_state_s {
-  bool    ext;
   uint8_t associated_report_cfg_info;
 };
 
 // CSI-MeasConfig ::= SEQUENCE
 struct csi_meas_cfg_s {
   // member variables
-  bool                                  ext;
   bool                                  report_trigger_size_present;
   bool                                  aperiodic_trigger_state_list_present;
   bool                                  semi_persistent_on_pusch_trigger_state_list_present;
@@ -4101,7 +3987,6 @@ struct sched_cell_info_c_ {
 // CrossCarrierSchedulingConfig ::= SEQUENCE
 struct cross_carrier_sched_cfg_s {
   // member variables
-  bool               ext;
   struct sched_cell_info_c_ sched_cell_info;
 };
 
@@ -4110,7 +3995,6 @@ enum pathloss_ref_linking_e_ { sp_cell, scell, nulltype };
 // ServingCellConfig ::= SEQUENCE
 struct serving_cell_cfg_s {
   // member variables
-  bool                                      ext;
   bool                                      tdd_ul_dl_cfg_ded_present;
   bool                                      init_dl_bwp_present;
   bool                                      first_active_dl_bwp_id_present;
@@ -4153,7 +4037,6 @@ struct serving_cell_cfg_s {
 
 // SpCellConfig ::= SEQUENCE
 struct sp_cell_cfg_s {
-  bool                                     ext;
   bool                                     serv_cell_idx_present;
   bool                                     recfg_with_sync_present;
   bool                                     rlf_timers_and_consts_present;
@@ -4261,7 +4144,6 @@ typedef  q_offset_range_e  range_to_best_cell_e;
 
 struct cell_resel_info_common_s_ {
   // member variables
-  bool						ext;
   bool						nrof_ss_blocks_to_average_present;
   bool						abs_thresh_ss_blocks_consolidation_present;
   bool						range_to_best_cell_present;
@@ -4278,7 +4160,6 @@ struct cell_resel_info_common_s_ {
 enum cell_resel_sub_prio_e { odot2, odot4, odot6, odot8, nulltype };
 
 struct cell_resel_serving_freq_info_s_ {
-  bool					ext;
   bool					s_non_intra_search_p_present;
   bool					s_non_intra_search_q_present;
   bool					thresh_serving_low_q_present;
@@ -4305,7 +4186,6 @@ struct ssb_to_measure_c {
 };
 
 struct intra_freq_cell_resel_info_s_ {
-  bool							ext;
   bool							q_rx_lev_min_sul_present;
   bool							q_qual_min_present;
   bool							s_intra_search_q_present;
@@ -4443,7 +4323,6 @@ struct inter_freq_carrier_freq_info_s {
 
 // IntraFreqNeighCellInfo ::= SEQUENCE
 struct intra_freq_neigh_cell_info_s {
-  bool             ext;
   bool             q_rx_lev_min_offset_cell_present;
   bool             q_rx_lev_min_offset_cell_sul_present;
   bool             q_qual_min_offset_cell_present;
@@ -4457,7 +4336,6 @@ struct intra_freq_neigh_cell_info_s {
 // SIB2 ::= SEQUENCE
 struct sib2_s {
   // member variables
-  bool                                   ext;
   struct cell_resel_info_common_s_       cell_resel_info_common;
   struct cell_resel_serving_freq_info_s_ cell_resel_serving_freq_info;
   struct intra_freq_cell_resel_info_s_   intra_freq_cell_resel_info;
@@ -4473,7 +4351,6 @@ struct sib3_s {
 
 // SIB4 ::= SEQUENCE
 struct sib4_s {
-  bool                           ext;
   A_DYN_ARRAY_OF(struct inter_freq_carrier_freq_info_s) inter_freq_carrier_freq_list;// InterFreqCarrierFreqList ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo
   dyn_octstring                  late_non_crit_ext;
 };
@@ -4596,7 +4473,6 @@ struct carrier_freq_eutra_s {
 
 // SIB5 ::= SEQUENCE
 struct sib5_s {
-  bool                        ext;
   bool                        t_resel_eutra_sf_present;
   A_DYN_ARRAY_OF(struct carrier_freq_eutra_s)   carrier_freq_list_eutra;//// CarrierFreqListEUTRA ::= SEQUENCE (SIZE (1..8)) OF CarrierFreqEUTRA
   uint8_t                     t_resel_eutra;
@@ -4606,7 +4482,6 @@ struct sib5_s {
 
 // SIB6 ::= SEQUENCE
 struct sib6_s {
-  bool                ext;
   uint8_t             msg_id[2];//fixed_bitstring<16>
   uint8_t             serial_num[2];//fixed_bitstring<16>
   fixed_octstring     warning_type[2];//fixed_octstring<2>
@@ -4618,7 +4493,6 @@ enum warning_msg_segment_type_e_ { not_last_segment, last_segment, nulltype };
 // SIB7 ::= SEQUENCE
 struct sib7_s {
   // member variables
-  bool                        ext;
   bool                        data_coding_scheme_present;
   uint8_t                     msg_id[2];//fixed_bitstring<16>
   uint8_t                     serial_num[2];//fixed_bitstring<16>
@@ -4632,7 +4506,6 @@ struct sib7_s {
 // SIB8 ::= SEQUENCE
 struct sib8_s {
   // member variables
-  bool                        ext;
   bool                        data_coding_scheme_present;
   uint8_t                     msg_id[2];//fixed_bitstring<16>
   uint8_t                     serial_num[2];//fixed_bitstring<16>
@@ -4758,7 +4631,6 @@ struct uac_barr_info_s_ {
 
 // CellAccessRelatedInfo ::= SEQUENCE
 struct cell_access_related_info_s {
-  bool                ext;
   bool                cell_reserved_for_other_use_present;
   A_DYN_ARRAY_OF(struct plmn_id_info_s) plmn_id_list;// PLMN-IdentityInfoList ::= SEQUENCE (SIZE (1..12)) OF PLMN-IdentityInfo
 };
@@ -4808,10 +4680,9 @@ enum si_win_len_e_ { s5, s10, s20, s40, s80, s160, s320, s640, s1280, nulltype }
 // SI-SchedulingInfo ::= SEQUENCE
 struct si_sched_info_s {
   // member variables
-  bool                ext                        = false;
-  bool                si_request_cfg_present     = false;
-  bool                si_request_cfg_sul_present = false;
-  bool                sys_info_area_id_present   = false;
+  bool                si_request_cfg_present;
+  bool                si_request_cfg_sul_present;
+  bool                sys_info_area_id_present;
   A_DYN_ARRAY_OF(struct sched_info_s)  sched_info_list;//dyn_array<sched_info_s>
   si_win_len_e_              si_win_len;
   struct si_request_cfg_s    si_request_cfg;
@@ -4831,7 +4702,6 @@ enum ssb_periodicity_serving_cell_e_ { ms5, ms10, ms20, ms40, ms80, ms160, nullt
 // ServingCellConfigCommonSIB ::= SEQUENCE
 struct serving_cell_cfg_common_sib_s {
   // member variables
-  bool                            ext;
   bool                            ul_cfg_common_present;
   bool                            supplementary_ul_present;
   bool                            n_timing_advance_offset_present;
@@ -4913,7 +4783,6 @@ enum bit_rate_query_prohibit_timer_e_ { s0, s0dot4, s0dot8, s1dot6, s3, s6, s12,
 
 struct ul_specific_params_s_ {
   // member variables
-  bool					   ext;
   bool					   max_pusch_dur_present;
   bool					   cfgured_grant_type1_allowed_present;
   bool					   lc_ch_group_present;
@@ -4937,7 +4806,6 @@ struct ul_specific_params_s_ {
 struct lc_ch_cfg_s {
 
   // member variables
-  bool                  ext;
   bool                  ul_specific_params_present;
   struct ul_specific_params_s_ ul_specific_params;
 };
@@ -4950,7 +4818,6 @@ struct served_radio_bearer_c_ {
 // RLC-BearerConfig ::= SEQUENCE
 struct rlc_bearer_cfg_s {
   // member variables
-  bool                   ext;
   bool                   served_radio_bearer_present;
   bool                   reestablish_rlc_present;
   bool                   rlc_cfg_present;
@@ -4964,7 +4831,6 @@ struct rlc_bearer_cfg_s {
 
 // SCellConfig ::= SEQUENCE
 struct scell_cfg_s {
-  bool                      ext;
   bool                      scell_cfg_common_present;
   bool                      scell_cfg_ded_present;
   uint8_t                   scell_idx;// = 1
@@ -4976,7 +4842,6 @@ struct scell_cfg_s {
 // CellGroupConfig ::= SEQUENCE
 struct cell_group_cfg_s {
   // member variables
-  bool                          ext;
   bool                          mac_cell_group_cfg_present;
   bool                          phys_cell_group_cfg_present;
   bool                          sp_cell_cfg_present;

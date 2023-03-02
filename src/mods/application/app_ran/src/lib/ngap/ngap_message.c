@@ -22,7 +22,7 @@ oset_pkbuf_t *oset_ngap_encode(oset_ngap_message_t *message)
 		}
 	}
 
-    pkbuf = oset_asn_aper_encode(&asn_DEF_ASN_NGAP_NGAP_PDU, message);
+    pkbuf = oset_asn_aper_encode(&asn_DEF_ASN_NGAP_NGAP_PDU, message, false);
     oset_expect_or_return_val(pkbuf, NULL);
 
     return pkbuf;

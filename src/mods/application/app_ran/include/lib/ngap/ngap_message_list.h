@@ -628,6 +628,8 @@
 #include "asn1c/util/conv.h"
 #include "asn1c/util/message.h"
 
+#include "lib/ngap/ngap_message.h"
+
 
 #ifdef __cplusplus
 extern "C" {

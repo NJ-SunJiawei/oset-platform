@@ -12,6 +12,7 @@
 
 #include "gnb_interface.h"
 #include "lib/common/asn_interface.h"
+#include "lib/rrc/rrc_message_list.h"
 
 #ifdef __cplusplus
 extern "C" {

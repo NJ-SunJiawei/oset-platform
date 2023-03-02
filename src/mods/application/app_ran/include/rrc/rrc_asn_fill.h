@@ -16,8 +16,8 @@
 extern "C" {
 #endif
 
-int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, mib_s *mib);
-int fill_sib1_from_enb_cfg(rrc_nr_cfg_t *cfg, uint32_t cc, sib1_s *sib1);
+int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_MIB_t *mib);
+int fill_sib1_from_enb_cfg(rrc_nr_cfg_t *cfg, uint32_t cc, ASN_RRC_SIB1_t *sib1);
 
 
 #ifdef __cplusplus

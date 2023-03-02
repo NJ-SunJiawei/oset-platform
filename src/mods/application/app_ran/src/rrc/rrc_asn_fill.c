@@ -13,28 +13,37 @@
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc"
 
 
-int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, mib_s *mib)
+int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_MIB_t *mib)
 {
-  mib.sys_frame_num = 0;
+  mib =  CALLOC(1,sizeof(struct ASN_RRC_MIB_t));
+
+  mib->systemFrameNumber.buf = CALLOC(1,sizeof(uint8_t));
+  mib->systemFrameNumber.buf[0] = 0;
+  mib->systemFrameNumber.size = 1;
+  mib->systemFrameNumber.bits_unused=2;
+
   switch (cell_cfg.phy_cell.carrier.scs) {
     case srsran_subcarrier_spacing_15kHz:
     case srsran_subcarrier_spacing_60kHz:
-      mib.sub_carrier_spacing_common = scs15or60;
+      mib->subCarrierSpacingCommon = ASN_RRC_MIB__subCarrierSpacingCommon_scs15or60;
       break;
     case srsran_subcarrier_spacing_30kHz:
     case srsran_subcarrier_spacing_120kHz:
-      mib.sub_carrier_spacing_common = scs30or120;
+      mib->subCarrierSpacingCommon = ASN_RRC_MIB__subCarrierSpacingCommon_scs30or120;
       break;
     default:
       oset_error("Invalid carrier SCS=%d Hz", SRSRAN_SUBC_SPACING_NR(cell_cfg.phy_cell.carrier.scs));
   }
-  mib.ssb_subcarrier_offset      = cell_cfg.ssb_offset;
-  mib.dmrs_type_a_position       = (enum dmrs_type_a_position_e_)pos2;
-  mib.pdcch_cfg_sib1.search_space_zero = 0;
-  mib.pdcch_cfg_sib1.ctrl_res_set_zero = cell_cfg.coreset0_idx;
-  mib.cell_barred                = (enum cell_barred_e_)not_barred;
-  mib.intra_freq_resel           = (enum intra_freq_resel_e_)allowed;
-  mib.spare = 0;
+  mib->ssb_SubcarrierOffset       = cell_cfg.ssb_offset;
+  mib->dmrs_TypeA_Position        = ASN_RRC_MIB__dmrs_TypeA_Position_pos2;
+  mib->pdcch_ConfigSIB1.controlResourceSetZero = 0;
+  mib->pdcch_ConfigSIB1.searchSpaceZero = cell_cfg.coreset0_idx;
+  mib->cellBarred                 = ASN_RRC_MIB__cellBarred_notBarred;
+  mib->intraFreqReselection       = ASN_RRC_MIB__intraFreqReselection_allowed;
+  mib->spare.buf = CALLOC(1,sizeof(uint8_t));
+  mib->systemFrameNumber.buf[0] = 0;
+  mib->spare.size = 1;
+  mib->spare.bits_unused = 7;  // This makes a spare of 1 bits
   return OSET_OK;
 }
 

@@ -21,11 +21,13 @@ typedef struct {
   uint32_t cc;
   uint32_t pci;
 
-  struct mib_s   mib;
-  byte_buffer_t  *packed_mib;
+  ASN_RRC_MIB_t  *mib;
+  //struct mib_s   mib;
+  oset_pkbuf_t  *packed_mib;
 
-  struct sib1_s  sib1;
-  byte_buffer_t  *packed_sib1;
+  ASN_RRC_SIB1_t *sib1;
+  //struct sib1_s  sib1;
+  oset_pkbuf_t  *packed_sib1;
 
   enum subcarrier_spacing_e          ssb_scs;
   srsran_ssb_pattern_t               ssb_pattern;
