@@ -21,7 +21,7 @@ typedef struct {
   uint32_t cc;
   uint32_t pci;
 
-  ASN_RRC_MIB_t  *mib;
+  ASN_RRC_BCCH_BCH_Message_t  *mib;
   //struct mib_s   mib;
   oset_pkbuf_t  *packed_mib;
 

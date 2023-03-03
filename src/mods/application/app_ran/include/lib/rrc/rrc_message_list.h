@@ -43,6 +43,8 @@
 #include "asn1c/util/conv.h"
 #include "asn1c/util/message.h"
 
+#include "lib/rrc/rrc_message.h"
+
 
 #ifdef __cplusplus
 extern "C" {

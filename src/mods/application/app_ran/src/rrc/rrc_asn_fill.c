@@ -13,38 +13,36 @@
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc"
 
 
-int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_MIB_t *mib)
+int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_t *pdu)
 {
-  mib =  CALLOC(1,sizeof(struct ASN_RRC_MIB_t));
+	pdu =  CALLOC(1,sizeof(struct ASN_RRC_BCCH_BCH_Message_t));
+	pdu->message.present = ASN_RRC_BCCH_BCH_MessageType_PR_mib;
+	pdu->message.choice.mib = CALLOC(1,sizeof(struct ASN_RRC_MIB_t));
 
-  mib->systemFrameNumber.buf = CALLOC(1,sizeof(uint8_t));
-  mib->systemFrameNumber.buf[0] = 0;
-  mib->systemFrameNumber.size = 1;
-  mib->systemFrameNumber.bits_unused=2;
+	ASN_RRC_MIB_t *mib = pdu->message.choice.mib;
 
-  switch (cell_cfg.phy_cell.carrier.scs) {
-    case srsran_subcarrier_spacing_15kHz:
-    case srsran_subcarrier_spacing_60kHz:
-      mib->subCarrierSpacingCommon = ASN_RRC_MIB__subCarrierSpacingCommon_scs15or60;
-      break;
-    case srsran_subcarrier_spacing_30kHz:
-    case srsran_subcarrier_spacing_120kHz:
-      mib->subCarrierSpacingCommon = ASN_RRC_MIB__subCarrierSpacingCommon_scs30or120;
-      break;
-    default:
-      oset_error("Invalid carrier SCS=%d Hz", SRSRAN_SUBC_SPACING_NR(cell_cfg.phy_cell.carrier.scs));
-  }
-  mib->ssb_SubcarrierOffset       = cell_cfg.ssb_offset;
-  mib->dmrs_TypeA_Position        = ASN_RRC_MIB__dmrs_TypeA_Position_pos2;
-  mib->pdcch_ConfigSIB1.controlResourceSetZero = 0;
-  mib->pdcch_ConfigSIB1.searchSpaceZero = cell_cfg.coreset0_idx;
-  mib->cellBarred                 = ASN_RRC_MIB__cellBarred_notBarred;
-  mib->intraFreqReselection       = ASN_RRC_MIB__intraFreqReselection_allowed;
-  mib->spare.buf = CALLOC(1,sizeof(uint8_t));
-  mib->systemFrameNumber.buf[0] = 0;
-  mib->spare.size = 1;
-  mib->spare.bits_unused = 7;  // This makes a spare of 1 bits
-  return OSET_OK;
+	oset_asn_uint8_to_BIT_STRING(0, 2, &mib->systemFrameNumber);
+	switch (cell_cfg.phy_cell.carrier.scs) {
+	case srsran_subcarrier_spacing_15kHz:
+	case srsran_subcarrier_spacing_60kHz:
+	  mib->subCarrierSpacingCommon = ASN_RRC_MIB__subCarrierSpacingCommon_scs15or60;
+	  break;
+	case srsran_subcarrier_spacing_30kHz:
+	case srsran_subcarrier_spacing_120kHz:
+	  mib->subCarrierSpacingCommon = ASN_RRC_MIB__subCarrierSpacingCommon_scs30or120;
+	  break;
+	default:
+	  oset_error("Invalid carrier SCS=%d Hz", SRSRAN_SUBC_SPACING_NR(cell_cfg.phy_cell.carrier.scs));
+	}
+	mib->ssb_SubcarrierOffset       = cell_cfg.ssb_offset;
+	mib->dmrs_TypeA_Position        = ASN_RRC_MIB__dmrs_TypeA_Position_pos2;
+	mib->pdcch_ConfigSIB1.controlResourceSetZero = 0;
+	mib->pdcch_ConfigSIB1.searchSpaceZero = cell_cfg.coreset0_idx;
+	mib->cellBarred                 = ASN_RRC_MIB__cellBarred_notBarred;
+	mib->intraFreqReselection       = ASN_RRC_MIB__intraFreqReselection_allowed;
+	oset_asn_uint8_to_BIT_STRING(0, 7, &mib->spare);// This makes a spare of 1 bits
+
+	return OSET_OK;
 }
 
 int fill_sib1_from_enb_cfg(rrc_nr_cfg_t *cfg, uint32_t cc, sib1_s *sib1)

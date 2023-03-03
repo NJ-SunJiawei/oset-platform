@@ -33,14 +33,8 @@ int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node)
   if (fill_mib_from_enb_cfg(node, cell->mib) != OSET_OK) {
     return OSET_ERROR;
   }
-  cell->packed_mib = oset_asn_uper_encode(&asn_DEF_ASN_RRC_MIB, cell->mib, true);
-  if (oset_runtime()->hard_log_level >= OSET_LOG2_DEBUG){
-	  if (asn1_encoder_xer_print){
-		  xer_fprint(stdout, &asn_DEF_ASN_NGAP_NGAP_PDU, cell->mib);
-	  }else{
-		  asn_fprint(stdout, &asn_DEF_ASN_NGAP_NGAP_PDU, cell->mib);
-	  }
-  }
+
+  cell->packed_mib = oset_rrc_encode(&asn_DEF_ASN_RRC_BCCH_BCH_Message, cell->mib, true);
   oset_free(cell->packed_mib);
 
 

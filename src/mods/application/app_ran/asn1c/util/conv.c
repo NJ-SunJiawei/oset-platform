@@ -115,6 +115,17 @@ void oset_asn_buffer_to_BIT_STRING(
     memcpy(bit_string->buf, buf, size);
 }
 
+void oset_asn_uint8_to_BIT_STRING(
+		uint8_t uint8, int unused, BIT_STRING_t *bit_string)
+{
+	bit_string->size = 1;
+	bit_string->buf = CALLOC(bit_string->size, sizeof(uint8_t));
+	bit_string->bits_unused = unused;
+
+	bit_string->buf[0] = uint8;
+}
+
+
 void oset_asn_uint32_to_BIT_STRING(
         uint32_t uint32, uint8_t bitsize, BIT_STRING_t *bit_string)
 {
@@ -229,3 +240,74 @@ int oset_asn_copy_ie(const asn_TYPE_descriptor_t *td, void *src, void *dst)
 
     return OSET_OK;
 }
+
+/////////////////////////////////////////////////////////////////////////
+static const char hex_to_ascii_table[16] = {
+  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
+};
+
+static const signed char ascii_to_hex_table[0x100] = {
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9,-1,-1,-1,-1,-1,-1,
+  -1,10,11,12,13,14,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,10,11,12,13,14,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+};
+
+void hexa_to_ascii(uint8_t *from, char *to, size_t length)
+{
+  int i;
+
+  for(i = 0; i < length; i++) {
+    uint8_t upper = (from[i] & 0xf0) >> 4;
+    uint8_t lower =  from[i] & 0x0f;
+    to[2 * i] = hex_to_ascii_table[upper];
+    to[2 * i + 1] = hex_to_ascii_table[lower];
+  }
+}
+
+int ascii_to_hex(uint8_t *dst, const char *h)
+{
+  const unsigned char *hex = (const unsigned char *) h;
+  unsigned i = 0;
+
+  for (;;) {
+    int high, low;
+
+    while (*hex && isspace(*hex))
+      hex++;
+
+    if (!*hex)
+      return 1;
+
+    high = ascii_to_hex_table[*hex++];
+
+    if (high < 0)
+      return 0;
+
+    while (*hex && isspace(*hex))
+      hex++;
+
+    if (!*hex)
+      return 0;
+
+    low = ascii_to_hex_table[*hex++];
+
+    if (low < 0)
+      return 0;
+
+    dst[i++] = (high << 4) | low;
+  }
+}
+
