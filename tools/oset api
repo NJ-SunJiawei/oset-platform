@@ -100,7 +100,7 @@ session_manager.session_count++;
 oset_apr_mutex_unlock(runtime.session_hash_mutex);
 
 
-
+oai：
 oset_apr_mutex_lock(session->common->profile_mutex);
 oset_event_destroy(&session->common->variables);
 oset_apr_mutex_unlock(session->common->profile_mutex);
@@ -123,10 +123,65 @@ int nas_timer_init(void) 定时器 OAI5g
 ngap_messages_callback oai状态机回调
 f1ap_message_processing_t f1ap_messages_processing[][3] oai状态机回调
 
-    asn::SetOctetString(rrcSetupIEs->masterCellGroup,
-                        rrc::encode::EncodeS(asn_DEF_ASN_RRC_CellGroupConfig, &masterCellGroup));  ueran编解码
-						
-						
-  NR_COMMON_channels_t common_channels[NFAPI_CC_MAX];  oai5g configure
-  static void init_NR_SI(gNB_RRC_INST *rrc, gNB_RrcConfigurationReq *configuration) 
-  rrc->carrier.pdcch_ConfigSIB1 = calloc(1,sizeof(NR_PDCCH_ConfigSIB1_t));
+
+/* send tick to RLC and RRC every ms */
+if ((slot & ((1 << *scc->ssbSubcarrierSpacing) - 1)) == 0) {
+void nr_rlc_tick(int frame, int subframe);
+void nr_pdcp_tick(int frame, int subframe);
+nr_rlc_tick(frame, slot >> *scc->ssbSubcarrierSpacing);
+nr_pdcp_tick(frame, slot >> *scc->ssbSubcarrierSpacing);
+nr_rrc_trigger(&ctxt, 0 /*CC_id*/, frame, slot >> *scc->ssbSubcarrierSpacing);
+}
+
+const NR_TDD_UL_DL_Pattern_t *tdd = scc->tdd_UL_DL_ConfigurationCommon ? &scc->tdd_UL_DL_ConfigurationCommon->pattern1 : NULL;
+
+int nr_slots_period = n;
+int nr_dl_slots = n;
+int nr_ulstart_slot = 0;
+if (tdd) {
+  nr_ulstart_slot = tdd->nrofDownlinkSlots + (tdd->nrofUplinkSymbols == 0);
+  nr_dl_slots = tdd->nrofDownlinkSlots + (tdd->nrofDownlinkSymbols != 0);
+  nr_ulstart_slot = tdd->nrofDownlinkSlots + (tdd->nrofUplinkSymbols == 0);
+  nr_slots_period /= get_nb_periods_per_frame(tdd->dl_UL_TransmissionPeriodicity);
+}
+else
+  // if TDD configuration is not present and the band is not FDD, it means it is a dynamic TDD configuration
+  AssertFatal(RC.nrmac[Mod_idP]->common_channels[0].frame_type == FDD,"Dynamic TDD not handled yet\n");
+
+for (int slot = 0; slot < n; ++slot) {
+  RC.nrmac[Mod_idP]->dlsch_slot_bitmap[slot / 64] |= (uint64_t)((slot % nr_slots_period) < nr_dl_slots) << (slot % 64);
+  RC.nrmac[Mod_idP]->ulsch_slot_bitmap[slot / 64] |= (uint64_t)((slot % nr_slots_period) >= nr_ulstart_slot) << (slot % 64);
+
+  LOG_I(NR_MAC, "In %s: slot %d DL %d UL %d\n",
+		__FUNCTION__,
+		slot,
+		(RC.nrmac[Mod_idP]->dlsch_slot_bitmap[slot / 64] & ((uint64_t)1 << (slot % 64))) != 0,
+		(RC.nrmac[Mod_idP]->ulsch_slot_bitmap[slot / 64] & ((uint64_t)1 << (slot % 64))) != 0);
+}
+
+do_MIB_NR
+
+void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
+                               frame_t frame,
+                               sub_frame_t slot){
+  
+oran：
+void handle_slot_indication(slot_point sl_tx) override  
+void fapi_to_mac_time_msg_translator::on_slot_indication(const fapi::slot_indication_message& msg)
+on_slot_indication
+// > Schedule UE DL and UL data.
+	 ue_sched->run_slot(sl_tx, cell_index);
+	 void ue_scheduler_impl::run_slot(slot_point slot_tx, du_cell_index_t cell_index)
+	 on_tti_boundary
+	 process_symbol
+	 
+void handle_slot_indication(slot_point sl_tx) override
+{
+// Step timers by one millisecond.
+if (sl_tx.to_uint() % get_nof_slots_per_subframe(to_subcarrier_spacing(sl_tx.numerology())) == 0) {
+  timers.tick_all();
+}
+
+// Handle slot indication in MAC & Scheduler.
+mac.get_slot_handler(to_du_cell_index(0)).handle_slot_indication(sl_tx);
+}
