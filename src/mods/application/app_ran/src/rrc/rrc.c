@@ -58,7 +58,7 @@ static int rrc_init(void)
 	}
 
 	oset_list2_for_each(rrc_manager.cfg.cell_list, lnode){
-		rrc_cell_cfg_nr_t *cell =  (rrc_cell_cfg_nr_t *)lnode->data;
+	    rrc_cell_cfg_nr_t *cell =  (rrc_cell_cfg_nr_t *)lnode->data;
 		int ret = du_config_manager_add_cell(cell);
 		ASSERT_IF_NOT(ret == OSET_OK, "Failed to configure NR cell %d", cell.cell_idx);
 	}

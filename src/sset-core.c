@@ -847,7 +847,7 @@ OSET_DECLARE(oset_status_t) sset_core_init(oset_core_flag_t flags, oset_bool_t c
 
     /*timer */
 
-	//runtime.hb_task_id = oset_scheduler_add_task(oset_epoch_time_now(NULL), heartbeat_callback, "heartbeat", "core", 0, NULL, SSHF_NONE | SSHF_NO_DEL);
+	//runtime.hb_task_id = oset_scheduler_add_task(oset_epoch_time_now(NULL)+100, heartbeat_callback, "heartbeat", "core", 0, NULL, SSHF_NONE | SSHF_NO_DEL);
 	runtime.hb_task_id = oset_scheduler_add_task(runtime.event_heartbeat_interval, heartbeat_callback, "heartbeat", "core", 0, NULL, SSHF_NONE | SSHF_NO_DEL);
 
 	oset_apr_uuid_get(&uuid);

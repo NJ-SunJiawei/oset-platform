@@ -129,7 +129,7 @@ void oset_asn_uint8_to_BIT_STRING(
 void oset_asn_uint32_to_BIT_STRING(
         uint32_t uint32, uint8_t bitsize, BIT_STRING_t *bit_string)
 {
-    char tmp[32];
+    char tmp[32] = {0};
     uint64_t uint64;
     oset_assert(bit_string);
 
@@ -139,6 +139,19 @@ void oset_asn_uint32_to_BIT_STRING(
     oset_asn_buffer_to_BIT_STRING(
             tmp, (bitsize + 7) / 8, (32 - bitsize) % 8, bit_string);
 }
+
+void oset_asn_uint64_to_BIT_STRING(
+		uint64_t uint64, uint8_t bitsize, BIT_STRING_t *bit_string)
+{
+	char tmp[64] = {0};
+	oset_assert(bit_string);
+
+	oset_uint64_to_buffer(
+			uint64 << ((64 - bitsize) % 8), (bitsize + 7) / 8, tmp);
+	oset_asn_buffer_to_BIT_STRING(
+			tmp, (bitsize + 7) / 8, (64 - bitsize) % 8, bit_string);
+}
+
 
 void oset_asn_BIT_STRING_to_uint32(BIT_STRING_t *bit_string, uint32_t *uint32)
 {

@@ -25,7 +25,7 @@ typedef struct {
   //struct mib_s   mib;
   oset_pkbuf_t  *packed_mib;
 
-  ASN_RRC_SIB1_t *sib1;
+  ASN_RRC_BCCH_DL_SCH_Message_t *sib1;
   //struct sib1_s  sib1;
   oset_pkbuf_t  *packed_sib1;
 
@@ -39,6 +39,8 @@ typedef struct {
 typedef struct{
   A_DYN_ARRAY_OF(du_cell_config) cells;//std::vector<std::unique_ptr<du_cell_config> >
 }du_config_manager;
+
+int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node);
 
 
 #ifdef __cplusplus

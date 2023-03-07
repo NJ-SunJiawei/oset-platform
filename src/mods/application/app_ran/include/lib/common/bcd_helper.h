@@ -50,6 +50,16 @@ inline bool mcc_to_string(uint16_t mcc, char* str)
   return true;
 }
 
+inline bool bytes_to_mcc(uint8_t* bytes, uint16_t* mcc)
+{
+  *mcc = 0xF000;
+  *mcc |= (((uint16_t)bytes[0]) << 8u);
+  *mcc |= (((uint16_t)bytes[1]) << 4u);
+  *mcc |= (uint16_t)bytes[2];
+  return true;
+}
+
+
 inline bool mcc_to_bytes(uint16_t mcc, uint8_t* bytes)
 {
   if ((mcc & 0xF000) != 0xF000) {
@@ -108,6 +118,25 @@ inline bool mnc_to_string(uint16_t mnc, char* str)
   return true;
 }
 
+inline bool bytes_to_mnc(uint8_t* bytes, uint16_t* mnc, uint8_t len)
+{
+  if (len != 3 && len != 2) {
+    *mnc = 0;
+    return false;
+  } else if (len == 3) {
+    *mnc = 0xF000;
+    *mnc |= ((uint16_t)bytes[0]) << 8u;
+    *mnc |= ((uint16_t)bytes[1]) << 4u;
+    *mnc |= ((uint16_t)bytes[2]) << 0u;
+  } else if (len == 2) {
+    *mnc = 0xFF00;
+    *mnc |= ((uint16_t)bytes[0]) << 4u;
+    *mnc |= ((uint16_t)bytes[1]) << 0u;
+  }
+  return true;
+}
+
+
 inline bool mnc_to_bytes(uint16_t mnc, uint8_t* bytes, uint8_t* len)
 {
   if ((mnc & 0xF000) != 0xF000) {
@@ -123,6 +152,7 @@ inline bool mnc_to_bytes(uint16_t mnc, uint8_t* bytes, uint8_t* len)
   *len           = count;
   return true;
 }
+
 
 #ifdef __cplusplus
 }

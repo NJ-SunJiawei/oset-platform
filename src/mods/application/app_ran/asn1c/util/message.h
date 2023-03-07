@@ -37,6 +37,19 @@ int oset_asn_uper_decode(const asn_TYPE_descriptor_t *td,
 void oset_asn_free_contexts(const asn_TYPE_descriptor_t *td, void *sptr);
 void oset_asn_free_all(const asn_TYPE_descriptor_t *td, void *sptr);
 
+
+#define asn1cCallocOne(VaR, VaLue) \
+  VaR = CALLOC(1,sizeof(*VaR)); *VaR=VaLue;
+
+#define asn1cCalloc(VaR, lOcPtr) \
+  typeof(VaR) lOcPtr = VaR = CALLOC(1,sizeof(*VaR));
+
+#define asn1cSequenceAdd(VaR, TyPe, lOcPtr) \
+  TyPe *lOcPtr= CALLOC(1,sizeof(TyPe)); \
+  ASN_SEQUENCE_ADD(&VaR,lOcPtr);
+
+
+
 #ifdef __cplusplus
 }
 #endif

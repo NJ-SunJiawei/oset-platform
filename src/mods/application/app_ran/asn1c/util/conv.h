@@ -67,6 +67,9 @@ void oset_asn_uint8_to_BIT_STRING(
 		uint8_t uint8, int unused, BIT_STRING_t *bit_string);
 void oset_asn_uint32_to_BIT_STRING(
         uint32_t uint32, uint8_t bitsize, BIT_STRING_t *bit_string);
+void oset_asn_uint64_to_BIT_STRING(
+		uint64_t uint64, uint8_t bitsize, BIT_STRING_t *bit_string);
+
 void oset_asn_BIT_STRING_to_uint32(BIT_STRING_t *bit_string, uint32_t *uint32);
 
 int oset_asn_BIT_STRING_to_ip(

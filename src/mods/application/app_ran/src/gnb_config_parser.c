@@ -820,18 +820,21 @@ static int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t *cell)
 
   // Configure SearchSpace#1
   cell->pdcch_cfg_common.nof_common_search_space = 1;
-  struct search_space_s *ss1 = &cell.pdcch_cfg_common.common_search_space_list[0];
+
+  struct search_space_s *ss1 = oset_core_alloc(gnb_manager_self()->app_pool, struct search_space_s);
+  byn_array_add(&cell.pdcch_cfg_common.common_search_space_list, ss1);
 
   if (is_sa) {
     // Configure SearchSpace#1 -> CORESET#0
-    struct ctrl_res_set_s *dummy_coreset = &cell->pdcch_cfg_common.common_ctrl_res_set;//?????????
-    make_default_coreset(0, cell->phy_cell.carrier.nof_prb , dummy_coreset);
-    make_default_common_search_space(1, dummy_coreset, ss1);
+    struct ctrl_res_set_s dummy_coreset = {0};//?????????
+    make_default_coreset(0, cell->phy_cell.carrier.nof_prb , &dummy_coreset);
+    make_default_common_search_space(1, &dummy_coreset, ss1);
     ss1->nrof_candidates.aggregation_level1  = (enum aggregation_level1_opts)n0//n0;
     ss1->nrof_candidates.aggregation_level2  = (enum aggregation_level2_opts)n0//n0;
     ss1->nrof_candidates.aggregation_level4  = (enum aggregation_level4_opts)n1//n1;
     ss1->nrof_candidates.aggregation_level8  = (enum aggregation_level8_opts)n0//n0;
     ss1->nrof_candidates.aggregation_level16 = (enum aggregation_level16_opts)n0//n0;
+
   } else {
     // Configure SearchSpace#1 -> CORESET#1
     make_default_common_search_space(1, &cell->pdcch_cfg_common.common_ctrl_res_set, ss1);
