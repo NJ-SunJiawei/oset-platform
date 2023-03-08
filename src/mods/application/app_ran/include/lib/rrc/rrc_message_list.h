@@ -38,6 +38,8 @@
 #include "ASN_RRC_UAC-BarringInfoSetIndex.h"
 #include "ASN_RRC_UAC-BarringPerCat.h"
 #include "ASN_RRC_UAC-BarringPerCatList.h"
+#include "ASN_RRC_CellGroupConfig.h"
+#include "ASN_RRC_LogicalChannelConfig.h"
 
 
 #include "asn1c/util/conv.h"

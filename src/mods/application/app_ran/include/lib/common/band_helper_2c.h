@@ -18,6 +18,7 @@ extern "C" {
 typedef struct band_helper_t band_helper_t;
 
 band_helper_t *band_helper_create(void);
+uint16_t get_band_from_dl_freq_Hz_2c(band_helper_t *band_helper, double freq);
 uint32_t get_ul_arfcn_from_dl_arfcn_2c(band_helper_t *band_helper, uint32_t dl_arfcn);
 srsran_duplex_mode_t get_duplex_mode_2c(band_helper_t *band_helper, uint16_t band);
 uint32_t get_abs_freq_point_a_arfcn_2c(band_helper_t *band_helper, uint32_t nof_prb, uint32_t arfcn);

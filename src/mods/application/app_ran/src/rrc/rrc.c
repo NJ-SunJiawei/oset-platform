@@ -38,6 +38,7 @@ static void rrc_manager_destory(void)
 static int rrc_init(void)
 {
     oset_lnode2_t *lnode = NULL;
+	int ret = OSET_ERROR;
 
 	rrc_manager_init();
 	//todo
@@ -59,9 +60,17 @@ static int rrc_init(void)
 
 	oset_list2_for_each(rrc_manager.cfg.cell_list, lnode){
 	    rrc_cell_cfg_nr_t *cell =  (rrc_cell_cfg_nr_t *)lnode->data;
-		int ret = du_config_manager_add_cell(cell);
+		ret = du_config_manager_add_cell(cell);
 		ASSERT_IF_NOT(ret == OSET_OK, "Failed to configure NR cell %d", cell.cell_idx);
 	}
+
+	rrc_manager.cell_ctxt = oset_core_alloc(rrc_manager.app_pool, sizeof(cell_ctxt_t));
+	ret = fill_master_cell_cfg_from_enb_cfg(rrc_manager.cfg, 0, rrc_manager.cell_ctxt->master_cell_group);
+	ASSERT_IF_NOT(ret == OSET_OK, "Failed to configure MasterCellGroup");
+
+	// derived
+	rrc_manager.slot_dur_ms = 1;
+
 
 	return OSET_OK;
 }

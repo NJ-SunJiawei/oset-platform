@@ -65,7 +65,7 @@ typedef struct phy_manager_s{
 	oset_apr_memory_pool_t *app_pool;
 
 	//txrx				   tx_rx;
-	//srsran_prach_cfg_t   prach_cfg;
+	srsran_prach_cfg_t     prach_cfg;
 	common_cfg_t	       common_cfg;  //from rrc layer cofig
 	phy_common			   workers_common;
 	phy_work_args_t        worker_args;

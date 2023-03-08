@@ -25,8 +25,9 @@ typedef enum { Rx = 0, Tx } direction_t;
 
 typedef struct {
   A_DYN_ARRAY_OF(struct sib_type_and_info_item_c_)	sibs;
-  A_DYN_ARRAY_OF(byte_buffer_t) *sib_buffer;//std::vector<srsran::unique_byte_buffer_t>
-  struct cell_group_cfg_s       master_cell_group;
+  A_DYN_ARRAY_OF(byte_buffer_t)  sib_buffer;//std::vector<srsran::unique_byte_buffer_t>
+  //struct cell_group_cfg_s       master_cell_group;
+  ASN_RRC_CellGroupConfig_t     *master_cell_group;
   phy_cfg_nr_t		            default_phy_ue_cfg_nr;
 }cell_ctxt_t;
 

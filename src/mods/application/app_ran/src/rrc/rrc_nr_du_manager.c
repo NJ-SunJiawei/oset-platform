@@ -38,12 +38,24 @@ int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node)
   oset_free(cell->packed_mib);
 
   // fill SIB1 ASN.1
-  if (fill_sib1_from_enb_cfg(rrc_manager_self()->cfg, cell.sib1) != OSET_OK) {
+  if (fill_sib1_from_enb_cfg(node, cell.sib1) != OSET_OK) {
     oset_error("Couldn't generate SIB1");
     return OSET_ERROR;
   }
   cell->packed_sib1 = oset_rrc_encode(&asn_DEF_ASN_RRC_BCCH_DL_SCH_Message, cell->sib1, true);
   oset_free(cell->packed_sib1);
+
+  // Generate SSB SCS
+  srsran_subcarrier_spacing_t ssb_scs;
+  if (!fill_ssb_pattern_scs(node->phy_cell.carrier, &cell->ssb_pattern, &ssb_scs)) {
+    return OSET_ERROR;
+  }
+  cell->ssb_scs = (enum subcarrier_spacing_e)ssb_scs;
+  cell.ssb_center_freq_hz = node->ssb_freq_hz;
+  cell.dl_freq_hz         = node->phy_cell.carrier.dl_center_frequency_hz;
+  cell.is_standalone      = rrc_manager_self()->cfg.is_standalone;
+
+  byn_array_add(rrc_manager_self()->du_cfg.cells, cell)
 
   return OSET_OK;
 }

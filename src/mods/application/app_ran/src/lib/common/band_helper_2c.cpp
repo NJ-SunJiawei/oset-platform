@@ -17,6 +17,17 @@ band_helper_t *band_helper_create(void)
     return (band_helper_t *) band_helper;
 }
 
+uint16_t get_band_from_dl_freq_Hz_2c(band_helper_t *band_helper, double freq)
+{
+	uint16_t ret = 0;
+
+    if (band_helper == NULL) {
+        return OSET_ERROR;
+    }
+    ret = ((srsran_band_helper *) band_helper)->get_band_from_dl_freq_Hz(freq);
+	return ret;
+}
+
 
 uint32_t get_ul_arfcn_from_dl_arfcn_2c(band_helper_t *band_helper, uint32_t dl_arfcn)
 {

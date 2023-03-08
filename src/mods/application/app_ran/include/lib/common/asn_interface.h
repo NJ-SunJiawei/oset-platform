@@ -476,7 +476,7 @@ struct mac_main_cfg_s {
 
 /**********************************************/
 // RLC-Config
-enum rlc_types_opts { am, um_bi_dir, um_uni_dir_ul, um_uni_dir_dl, /*...*/ nulltype };
+enum rlc_types_opts {nothing, am, um_bi_dir, um_uni_dir_ul, um_uni_dir_dl, /*...*/ nulltype };
 enum max_retx_thres_opts { t1, t2, t3, t4, t6, t8, t16, t32, nulltype };
 enum poll_pdu_opts { p4, p8, p16, p32, p64, p128, p256, pinfinity, nulltype };
 

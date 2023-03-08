@@ -78,12 +78,12 @@ bool dl_channel_emulator(const phy_args_t *params, const phy_cfg_t *cfg)
 static void phy_parse_common_config(const phy_cfg_t *cfg)
 {
 	// PRACH configuration
-	//phy_manager.config_idx       = cfg->prach_cnfg.prach_cfg_info.prach_cfg_idx;
-	//phy_manager.prach_cfg.hs_flag          = cfg->prach_cnfg.prach_cfg_info.high_speed_flag;
-	//phy_manager.prach_cfg.root_seq_idx     = cfg->prach_cnfg.root_seq_idx;
-	//phy_manager.prach_cfg.zero_corr_zone   = cfg->prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg;
-	//phy_manager.prach_cfg.freq_offset      = cfg->prach_cnfg.prach_cfg_info.prach_freq_offset;
-	//phy_manager.prach_cfg.num_ra_preambles =  0;
+	phy_manager.prach_cfg.config_idx       = cfg->prach_cnfg.prach_cfg_info.prach_cfg_idx;
+	phy_manager.prach_cfg.hs_flag          = cfg->prach_cnfg.prach_cfg_info.high_speed_flag;
+	phy_manager.prach_cfg.root_seq_idx     = cfg->prach_cnfg.root_seq_idx;
+	phy_manager.prach_cfg.zero_corr_zone   = cfg->prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg;
+	phy_manager.prach_cfg.freq_offset      = cfg->prach_cnfg.prach_cfg_info.prach_freq_offset;
+	phy_manager.prach_cfg.num_ra_preambles = 0;//???lte
 	// DMRS
 	phy_manager.workers_common.dmrs_pusch_cfg.cyclic_shift        = cfg->pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
 	phy_manager.workers_common.dmrs_pusch_cfg.delta_ss            = cfg->pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch;

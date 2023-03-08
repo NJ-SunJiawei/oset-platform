@@ -549,7 +549,7 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
 
 static void parse_srb(struct rlc_cfg_c* rlc_cfg)
 {
-	rlc_cfg->types = am;
+	rlc_cfg->types = (enum rlc_types_opts)am;
 	struct ul_am_rlc_s* ul_am_rlc = &rlc_cfg->c.am.ul_am_rlc;
 	ul_am_rlc->sn_field_len = (enum sn_field_len_am_opts)size12;//size12
 	ul_am_rlc->sn_field_len_present = true;
