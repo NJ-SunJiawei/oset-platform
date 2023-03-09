@@ -125,6 +125,20 @@ void oset_asn_uint8_to_BIT_STRING(
 	bit_string->buf[0] = uint8;
 }
 
+void oset_asn_uint16_to_BIT_STRING(
+		uint16_t uint16, uint8_t bitsize, BIT_STRING_t *bit_string)
+{
+	char tmp[16] = {0};
+	uint64_t uint64;
+	oset_assert(bit_string);
+
+	uint64 = uint16;
+	oset_uint64_to_buffer(
+			uint64 << ((16 - bitsize) % 8), (bitsize + 7) / 8, tmp);
+	oset_asn_buffer_to_BIT_STRING(
+			tmp, (bitsize + 7) / 8, (16 - bitsize) % 8, bit_string);
+}
+
 
 void oset_asn_uint32_to_BIT_STRING(
         uint32_t uint32, uint8_t bitsize, BIT_STRING_t *bit_string)

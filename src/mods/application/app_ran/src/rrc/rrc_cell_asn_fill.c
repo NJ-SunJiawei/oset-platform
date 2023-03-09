@@ -365,7 +365,7 @@ int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_
 
 	ASN_RRC_MIB_t *mib = mib_pdu->message.choice.mib;
 
-	oset_asn_uint8_to_BIT_STRING(0, 2, &mib->systemFrameNumber);
+	oset_asn_uint8_to_BIT_STRING(0, (8-2), &mib->systemFrameNumber);
 	switch (cell_cfg.phy_cell.carrier.scs) {
 	case srsran_subcarrier_spacing_15kHz:
 	case srsran_subcarrier_spacing_60kHz:
@@ -384,7 +384,7 @@ int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_
 	mib->pdcch_ConfigSIB1.searchSpaceZero = cell_cfg.coreset0_idx;
 	mib->cellBarred                 = ASN_RRC_MIB__cellBarred_notBarred;
 	mib->intraFreqReselection       = ASN_RRC_MIB__intraFreqReselection_allowed;
-	oset_asn_uint8_to_BIT_STRING(0, 7, &mib->spare);// This makes a spare of 1 bits
+	oset_asn_uint8_to_BIT_STRING(0, (8-7), &mib->spare);// This makes a spare of 1 bits
 
 	return OSET_OK;
 }
@@ -462,6 +462,402 @@ void fill_srb(const rrc_nr_cfg_t *cfg, nr_srb srb_id, ASN_RRC_RLC_BearerConfig_t
 	out->mac_LogicalChannelConfig->ul_SpecificParameters->logicalChannelSR_DelayTimerApplied = 0;
 }
 
+/// Fill csi-ResoureConfigToAddModList
+void fill_csi_resource_cfg_to_add(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_CSI_MeasConfig_t *csi_meas_cfg)
+{
+	if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+		csi_meas_cfg->csi_ResourceConfigToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->csi_ResourceConfigToAddModList));
+		for(int i = 0 ; i < 1; i++){
+			asn1cSequenceAdd(csi_meas_cfg->csi_ResourceConfigToAddModList->list, struct ASN_RRC_CSI_ResourceConfig, csi_res_info1);
+			csi_res_info1->csi_ResourceConfigId = 0;
+			csi_res_info1->csi_RS_ResourceSetList.present = ASN_RRC_CSI_ResourceConfig__csi_RS_ResourceSetList_PR_nzp_CSI_RS_SSB;
+			csi_res_info1->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB = CALLOC(1, sizeof(*csi_res_info1->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB));
+			csi_res_info1->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->nzp_CSI_RS_ResourceSetList = CALLOC(1, sizeof(*csi_res_info1->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->nzp_CSI_RS_ResourceSetList));
+			asn1cSequenceAdd(csi_res_info1->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->nzp_CSI_RS_ResourceSetList->list, struct ASN_RRC_NZP_CSI_RS_ResourceSetId_t, nzp_csi_rs1);
+			*nzp_csi_rs1 = 0;
+			csi_res_info1->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->csi_SSB_ResourceSetList = CALLOC(1, sizeof(*csi_res_info1->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->csi_SSB_ResourceSetList));
+			asn1cSequenceAdd(csi_res_info1->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->csi_SSB_ResourceSetList->list, struct ASN_RRC_CSI_SSB_ResourceSetId_t, csi_ssb1);
+			*csi_ssb1 = 0;
+			csi_res_info1->bwp_Id = 0;
+			csi_res_info1->resourceType = ASN_RRC_CSI_ResourceConfig__resourceType_periodic;
+
+			asn1cSequenceAdd(csi_meas_cfg->csi_ResourceConfigToAddModList->list, struct ASN_RRC_CSI_ResourceConfig, csi_res_info2);
+			csi_res_info2->csi_ResourceConfigId = 0;
+			csi_res_info2->csi_RS_ResourceSetList.present = ASN_RRC_CSI_ResourceConfig__csi_RS_ResourceSetList_PR_csi_IM_ResourceSetList;
+			csi_res_info2->csi_RS_ResourceSetList.choice.csi_IM_ResourceSetList = CALLOC(1, sizeof(*csi_res_info2->csi_RS_ResourceSetList.choice.csi_IM_ResourceSetList));
+			asn1cSequenceAdd(csi_res_info2->csi_RS_ResourceSetList.choice.csi_IM_ResourceSetList->list, struct ASN_RRC_CSI_IM_ResourceSetId_t, csi_im);
+			*csi_im = 0;
+			csi_res_info2->bwp_Id = 0;
+			csi_res_info2->resourceType = ASN_RRC_CSI_ResourceConfig__resourceType_periodic;
+
+
+			asn1cSequenceAdd(csi_meas_cfg->csi_ResourceConfigToAddModList->list, struct ASN_RRC_CSI_ResourceConfig, csi_res_info3);
+			csi_res_info3->csi_ResourceConfigId = 2;
+			csi_res_info3->csi_RS_ResourceSetList.present = ASN_RRC_CSI_ResourceConfig__csi_RS_ResourceSetList_PR_nzp_CSI_RS_SSB;
+			csi_res_info3->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB = CALLOC(1, sizeof(*csi_res_info3->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB));
+			csi_res_info3->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->nzp_CSI_RS_ResourceSetList = CALLOC(1, sizeof(*csi_res_info3->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->nzp_CSI_RS_ResourceSetList));
+			asn1cSequenceAdd(csi_res_info3->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->nzp_CSI_RS_ResourceSetList->list, struct ASN_RRC_NZP_CSI_RS_ResourceSetId_t, nzp_csi_rs2);
+			*nzp_csi_rs2 = 0;
+			csi_res_info3->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->csi_SSB_ResourceSetList = CALLOC(1, sizeof(*csi_res_info3->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->csi_SSB_ResourceSetList));
+			asn1cSequenceAdd(csi_res_info3->csi_RS_ResourceSetList.choice.nzp_CSI_RS_SSB->csi_SSB_ResourceSetList->list, struct ASN_RRC_CSI_SSB_ResourceSetId_t, csi_ssb2);
+			*csi_ssb2 = 0;
+			csi_res_info3->bwp_Id = 0;
+			csi_res_info3->resourceType = ASN_RRC_CSI_ResourceConfig__resourceType_periodic;
+		}
+	}
+}
+
+/// Fill lists of NZP-CSI-RS-Resource and NZP-CSI-RS-ResourceSet with gNB config
+void fill_nzp_csi_rs_from_enb_cfg(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_CSI_MeasConfig_t *csi_meas_cfg)
+{
+	ASSERT_IF_NOT(cfg->is_standalone, "Not support NSA now!")
+
+	if (cfg->is_standalone) {
+		if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+			csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList));
+			// item 0
+			asn1cSequenceAdd(csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList->list, struct ASN_RRC_NZP_CSI_RS_Resource, nzp_csi_res0);
+			nzp_csi_res0->nzp_CSI_RS_ResourceId = 0;
+			nzp_csi_res0->resourceMapping.frequencyDomainAllocation.present = ASN_RRC_CSI_RS_ResourceMapping__frequencyDomainAllocation_PR_row2;
+			oset_asn_uint16_to_BIT_STRING(0x800, 12, &nzp_csi_res0->resourceMapping.frequencyDomainAllocation.choice.row2);
+			nzp_csi_res0->resourceMapping.nrofPorts = ASN_RRC_CSI_RS_ResourceMapping__nrofPorts_p1;
+			nzp_csi_res0->resourceMapping.firstOFDMSymbolInTimeDomain = 4;
+			nzp_csi_res0->resourceMapping.cdm_Type = ASN_RRC_CSI_RS_ResourceMapping__cdm_Type_noCDM;
+			nzp_csi_res0->resourceMapping.density.present = ASN_RRC_CSI_RS_ResourceMapping__density_PR_one;
+			nzp_csi_res0->resourceMapping.freqBand.startingRB = 0;
+			nzp_csi_res0->resourceMapping.freqBand.nrofRBs = cell_cfg->phy_cell.carrier.nof_prb;
+			nzp_csi_res0->powerControlOffset = 0;
+			asn1cCallocOne(nzp_csi_res0->powerControlOffsetSS, ASN_RRC_NZP_CSI_RS_Resource__powerControlOffsetSS_db0);
+			nzp_csi_res0->scramblingID = cell_cfg->phy_cell.cell_id;
+			nzp_csi_res0->periodicityAndOffset = CALLOC(1,sizeof(struct ASN_RRC_CSI_ResourcePeriodicityAndOffset));
+			nzp_csi_res0->periodicityAndOffset->present = ASN_RRC_CSI_ResourcePeriodicityAndOffset_PR_slots80;
+			nzp_csi_res0->periodicityAndOffset->choice.slots80 = 1;
+			asn1cCallocOne(nzp_csi_res0->qcl_InfoPeriodicCSI_RS, 0);
+			
+			// item 1
+			asn1cSequenceAdd(csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList->list, struct ASN_RRC_NZP_CSI_RS_Resource, nzp_csi_res1);
+			nzp_csi_res1->nzp_CSI_RS_ResourceId = 1;
+			nzp_csi_res1->resourceMapping.frequencyDomainAllocation.present = ASN_RRC_CSI_RS_ResourceMapping__frequencyDomainAllocation_PR_row1;
+			oset_asn_uint8_to_BIT_STRING(0x1, (8-4), &nzp_csi_res1->resourceMapping.frequencyDomainAllocation.choice.row1);
+			nzp_csi_res1->resourceMapping.nrofPorts = ASN_RRC_CSI_RS_ResourceMapping__nrofPorts_p1;
+			nzp_csi_res1->resourceMapping.firstOFDMSymbolInTimeDomain = 4;
+			nzp_csi_res1->resourceMapping.cdm_Type = ASN_RRC_CSI_RS_ResourceMapping__cdm_Type_noCDM;
+			nzp_csi_res1->resourceMapping.density.present = ASN_RRC_CSI_RS_ResourceMapping__density_PR_three;
+			nzp_csi_res1->resourceMapping.freqBand.startingRB = 0;
+			nzp_csi_res1->resourceMapping.freqBand.nrofRBs = cell_cfg->phy_cell.carrier.nof_prb;
+			nzp_csi_res1->powerControlOffset = 0;
+			asn1cCallocOne(nzp_csi_res1->powerControlOffsetSS, ASN_RRC_NZP_CSI_RS_Resource__powerControlOffsetSS_db0);
+			nzp_csi_res1->scramblingID = cell_cfg->phy_cell.cell_id;
+			nzp_csi_res1->periodicityAndOffset = CALLOC(1,sizeof(struct ASN_RRC_CSI_ResourcePeriodicityAndOffset));
+			nzp_csi_res1->periodicityAndOffset->present = ASN_RRC_CSI_ResourcePeriodicityAndOffset_PR_slots40;
+			nzp_csi_res1->periodicityAndOffset->choice.slots40 = 11;
+			asn1cCallocOne(nzp_csi_res1->qcl_InfoPeriodicCSI_RS, 0);
+
+
+			// item 2
+			asn1cSequenceAdd(csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList->list, struct ASN_RRC_NZP_CSI_RS_Resource, nzp_csi_res2);
+			nzp_csi_res2->nzp_CSI_RS_ResourceId = 2;
+			nzp_csi_res2->resourceMapping.frequencyDomainAllocation.present = ASN_RRC_CSI_RS_ResourceMapping__frequencyDomainAllocation_PR_row1;
+			oset_asn_uint8_to_BIT_STRING(0x1, (8-4), &nzp_csi_res2->resourceMapping.frequencyDomainAllocation.choice.row1);
+			nzp_csi_res2->resourceMapping.nrofPorts = ASN_RRC_CSI_RS_ResourceMapping__nrofPorts_p1;
+			nzp_csi_res2->resourceMapping.firstOFDMSymbolInTimeDomain = 8;
+			nzp_csi_res2->resourceMapping.cdm_Type = ASN_RRC_CSI_RS_ResourceMapping__cdm_Type_noCDM;
+			nzp_csi_res2->resourceMapping.density.present = ASN_RRC_CSI_RS_ResourceMapping__density_PR_three;
+			nzp_csi_res2->resourceMapping.freqBand.startingRB = 0;
+			nzp_csi_res2->resourceMapping.freqBand.nrofRBs = cell_cfg->phy_cell.carrier.nof_prb;
+			nzp_csi_res2->powerControlOffset = 0;
+			asn1cCallocOne(nzp_csi_res2->powerControlOffsetSS, ASN_RRC_NZP_CSI_RS_Resource__powerControlOffsetSS_db0);
+			nzp_csi_res2->scramblingID = cell_cfg->phy_cell.cell_id;
+			nzp_csi_res2->periodicityAndOffset = CALLOC(1,sizeof(struct ASN_RRC_CSI_ResourcePeriodicityAndOffset));
+			nzp_csi_res2->periodicityAndOffset->present = ASN_RRC_CSI_ResourcePeriodicityAndOffset_PR_slots40;
+			nzp_csi_res2->periodicityAndOffset->choice.slots40 = 11;
+			asn1cCallocOne(nzp_csi_res2->qcl_InfoPeriodicCSI_RS, 0);
+
+			// item 3
+			asn1cSequenceAdd(csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList->list, struct ASN_RRC_NZP_CSI_RS_Resource, nzp_csi_res3);
+			nzp_csi_res3->nzp_CSI_RS_ResourceId = 3;
+			nzp_csi_res3->resourceMapping.frequencyDomainAllocation.present = ASN_RRC_CSI_RS_ResourceMapping__frequencyDomainAllocation_PR_row1;
+			oset_asn_uint8_to_BIT_STRING(0x1, (8-4), &nzp_csi_res3->resourceMapping.frequencyDomainAllocation.choice.row1);
+			nzp_csi_res3->resourceMapping.nrofPorts = ASN_RRC_CSI_RS_ResourceMapping__nrofPorts_p1;
+			nzp_csi_res3->resourceMapping.firstOFDMSymbolInTimeDomain = 4;
+			nzp_csi_res3->resourceMapping.cdm_Type = ASN_RRC_CSI_RS_ResourceMapping__cdm_Type_noCDM;
+			nzp_csi_res3->resourceMapping.density.present = ASN_RRC_CSI_RS_ResourceMapping__density_PR_three;
+			nzp_csi_res3->resourceMapping.freqBand.startingRB = 0;
+			nzp_csi_res3->resourceMapping.freqBand.nrofRBs = cell_cfg->phy_cell.carrier.nof_prb;
+			nzp_csi_res3->powerControlOffset = 0;
+			asn1cCallocOne(nzp_csi_res3->powerControlOffsetSS, ASN_RRC_NZP_CSI_RS_Resource__powerControlOffsetSS_db0);
+			nzp_csi_res3->scramblingID = cell_cfg->phy_cell.cell_id;
+			nzp_csi_res3->periodicityAndOffset = CALLOC(1,sizeof(struct ASN_RRC_CSI_ResourcePeriodicityAndOffset));
+			nzp_csi_res3->periodicityAndOffset->present = ASN_RRC_CSI_ResourcePeriodicityAndOffset_PR_slots40;
+			nzp_csi_res3->periodicityAndOffset->choice.slots40 = 12;
+			asn1cCallocOne(nzp_csi_res3->qcl_InfoPeriodicCSI_RS, 0);
+
+			// item 4
+			asn1cSequenceAdd(csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList->list, struct ASN_RRC_NZP_CSI_RS_Resource, nzp_csi_res4);
+			nzp_csi_res4->nzp_CSI_RS_ResourceId = 4;
+			nzp_csi_res4->resourceMapping.frequencyDomainAllocation.present = ASN_RRC_CSI_RS_ResourceMapping__frequencyDomainAllocation_PR_row1;
+			oset_asn_uint8_to_BIT_STRING(0x1, (8-4), &nzp_csi_res4->resourceMapping.frequencyDomainAllocation.choice.row1);
+			nzp_csi_res4->resourceMapping.nrofPorts = ASN_RRC_CSI_RS_ResourceMapping__nrofPorts_p1;
+			nzp_csi_res4->resourceMapping.firstOFDMSymbolInTimeDomain = 8;
+			nzp_csi_res4->resourceMapping.cdm_Type = ASN_RRC_CSI_RS_ResourceMapping__cdm_Type_noCDM;
+			nzp_csi_res4->resourceMapping.density.present = ASN_RRC_CSI_RS_ResourceMapping__density_PR_three;
+			nzp_csi_res4->resourceMapping.freqBand.startingRB = 0;
+			nzp_csi_res4->resourceMapping.freqBand.nrofRBs = cell_cfg->phy_cell.carrier.nof_prb;
+			nzp_csi_res4->powerControlOffset = 0;
+			asn1cCallocOne(nzp_csi_res4->powerControlOffsetSS, ASN_RRC_NZP_CSI_RS_Resource__powerControlOffsetSS_db0);
+			nzp_csi_res4->scramblingID = cell_cfg->phy_cell.cell_id;
+			nzp_csi_res4->periodicityAndOffset = CALLOC(1,sizeof(struct ASN_RRC_CSI_ResourcePeriodicityAndOffset));
+			nzp_csi_res4->periodicityAndOffset->present = ASN_RRC_CSI_ResourcePeriodicityAndOffset_PR_slots40;
+			nzp_csi_res4->periodicityAndOffset->choice.slots40 = 12;
+			asn1cCallocOne(nzp_csi_res4->qcl_InfoPeriodicCSI_RS, 0);
+		} else {
+			csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList));
+			// item 0
+			asn1cSequenceAdd(csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList->list, struct ASN_RRC_NZP_CSI_RS_Resource, nzp_csi_res0);
+			nzp_csi_res0->nzp_CSI_RS_ResourceId = 0;
+			nzp_csi_res0->resourceMapping.frequencyDomainAllocation.present = ASN_RRC_CSI_RS_ResourceMapping__frequencyDomainAllocation_PR_row2;
+			oset_asn_uint16_to_BIT_STRING(0b100000000000, 12, &nzp_csi_res0->resourceMapping.frequencyDomainAllocation.choice.row2);
+			nzp_csi_res0->resourceMapping.nrofPorts = ASN_RRC_CSI_RS_ResourceMapping__nrofPorts_p1;
+			nzp_csi_res0->resourceMapping.firstOFDMSymbolInTimeDomain = 4;
+			nzp_csi_res0->resourceMapping.cdm_Type = ASN_RRC_CSI_RS_ResourceMapping__cdm_Type_noCDM;
+			nzp_csi_res0->resourceMapping.density.present = ASN_RRC_CSI_RS_ResourceMapping__density_PR_one;
+			nzp_csi_res0->resourceMapping.freqBand.startingRB = 0;
+			nzp_csi_res0->resourceMapping.freqBand.nrofRBs = cell_cfg->phy_cell.carrier.nof_prb;
+			nzp_csi_res0->powerControlOffset = 0;
+			nzp_csi_res0->periodicityAndOffset = CALLOC(1,sizeof(struct ASN_RRC_CSI_ResourcePeriodicityAndOffset));
+			nzp_csi_res0->periodicityAndOffset->present = ASN_RRC_CSI_ResourcePeriodicityAndOffset_PR_slots80;
+			nzp_csi_res0->periodicityAndOffset->choice.slots80 = 0;
+			asn1cCallocOne(nzp_csi_res0->qcl_InfoPeriodicCSI_RS, 0);
+		}
+
+		// Fill NZP-CSI Resource Sets
+		if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+			csi_meas_cfg->nzp_CSI_RS_ResourceSetToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->nzp_CSI_RS_ResourceSetToAddModList));
+			// item 0
+			asn1cSequenceAdd(csi_meas_cfg->nzp_CSI_RS_ResourceSetToAddModList->list, struct ASN_RRC_NZP_CSI_RS_ResourceSet, nzp_csi_res_set0);
+			nzp_csi_res_set0->nzp_CSI_ResourceSetId = 0;
+			asn1cSequenceAdd(nzp_csi_res_set0->nzp_CSI_RS_Resources.list, ASN_RRC_NZP_CSI_RS_ResourceId_t, nzp_csi_rs_res00);
+			*nzp_csi_rs_res00 = 0;
+			
+			// item 1
+			asn1cSequenceAdd(csi_meas_cfg->nzp_CSI_RS_ResourceSetToAddModList->list, struct ASN_RRC_NZP_CSI_RS_ResourceSet, nzp_csi_res_set1);
+			nzp_csi_res_set1->nzp_CSI_ResourceSetId = 0;
+			asn1cSequenceAdd(nzp_csi_res_set1->nzp_CSI_RS_Resources.list, ASN_RRC_NZP_CSI_RS_ResourceId_t, nzp_csi_rs_res10);
+			*nzp_csi_rs_res10 = 1;
+			asn1cSequenceAdd(nzp_csi_res_set1->nzp_CSI_RS_Resources.list, ASN_RRC_NZP_CSI_RS_ResourceId_t, nzp_csi_rs_res11);
+			*nzp_csi_rs_res11 = 2;
+			asn1cSequenceAdd(nzp_csi_res_set1->nzp_CSI_RS_Resources.list, ASN_RRC_NZP_CSI_RS_ResourceId_t, nzp_csi_rs_res12);
+			*nzp_csi_rs_res12 = 3;
+			asn1cSequenceAdd(nzp_csi_res_set1->nzp_CSI_RS_Resources.list, ASN_RRC_NZP_CSI_RS_ResourceId_t, nzp_csi_rs_res13);
+			*nzp_csi_rs_res13 = 4;
+			//asn1cCallocOne(nzp_csi_res_set1->trs_Info, 0);
+			// Skip TRS info
+		} else {
+			csi_meas_cfg->nzp_CSI_RS_ResourceSetToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->nzp_CSI_RS_ResourceSetToAddModList));
+			// item 0
+			asn1cSequenceAdd(csi_meas_cfg->nzp_CSI_RS_ResourceSetToAddModList->list, struct ASN_RRC_NZP_CSI_RS_ResourceSet, nzp_csi_res_set0);
+			nzp_csi_res_set0->nzp_CSI_ResourceSetId = 0;
+			asn1cSequenceAdd(nzp_csi_res_set0->nzp_CSI_RS_Resources.list, ASN_RRC_NZP_CSI_RS_ResourceId_t, nzp_csi_rs_res00);
+			*nzp_csi_rs_res00 = 0;
+			// Skip TRS info
+		}
+	} 
+}
+
+void fill_csi_im_resource_cfg_to_add(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_CSI_MeasConfig_t *csi_meas_cfg)
+{
+	if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD)
+	{
+		// csi-IM-ResourceToAddModList
+		csi_meas_cfg->csi_IM_ResourceToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->csi_IM_ResourceToAddModList));
+		asn1cSequenceAdd(csi_meas_cfg->csi_IM_ResourceToAddModList->list, struct ASN_RRC_CSI_IM_Resource, csi_im);
+		csi_im->csi_IM_ResourceId = 0;
+		// csi-im-resource pattern1
+		csi_im->csi_IM_ResourceElementPattern = CALLOC(1, sizeof(*csi_im->csi_IM_ResourceElementPattern));
+		csi_im->csi_IM_ResourceElementPattern->present = ASN_RRC_CSI_IM_Resource__csi_IM_ResourceElementPattern_PR_pattern1;
+		csi_im->csi_IM_ResourceElementPattern->choice->pattern1 = CALLOC(1, sizeof(*csi_im->csi_IM_ResourceElementPattern->choice->pattern1));
+		csi_im->csi_IM_ResourceElementPattern->choice.pattern1->subcarrierLocation_p1 = ASN_RRC_CSI_IM_Resource__csi_IM_ResourceElementPattern__pattern1__subcarrierLocation_p1_s8;
+		csi_im->csi_IM_ResourceElementPattern->choice.pattern1->symbolLocation_p1 = 8; //nzpcsi->resourceMapping.firstOFDMSymbolInTimeDomain // same symbol as CSI-RS
+		// csi-im-resource freqBand
+		csi_im->freqBand = CALLOC(1,sizeof(*csi_im->freqBand));
+		csi_im->freqBand->startingRB = 0;
+		csi_im->freqBand->nrofRBs = cell_cfg->phy_cell.carrier.nof_prb;
+		// csi-im-resource periodicity_and_offset
+		csi_im->periodicityAndOffset = CALLOC(1,sizeof(*csi_im->periodicityAndOffset));
+		csi_im->periodicityAndOffset->present = ASN_RRC_CSI_ResourcePeriodicityAndOffset_PR_slots80;//nzpcsi->periodicityAndOffset->present// same period and offset of the associated CSI-RS
+		csi_im->periodicityAndOffset->choice.slots80 = 1;
+
+		// csi-IM-ResourceSetToAddModList
+		csi_meas_cfg->csi_IM_ResourceSetToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->csi_IM_ResourceSetToAddModList));
+		asn1cSequenceAdd(csi_meas_cfg->csi_IM_ResourceSetToAddModList->list, struct ASN_RRC_CSI_IM_ResourceSet, csi_im_set);
+		csi_im_set->csi_IM_ResourceSetId = 0;
+		asn1cSequenceAdd(csi_im_set->csi_IM_Resources.list, struct ASN_RRC_CSI_IM_ResourceId_t, csi_im_rs_id);
+		*csi_im_rs_id = 0;
+  }
+}
+
+/// Fill list of CSI-ReportConfig with gNB config
+int fill_csi_report_from_enb_cfg(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_CSI_MeasConfig_t *csi_meas_cfg)
+{
+	if (cfg->is_standalone) {
+		csi_meas_cfg->csi_ReportConfigToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->csi_ReportConfigToAddModList));
+		asn1cSequenceAdd(csi_meas_cfg->csi_ReportConfigToAddModList->list, struct ASN_RRC_CSI_ReportConfig, csi_rp_cfg);
+		csi_rp_cfg->reportConfigId = 0;
+		csi_rp_cfg->resourcesForChannelMeasurement = 0;
+
+		
+	csi_meas_cfg.csi_report_cfg_to_add_mod_list.resize(1);
+
+	auto& csi_report                               = csi_meas_cfg.csi_report_cfg_to_add_mod_list[0];
+	csi_report.report_cfg_id                       = 0;
+	csi_report.res_for_ch_meas                     = 0;
+	csi_report.csi_im_res_for_interference_present = true;
+	csi_report.csi_im_res_for_interference         = 1;
+	csi_report.report_cfg_type.set_periodic();
+	csi_report.report_cfg_type.periodic().report_slot_cfg.set_slots80();
+	csi_report.report_cfg_type.periodic().pucch_csi_res_list.resize(1);
+	csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].ul_bw_part_id = 0;
+	csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res =
+	    17; // was 17 in orig PCAP, but code for NSA it was set to 1
+	csi_report.report_quant.set_cri_ri_pmi_cqi();
+	// Report freq config (optional)
+	csi_report.report_freq_cfg_present                = true;
+	csi_report.report_freq_cfg.cqi_format_ind_present = true;
+	csi_report.report_freq_cfg.cqi_format_ind.value =
+	    csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi;
+	csi_report.report_freq_cfg.pmi_format_ind_present = true;
+	csi_report.report_freq_cfg.pmi_format_ind.value =
+	    csi_report_cfg_s::report_freq_cfg_s_::pmi_format_ind_opts::wideband_pmi;
+	csi_report.time_restrict_for_ch_meass.value = csi_report_cfg_s::time_restrict_for_ch_meass_opts::not_cfgured;
+	csi_report.time_restrict_for_interference_meass.value =
+	    asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_interference_meass_opts::not_cfgured;
+	csi_report.codebook_cfg_present = true;
+	auto& type1                     = csi_report.codebook_cfg.codebook_type.set_type1();
+	type1.sub_type.set_type_i_single_panel();
+	type1.sub_type.type_i_single_panel().nr_of_ant_ports.set_two();
+	type1.sub_type.type_i_single_panel().nr_of_ant_ports.two().two_tx_codebook_subset_restrict.from_number(0b111111);
+	type1.sub_type.type_i_single_panel().type_i_single_panel_ri_restrict.from_number(0x03);
+	type1.codebook_mode = 1;
+	csi_report.group_based_beam_report.set_disabled();
+	// Skip CQI table (optional)
+	csi_report.cqi_table_present = true;
+	csi_report.cqi_table         = asn1::rrc_nr::csi_report_cfg_s::cqi_table_opts::table1;
+	csi_report.subband_size      = asn1::rrc_nr::csi_report_cfg_s::subband_size_opts::value1;
+
+	if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+	  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 1;
+	} else {
+	  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 7;
+	}
+	} else {
+	csi_meas_cfg.csi_report_cfg_to_add_mod_list.resize(1);
+
+	auto& csi_report                               = csi_meas_cfg.csi_report_cfg_to_add_mod_list[0];
+	csi_report.report_cfg_id                       = 0;
+	csi_report.res_for_ch_meas                     = 0;
+	csi_report.csi_im_res_for_interference_present = true;
+	csi_report.csi_im_res_for_interference         = 1;
+	csi_report.report_cfg_type.set_periodic();
+	csi_report.report_cfg_type.periodic().report_slot_cfg.set_slots80();
+	csi_report.report_cfg_type.periodic().pucch_csi_res_list.resize(1);
+	csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].ul_bw_part_id = 0;
+	csi_report.report_cfg_type.periodic().pucch_csi_res_list[0].pucch_res     = 1; // was 17 in orig PCAP
+	csi_report.report_quant.set_cri_ri_pmi_cqi();
+	// Report freq config (optional)
+	csi_report.report_freq_cfg_present                = true;
+	csi_report.report_freq_cfg.cqi_format_ind_present = true;
+	csi_report.report_freq_cfg.cqi_format_ind = csi_report_cfg_s::report_freq_cfg_s_::cqi_format_ind_opts::wideband_cqi;
+	csi_report.time_restrict_for_ch_meass     = csi_report_cfg_s::time_restrict_for_ch_meass_opts::not_cfgured;
+	csi_report.time_restrict_for_interference_meass =
+	    asn1::rrc_nr::csi_report_cfg_s::time_restrict_for_interference_meass_opts::not_cfgured;
+	csi_report.group_based_beam_report.set_disabled();
+	// Skip CQI table (optional)
+	csi_report.cqi_table_present = true;
+	csi_report.cqi_table         = asn1::rrc_nr::csi_report_cfg_s::cqi_table_opts::table2;
+	csi_report.subband_size      = asn1::rrc_nr::csi_report_cfg_s::subband_size_opts::value1;
+
+	if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+	  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 5;
+	} else {
+	  csi_report.report_cfg_type.periodic().report_slot_cfg.slots80() = 7;
+	}
+	}
+
+	return OSET_OK;
+}
+
+
+/// Fill CSI-MeasConfig with gNB config
+int fill_csi_meas_from_enb_cfg(rrc_nr_cfg_t *cfg, uint32_t cc, ASN_RRC_CSI_MeasConfig_t *csi_meas_cfg)
+{
+	rrc_cell_cfg_nr_t *cell_cfg = oset_list2_find(cfg->cell_list, cc)->data;
+
+	//  // Fill CSI Report
+	//  if (fill_csi_report_from_enb_cfg(cfg, csi_meas_cfg) != OSET_OK) {
+	//    oset_error("Failed to configure eNB CSI Report");
+	//    return OSET_ERROR;
+	//  }
+
+	// Fill CSI resource config
+	fill_csi_resource_cfg_to_add(cfg, cell_cfg, csi_meas_cfg);
+
+	// Fill NZP-CSI Resources
+	fill_nzp_csi_rs_from_enb_cfg(cfg, cell_cfg, csi_meas_cfg);
+
+	if (cfg->is_standalone) {
+		// CSI IM config
+		fill_csi_im_resource_cfg_to_add(cfg, cell_cfg, csi_meas_cfg);
+
+		// CSI report config
+		fill_csi_report_from_enb_cfg(cfg, cell_cfg, csi_meas_cfg);
+	}
+
+	return OSET_OK;
+}
+
+
+/// Fill ServingCellConfig with gNB config
+int fill_serv_cell_from_enb_cfg(rrc_nr_cfg_t *cfg, uint32_t cc, ASN_RRC_ServingCellConfig_t *serv_cell)
+{
+	serv_cell->csi_MeasConfig = CALLOC(1, sizeof(struct ASN_RRC_SetupRelease_CSI_MeasConfig));
+	serv_cell->csi_MeasConfig->present = ASN_RRC_SetupRelease_CSI_MeasConfig_PR_setup;
+	serv_cell->csi_MeasConfig->choice->setup = CALLOC(1, sizeof(struct ASN_RRC_CSI_MeasConfig));
+	HANDLE_ERROR(fill_csi_meas_from_enb_cfg(cfg, cc, serv_cell->csi_MeasConfig->choice->setup));
+
+
+
+	serv_cell.init_dl_bwp_present = true;
+	fill_init_dl_bwp_from_enb_cfg(cfg, cc, serv_cell.init_dl_bwp);
+
+	serv_cell.first_active_dl_bwp_id_present = true;
+	if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+	serv_cell.first_active_dl_bwp_id = 0;
+	} else {
+	serv_cell.first_active_dl_bwp_id = 1;
+	}
+
+	serv_cell.ul_cfg_present = true;
+	fill_ul_cfg_from_enb_cfg(cfg, cc, serv_cell.ul_cfg);
+
+	// TODO: remaining fields
+
+	return OSET_OK;
+}
+
+
+/// Fill spCellConfig with gNB config
+int fill_sp_cell_cfg_from_enb_cfg(rrc_nr_cfg_t *cfg, uint32_t cc, ASN_RRC_SpCellConfig_t *sp_cell)
+{
+	if (!cfg->is_standalone) {
+		//sp_cell->reconfigurationWithSync = CALLOC(1, sizeof(struct ASN_RRC_ReconfigurationWithSync));
+		//HANDLE_ERROR(fill_recfg_with_sync_from_enb_cfg(cfg, cc, sp_cell->reconfigurationWithSync));
+	}
+
+	sp_cell->spCellConfigDedicated = CALLOC(1, sizeof(struct ASN_RRC_ServingCellConfig));
+	HANDLE_ERROR(fill_serv_cell_from_enb_cfg(cfg, cc, sp_cell->spCellConfigDedicated));
+
+	return OSET_OK;
+}
 
 /// Fill MasterCellConfig with gNB config
 int fill_master_cell_cfg_from_enb_cfg(rrc_nr_cfg_t *cfg, uint32_t cc, ASN_RRC_CellGroupConfig_t *out)
@@ -491,37 +887,38 @@ int fill_master_cell_cfg_from_enb_cfg(rrc_nr_cfg_t *cfg, uint32_t cc, ASN_RRC_Ce
 	out->mac_CellGroupConfig->bsr_Config->periodicBSR_Timer = ASN_RRC_BSR_Config__periodicBSR_Timer_sf32;
 	out->mac_CellGroupConfig->bsr_Config->retxBSR_Timer = ASN_RRC_BSR_Config__retxBSR_Timer_sf320;
 
+    out->mac_CellGroupConfig->tag_Config = CALLOC(1, sizeof(struct ASN_RRC_TAG_Config));
+    out->mac_CellGroupConfig->tag_Config->tag_ToAddModList = CALLOC(1, sizeof(*out->mac_CellGroupConfig->tag_Config->tag_ToAddModList));
+	for(int i = 0; i < 1; i++){
+		asn1cSequenceAdd(out->mac_CellGroupConfig->tag_Config->tag_ToAddModList->list,
+						struct ASN_RRC_TAG, rrc_tag);
+		rrc_tag->tag_Id = 0;
+		rrc_tag->timeAlignmentTimer = ASN_RRC_TimeAlignmentTimer_infinity;
+	}
 
+	out->mac_CellGroupConfig->phr_Config = CALLOC(1, sizeof(struct ASN_RRC_SetupRelease_PHR_Config));
+	out->mac_CellGroupConfig->phr_Config->present = ASN_RRC_SetupRelease_PHR_Config_PR_setup;
+	out->mac_CellGroupConfig->phr_Config->choice.setup = CALLOC(1, sizeof(struct ASN_RRC_PHR_Config));
+	out->mac_CellGroupConfig->phr_Config->choice.setup->phr_PeriodicTimer = ASN_RRC_PHR_Config__phr_PeriodicTimer_sf500;
+	out->mac_CellGroupConfig->phr_Config->choice.setup->phr_ProhibitTimer = ASN_RRC_PHR_Config__phr_ProhibitTimer_sf200;
+	out->mac_CellGroupConfig->phr_Config->choice.setup->phr_Tx_PowerFactorChange = ASN_RRC_PHR_Config__phr_Tx_PowerFactorChange_dB3;
+	out->mac_CellGroupConfig->phr_Config->choice.setup->multiplePHR = 0;
+	out->mac_CellGroupConfig->phr_Config->choice.setup->dummy = 0;
+	out->mac_CellGroupConfig->phr_Config->choice.setup->phr_Type2OtherCell = 0;
+	out->mac_CellGroupConfig->phr_Config->choice.setup->phr_ModeOtherCG = ASN_RRC_PHR_Config__phr_ModeOtherCG_real;
+    out->mac_CellGroupConfig->skipUplinkTxDynamic = 0;
 
-	// mac-CellGroupConfig -- Need M
-	out.mac_cell_group_cfg.tag_cfg_present                  = true;
-	out.mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list.resize(1);
-	out.mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[0].tag_id                 = 0;
-	out.mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[0].time_align_timer.value = time_align_timer_opts::infinity;
-	out.mac_cell_group_cfg.phr_cfg_present                                       = true;
-	phr_cfg_s& phr                            = out.mac_cell_group_cfg.phr_cfg.set_setup();
-	phr.phr_periodic_timer.value              = asn1::rrc_nr::phr_cfg_s::phr_periodic_timer_opts::sf500;
-	phr.phr_prohibit_timer.value              = asn1::rrc_nr::phr_cfg_s::phr_prohibit_timer_opts::sf200;
-	phr.phr_tx_pwr_factor_change.value        = asn1::rrc_nr::phr_cfg_s::phr_tx_pwr_factor_change_opts::db3;
-	phr.multiple_phr                          = false;
-	phr.dummy                                 = false;
-	phr.phr_type2_other_cell                  = false;
-	phr.phr_mode_other_cg.value               = asn1::rrc_nr::phr_cfg_s::phr_mode_other_cg_opts::real;
-	out.mac_cell_group_cfg.skip_ul_tx_dynamic = false;
-	out.mac_cell_group_cfg.phr_cfg_present    = false; // Note: not supported
 
 	// physicalCellGroupConfig -- Need M
-	out.phys_cell_group_cfg_present          = true;
-	out.phys_cell_group_cfg.p_nr_fr1_present = true;
-	out.phys_cell_group_cfg.p_nr_fr1         = 10;
-	out.phys_cell_group_cfg.pdsch_harq_ack_codebook.value =
-	  phys_cell_group_cfg_s::pdsch_harq_ack_codebook_opts::dynamic_value;
+	out->physicalCellGroupConfig = CALLOC(1, sizeof(struct ASN_RRC_PhysicalCellGroupConfig));
+	asn1cCallocOne(out->physicalCellGroupConfig->p_NR_FR1, 10);
+	out->physicalCellGroupConfig->pdsch_HARQ_ACK_Codebook = ASN_RRC_PhysicalCellGroupConfig__pdsch_HARQ_ACK_Codebook_dynamic;
 
 	// spCellConfig -- Need M
-	out.sp_cell_cfg_present = true;
-	fill_sp_cell_cfg_from_enb_cfg(cfg, cc, out.sp_cell_cfg);
+	out->spCellConfig  = CALLOC(1, sizeof(struct ASN_RRC_SpCellConfig));
+	fill_sp_cell_cfg_from_enb_cfg(cfg, cc, out->spCellConfig);
 
-	return SRSRAN_SUCCESS;
+	return OSET_OK;
 }
 
 

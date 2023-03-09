@@ -65,6 +65,8 @@ void oset_asn_buffer_to_BIT_STRING(
         void *buf, int size, int unused, BIT_STRING_t *bit_string);
 void oset_asn_uint8_to_BIT_STRING(
 		uint8_t uint8, int unused, BIT_STRING_t *bit_string);
+void oset_asn_uint16_to_BIT_STRING(
+		uint16_t uint16, uint8_t bitsize, BIT_STRING_t *bit_string);
 void oset_asn_uint32_to_BIT_STRING(
         uint32_t uint32, uint8_t bitsize, BIT_STRING_t *bit_string);
 void oset_asn_uint64_to_BIT_STRING(
