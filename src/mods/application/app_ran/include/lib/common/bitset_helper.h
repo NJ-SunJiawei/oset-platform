@@ -29,7 +29,7 @@ typedef struct {
 	size_t   N;
 	word_t  *buffer;
 	size_t  cur_size;
-}bounded_bitset;
+}bounded_bitset;//= asn1c BIT_STRING_t
 
 
 void bit_init(bounded_bitset *bit, size_t N, bool reversed = false);

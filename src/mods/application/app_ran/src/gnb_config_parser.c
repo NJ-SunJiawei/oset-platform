@@ -359,7 +359,7 @@ static void make_default_coreset(uint8_t coreset_id, uint32_t nof_prb, struct ct
   }
   coreset->dur = 1;
   coreset->cce_reg_map_type.types = non_interleaved;
-  coreset->precoder_granularity.value = same_as_reg_bundle;
+  coreset->precoder_granularity = same_as_reg_bundle;
 }
 
 static uint32_t coreset_get_bw(struct ctrl_res_set_s* coreset)
@@ -428,15 +428,17 @@ static void generate_default_nr_cell(rrc_cell_cfg_nr_t* cell)
 
   // PDCCH
   // - Add CORESET#2 as UE-specific
-  cell->pdcch_cfg_ded.nof_ctrl_res_set_to_add_mod = 1;
-  struct ctrl_res_set_s *coreset2 = &cell.pdcch_cfg_ded.ctrl_res_set_to_add_mod_list[0];
-  make_default_coreset(2, cell.phy_cell.carrier.nof_prb, coreset2);
+  //cell->pdcch_cfg_ded.nof_ctrl_res_set_to_add_mod = 1;
+  struct ctrl_res_set_s *coreset2 = oset_core_alloc(gnb_manager_self()->app_pool, sizeof(struct ctrl_res_set_s));
+  make_default_coreset(2, cell->phy_cell.carrier.nof_prb, coreset2);
+  byn_array_add(cell->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list, coreset2)
 
   // - Add SearchSpace#2 as UE-specific -> CORESET#2
-  cell->pdcch_cfg_ded.nof_search_spaces_to_add_mod = 1;
-  struct search_space_s *ss2   = &cell.pdcch_cfg_ded.search_spaces_to_add_mod_list[0];
+  //cell->pdcch_cfg_ded.nof_search_spaces_to_add_mod = 1;
+  struct search_space_s *ss2 = oset_core_alloc(gnb_manager_self()->app_pool, sizeof(struct search_space_s));
   make_default_common_search_space(2, coreset2, ss2);
-  ss2.search_space_type.c.ue_spec.dci_formats = formats0_minus0_and_minus1_minus0;
+  ss2->search_space_type.c.ue_spec.dci_formats = formats0_minus0_and_minus1_minus0;
+  byn_array_add(cell->pdcch_cfg_ded.search_spaces_to_add_mod_list, ss2)
 }
 
 
@@ -819,8 +821,7 @@ static int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t *cell)
   }
 
   // Configure SearchSpace#1
-  cell->pdcch_cfg_common.nof_common_search_space = 1;
-
+  //cell->pdcch_cfg_common.nof_common_search_space = 1;
   struct search_space_s *ss1 = oset_core_alloc(gnb_manager_self()->app_pool, struct search_space_s);
   byn_array_add(&cell.pdcch_cfg_common.common_search_space_list, ss1);
 

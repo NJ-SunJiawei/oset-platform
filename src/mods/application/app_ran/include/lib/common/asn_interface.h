@@ -36,7 +36,7 @@ struct interleaved_s_ {
   uint16_t			  shift_idx;
 };
 
-enum types_opts { interleaved, non_interleaved, nulltype };
+enum types_opts {nothing, interleaved, non_interleaved, nulltype };
 struct cce_reg_map_type_c_ {
   enum types_opts types;
   struct interleaved_s_ c;
