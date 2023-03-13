@@ -8,7 +8,7 @@
 ************************************************************************/
 #include "lib/rrc/rrc_message_list.h"
 
-oset_pkbuf_t *oset_rrc_encode(const asn_TYPE_descriptor_t *td, void *message, bool free_all)
+oset_pkbuf_t *oset_rrc_encode(const asn_TYPE_descriptor_t *td, void *message, ASN_STRUCT_FREE_FLAG free_flag)
 {
     oset_pkbuf_t *pkbuf = NULL;
 
@@ -22,7 +22,7 @@ oset_pkbuf_t *oset_rrc_encode(const asn_TYPE_descriptor_t *td, void *message, bo
 		}
 	}
 
-    pkbuf = oset_asn_uper_encode(td, message, free_all);
+    pkbuf = oset_asn_uper_encode(td, message, free_flag);
     oset_expect_or_return_val(pkbuf, NULL);
 
     return pkbuf;

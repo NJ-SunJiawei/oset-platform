@@ -21,11 +21,11 @@ typedef struct {
   uint32_t cc;
   uint32_t pci;
 
-  ASN_RRC_BCCH_BCH_Message_t  *mib;
+  //ASN_RRC_BCCH_BCH_Message_t  *mib;
   //struct mib_s   mib;
   oset_pkbuf_t  *packed_mib;
 
-  ASN_RRC_BCCH_DL_SCH_Message_t *sib1;
+  //ASN_RRC_BCCH_DL_SCH_Message_t *sib1;
   //struct sib1_s  sib1;
   oset_pkbuf_t  *packed_sib1;
 
@@ -41,6 +41,7 @@ typedef struct{
 }du_config_manager;
 
 int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node);
+void fill_phy_pdcch_cfg_common(du_cell_config *cell, srsran_pdcch_cfg_nr_t *pdcch);
 
 
 #ifdef __cplusplus

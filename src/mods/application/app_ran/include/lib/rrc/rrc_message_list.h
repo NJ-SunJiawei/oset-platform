@@ -21,6 +21,7 @@
 #include "ASN_RRC_PDCCH-Config.h"
 #include "ASN_RRC_SchedulingRequestToAddMod.h"
 #include "ASN_RRC_LogicalChannelConfig.h"
+#include "ASN_RRC_SIB-Mapping.h"
 #include "ASN_RRC_SIB-TypeInfo.h"
 #include "ASN_RRC_MIB.h"
 #include "ASN_RRC_SIB1.h"

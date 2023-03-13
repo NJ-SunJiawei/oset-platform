@@ -36,9 +36,9 @@ struct interleaved_s_ {
   uint16_t			  shift_idx;
 };
 
-enum types_opts {nothing, interleaved, non_interleaved, nulltype };
+enum cce_reg_map_types_opts {nothing, interleaved, non_interleaved, nulltype };
 struct cce_reg_map_type_c_ {
-  enum types_opts types;
+  enum cce_reg_map_types_opts types;
   struct interleaved_s_ c;
 };
 
@@ -96,22 +96,22 @@ struct nrof_candidates_s_ {
 struct dci_format0_minus0_and_format1_minus0_s_ {
 };
 
-enum aggregation_level1_opts { n1, n2, nulltype };
-enum aggregation_level2_opts { n1, n2, nulltype };
-enum aggregation_level4_opts { n1, n2, nulltype };
-enum aggregation_level8_opts { n1, n2, nulltype };
-enum aggregation_level16_opts { n1, n2, nulltype };
+enum aggregation_level1_opts2 { n1, n2, nulltype };
+enum aggregation_level2_opts2 { n1, n2, nulltype };
+enum aggregation_level4_opts2 { n1, n2, nulltype };
+enum aggregation_level8_opts2 { n1, n2, nulltype };
+enum aggregation_level16_opts2 { n1, n2, nulltype };
 struct nrof_candidates_sfi_s_ {
   bool					 aggregation_level1_present;
   bool					 aggregation_level2_present;
   bool					 aggregation_level4_present;
   bool					 aggregation_level8_present;
   bool					 aggregation_level16_present;
-  enum aggregation_level1_opts	aggregation_level1;
-  enum aggregation_level2_opts	aggregation_level2;
-  enum aggregation_level4_opts	aggregation_level4;
-  enum aggregation_level8_opts	aggregation_level8;
-  enum aggregation_level16_opts aggregation_level16;
+  enum aggregation_level1_opts2	aggregation_level1;
+  enum aggregation_level2_opts2	aggregation_level2;
+  enum aggregation_level4_opts2	aggregation_level4;
+  enum aggregation_level8_opts2	aggregation_level8;
+  enum aggregation_level16_opts2 aggregation_level16;
 };
 
 struct dci_format2_minus0_s_ {
@@ -154,8 +154,9 @@ struct ue_specific_s_ {
   // ...
 };
 
+enum search_space_types_opts { common, ue_specific, nulltype };
 struct search_space_type_c_ {
-  enum types_opts { common, ue_specific, nulltype } types ;
+  enum search_space_types_opts types ;
   union{
 	 struct common_s_		common;
 	 struct ue_specific_s_	ue_spec;
@@ -1037,6 +1038,7 @@ enum si_periodicity_r12_opts { rf8, rf16, rf32, rf64, rf128, rf256, rf512, nullt
 enum sf_assign_opts { sa0, sa1, sa2, sa3, sa4, sa5, sa6, nulltype };
 enum special_sf_patterns_opts { ssp0, ssp1, ssp2, ssp3, ssp4, ssp5, ssp6, ssp7, ssp8, nulltype };
 enum sib_type_opts {
+  sib_type2,
   sib_type3,
   sib_type4,
   sib_type5,
@@ -1143,7 +1145,7 @@ struct sib_type1_s {
   int8_t                      p_max;//-30
   uint8_t                     freq_band_ind;//1
   uint8_t                     nof_sched_info;//1
-  sched_info_s                sched_info_list[32];//SchedulingInfoList ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfo
+  struct sched_info_s         sched_info_list[32];//dyn_array<sched_info_s>;//SchedulingInfoList ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfo
   struct tdd_cfg_s            tdd_cfg;
   enum si_win_len_opts        si_win_len;
   uint8_t                     sys_info_value_tag;//0

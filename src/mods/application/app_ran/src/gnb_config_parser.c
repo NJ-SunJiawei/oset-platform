@@ -291,15 +291,15 @@ static void parse_sib1(char* filename, struct sib_type1_s* data)
 	sib_type3->type = ASN_RRC_SIB_TypeInfo__type_sibType3;
 	ASN_SEQUENCE_ADD(&schedulingInfo->sib_MappingInfo.list,sib_type3);*/
 	
-    data->cell_access_related_info.intra_freq_resel = allowed;
+    data->cell_access_related_info.intra_freq_resel = (enum intra_freq_resel_opts)allowed;
 	data->cell_sel_info.q_rx_lev_min = -65;
-	data->cell_access_related_info.cell_barred = not_barred;
-	data->si_win_len = ms20;
+	data->cell_access_related_info.cell_barred = (enum cell_barred_opts)not_barred;
+	data->si_win_len = (enum si_win_len_opts)ms20;
 	data->sys_info_value_tag = 0;
 	data->nof_sched_info = 1;//At least one
-	data->sched_info_list[0].si_periodicity = rf16;//At least one
+	data->sched_info_list[0].si_periodicity = (enum si_periodicity_r12_opts)rf16;//At least one
 	data->sched_info_list[0].nof_sib_map = 1;
-	data->sched_info_list[0].sib_map_info[0] = sib_type3;//Optional
+	data->sched_info_list[0].sib_map_info[0] = (enum sib_type_opts)sib_type2;//Optional
 }
 
 static int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_config_common)
@@ -401,6 +401,7 @@ static void make_default_common_search_space(uint8_t ss_id, struct ctrl_res_set_
   memset(&ss->monitoring_symbols_within_slot[0], 0, 2);
   bitstring_from_number(&ss->monitoring_symbols_within_slot[0], 0b10000000000000, 14);
   ss->search_space_type_present                                                = true;
+  ss->search_space_type = (enum search_space_types_opts)common;
   ss->search_space_type.c.common.dci_format0_minus0_and_format1_minus0_present = true;
   ss->nrof_candidates_present                                                  = true;
   uint32_t nof_cand = SRSRAN_MIN(coreset_get_pdcch_nr_max_candidates(cs, 0), 2);
@@ -431,14 +432,15 @@ static void generate_default_nr_cell(rrc_cell_cfg_nr_t* cell)
   //cell->pdcch_cfg_ded.nof_ctrl_res_set_to_add_mod = 1;
   struct ctrl_res_set_s *coreset2 = oset_core_alloc(gnb_manager_self()->app_pool, sizeof(struct ctrl_res_set_s));
   make_default_coreset(2, cell->phy_cell.carrier.nof_prb, coreset2);
-  byn_array_add(cell->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list, coreset2)
+  byn_array_add(&cell->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list, coreset2)
 
   // - Add SearchSpace#2 as UE-specific -> CORESET#2
   //cell->pdcch_cfg_ded.nof_search_spaces_to_add_mod = 1;
   struct search_space_s *ss2 = oset_core_alloc(gnb_manager_self()->app_pool, sizeof(struct search_space_s));
   make_default_common_search_space(2, coreset2, ss2);
+  ss2->search_space_type.types = ue_specific;
   ss2->search_space_type.c.ue_spec.dci_formats = formats0_minus0_and_minus1_minus0;
-  byn_array_add(cell->pdcch_cfg_ded.search_spaces_to_add_mod_list, ss2)
+  byn_array_add(&cell->pdcch_cfg_ded.search_spaces_to_add_mod_list, ss2)
 }
 
 
@@ -823,7 +825,7 @@ static int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t *cell)
   // Configure SearchSpace#1
   //cell->pdcch_cfg_common.nof_common_search_space = 1;
   struct search_space_s *ss1 = oset_core_alloc(gnb_manager_self()->app_pool, struct search_space_s);
-  byn_array_add(&cell.pdcch_cfg_common.common_search_space_list, ss1);
+  byn_array_add(&cell->pdcch_cfg_common.common_search_space_list, ss1);
 
   if (is_sa) {
     // Configure SearchSpace#1 -> CORESET#0

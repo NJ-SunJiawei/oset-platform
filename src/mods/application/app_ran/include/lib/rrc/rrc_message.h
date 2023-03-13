@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-oset_pkbuf_t *oset_rrc_encode(const asn_TYPE_descriptor_t *td, void *message, bool free_all);
+oset_pkbuf_t *oset_rrc_encode(const asn_TYPE_descriptor_t *td, void *message, ASN_STRUCT_FREE_FLAG free_flag);
 int oset_rrc_decode(const asn_TYPE_descriptor_t *td, void *message, oset_pkbuf_t *pkbuf);
 void oset_rrc_free(const asn_TYPE_descriptor_t *td, void *message);
 

@@ -37,7 +37,7 @@ static phy_manager_t phy_manager = {
 	.tti = 0,
 };
 
-rf_manager_t *phy_manager_self(void)
+phy_manager_t *phy_manager_self(void)
 {
 	return &phy_manager;
 }
@@ -191,8 +191,8 @@ static int init_nr(const phy_args_t& args, const phy_cfg_t& cfg)
 
 	/*phy_manager.common_cfg receive from rrc config*/
 	if (set_common_cfg(&phy_manager.common_cfg)) {
-	oset_error("Couldn't set common PHY config");
-	return OSET_ERROR;
+		oset_error("Couldn't set common PHY config");
+		return OSET_ERROR;
 	}
 
 	return OSET_OK;
@@ -232,7 +232,7 @@ bool slot_worker_set_common_cfg(const srsran_carrier_nr_t *carrier,
 }
 
 
-static int set_common_cfg(const common_cfg_t *common_cfg)
+static int set_common_cfg(common_cfg_t *common_cfg)
 {
 	// Best effort to convert NR carrier into LTE cell
 	srsran_cell_t cell = {0};

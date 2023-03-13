@@ -60,11 +60,18 @@ void fill_pdcch_cfg_common(rrc_cell_cfg_nr_t *cell_cfg, struct ASN_RRC_PDCCH_Con
 
 	if(cell_cfg->pdcch_cfg_common.common_ctrl_res_set_present){
         //is_sa no enter
+        // see set_derived_nr_cell_params()
+		/*
+		controlResourceSetZero  searchSpaceZero 分别对应CORESET 0 和SearchSpace 0的配置。
+		具体含义和MIB 中的pdcch-ConfigSIB1 类似（NSA 下需要在此配置，SA下仅在MIB 中配置即可）
+		可以配置额外的CORESET （1-11），不配置时，默认为CORESET 0（SSB 关联）
+		可以配置1-4个搜索空间：searchSpaceSIB1/searchSpaceOtherSystemInformation/pagingSearchSpace/ra-SearchSpace ,都是可选配置，当不配置时，都默认使用SearchSpace 0。
+		*/
 	}
 
 	out->commonSearchSpaceList = CALLOC(1,sizeof(*out->commonSearchSpaceList));
 	//just 1 common_search_space_list
-	struct search_space_s *ss = byn_array_get_data(cell_cfg->pdcch_cfg_common.common_search_space_list, 0);
+	struct search_space_s *ss = byn_array_get_data(&cell_cfg->pdcch_cfg_common.common_search_space_list, 0);
 
 	asn1cSequenceAdd(out->commonSearchSpaceList->list, struct ASN_RRC_SearchSpace, ss1);
 	ss1->searchSpaceId = ss->search_space_id;
@@ -323,8 +330,9 @@ int fill_sib1_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_DL_SCH_Mess
 	cnEstFailCtrl->connEstFailOffset = CALLOC(1,sizeof(long));
 	cnEstFailCtrl->connEstFailOffset = 1;
 
-	//si-SchedulingInfo Todo
-	/*sib1->si_SchedulingInfo = CALLOC(1, sizeof(struct ASN_RRC_SI_SchedulingInfo));
+	//si-SchedulingInfo Todo parse_sib1()
+	sib1->si_SchedulingInfo = CALLOC(1, sizeof(struct ASN_RRC_SI_SchedulingInfo));
+
 	sib1->si_SchedulingInfo->si_RequestConfig = CALLOC(1, sizeof(struct ASN_RRC_SI_RequestConfig));
 	sib1->si_SchedulingInfo->si_RequestConfig->rach_OccasionsSI = CALLOC(1, sizeof(struct ASN_RRC_SI_RequestConfig__rach_OccasionsSI));
 	sib1->si_SchedulingInfo->si_RequestConfig->rach_OccasionsSI->rach_ConfigSI.ra_ResponseWindow = ASN_RRC_RACH_ConfigGeneric__ra_ResponseWindow_sl8;
@@ -338,7 +346,7 @@ int fill_sib1_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_DL_SCH_Mess
 			map->type = ASN_RRC_SIB_TypeInfo__type_sibType2;
 			asn1cCallocOne(map->valueTag, 0);
 		}
-	}*/
+	}
 
 	// servingCellConfigCommon
 	asn1cCalloc(sib1->servingCellConfigCommon,	ServCellCom);
@@ -376,12 +384,12 @@ int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_
 	  mib->subCarrierSpacingCommon = ASN_RRC_MIB__subCarrierSpacingCommon_scs30or120;
 	  break;
 	default:
-	  oset_error("Invalid carrier SCS=%d Hz", SRSRAN_SUBC_SPACING_NR(cell_cfg.phy_cell.carrier.scs));
+	  oset_error("Invalid carrier SCS=%d Hz", SRSRAN_SUBC_SPACING_NR(cell_cfg->phy_cell.carrier.scs));
 	}
-	mib->ssb_SubcarrierOffset       = cell_cfg.ssb_offset;
+	mib->ssb_SubcarrierOffset       = cell_cfg->ssb_offset;
 	mib->dmrs_TypeA_Position        = ASN_RRC_MIB__dmrs_TypeA_Position_pos2;
-	mib->pdcch_ConfigSIB1.controlResourceSetZero = 0;
-	mib->pdcch_ConfigSIB1.searchSpaceZero = cell_cfg.coreset0_idx;
+	mib->pdcch_ConfigSIB1.controlResourceSetZero = cell_cfg->coreset0_idx;
+	mib->pdcch_ConfigSIB1.searchSpaceZero = 0;
 	mib->cellBarred                 = ASN_RRC_MIB__cellBarred_notBarred;
 	mib->intraFreqReselection       = ASN_RRC_MIB__intraFreqReselection_allowed;
 	oset_asn_uint8_to_BIT_STRING(0, (8-7), &mib->spare);// This makes a spare of 1 bits

@@ -11,7 +11,7 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "asn1c-per"
 
-void* oset_asn_new_buffer_per_encode(const asn_TYPE_descriptor_t *td, enum asn_transfer_syntax type, void *sptr, bool free_all)
+void* oset_asn_new_buffer_per_encode(const asn_TYPE_descriptor_t *td, enum asn_transfer_syntax type, void *sptr, ASN_STRUCT_FREE_FLAG free_flag)
 {
     asn_encode_to_new_buffer_result_t res = {0};
     oset_assert(td);
@@ -19,9 +19,9 @@ void* oset_asn_new_buffer_per_encode(const asn_TYPE_descriptor_t *td, enum asn_t
 
     res = asn_encode_to_new_buffer(NULL, type, td, sptr)
 
-    if(free_all){
+    if(free_flag == asn_struct_free_all){
 		oset_asn_free_all(td, sptr);
-	}else{
+	}else if(free_flag == asn_struct_free_context){
 		oset_asn_free_contexts(td, sptr);
 	}
 
@@ -35,7 +35,7 @@ void* oset_asn_new_buffer_per_encode(const asn_TYPE_descriptor_t *td, enum asn_t
 }
 
 
-oset_pkbuf_t *oset_asn_per_encode(const asn_TYPE_descriptor_t *td, enum asn_transfer_syntax type, void *sptr, bool free_all)
+oset_pkbuf_t *oset_asn_per_encode(const asn_TYPE_descriptor_t *td, enum asn_transfer_syntax type, void *sptr, ASN_STRUCT_FREE_FLAG free_flag)
 {
     asn_enc_rval_t enc_ret = {0};
     oset_pkbuf_t *pkbuf = NULL;
@@ -49,9 +49,9 @@ oset_pkbuf_t *oset_asn_per_encode(const asn_TYPE_descriptor_t *td, enum asn_tran
 
     enc_ret = asn_encode_to_buffer(NULL, type, td, sptr, pkbuf->data, OSET_MAX_SDU_LEN)
 
-    if(free_all){
+    if(free_flag == asn_struct_free_all){
 		oset_asn_free_all(td, sptr);
-	}else{
+	}else if(free_flag == asn_struct_free_context){
 		oset_asn_free_contexts(td, sptr);
 	}
 
@@ -91,7 +91,7 @@ int oset_asn_per_decode(const asn_TYPE_descriptor_t *td, enum asn_transfer_synta
 }
 
 
-oset_pkbuf_t *oset_asn_aper_encode(const asn_TYPE_descriptor_t *td, void *sptr, bool free_all)
+oset_pkbuf_t *oset_asn_aper_encode(const asn_TYPE_descriptor_t *td, void *sptr, ASN_STRUCT_FREE_FLAG free_flag)
 {
     asn_enc_rval_t enc_ret = {0};
     oset_pkbuf_t *pkbuf = NULL;
@@ -105,9 +105,9 @@ oset_pkbuf_t *oset_asn_aper_encode(const asn_TYPE_descriptor_t *td, void *sptr, 
 
     enc_ret = aper_encode_to_buffer(td, NULL,
                     sptr, pkbuf->data, OSET_MAX_SDU_LEN);
-    if(free_all){
+    if(free_flag == asn_struct_free_all){
 		oset_asn_free_all(td, sptr);
-	}else{
+	}else if(free_flag == asn_struct_free_context){
 		oset_asn_free_contexts(td, sptr);
 	}
 
@@ -147,7 +147,7 @@ int oset_asn_aper_decode(const asn_TYPE_descriptor_t *td,
     return OSET_OK;
 }
 
-oset_pkbuf_t *oset_asn_uper_encode(const asn_TYPE_descriptor_t *td, void *sptr, bool free_all)
+oset_pkbuf_t *oset_asn_uper_encode(const asn_TYPE_descriptor_t *td, void *sptr, ASN_STRUCT_FREE_FLAG free_flag)
 {
 	asn_enc_rval_t enc_ret = {0};
 	oset_pkbuf_t *pkbuf = NULL;
@@ -161,9 +161,9 @@ oset_pkbuf_t *oset_asn_uper_encode(const asn_TYPE_descriptor_t *td, void *sptr, 
 
 	enc_ret = uper_encode_to_buffer(td, NULL,
 					sptr, pkbuf->data, OSET_MAX_SDU_LEN);
-    if(free_all){
+    if(free_flag == asn_struct_free_all){
 		oset_asn_free_all(td, sptr);
-	}else{
+	}else if(free_flag == asn_struct_free_context){
 		oset_asn_free_contexts(td, sptr);
 	}
 

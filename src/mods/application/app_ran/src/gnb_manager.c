@@ -39,22 +39,33 @@ void gnb_manager_init(void)
 
 void gnb_manager_destory(void)
 {
+
 	gnb_manager.running = false;
 
+	oset_lnode2_t *lnode = NULL;
+	oset_list2_for_each(gnb_manager.rrc_nr_cfg.cell_list, lnode){
+	    rrc_cell_cfg_nr_t * cell = (rrc_cell_cfg_nr_t *)lnode->data;
+		byn_array_empty(&cell->pdcch_cfg_common.common_search_space_list);
+		byn_array_empty(&cell->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list);
+		byn_array_empty(&cell->pdcch_cfg_ded.search_spaces_to_add_mod_list);
+	}
+
 	band_helper_destory(gnb_manager.band_helper);//???
+
 	oset_list2_free(gnb_manager.rrc_nr_cfg.cell_list);
 	oset_list2_free(gnb_manager.rrc_nr_cfg.five_qi_cfg);
 	oset_list2_free(gnb_manager.phy_cfg->phy_cell_cfg_nr);
 
-    oset_timer_mgr_destroy(gnb_manager.app_timer);
+
+	oset_timer_mgr_destroy(gnb_manager.app_timer);
 
 	if (gnb_manager.args.phy.dl_channel_args.enable) {
 		channel_destory(gnb_manager.dl_channel);
-    }
+	}
 
 	if (gnb_manager.args.phy.ul_channel_args.enable) {
 		channel_destory(gnb_manager.ul_channel);
-    }
+	}
 
 	gnb_manager.app_pool = NULL; /*app_pool release by openset process*/
 
@@ -79,13 +90,13 @@ int gnb_layer_tasks_create(void)
 	  return OSET_ERROR;
 	}
 
-	if (OSET_ERROR == task_thread_create(TASK_MAC, NULL)) {
-	  oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "Create task for gNB MAC failed");
+	if (OSET_ERROR == task_thread_create(TASK_RRC, NULL)) {
+	  oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "Create task for gNB RRC failed");
 	  return OSET_ERROR;
 	}
 
-	if (OSET_ERROR == task_thread_create(TASK_RRC, NULL)) {
-	  oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "Create task for gNB RRC failed");
+	if (OSET_ERROR == task_thread_create(TASK_MAC, NULL)) {
+	  oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "Create task for gNB MAC failed");
 	  return OSET_ERROR;
 	}
 
@@ -98,8 +109,8 @@ void gnb_layer_tasks_destory(void)
 {
 	phy_destory();
 	rf_destory();
-	oset_threadplus_destroy(task_map_self(TASK_RRC)->thread);
 	oset_threadplus_destroy(task_map_self(TASK_MAC)->thread);
+	oset_threadplus_destroy(task_map_self(TASK_RRC)->thread);
 	oset_threadplus_destroy(task_map_self(TASK_TIMER)->thread);
 
 }
