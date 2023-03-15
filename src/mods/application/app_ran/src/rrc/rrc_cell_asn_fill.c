@@ -13,37 +13,6 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc"
 
-bool fill_ssb_pattern_scs(srsran_carrier_nr_t *carrier,
-                                  srsran_ssb_pattern_t *pattern,
-                                  srsran_subcarrier_spacing_t *ssb_scs)
-{
-	band_helper_t *band_helper = gnb_manager_self()->band_helper;
-	uint16_t band = get_band_from_dl_freq_Hz_2c(band_helper, carrier->ssb_center_freq_hz);
-	if (band == UINT16_MAX) {
-		oset_error("Invalid band for SSB frequency %.3f MHz", carrier->ssb_center_freq_hz);
-		return false;
-	}
-
-	// TODO: Generalize conversion for other SCS
-	*pattern = get_ssb_pattern_2c(band_helper, band, srsran_subcarrier_spacing_15kHz);
-	if (*pattern == SRSRAN_SSB_PATTERN_A) {
-		*ssb_scs = carrier->scs;
-	} else {
-		// try to optain SSB pattern for same band with 30kHz SCS
-		*pattern = get_ssb_pattern_2c(band_helper, band, srsran_subcarrier_spacing_30kHz);
-		if (*pattern == SRSRAN_SSB_PATTERN_B || *pattern == SRSRAN_SSB_PATTERN_C) {
-		  // SSB SCS is 30 kHz
-		  *ssb_scs = srsran_subcarrier_spacing_30kHz;
-		} else {
-		  oset_error("Can't derive SSB pattern from band %d", band);
-		  return false;
-		}
-	}
-	return true;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
 void fill_pdsch_cfg_common(rrc_cell_cfg_nr_t *cell_cfg, struct ASN_RRC_PDSCH_ConfigCommon *out)
 {
 	out->pdsch_TimeDomainAllocationList = CALLOC(1,sizeof(struct ASN_RRC_PDSCH_TimeDomainResourceAllocationList));
@@ -72,7 +41,7 @@ void fill_pdcch_cfg_common(rrc_cell_cfg_nr_t *cell_cfg, struct ASN_RRC_PDCCH_Con
 	out->commonSearchSpaceList = CALLOC(1,sizeof(*out->commonSearchSpaceList));
 	//just 1 common_search_space_list
 	struct search_space_s *ss = byn_array_get_data(&cell_cfg->pdcch_cfg_common.common_search_space_list, 0);
-
+	//????searchspace #0
 	asn1cSequenceAdd(out->commonSearchSpaceList->list, struct ASN_RRC_SearchSpace, ss1);
 	ss1->searchSpaceId = ss->search_space_id;
 	asn1cCallocOne(ss1->controlResourceSetId, ss->ctrl_res_set_id);
@@ -181,7 +150,7 @@ int fill_rach_cfg_common(rrc_cell_cfg_nr_t *cell_cfg, struct ASN_RRC_RACH_Config
 
     rach->ra_ContentionResolutionTimer = ASN_RRC_RACH_ConfigCommon__ra_ContentionResolutionTimer_sf64;
     rach->prach_RootSequenceIndex.present = ASN_RRC_RACH_ConfigCommon__prach_RootSequenceIndex_PR_l839;
-	rach->prach_RootSequenceIndex.choice.l839 = cell_cfg.prach_root_seq_idx;
+	rach->prach_RootSequenceIndex.choice.l839 = cell_cfg->prach_root_seq_idx;
 	rach->restrictedSetConfig = ASN_RRC_RACH_ConfigCommon__restrictedSetConfig_unrestrictedSet;
 	return OSET_OK;
 }
@@ -891,7 +860,7 @@ int fill_init_dl_bwp_from_enb_cfg(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg
 	//coreset
 	asn1cCalloc(init_dl_bwp->pdcch_Config->choice.setup->controlResourceSetToAddModList, ctl_rsset_add_list);
 	for(int i = 0; i< 1; i++) {
-		struct ctrl_res_set_s *coreset2_data = byn_array_get_data(cell_cfg->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list, i)
+		struct ctrl_res_set_s *coreset2_data = byn_array_get_data(&cell_cfg->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list, i)
 		asn1cSequenceAdd(ctl_rsset_add_list->list, struct ASN_RRC_ControlResourceSet, coreset);
 		coreset->controlResourceSetId = coreset2_data->ctrl_res_set_id;
 		oset_asn_buffer_to_BIT_STRING(coreset2_data->freq_domain_res, 6, 3, &coreset->frequencyDomainResources);
@@ -903,7 +872,7 @@ int fill_init_dl_bwp_from_enb_cfg(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg
 	//searchspace
 	asn1cCalloc(init_dl_bwp->pdcch_Config->choice.setup->searchSpacesToAddModList, ss_add_list);
 	for(int i = 0; i< 1; i++) {
-		struct search_space_s *ss2_data = byn_array_get_data(cell_cfg->pdcch_cfg_ded.search_spaces_to_add_mod_list, i)
+		struct search_space_s *ss2_data = byn_array_get_data(&cell_cfg->pdcch_cfg_ded.search_spaces_to_add_mod_list, i)
 		asn1cSequenceAdd(ss_add_list->list, struct ASN_RRC_SearchSpace, ss);
 		ss->searchSpaceId = ss2_data->search_space_id;
 		asn1cCallocOne(ss->controlResourceSetId, ss2_data->ctrl_res_set_id);

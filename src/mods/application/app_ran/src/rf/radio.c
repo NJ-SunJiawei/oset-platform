@@ -10,7 +10,7 @@
 #include "rf/radio.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "radio"
+#define OSET_LOG2_DOMAIN   "app-gnb-radio"
 
 
 static rf_manager_t rf_manager = {

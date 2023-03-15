@@ -90,6 +90,8 @@ int gnb_layer_tasks_create(void)
 	  return OSET_ERROR;
 	}
 
+	//rrc_init must start before phy, rrc_config_phy()
+	//rrc_init must start before mac, rrc_config_mac()
 	if (OSET_ERROR == task_thread_create(TASK_RRC, NULL)) {
 	  oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "Create task for gNB RRC failed");
 	  return OSET_ERROR;

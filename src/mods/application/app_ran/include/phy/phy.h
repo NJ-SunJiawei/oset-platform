@@ -56,7 +56,7 @@ typedef struct {
 	oset_list2_t            *cell_list_nr;//std::vector<phy_cell_cfg_nr_t>
 	//oset_apr_mutex_t	     *cell_gain_mutex;
 	srsran_cfr_cfg_t        cfr_config;
-	srsran_refsignal_dmrs_pusch_cfg_t dmrs_pusch_cfg;
+	//srsran_refsignal_dmrs_pusch_cfg_t dmrs_pusch_cfg;//???4G
 
 	phy_args_t              params;
 }phy_common;
@@ -65,8 +65,8 @@ typedef struct phy_manager_s{
 	oset_apr_memory_pool_t *app_pool;
 
 	//txrx				   tx_rx;
-	srsran_prach_cfg_t     prach_cfg;
-	common_cfg_t	       common_cfg;  //from rrc layer cofig
+	//srsran_prach_cfg_t     prach_cfg; //???4G
+	common_cfg_t	       common_cfg;  //from rrc layer config
 	phy_common			   workers_common;
 	phy_work_args_t        worker_args;
 

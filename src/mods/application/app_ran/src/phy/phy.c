@@ -78,17 +78,17 @@ bool dl_channel_emulator(const phy_args_t *params, const phy_cfg_t *cfg)
 static void phy_parse_common_config(const phy_cfg_t *cfg)
 {
 	// PRACH configuration
-	phy_manager.prach_cfg.config_idx       = cfg->prach_cnfg.prach_cfg_info.prach_cfg_idx;
-	phy_manager.prach_cfg.hs_flag          = cfg->prach_cnfg.prach_cfg_info.high_speed_flag;
-	phy_manager.prach_cfg.root_seq_idx     = cfg->prach_cnfg.root_seq_idx;
-	phy_manager.prach_cfg.zero_corr_zone   = cfg->prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg;
-	phy_manager.prach_cfg.freq_offset      = cfg->prach_cnfg.prach_cfg_info.prach_freq_offset;
-	phy_manager.prach_cfg.num_ra_preambles = 0;//???lte
+	//phy_manager.prach_cfg.config_idx       = cfg->prach_cnfg.prach_cfg_info.prach_cfg_idx;
+	//phy_manager.prach_cfg.hs_flag          = cfg->prach_cnfg.prach_cfg_info.high_speed_flag;
+	//phy_manager.prach_cfg.root_seq_idx     = cfg->prach_cnfg.root_seq_idx;
+	//phy_manager.prach_cfg.zero_corr_zone   = cfg->prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg;
+	//phy_manager.prach_cfg.freq_offset      = cfg->prach_cnfg.prach_cfg_info.prach_freq_offset;
+	//phy_manager.prach_cfg.num_ra_preambles = 0;//???lte
 	// DMRS
-	phy_manager.workers_common.dmrs_pusch_cfg.cyclic_shift        = cfg->pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
-	phy_manager.workers_common.dmrs_pusch_cfg.delta_ss            = cfg->pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch;
-	phy_manager.workers_common.dmrs_pusch_cfg.group_hopping_en    = cfg->pusch_cnfg.ul_ref_sigs_pusch.group_hop_enabled;
-	phy_manager.workers_common.dmrs_pusch_cfg.sequence_hopping_en = cfg->pusch_cnfg.ul_ref_sigs_pusch.seq_hop_enabled;
+	//phy_manager.workers_common.dmrs_pusch_cfg.cyclic_shift        = cfg->pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
+	//phy_manager.workers_common.dmrs_pusch_cfg.delta_ss            = cfg->pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch;
+	//phy_manager.workers_common.dmrs_pusch_cfg.group_hopping_en    = cfg->pusch_cnfg.ul_ref_sigs_pusch.group_hop_enabled;
+	//phy_manager.workers_common.dmrs_pusch_cfg.sequence_hopping_en = cfg->pusch_cnfg.ul_ref_sigs_pusch.seq_hop_enabled;
 }
 
 static bool init_slot_worker(const slot_worker_args_t *args)
@@ -189,8 +189,8 @@ static int init_nr(const phy_args_t& args, const phy_cfg_t& cfg)
 
 	if(!init_slot_worker(&phy_manager.slot_args)) return OSET_ERROR;
 
-	/*phy_manager.common_cfg receive from rrc config*/
-	if (set_common_cfg(&phy_manager.common_cfg)) {
+	/*phy_manager.common_cfg receive from rrc config  rrc_config_phy()*/
+	if (set_common_cfg_from_rrc(&phy_manager.common_cfg)) {
 		oset_error("Couldn't set common PHY config");
 		return OSET_ERROR;
 	}
@@ -232,7 +232,7 @@ bool slot_worker_set_common_cfg(const srsran_carrier_nr_t *carrier,
 }
 
 
-static int set_common_cfg(common_cfg_t *common_cfg)
+static int set_common_cfg_from_rrc(common_cfg_t *common_cfg)
 {
 	// Best effort to convert NR carrier into LTE cell
 	srsran_cell_t cell = {0};

@@ -16,12 +16,6 @@
 extern "C" {
 #endif
 
-bool fill_ssb_pattern_scs(srsran_carrier_nr_t *carrier,
-                                  srsran_ssb_pattern_t *pattern,
-                                  srsran_subcarrier_spacing_t *ssb_scs);
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
 int fill_sib1_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_DL_SCH_Message_t *sib1_pdu);
 int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_t *mib_pdu);
 int fill_master_cell_cfg_from_enb_cfg(rrc_nr_cfg_t *cfg, uint32_t cc, ASN_RRC_CellGroupConfig_t *out);
