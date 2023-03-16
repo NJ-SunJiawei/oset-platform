@@ -76,7 +76,7 @@ struct monitoring_slot_periodicity_and_offset_c_ {
 	  sl2560,
 	  nulltype
 	} types;
-	void		*c;//pod_choice_buffer_t
+	void	*c;//pod_choice_buffer_t
 };
 
 
@@ -1502,7 +1502,7 @@ enum one_e_ { n4, n8, n12, n16, n20, n24, n28, n32, n36, n40, n44, n48, n52, n56
 enum two_e_ { n4, n8, n12, n16, n20, n24, n28, n32, nulltype };
 struct ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_ {
   enum types { one_eighth, one_fourth, one_half, one, two, four, eight, sixteen, nulltype }    type_;
-  void		*c;//pod_choice_buffer_t
+  int		c;//pod_choice_buffer_t
 };
 
 enum ra_msg3_size_group_a_e_ {
@@ -1535,7 +1535,7 @@ struct group_bcfgured_s_ {
 enum ra_contention_resolution_timer_e_ { sf8, sf16, sf24, sf32, sf40, sf48, sf56, sf64, nulltype };
 struct prach_root_seq_idx_c_ {
   enum types { l839, l139, nulltype } type_;
-  void *c;
+  uint32_t  c;
 };
 
 enum restricted_set_cfg_e_ { unrestricted_set, restricted_set_type_a, restricted_set_type_b, nulltype };

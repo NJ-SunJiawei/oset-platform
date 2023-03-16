@@ -8,7 +8,10 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "lib/common/phy_cfg_nr_default.h"
+#include "rrc/rrc_cell_asn_fill.h"
+#include "rrc/rrc_cell_asn_fill_inner.h"
 #include "rrc/rrc.h"
+
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc"
@@ -46,6 +49,7 @@ int32_t rrc_generate_sibs(uint32_t cc)
 	du_cell_config  *du_cell = byn_array_get_data(&rrc_manager.du_cfg.cells, cc);
 	oset_assert(du_cell);
 
+	//byn_array_add(&rrc_manager.cell_ctxt->sibs, du_cell->sib1);
 	byn_array_add(&rrc_manager.cell_ctxt->sib_buffer, du_cell->packed_sib1);
 
 	//struct ASN_RRC_SIB1_t *sib1 = du_cell->sib1.message.choice.c1->choice.systemInformationBlockType1;
@@ -66,8 +70,8 @@ int32_t rrc_generate_sibs(uint32_t cc)
 
 	oset_pkbuf_t *packed_sib2 = oset_rrc_encode(&asn_DEF_ASN_RRC_BCCH_DL_SCH_Message, sib_pdu, asn_struct_free_all);
 	//oset_free(cell->packed_sib2);
+	//byn_array_add(&rrc_manager.cell_ctxt->sibs, sib_pdu);
 	byn_array_add(&rrc_manager.cell_ctxt->sib_buffer, packed_sib2);
-
 	return OSET_OK;
 }
 
@@ -83,7 +87,6 @@ void rrc_config_phy(uint32_t cc)
 	common_cfg->carrier = rrc_cell_cfg->phy_cell.carrier;
 	//fill pucch
 	fill_phy_pdcch_cfg_common(du_cell, rrc_cell_cfg, &common_cfg->pdcch);
-
 	bool ret = fill_phy_pdcch_cfg(rrc_cell_cfg, &common_cfg->pdcch);
 	ASSERT_IF_NOT(ret, "Failed to generate Dedicated PDCCH config");
 	make_phy_rach_cfg(rrc_cell_cfg, &common_cfg->prach);
@@ -104,15 +107,15 @@ static void get_default_cell_cfg(phy_cfg_nr_t *phy_cfg, sched_nr_cell_cfg_t *cel
 	ss_carrier->offset_to_carrier = phy_cfg->carrier.offset_to_carrier;
 	byn_array_add(&cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, ss_carrier);
 
-
 	cell_cfg->dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing = (enum subcarrier_spacing_e)phy_cfg->carrier.scs;
 	cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common_present = true;
-	fill_rach_cfg_common_inner(&phy_cfg->prach, cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common.set_setup());//fill_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach_cfg_common_s& asn1_type)
+	cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common.type_ = setup;
+	fill_rach_cfg_common_inner(&phy_cfg->prach, &cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common.c);//fill_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach_cfg_common_s& asn1_type)
 	cell_cfg->dl_cell_nof_prb    = phy_cfg->carrier.nof_prb;
 	cell_cfg->nof_layers         = phy_cfg->carrier.max_mimo_layers;
 	cell_cfg->ssb_periodicity_ms = phy_cfg->ssb.periodicity_ms;
-	for (uint32_t i = 0; i < cell_cfg.ssb_positions_in_burst.in_one_group.length(); ++i) {
-	cell_cfg->ssb_positions_in_burst.in_one_group.set(i, phy_cfg.ssb.position_in_burst[i]);
+	for (uint32_t i = 0; i < 8; ++i) {//8bit
+		bit_set(&cell_cfg->ssb_positions_in_burst.in_one_group, i, phy_cfg->ssb.position_in_burst[i]);
 	}
 	// TODO: phy_cfg.ssb_positions_in_burst.group_presence_present
 	cell_cfg->dmrs_type_a_position       = (enum dmrs_type_a_position_e_)pos2;
@@ -120,19 +123,17 @@ static void get_default_cell_cfg(phy_cfg_nr_t *phy_cfg, sched_nr_cell_cfg_t *cel
 	cell_cfg->pdcch_cfg_sib1.ctrl_res_set_zero = 0;
 	cell_cfg->pdcch_cfg_sib1.search_space_zero = 0;
 
-	cell_cfg.bwps.resize(1);
-	cell_cfg.bwps[0].pdcch    = phy_cfg.pdcch;
-	cell_cfg.bwps[0].pdsch    = phy_cfg.pdsch;
-	cell_cfg.bwps[0].pusch    = phy_cfg.pusch;
-	cell_cfg.bwps[0].pucch    = phy_cfg.pucch;
-	cell_cfg.bwps[0].harq_ack = phy_cfg.harq_ack;
-	cell_cfg.bwps[0].rb_width = phy_cfg.carrier.nof_prb;
+	cell_cfg->bwps[4] = {0};
+	cell_cfg->bwps[0].pdcch    = phy_cfg->pdcch;
+	cell_cfg->bwps[0].pdsch    = phy_cfg->pdsch;
+	cell_cfg->bwps[0].pusch    = phy_cfg->pusch;
+	cell_cfg->bwps[0].pucch    = phy_cfg->pucch;
+	cell_cfg->bwps[0].harq_ack = phy_cfg->harq_ack;
+	cell_cfg->bwps[0].rb_width = phy_cfg->carrier.nof_prb;
 
 	if (phy_cfg->duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
-	cell_cfg.tdd_ul_dl_cfg_common.emplace();
-	srsran_assert(srsran::make_phy_tdd_cfg(
-	                  phy_cfg->duplex, srsran_subcarrier_spacing_15kHz, &cell_cfg->tdd_ul_dl_cfg_common.value()),
-	              "Failed to generate TDD config");
+		cell_cfg->tdd_ul_dl_cfg_common = {0};
+		ASSERT_IF_NOT(make_phy_tdd_cfg(phy_cfg->duplex, srsran_subcarrier_spacing_15kHz, &cell_cfg->tdd_ul_dl_cfg_common), "Failed to generate TDD config");
 	}
 }
 
@@ -140,6 +141,8 @@ void rrc_config_mac(uint32_t cc)
 {
 	rrc_cell_cfg_nr_t *rrc_cell_cfg = oset_list2_find(rrc_manager.cfg.cell_list, cc)->data;
 	oset_assert(rrc_cell_cfg);
+	du_cell_config  *du_cell = byn_array_get_data(&rrc_manager.du_cfg.cells, cc);
+	oset_assert(du_cell);
 
 	// Fill MAC scheduler configuration for SIBs
 	// TODO: use parsed cell NR cfg configuration
@@ -165,34 +168,32 @@ void rrc_config_mac(uint32_t cc)
 	sched_nr_cell_cfg_t  *cell = oset_core_alloc(rrc_manager.app_pool, sizeof(sched_nr_cell_cfg_t));
 	get_default_cell_cfg(&phy_cfg, cell);
 	
-
 	// Derive cell config from rrc_nr_cfg_t
-	fill_phy_pdcch_cfg_common(du_cfg->cell(cc), &cell.bwps[0].pdcch);
-	bool ret = srsran::fill_phy_pdcch_cfg(
-	  cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(), &cell.bwps[0].pdcch);
-	srsran_assert(ret, "Failed to generate Dedicated PDCCH config");
-	cell->pci                    = cfg.cell_list[cc].phy_cell.carrier.pci;
-	cell->nof_layers             = cfg.cell_list[cc].phy_cell.carrier.max_mimo_layers;
-	cell->dl_cell_nof_prb        = cfg.cell_list[cc].phy_cell.carrier.nof_prb;
-	cell->ul_cell_nof_prb        = cfg.cell_list[cc].phy_cell.carrier.nof_prb;
-	cell->dl_center_frequency_hz = cfg.cell_list[cc].phy_cell.carrier.dl_center_frequency_hz;
-	cell->ul_center_frequency_hz = cfg.cell_list[cc].phy_cell.carrier.ul_center_frequency_hz;
-	cell->ssb_center_freq_hz     = cfg.cell_list[cc].phy_cell.carrier.ssb_center_freq_hz;
-	cell->dmrs_type_a_position   = du_cfg->cell(cc).mib.dmrs_type_a_position;
-	cell->pdcch_cfg_sib1         = du_cfg->cell(cc).mib.pdcch_cfg_sib1;
+	fill_phy_pdcch_cfg_common(du_cell, rrc_cell_cfg, &cell->bwps[0].pdcch);
+	bool ret = fill_phy_pdcch_cfg(rrc_cell_cfg, &cell->bwps[0].pdcch);
+	ASSERT_IF_NOT(ret, "Failed to generate Dedicated PDCCH config");
+	cell->pci                    = rrc_cell_cfg->phy_cell.carrier.pci;
+	cell->nof_layers             = rrc_cell_cfg->phy_cell.carrier.max_mimo_layers;
+	cell->dl_cell_nof_prb        = rrc_cell_cfg->phy_cell.carrier.nof_prb;
+	cell->ul_cell_nof_prb        = rrc_cell_cfg->phy_cell.carrier.nof_prb;
+	cell->dl_center_frequency_hz = rrc_cell_cfg->phy_cell.carrier.dl_center_frequency_hz;
+	cell->ul_center_frequency_hz = rrc_cell_cfg->phy_cell.carrier.ul_center_frequency_hz;
+	cell->ssb_center_freq_hz     = rrc_cell_cfg->phy_cell.carrier.ssb_center_freq_hz;
+	cell->dmrs_type_a_position   = (enum dmrs_type_a_position_e_)pos2;//ASN_RRC_MIB__dmrs_TypeA_Position_pos2
+	cell->pdcch_cfg_sib1         = du_cell->mib.pdcch_cfg_sib1;
 	if (du_cfg->cell(cc).serv_cell_cfg_common().tdd_ul_dl_cfg_common_present) {
 	cell.tdd_ul_dl_cfg_common.emplace(du_cfg->cell(cc).serv_cell_cfg_common().tdd_ul_dl_cfg_common);
 	}
 	cell.dl_cfg_common       = du_cfg->cell(cc).serv_cell_cfg_common().dl_cfg_common;
 	cell.ul_cfg_common       = du_cfg->cell(cc).serv_cell_cfg_common().ul_cfg_common;
 	cell.ss_pbch_block_power = du_cfg->cell(cc).serv_cell_cfg_common().ss_pbch_block_pwr;
-	bool valid_cfg = srsran::make_pdsch_cfg_from_serv_cell(cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded,
-	                                                     &cell.bwps[0].pdsch);
+	bool valid_cfg = make_pdsch_cfg_from_serv_cell(cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded,
+	                                                     &cell->bwps[0].pdsch);
 	srsran_assert(valid_cfg, "Invalid NR cell configuration.");
 	cell.ssb_positions_in_burst = du_cfg->cell(cc).serv_cell_cfg_common().ssb_positions_in_burst;
 	cell.ssb_periodicity_ms     = du_cfg->cell(cc).serv_cell_cfg_common().ssb_periodicity_serving_cell.to_number();
-	cell.ssb_scs.value          = (subcarrier_spacing_e::options)cfg.cell_list[0].phy_cell.carrier.scs;
-	cell.ssb_offset             = du_cfg->cell(cc).mib.ssb_subcarrier_offset;
+	cell.ssb_scs                = rrc_cell_cfg->phy_cell.carrier.scs;
+	cell.ssb_offset             = du_cell->mib.ssb_subcarrier_offset;
 	if (not cfg.is_standalone) {
 	const serving_cell_cfg_common_s& serv_cell =
 	    cell_ctxt->master_cell_group->sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common;
@@ -296,20 +297,24 @@ static int rrc_init(void)
 static int rrc_destory(void)
 {	
 	int i = 0;
-	//free mib sib1
+	//free mib
 	for(i = 0; i < byn_array_get_count(&rrc_manager.du_cfg.cells), i++){
 		du_cell_config *cell = byn_array_get_data(&rrc_manager.du_cfg.cells, i);
 		oset_free(cell->packed_mib);
+		//oset_asn_free_all(cell->mib);
 	}
 
 	//free sibs
 	for(i = 0; i < byn_array_get_count(&rrc_manager.cell_ctxt->sib_buffer), i++){
 		oset_free(byn_array_get_data(&rrc_manager.cell_ctxt->sib_buffer, i));
 	}
+	//for(i = 0; i < byn_array_get_count(&rrc_manager.cell_ctxt->sibs), i++){
+	//	oset_asn_free_all(byn_array_get_data(&rrc_manager.cell_ctxt->sibs, i));
+	//}
 
 	byn_array_empty(&rrc_manager.du_cfg.cells);
 	byn_array_empty(&rrc_manager.cell_ctxt->sib_buffer);
-	//byn_array_empty(&rrc_manager.cell_ctxt->sibs);
+	byn_array_empty(&rrc_manager.cell_ctxt->sibs);
 
 	//todo
 	rrc_manager_destory();

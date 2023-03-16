@@ -100,7 +100,7 @@ typedef struct {
   struct pdcch_cfg_sib1_s                                pdcch_cfg_sib1;
   int                                                    ss_pbch_block_power;
   // Extras
-  A_DYN_ARRAY_OF(sched_nr_bwp_cfg_t)        bwps; //std::vector<sched_nr_bwp_cfg_t> bwps{1}// idx0 for BWP-common
+  sched_nr_bwp_cfg_t                        bwps[4]; //std::vector<sched_nr_bwp_cfg_t> bwps{1}// idx0 for BWP-common
   A_DYN_ARRAY_OF(sched_nr_cell_cfg_sib_t)   sibs;// std::vector<sched_nr_cell_cfg_sib_t>
   double                               dl_center_frequency_hz;
   double                               ul_center_frequency_hz;

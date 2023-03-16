@@ -22,11 +22,11 @@ typedef struct {
   uint32_t pci;
 
   //ASN_RRC_BCCH_BCH_Message_t  *mib;
-  //struct mib_s   mib;
+  struct mib_s   mib;//inner
   oset_pkbuf_t  *packed_mib;
 
   //ASN_RRC_BCCH_DL_SCH_Message_t *sib1;
-  //struct sib1_s  sib1;
+  struct sib1_s  sib1;//inner
   oset_pkbuf_t  *packed_sib1;
 
   enum subcarrier_spacing_e          ssb_scs;
@@ -43,11 +43,6 @@ typedef struct{
 int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node);
 void fill_phy_pdcch_cfg_common(du_cell_config *cell, srsran_pdcch_cfg_nr_t *pdcch);
 bool fill_phy_pdcch_cfg(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_pdcch_cfg_nr_t *pdcch);
-bool make_phy_rach_cfg(rach_cfg_common_s *asn1_type, srsran_prach_cfg_t *prach_cfg);
-bool fill_ssb_pattern_scs(srsran_carrier_nr_t *carrier,
-                                  srsran_ssb_pattern_t *pattern,
-                                  srsran_subcarrier_spacing_t *ssb_scs);
-bool fill_phy_ssb_cfg(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_ssb_cfg_t *out_ssb);
 
 #ifdef __cplusplus
 }
