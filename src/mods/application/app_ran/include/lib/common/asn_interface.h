@@ -76,7 +76,7 @@ struct monitoring_slot_periodicity_and_offset_c_ {
 	  sl2560,
 	  nulltype
 	} types;
-	//pod_choice_buffer_t c;//???
+	void		*c;//pod_choice_buffer_t
 };
 
 
@@ -216,7 +216,7 @@ struct pdcch_cfg_s {
 };
 
 // PDSCH-ConfigCommon
-struct pdsch_cfg_common_s {
+struct pdsch_cfg_common_lte_s {
   int8_t  ref_sig_pwr;//-60
   uint8_t p_b;//0
 };
@@ -238,14 +238,14 @@ struct ul_ref_sigs_pusch_s {
   uint8_t cyclic_shift;//0
 };
 
-struct pusch_cfg_common_s {
+struct pusch_cfg_common_lte_s {
   struct pusch_cfg_basic_s_  pusch_cfg_basic;
   struct ul_ref_sigs_pusch_s ul_ref_sigs_pusch;
 };
 
 // PUCCH-ConfigCommon
 enum delta_pucch_shift_opts { ds1, ds2, ds3, nulltype };
-struct pucch_cfg_common_s {
+struct pucch_cfg_common_lte_s {
   enum delta_pucch_shift_opts delta_pucch_shift;
   uint8_t			   nrb_cqi;
   uint8_t			   ncs_an;
@@ -260,7 +260,7 @@ struct prach_cfg_info_s {
   uint8_t prach_freq_offset;
 };
 
-struct prach_cfg_sib_s {
+struct prach_cfg_sib_lte_s {
   uint16_t		   root_seq_idx;
   struct prach_cfg_info_s prach_cfg_info;
 };
@@ -287,7 +287,7 @@ enum srs_sf_cfg_opts {
   nulltype
 };
 
-struct srs_ul_cfg_common_c {
+struct srs_ul_cfg_common_lte_c {
   struct setup_s_ {
 	bool		  srs_max_up_pts_present;
 	enum srs_bw_cfg_opts srs_bw_cfg;
@@ -349,7 +349,7 @@ struct pwr_ramp_params_s {
   enum preamb_init_rx_target_pwr_opts preamb_init_rx_target_pwr;
 };
 
-struct rach_cfg_common_s {
+struct rach_cfg_common_lte_s {
   struct preamb_info_s_  preamb_info;
   struct pwr_ramp_params_s		pwr_ramp_params;
   struct ra_supervision_info_s_ ra_supervision_info;
@@ -374,7 +374,7 @@ enum nb_opts {
   nulltype
 };
 
-struct pcch_cfg_s {
+struct pcch_cfg_lte_s {
   enum default_paging_cycle_opts  default_paging_cycle;
   enum nb_opts					  nb;
 };
@@ -396,7 +396,7 @@ struct delta_flist_pucch_s {
   enum delta_f_pucch_format2b_opts delta_f_pucch_format2b;
 };
 
-struct ul_pwr_ctrl_common_s {
+struct ul_pwr_ctrl_common_lte_s {
   int8_t			  p0_nominal_pusch;//-126
   enum alpha_r12_opts alpha;
   int8_t			  p0_nominal_pucch;//-127
@@ -1136,7 +1136,7 @@ struct tdd_cfg_s {
   enum special_sf_patterns_opts special_sf_patterns;
 };
 // SystemInformationBlockType
-struct sib_type1_s {
+struct sib_type1_lte_s {
   bool                        p_max_present;//false
   bool                        tdd_cfg_present;//false
   bool                        non_crit_ext_present;//false
@@ -1183,15 +1183,15 @@ struct freq_info_s_ {
 enum ul_cp_len_opts { len1, len2, nulltype };
 //RadioResourceConfigCommonSIB
 struct rr_cfg_common_sib_s {
-  struct rach_cfg_common_s    rach_cfg_common;
+  struct rach_cfg_common_lte_s    rach_cfg_common;
   struct bcch_cfg_s           bcch_cfg;
-  struct pcch_cfg_s           pcch_cfg;
-  struct prach_cfg_sib_s      prach_cfg;
-  struct pdsch_cfg_common_s   pdsch_cfg_common;
-  struct pusch_cfg_common_s   pusch_cfg_common;
-  struct pucch_cfg_common_s   pucch_cfg_common;
-  struct srs_ul_cfg_common_c  srs_ul_cfg_common;
-  struct ul_pwr_ctrl_common_s ul_pwr_ctrl_common;
+  struct pcch_cfg_lte_s           pcch_cfg;
+  struct prach_cfg_sib_lte_s      prach_cfg;
+  struct pdsch_cfg_common_lte_s   pdsch_cfg_common;
+  struct pusch_cfg_common_lte_s   pusch_cfg_common;
+  struct pucch_cfg_common_lte_s   pucch_cfg_common;
+  struct srs_ul_cfg_common_lte_c  srs_ul_cfg_common;
+  struct ul_pwr_ctrl_common_lte_s ul_pwr_ctrl_common;
   enum ul_cp_len_opts         ul_cp_len;
 };
 
@@ -1234,7 +1234,7 @@ struct mbsfn_sf_cfg_s {
 };
 
 // SystemInformationBlockType2
-struct sib_type2_s {
+struct sib_type2_lte_s {
   bool                   ac_barr_info_present;
   bool                   mbsfn_sf_cfg_list_present;
   struct ac_barr_info_s_ ac_barr_info;
@@ -1325,7 +1325,7 @@ struct intra_freq_cell_resel_info_s_ {
 };
 
 // SystemInformationBlockType3
-struct sib_type3_s {
+struct sib_type3_lte_s {
   struct cell_resel_info_common_s_       cell_resel_info_common;
   struct cell_resel_serving_freq_info_s_ cell_resel_serving_freq_info;
   struct intra_freq_cell_resel_info_s_   intra_freq_cell_resel_info;
@@ -1405,7 +1405,12 @@ struct freq_info_dl_sib_s {
 struct bwp_s {
   bool                 cp_present;
   uint16_t             location_and_bw;
-  subcarrier_spacing_e subcarrier_spacing;
+  enum subcarrier_spacing_e subcarrier_spacing;
+};
+
+// PDSCH-ConfigCommon ::= SEQUENCE
+struct pdsch_cfg_common_s {
+  A_DYN_ARRAY_OF(struct pdsch_time_domain_res_alloc_s) pdsch_time_domain_alloc_list;//dyn_array<pdsch_time_domain_res_alloc_s>
 };
 
 // BWP-DownlinkCommon ::= SEQUENCE
@@ -1413,9 +1418,62 @@ struct bwp_dl_common_s {
   bool                                pdcch_cfg_common_present;
   bool                                pdsch_cfg_common_present;
   struct bwp_s                        generic_params;
-  struct pdcch_cfg_common_s           pdcch_cfg_common;
-  struct pdsch_cfg_common_s           pdsch_cfg_common;
+  setup_release_c(struct pdcch_cfg_common_s) pdcch_cfg_common;
+  setup_release_c(struct pdsch_cfg_common_s) pdsch_cfg_common;
 };
+
+struct nand_paging_frame_offset_c_ {
+  enum types { one_t, half_t, quarter_t, one_eighth_t, one_sixteenth_t, nulltype }	type_;
+  void *c;//pod_choice_buffer_t
+};
+
+enum ns_e_ { four, two, one, nulltype };
+
+typedef uint8_t  scs15_kh_zone_t_l_[4];
+typedef uint16_t scs30_kh_zone_t_scs15_kh_zhalf_t_l_[4];
+typedef uint16_t scs60_kh_zone_t_scs30_kh_zhalf_t_scs15_kh_zquarter_t_l_[4];
+typedef uint16_t scs120_kh_zone_t_scs60_kh_zhalf_t_scs30_kh_zquarter_t_scs15_kh_zone_eighth_t_l_[4];
+typedef uint16_t scs120_kh_zhalf_t_scs60_kh_zquarter_t_scs30_kh_zone_eighth_t_scs15_kh_zone_sixteenth_t_l_[4];
+typedef uint16_t scs120_kh_zquarter_t_scs60_kh_zone_eighth_t_scs30_kh_zone_sixteenth_t_l_[4];
+typedef uint16_t scs120_kh_zone_eighth_t_scs60_kh_zone_sixteenth_t_l_[4];
+typedef uint16_t scs120_kh_zone_sixteenth_t_l_[4];
+struct first_pdcch_monitoring_occasion_of_po_c_ {
+	enum types {
+	  scs15_kh_zone_t,
+	  scs30_kh_zone_t_scs15_kh_zhalf_t,
+	  scs60_kh_zone_t_scs30_kh_zhalf_t_scs15_kh_zquarter_t,
+	  scs120_kh_zone_t_scs60_kh_zhalf_t_scs30_kh_zquarter_t_scs15_kh_zone_eighth_t,
+	  scs120_kh_zhalf_t_scs60_kh_zquarter_t_scs30_kh_zone_eighth_t_scs15_kh_zone_sixteenth_t,
+	  scs120_kh_zquarter_t_scs60_kh_zone_eighth_t_scs30_kh_zone_sixteenth_t,
+	  scs120_kh_zone_eighth_t_scs60_kh_zone_sixteenth_t,
+	  scs120_kh_zone_sixteenth_t,
+	  nulltype
+	} type_;
+  union {
+		  scs120_kh_zhalf_t_scs60_kh_zquarter_t_scs30_kh_zone_eighth_t_scs15_kh_zone_sixteenth_t_l_ scs15_kh_zone_t;
+		  scs120_kh_zone_eighth_t_scs60_kh_zone_sixteenth_t_l_ scs30_kh_zone_t_scs15_kh_zhalf;
+		  scs120_kh_zone_sixteenth_t_l_ scs60_kh_zone_t_scs30_kh_zhalf_t_scs15_kh_zquarter;
+		  scs120_kh_zone_t_scs60_kh_zhalf_t_scs30_kh_zquarter_t_scs15_kh_zone_eighth_t_l_ scs120_kh_zone_t_scs60_kh_zhalf_t_scs30_kh_zquarter_t_scs15_kh_zone_eighth;
+		  scs120_kh_zquarter_t_scs60_kh_zone_eighth_t_scs30_kh_zone_sixteenth_t_l_ scs120_kh_zhalf_t_scs60_kh_zquarter_t_scs30_kh_zone_eighth_t_scs15_kh_zone_sixteenth;
+		  scs15_kh_zone_t_l_ scs120_kh_zquarter_t_scs60_kh_zone_eighth_t_scs30_kh_zone_sixteenth;
+		  scs30_kh_zone_t_scs15_kh_zhalf_t_l_ scs120_kh_zone_eighth_t_scs60_kh_zone_sixteenth;
+		  scs60_kh_zone_t_scs30_kh_zhalf_t_scs15_kh_zquarter_t_l_ scs120_kh_zone_sixteenth;
+	  }c;//choice_buffer_t
+};
+
+// PagingCycle ::= ENUMERATED
+enum paging_cycle_e { rf32, rf64, rf128, rf256, nulltype };
+
+// PCCH-Config ::= SEQUENCE
+struct pcch_cfg_s {
+  // member variables
+  bool                                           first_pdcch_monitoring_occasion_of_po_present;
+  enum  paging_cycle_e                           default_paging_cycle;
+  struct nand_paging_frame_offset_c_             nand_paging_frame_offset;
+  enum ns_e_                                     ns;
+  struct first_pdcch_monitoring_occasion_of_po_c_ first_pdcch_monitoring_occasion_of_po;
+};
+
 
 // DownlinkConfigCommonSIB ::= SEQUENCE
 struct dl_cfg_common_sib_s {
@@ -1424,7 +1482,6 @@ struct dl_cfg_common_sib_s {
   struct bcch_cfg_s         bcch_cfg;
   struct pcch_cfg_s         pcch_cfg;
 };
-
 
 // FrequencyInfoUL-SIB ::= SEQUENCE
 struct freq_info_ul_sib_s {
@@ -1438,15 +1495,105 @@ struct freq_info_ul_sib_s {
   int8_t                        p_max;//-30
 };
 
+enum one_eighth_e_ { n4, n8, n12, n16, n20, n24, n28, n32, n36, n40, n44, n48, n52, n56, n60, n64, nulltype };
+enum one_fourth_e_ { n4, n8, n12, n16, n20, n24, n28, n32, n36, n40, n44, n48, n52, n56, n60, n64, nulltype };
+enum one_half_e_ { n4, n8, n12, n16, n20, n24, n28, n32, n36, n40, n44, n48, n52, n56, n60, n64, nulltype };
+enum one_e_ { n4, n8, n12, n16, n20, n24, n28, n32, n36, n40, n44, n48, n52, n56, n60, n64, nulltype };
+enum two_e_ { n4, n8, n12, n16, n20, n24, n28, n32, nulltype };
+struct ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_ {
+  enum types { one_eighth, one_fourth, one_half, one, two, four, eight, sixteen, nulltype }    type_;
+  void		*c;//pod_choice_buffer_t
+};
+
+enum ra_msg3_size_group_a_e_ {
+  b56,
+  b144,
+  b208,
+  b256,
+  b282,
+  b480,
+  b640,
+  b800,
+  b1000,
+  b72,
+  spare6,
+  spare5,
+  spare4,
+  spare3,
+  spare2,
+  spare1,
+  nulltype
+};
+enum msg_pwr_offset_group_b_e_ { minusinfinity, db0, db5, db8, db10, db12, db15, db18, nulltype };
+struct group_bcfgured_s_ {
+  // member variables
+  enum ra_msg3_size_group_a_e_	 ra_msg3_size_group_a;
+  enum msg_pwr_offset_group_b_e_ msg_pwr_offset_group_b;
+  uint8_t					nof_ra_preambs_group_a;// = 1
+};
+
+enum ra_contention_resolution_timer_e_ { sf8, sf16, sf24, sf32, sf40, sf48, sf56, sf64, nulltype };
+struct prach_root_seq_idx_c_ {
+  enum types { l839, l139, nulltype } type_;
+  void *c;
+};
+
+enum restricted_set_cfg_e_ { unrestricted_set, restricted_set_type_a, restricted_set_type_b, nulltype };
+
+// RACH-ConfigCommon ::= SEQUENCE
+struct rach_cfg_common_s {
+  // member variables
+  bool                                            total_nof_ra_preambs_present;
+  bool                                            ssb_per_rach_occasion_and_cb_preambs_per_ssb_present;
+  bool                                            group_bcfgured_present;
+  bool                                            rsrp_thres_ssb_present;
+  bool                                            rsrp_thres_ssb_sul_present;
+  bool                                            msg1_subcarrier_spacing_present;
+  bool                                            msg3_transform_precoder_present;
+  struct rach_cfg_generic_s                       rach_cfg_generic;
+  uint8_t                                         total_nof_ra_preambs;// = 1
+  struct ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_ ssb_per_rach_occasion_and_cb_preambs_per_ssb;
+  struct group_bcfgured_s_                          group_bcfgured;
+  enum ra_contention_resolution_timer_e_            ra_contention_resolution_timer;
+  uint8_t                                           rsrp_thres_ssb;
+  uint8_t                                           rsrp_thres_ssb_sul;
+  struct prach_root_seq_idx_c_                      prach_root_seq_idx;
+  enum subcarrier_spacing_e                         msg1_subcarrier_spacing;
+  enum restricted_set_cfg_e_                        restricted_set_cfg;
+};
+
+// PUSCH-ConfigCommon ::= SEQUENCE
+struct pusch_cfg_common_s {
+  bool                               group_hop_enabled_transform_precoding_present;
+  bool                               msg3_delta_preamb_present;
+  bool                               p0_nominal_with_grant_present;
+  A_DYN_ARRAY_OF(struct pusch_time_domain_res_alloc_s) pusch_time_domain_alloc_list;//dyn_array<pusch_time_domain_res_alloc_s>;
+  int8_t                             msg3_delta_preamb;
+  int16_t                            p0_nominal_with_grant;
+};
+
+enum pucch_group_hop_e_ { neither, enable, disable, nulltype };
+// PUCCH-ConfigCommon ::= SEQUENCE
+struct pucch_cfg_common_s {
+  // member variables
+  bool               pucch_res_common_present;
+  bool               hop_id_present;
+  bool               p0_nominal_present;
+  uint8_t            pucch_res_common;
+  pucch_group_hop_e_ pucch_group_hop;
+  uint16_t           hop_id;
+  int16_t            p0_nominal;
+};
+
 // BWP-UplinkCommon ::= SEQUENCE
 struct bwp_ul_common_s {
   bool                       rach_cfg_common_present;
   bool                       pusch_cfg_common_present;
   bool                       pucch_cfg_common_present;
   struct bwp_s               generic_params;
-  struct rach_cfg_common_s   rach_cfg_common;
-  struct pusch_cfg_common_s  pusch_cfg_common;
-  struct pucch_cfg_common_s  pucch_cfg_common;
+  setup_release_c(struct rach_cfg_common_s)   rach_cfg_common;
+  setup_release_c(struct pusch_cfg_common_s)  pusch_cfg_common;
+  setup_release_c(struct pucch_cfg_common_s)  pucch_cfg_common;
 };
 
 enum time_align_timer_e { ms500, ms750, ms1280, ms1920, ms2560, ms5120, ms10240, infinity, nulltype };

@@ -92,6 +92,50 @@ void rrc_config_phy(uint32_t cc)
 	ASSERT_IF_NOT(ret, "Failed to generate PHY config");
 }
 
+static void get_default_cell_cfg(phy_cfg_nr_t *phy_cfg, sched_nr_cell_cfg_t *cell_cfg)
+{
+	cell_cfg->pci                    = phy_cfg->carrier.pci;
+	cell_cfg->dl_center_frequency_hz = phy_cfg->carrier.dl_center_frequency_hz;
+	cell_cfg->ul_center_frequency_hz = phy_cfg->carrier.ul_center_frequency_hz;
+	cell_cfg->ssb_center_freq_hz     = phy_cfg->carrier.ssb_center_freq_hz;
+	byn_array_set_bounded(&cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, 1);
+	struct scs_specific_carrier_s *ss_carrier = oset_core_alloc(rrc_manager.app_pool, sizeof(struct scs_specific_carrier_s));
+	ss_carrier->subcarrier_spacing = (enum subcarrier_spacing_e)phy_cfg->carrier.scs;
+	ss_carrier->offset_to_carrier = phy_cfg->carrier.offset_to_carrier;
+	byn_array_add(&cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, ss_carrier);
+
+
+	cell_cfg->dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing = (enum subcarrier_spacing_e)phy_cfg->carrier.scs;
+	cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common_present = true;
+	fill_rach_cfg_common_inner(&phy_cfg->prach, cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common.set_setup());//fill_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach_cfg_common_s& asn1_type)
+	cell_cfg->dl_cell_nof_prb    = phy_cfg->carrier.nof_prb;
+	cell_cfg->nof_layers         = phy_cfg->carrier.max_mimo_layers;
+	cell_cfg->ssb_periodicity_ms = phy_cfg->ssb.periodicity_ms;
+	for (uint32_t i = 0; i < cell_cfg.ssb_positions_in_burst.in_one_group.length(); ++i) {
+	cell_cfg->ssb_positions_in_burst.in_one_group.set(i, phy_cfg.ssb.position_in_burst[i]);
+	}
+	// TODO: phy_cfg.ssb_positions_in_burst.group_presence_present
+	cell_cfg->dmrs_type_a_position       = (enum dmrs_type_a_position_e_)pos2;
+	cell_cfg->ssb_scs                    = (enum subcarrier_spacing_e )phy_cfg->ssb.scs;
+	cell_cfg->pdcch_cfg_sib1.ctrl_res_set_zero = 0;
+	cell_cfg->pdcch_cfg_sib1.search_space_zero = 0;
+
+	cell_cfg.bwps.resize(1);
+	cell_cfg.bwps[0].pdcch    = phy_cfg.pdcch;
+	cell_cfg.bwps[0].pdsch    = phy_cfg.pdsch;
+	cell_cfg.bwps[0].pusch    = phy_cfg.pusch;
+	cell_cfg.bwps[0].pucch    = phy_cfg.pucch;
+	cell_cfg.bwps[0].harq_ack = phy_cfg.harq_ack;
+	cell_cfg.bwps[0].rb_width = phy_cfg.carrier.nof_prb;
+
+	if (phy_cfg->duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
+	cell_cfg.tdd_ul_dl_cfg_common.emplace();
+	srsran_assert(srsran::make_phy_tdd_cfg(
+	                  phy_cfg->duplex, srsran_subcarrier_spacing_15kHz, &cell_cfg->tdd_ul_dl_cfg_common.value()),
+	              "Failed to generate TDD config");
+	}
+}
+
 void rrc_config_mac(uint32_t cc)
 {
 	rrc_cell_cfg_nr_t *rrc_cell_cfg = oset_list2_find(rrc_manager.cfg.cell_list, cc)->data;
@@ -99,31 +143,43 @@ void rrc_config_mac(uint32_t cc)
 
 	// Fill MAC scheduler configuration for SIBs
 	// TODO: use parsed cell NR cfg configuration
-	reference_cfg_t ref_args = {0};
+	//default
+	reference_cfg_t ref_args = {.carrier = R_CARRIER_CUSTOM_10MHZ,
+								.duplex  = R_DUPLEX_TDD_CUSTOM_6_4,
+								.pdcch   = R_PDCCH_CUSTOM_COMMON_SS,
+								.pdsch   = R_PDSCH_DEFAULT,
+								.pusch   = R_PUSCH_DEFAULT,
+								.pucch   = R_PUCCH_CUSTOM_ONE,
+								.harq    = R_HARQ_AUTO,
+								.prach   = R_PRACH_DEFAULT_LTE,};
 	ref_args.duplex = rrc_cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_TDD
 													? R_DUPLEX_TDD_CUSTOM_6_4
 													: R_DUPLEX_FDD;
+
+	//default phy cfg
 	phy_cfg_nr_t  phy_cfg = {0};
 	phy_cfg_nr_default_init(&ref_args, &phy_cfg);
-
-	A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) sched_cells_cfg = {0};
-	get_default_cell_cfg(phy_cfg_nr_default_t{ref_args});
-	sched_nr_cell_cfg_t&             cell = sched_cells_cfg[cc];
+	//A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) sched_cells_cfg = {0};
+	//byn_array_add(&sched_cells_cfg, get_default_cell_cfg(&phy_cfg));
+	//sched_nr_cell_cfg_t  *cell = sched_cells_cfg[cc];
+	sched_nr_cell_cfg_t  *cell = oset_core_alloc(rrc_manager.app_pool, sizeof(sched_nr_cell_cfg_t));
+	get_default_cell_cfg(&phy_cfg, cell);
+	
 
 	// Derive cell config from rrc_nr_cfg_t
 	fill_phy_pdcch_cfg_common(du_cfg->cell(cc), &cell.bwps[0].pdcch);
 	bool ret = srsran::fill_phy_pdcch_cfg(
 	  cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.setup(), &cell.bwps[0].pdcch);
 	srsran_assert(ret, "Failed to generate Dedicated PDCCH config");
-	cell.pci                    = cfg.cell_list[cc].phy_cell.carrier.pci;
-	cell.nof_layers             = cfg.cell_list[cc].phy_cell.carrier.max_mimo_layers;
-	cell.dl_cell_nof_prb        = cfg.cell_list[cc].phy_cell.carrier.nof_prb;
-	cell.ul_cell_nof_prb        = cfg.cell_list[cc].phy_cell.carrier.nof_prb;
-	cell.dl_center_frequency_hz = cfg.cell_list[cc].phy_cell.carrier.dl_center_frequency_hz;
-	cell.ul_center_frequency_hz = cfg.cell_list[cc].phy_cell.carrier.ul_center_frequency_hz;
-	cell.ssb_center_freq_hz     = cfg.cell_list[cc].phy_cell.carrier.ssb_center_freq_hz;
-	cell.dmrs_type_a_position   = du_cfg->cell(cc).mib.dmrs_type_a_position;
-	cell.pdcch_cfg_sib1         = du_cfg->cell(cc).mib.pdcch_cfg_sib1;
+	cell->pci                    = cfg.cell_list[cc].phy_cell.carrier.pci;
+	cell->nof_layers             = cfg.cell_list[cc].phy_cell.carrier.max_mimo_layers;
+	cell->dl_cell_nof_prb        = cfg.cell_list[cc].phy_cell.carrier.nof_prb;
+	cell->ul_cell_nof_prb        = cfg.cell_list[cc].phy_cell.carrier.nof_prb;
+	cell->dl_center_frequency_hz = cfg.cell_list[cc].phy_cell.carrier.dl_center_frequency_hz;
+	cell->ul_center_frequency_hz = cfg.cell_list[cc].phy_cell.carrier.ul_center_frequency_hz;
+	cell->ssb_center_freq_hz     = cfg.cell_list[cc].phy_cell.carrier.ssb_center_freq_hz;
+	cell->dmrs_type_a_position   = du_cfg->cell(cc).mib.dmrs_type_a_position;
+	cell->pdcch_cfg_sib1         = du_cfg->cell(cc).mib.pdcch_cfg_sib1;
 	if (du_cfg->cell(cc).serv_cell_cfg_common().tdd_ul_dl_cfg_common_present) {
 	cell.tdd_ul_dl_cfg_common.emplace(du_cfg->cell(cc).serv_cell_cfg_common().tdd_ul_dl_cfg_common);
 	}
@@ -147,21 +203,23 @@ void rrc_config_mac(uint32_t cc)
 	// Set SIB1 and SI messages
 	cell.sibs.resize(cell_ctxt->sib_buffer.size());
 	for (uint32_t i = 0; i < cell_ctxt->sib_buffer.size(); i++) {
-	cell.sibs[i].len = cell_ctxt->sib_buffer[i]->N_bytes;
-	if (i == 0) {
-	  cell.sibs[i].period_rf       = 16; // SIB1 is always 16 rf
-	  cell.sibs[i].si_window_slots = 160;
-	} else {
-	  cell.sibs[i].period_rf = du_cfg->cell(0).sib1.si_sched_info.sched_info_list[i - 1].si_periodicity.to_number();
-	  cell.sibs[i].si_window_slots = du_cfg->cell(0).sib1.si_sched_info.si_win_len.to_number();
-	}
+		cell.sibs[i].len = cell_ctxt->sib_buffer[i]->N_bytes;
+		if (i == 0) {
+		  cell.sibs[i].period_rf       = 16; // SIB1 is always 16 rf
+		  cell.sibs[i].si_window_slots = 160;
+		} else {
+		  cell.sibs[i].period_rf = du_cfg->cell(0).sib1.si_sched_info.sched_info_list[i - 1].si_periodicity.to_number();
+		  cell.sibs[i].si_window_slots = du_cfg->cell(0).sib1.si_sched_info.si_win_len.to_number();
+		}
 	}
 
 	// Configure MAC/scheduler
 	mac->cell_cfg(sched_cells_cfg);//int mac_nr::cell_cfg(const std::vector<srsenb::sched_nr_cell_cfg_t>& nr_cells)
 
 	// Make default UE PHY config object
-	cell_ctxt->default_phy_ue_cfg_nr = get_common_ue_phy_cfg(cell);
+	rrc_manager.cell_ctxt->default_phy_ue_cfg_nr = get_common_ue_phy_cfg(cell);
+	
+	byn_array_empty(&cell->dl_cfg_common.freq_info_dl.scs_specific_carrier_list);
 }
 
 
@@ -207,7 +265,7 @@ static int rrc_init(void)
 	}
 
 	rrc_config_phy(0); // if PHY is not yet initialized, config will be stored and applied on initialization
-	config_mac(0);
+	rrc_config_mac(0);
 
 	oset_info("Number of 5QI %d", rrc_manager.cfg.five_qi_cfg->count);
 	/*for (const std::pair<const uint32_t, rrc_nr_cfg_five_qi_t>& five_qi_cfg : cfg.five_qi_cfg) {
@@ -251,7 +309,7 @@ static int rrc_destory(void)
 
 	byn_array_empty(&rrc_manager.du_cfg.cells);
 	byn_array_empty(&rrc_manager.cell_ctxt->sib_buffer);
-	byn_array_empty(&rrc_manager.cell_ctxt->sibs);
+	//byn_array_empty(&rrc_manager.cell_ctxt->sibs);
 
 	//todo
 	rrc_manager_destory();

@@ -17,48 +17,47 @@
 
 int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node)
 {
-  // add cell
-  du_cell_config  *cell = NULL;
-  ASN_RRC_BCCH_BCH_Message_t  *mib = NULL;
-  ASN_RRC_BCCH_DL_SCH_Message_t *sib1 = NULL;
+	// add cell
+	ASN_RRC_BCCH_BCH_Message_t  *mib = NULL;
+	ASN_RRC_BCCH_DL_SCH_Message_t *sib1 = NULL;
 
-  oset_assert(rrc_manager_self()->app_pool);
-  cell = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(du_cell_config));
-  oset_assert(cell);
-  byn_array_add(&rrc_manager_self()->du_cfg.cells, cell);
+	oset_assert(rrc_manager_self()->app_pool);
+	du_cell_config  *cell = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(du_cell_config));
+	oset_assert(cell);
+	byn_array_add(&rrc_manager_self()->du_cfg.cells, cell);
 
-  cell->cc = node->cell_idx;
+	cell->cc = node->cell_idx;
 
-  // Fill general cell params
-  cell->pci = node->phy_cell.carrier.pci;
+	// Fill general cell params
+	cell->pci = node->phy_cell.carrier.pci;
 
-  // fill MIB ASN.1
-  if (fill_mib_from_enb_cfg(node, mib) != OSET_OK) {
-	oset_error("Couldn't generate MIB");
-    return OSET_ERROR;
-  }
-  cell->packed_mib = oset_rrc_encode(&asn_DEF_ASN_RRC_BCCH_BCH_Message, mib, asn_struct_free_all);
-  //oset_free(cell->packed_mib);
+	// fill MIB ASN.1
+	if (fill_mib_from_enb_cfg(node, mib) != OSET_OK) {
+		oset_error("Couldn't generate MIB");
+		return OSET_ERROR;
+	}
+	cell->packed_mib = oset_rrc_encode(&asn_DEF_ASN_RRC_BCCH_BCH_Message, mib, asn_struct_free_all);
+	//oset_free(cell->packed_mib);
 
-  // fill SIB1 ASN.1
-  if (fill_sib1_from_enb_cfg(node, sib1) != OSET_OK) {
-    oset_error("Couldn't generate SIB1");
-    return OSET_ERROR;
-  }
-  cell->packed_sib1 = oset_rrc_encode(&asn_DEF_ASN_RRC_BCCH_DL_SCH_Message, sib1, asn_struct_free_all);
-  //oset_free(cell->packed_sib1);
+	// fill SIB1 ASN.1
+	if (fill_sib1_from_enb_cfg(node, sib1) != OSET_OK) {
+		oset_error("Couldn't generate SIB1");
+		return OSET_ERROR;
+	}
+	cell->packed_sib1 = oset_rrc_encode(&asn_DEF_ASN_RRC_BCCH_DL_SCH_Message, sib1, asn_struct_free_all);
+	//oset_free(cell->packed_sib1);
 
-  // Generate SSB SCS
-  srsran_subcarrier_spacing_t ssb_scs;
-  if (!fill_ssb_pattern_scs(node->phy_cell.carrier, &cell->ssb_pattern, &ssb_scs)) {
-    return OSET_ERROR;
-  }
-  cell->ssb_scs = (enum subcarrier_spacing_e)ssb_scs;
-  cell->ssb_center_freq_hz = node->ssb_freq_hz;
-  cell->dl_freq_hz         = node->phy_cell.carrier.dl_center_frequency_hz;
-  cell->is_standalone      = rrc_manager_self()->cfg.is_standalone;
+	// Generate SSB SCS
+	srsran_subcarrier_spacing_t ssb_scs;
+	if (!fill_ssb_pattern_scs(node->phy_cell.carrier, &cell->ssb_pattern, &ssb_scs)) {
+		return OSET_ERROR;
+	}
+	cell->ssb_scs = (enum subcarrier_spacing_e)ssb_scs;
+	cell->ssb_center_freq_hz = node->ssb_freq_hz;
+	cell->dl_freq_hz         = node->phy_cell.carrier.dl_center_frequency_hz;
+	cell->is_standalone      = rrc_manager_self()->cfg.is_standalone;
 
-  return OSET_OK;
+	return OSET_OK;
 }
 
 bool make_phy_rach_cfg(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_prach_cfg_t *prach_cfg)
@@ -348,4 +347,5 @@ bool fill_phy_ssb_cfg(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_ssb_cfg_t *out_ssb
 	out_ssb->periodicity_ms = 10;//ASN_RRC_ServingCellConfigCommonSIB__ssb_PeriodicityServingCell_ms10
 	return true;
 }
+
 

@@ -11,6 +11,24 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "asn1c-per"
 
+static oset_pkbuf_pool_t *asn_buffer_pool = NULL;
+
+int asn_buffer_pool_init(void)
+{
+    oset_pkbuf_config_t config;
+    memset(&config, 0, sizeof config);
+
+    config.cluster_8192_pool = 1024;
+    asn_buffer_pool = oset_pkbuf_pool_create(&config);
+
+    return OSET_OK;
+}
+
+void asn_buffer_pool_final(void)
+{
+    oset_pkbuf_pool_destroy(asn_buffer_pool);
+}
+
 void* oset_asn_new_buffer_per_encode(const asn_TYPE_descriptor_t *td, enum asn_transfer_syntax type, void *sptr, ASN_STRUCT_FREE_FLAG free_flag)
 {
     asn_encode_to_new_buffer_result_t res = {0};
@@ -43,7 +61,7 @@ oset_pkbuf_t *oset_asn_per_encode(const asn_TYPE_descriptor_t *td, enum asn_tran
     oset_assert(td);
     oset_assert(sptr);
 
-    pkbuf = oset_pkbuf_alloc(NULL, OSET_MAX_SDU_LEN);
+    pkbuf = oset_pkbuf_alloc(asn_buffer_pool, OSET_MAX_SDU_LEN);
     oset_expect_or_return_val(pkbuf, NULL);
     oset_pkbuf_put(pkbuf, OSET_MAX_SDU_LEN);
 
@@ -99,7 +117,7 @@ oset_pkbuf_t *oset_asn_aper_encode(const asn_TYPE_descriptor_t *td, void *sptr, 
     oset_assert(td);
     oset_assert(sptr);
 
-    pkbuf = oset_pkbuf_alloc(NULL, OSET_MAX_SDU_LEN);
+    pkbuf = oset_pkbuf_alloc(asn_buffer_pool, OSET_MAX_SDU_LEN);
     oset_expect_or_return_val(pkbuf, NULL);
     oset_pkbuf_put(pkbuf, OSET_MAX_SDU_LEN);
 
@@ -155,7 +173,7 @@ oset_pkbuf_t *oset_asn_uper_encode(const asn_TYPE_descriptor_t *td, void *sptr, 
 	oset_assert(td);
 	oset_assert(sptr);
 
-	pkbuf = oset_pkbuf_alloc(NULL, OSET_MAX_SDU_LEN);
+	pkbuf = oset_pkbuf_alloc(asn_buffer_pool, OSET_MAX_SDU_LEN);
 	oset_expect_or_return_val(pkbuf, NULL);
 	oset_pkbuf_put(pkbuf, OSET_MAX_SDU_LEN);
 

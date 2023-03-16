@@ -8,6 +8,7 @@
 ************************************************************************/
 
 #include "gnb_common.h"
+#include "asn1c/util/message.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb"
@@ -33,6 +34,7 @@ OSET_MODULE_LOAD_FUNCTION(app_gnb_load)
 		oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "Failed to `mlockall`: {%d}", errno);
 	}
 
+	asn_buffer_pool_init();
 	gnb_manager_init();
 	task_queue_init(tasks_info);
 	gnb_layer_tasks_args_init();
@@ -47,6 +49,9 @@ OSET_MODULE_SHUTDOWN_FUNCTION(app_gnb_shutdown)
 	task_queue_termination();//stop queue
 	gnb_layer_tasks_destory();
 	task_queue_end(tasks_info);
+	gnb_manager_destory();
+	asn_buffer_pool_final();
+
 	return OSET_STATUS_SUCCESS;
 }
 

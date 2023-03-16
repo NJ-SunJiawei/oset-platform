@@ -153,7 +153,7 @@ static int parse_cell_cfg(all_args_t* args_, srsran_cell_t* cell)
     return OSET_OK;
 }
 
-static bool sib_is_present(struct sib_type1_s* sib1, enum sib_type_opts sib_num)
+static bool sib_is_present(struct sib_type1_lte_s* sib1, enum sib_type_opts sib_num)
 {
   for (uint32_t i = 0; i < sib1.nof_sched_info; i++) {
     for (uint32_t j = 0; j < sib1.sched_info_list[i].nof_sib_map; j++) {
@@ -165,7 +165,7 @@ static bool sib_is_present(struct sib_type1_s* sib1, enum sib_type_opts sib_num)
   return false;
 }
 
-static void parse_sib3(char* filename, struct sib_type3_s* data)
+static void parse_sib3(char* filename, struct sib_type3_lte_s* data)
 {
 	// CellReselectionInfoCommon
 	data->cell_resel_info_common.q_hyst = (enum q_hyst_opts)db2 ;//db2
@@ -191,7 +191,7 @@ static void parse_sib3(char* filename, struct sib_type3_s* data)
 	intrafreq->t_resel_eutra = 1;
 }
 
-static void parse_sib2(char* filename, struct sib_type2_s* data)
+static void parse_sib2(char* filename, struct sib_type2_lte_s* data)
 {
 	data->time_align_timer_common = infinity;
 	data->mbsfn_sf_cfg_list_present = false;
@@ -274,7 +274,7 @@ static void parse_sib2(char* filename, struct sib_type2_s* data)
 }
 
 
-static void parse_sib1(char* filename, struct sib_type1_s* data)
+static void parse_sib1(char* filename, struct sib_type1_lte_s* data)
 {
     //ASN_RRC_SIB1_t
 	/*data->cellSelectionInfo = oset_core_alloc(gnb_manager_self()->app_pool, sizeof(struct ASN_RRC_SIB1__cellSelectionInfo));
@@ -305,9 +305,9 @@ static void parse_sib1(char* filename, struct sib_type1_s* data)
 static int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_config_common)
 {
     /***********sib1****************/
-	struct sib_type1_s* sib1 = &rrc_cfg_->sib1;
-	struct sib_type2_s*	sib2 = &rrc_cfg_->sib2;
-	struct sib_type3_s*	sib3 = &rrc_cfg_->sib3;
+	struct sib_type1_lte_s* sib1 = &rrc_cfg_->sib1;
+	struct sib_type2_lte_s*	sib2 = &rrc_cfg_->sib2;
+	struct sib_type3_lte_s*	sib3 = &rrc_cfg_->sib3;
 	if (parse_sib1(args_->enb_files.sib_config, sib1) != OSET_OK) {
 	  return OSET_ERROR;
 	}
@@ -898,7 +898,7 @@ static int set_derived_args_nr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cf
 	   // phy_cell_cfg.root_seq_idx = cfg.root_seq_idx;
 	   
 	   // PDSCH
-	   cfg.pdsch_rs_power = phy_cfg_->pdsch_cnfg.ref_sig_pwr;
+	   cfg.pdsch_rs_power = 0;//phy_cfg_->pdsch_cnfg.ref_sig_pwr
 	}
 	rrc_nr_cfg_->enb_id = args_->enb.enb_id;
 	rrc_nr_cfg_->mcc	= args_->nr_stack.ngap.mcc;
@@ -941,7 +941,7 @@ static int set_derived_args_nr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cf
 
 	
    /*********************set_derived_args*************************/
-	if (args_->enb.transmission_mode == 1) {
+	/*if (args_->enb.transmission_mode == 1) {
 	  phy_cfg_->pdsch_cnfg.p_b									  = 0; // Default TM1
 	  rrc_cfg_->sib2.rr_cfg_common.pdsch_cfg_common.p_b = 0;
 	} else {
@@ -982,7 +982,7 @@ static int set_derived_args_nr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cf
 		rrc_cfg_->sib2.rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset = 0;
 		phy_cfg_->prach_cnfg.prach_cfg_info.prach_freq_offset = 0;
 	  }
-	}
+	}*/
 
 	// Patch certain args that are not exposed yet
 	args_->rf.nof_antennas = args_->enb.nof_ports;
@@ -1047,10 +1047,11 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
         return OSET_ERROR;
     }*/
 
-    if (parse_sibs(args_, rrc_cfg_, phy_cfg_) != OSET_OK) {
+	//sib for 4G
+    /*if (parse_sibs(args_, rrc_cfg_, phy_cfg_) != OSET_OK) {
 	  oset_error("Error parsing SIB configuration");
       return OSET_ERROR;
-    }
+    }*/
 
     if (parse_rr(args_, rrc_cfg_, rrc_nr_cfg_) != OSET_OK) {
       oset_error("Error parsing Radio Resources configuration");

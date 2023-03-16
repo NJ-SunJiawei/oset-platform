@@ -43,6 +43,9 @@ int oset_asn_uper_decode(const asn_TYPE_descriptor_t *td,
 void oset_asn_free_contexts(const asn_TYPE_descriptor_t *td, void *sptr);
 void oset_asn_free_all(const asn_TYPE_descriptor_t *td, void *sptr);
 
+int asn_buffer_pool_init(void);
+void asn_buffer_pool_final(void);
+
 
 #define asn1cCallocOne(VaR, VaLue) \
   VaR = CALLOC(1,sizeof(*VaR)); *VaR=VaLue;

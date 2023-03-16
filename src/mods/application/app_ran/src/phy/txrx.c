@@ -21,7 +21,7 @@
 static void set_context(worker_context_t *w_ctx)
 {
 	phy_manager_self()->slot_worker.ul_slot_cfg.idx = w_ctx->sf_idx;
-	phy_manager_self()->slot_worker.dl_slot_cfg.idx = TTI_ADD(w_ctx->sf_idx, FDD_HARQ_DELAY_UL_MS);
+	phy_manager_self()->slot_worker.dl_slot_cfg.idx = TTI_ADD(w_ctx->sf_idx, FDD_HARQ_DELAY_UL_MS);//phy process max delay
     //???w_ctx->sf_idx change
 	phy_manager_self()->slot_worker.context = w_ctx;
 }

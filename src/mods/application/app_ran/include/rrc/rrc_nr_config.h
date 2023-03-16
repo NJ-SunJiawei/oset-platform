@@ -50,7 +50,7 @@ typedef struct rrc_cfg_s{
   srsran_mib_nr_t          mib;
   struct sib_type1_s       sib1;//ASN_RRC_SIB1_t
   enum sib_info_types_opts sibs_type;//ASN_RRC_SIB_TypeInfo_t 
-  struct sib_type2_s       sib2;//ASN_RRC_SIB2_t
+  struct sib_type2_lte_s   sib2;//ASN_RRC_SIB2_t
   struct sib_type3_s       sib3;//ASN_RRC_SIB3_t
   struct mac_main_cfg_s    mac_cnfg;
   struct pusch_cfg_ded_s   pusch_cfg;
