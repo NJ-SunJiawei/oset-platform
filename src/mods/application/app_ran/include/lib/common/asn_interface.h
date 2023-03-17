@@ -1012,7 +1012,7 @@ enum prioritised_bit_rate_opts {
   nulltype
 };
 enum bucket_size_dur_opts { ms50, ms100, ms150, ms300, ms500, ms1000, spare2, spare1, nulltype };
-struct ul_specific_params_s_ {
+struct ul_specific_params_lte_s_ {
   bool					  lc_ch_group_present;
   uint8_t				  prio;//1
   enum prioritised_bit_rate_opts  prioritised_bit_rate;
@@ -1023,7 +1023,7 @@ struct ul_specific_params_s_ {
 typedef struct rrc_cfg_qci_s{
   bool                          configured;//false
   int                           enb_dl_max_retx_thres;//-1
-  struct ul_specific_params_s_  lc_cfg;//ASN_RRC_LogicalChannelConfig_t
+  struct ul_specific_params_lte_s_  lc_cfg;//ASN_RRC_LogicalChannelConfig_t
   struct pdcp_cfg_s             pdcp_cfg;
   struct rlc_cfg_c              rlc_cfg;
 }rrc_cfg_qci_t;
@@ -1109,14 +1109,14 @@ struct plmn_id_s {
   uint8_t nof_mnc_digits;
 };
 
-struct plmn_id_info_s {
+struct plmn_id_info_lte_s {
   struct plmn_id_s                 plmn_id;
   enum cell_reserved_for_oper_opts cell_reserved_for_oper;
 };
 
 struct cell_access_related_info_s_ {
   bool				  csg_id_present;
-  plmn_id_info_s      plmn_id_list[6]; //PLMN-IdentityList ::= SEQUENCE (SIZE (1..6)) OF PLMN-IdentityInfo
+  struct plmn_id_info_lte_s      plmn_id_list[6]; //PLMN-IdentityList ::= SEQUENCE (SIZE (1..6)) OF PLMN-IdentityInfo
   uint8_t             tac[2];//fixed_bitstring<16>
   uint8_t             cell_id[4];//fixed_bitstring<28>
   enum cell_barred_opts	  cell_barred;
@@ -1125,7 +1125,7 @@ struct cell_access_related_info_s_ {
   uint8_t             csg_id[4];//fixed_bitstring<27>
 };
 
-struct sched_info_s {
+struct sched_info_lte_s {
   enum si_periodicity_r12_opts si_periodicity;
   int                          nof_sib_map;//0
   enum sib_type_opts           sib_map_info[32];//SIB-MappingInfo ::= SEQUENCE (SIZE (0..31)) OF SIB-Type
@@ -1145,7 +1145,7 @@ struct sib_type1_lte_s {
   int8_t                      p_max;//-30
   uint8_t                     freq_band_ind;//1
   uint8_t                     nof_sched_info;//1
-  struct sched_info_s         sched_info_list[32];//dyn_array<sched_info_s>;//SchedulingInfoList ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfo
+  struct sched_info_lte_s     sched_info_list[32];//dyn_array<sched_info_s>;//SchedulingInfoList ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfo
   struct tdd_cfg_s            tdd_cfg;
   enum si_win_len_opts        si_win_len;
   uint8_t                     sys_info_value_tag;//0
@@ -1205,7 +1205,7 @@ enum t300_v1310_opts { ms2500, ms3000, ms3500, ms4000, ms5000, ms6000, ms8000, m
 enum t301_v1310_opts { ms2500, ms3000, ms3500, ms4000, ms5000, ms6000, ms8000, ms10000, nulltype };
 enum t310_v1330_opts { ms4000, ms6000, nulltype };
 enum t300_r15_opts { ms4000, ms6000, ms8000, ms10000, ms15000, ms25000, ms40000, ms60000, nulltype };
-struct ue_timers_and_consts_s {
+struct ue_timers_and_consts_lte_s {
   enum t300_opts t300;
   enum t301_opts t301;
   enum t310_opts t310;
@@ -1239,7 +1239,7 @@ struct sib_type2_lte_s {
   bool                   mbsfn_sf_cfg_list_present;
   struct ac_barr_info_s_ ac_barr_info;
   struct rr_cfg_common_sib_s  rr_cfg_common;
-  struct ue_timers_and_consts_s ue_timers_and_consts;
+  struct ue_timers_and_consts_lte_s ue_timers_and_consts;
   struct freq_info_s_    freq_info;
   struct mbsfn_sf_cfg_s    mbsfn_sf_cfg_list[8];// MBSFN-SubframeConfigList ::= SEQUENCE (SIZE (1..8)) OF MBSFN-SubframeConfig
   enum time_align_timer_opts    time_align_timer_common;
@@ -1396,8 +1396,8 @@ struct nr_multi_band_info_s {
 // FrequencyInfoDL-SIB ::= SEQUENCE
 struct freq_info_dl_sib_s {
   // member variables
-  struct nr_multi_band_info_s       freq_band_list[8];//// MultiFrequencyBandListNR-SIB ::= SEQUENCE (SIZE (1..8)) OF NR-MultiBandInfo
-  uint16_t                          offset_to_point_a;
+  A_DYN_ARRAY_OF(struct nr_multi_band_info_s) freq_band_list;//// MultiFrequencyBandListNR-SIB ::= SEQUENCE (SIZE (1..8)) OF NR-MultiBandInfo
+  uint16_t                                    offset_to_point_a;
   A_DYN_ARRAY_OF(struct scs_specific_carrier_s)  scs_specific_carrier_list;// dyn_array
 };
 
@@ -1423,8 +1423,8 @@ struct bwp_dl_common_s {
 };
 
 struct nand_paging_frame_offset_c_ {
-  enum types { one_t, half_t, quarter_t, one_eighth_t, one_sixteenth_t, nulltype }	type_;
-  void *c;//pod_choice_buffer_t
+  enum { one_t, half_t, quarter_t, one_eighth_t, one_sixteenth_t, nulltype }	 type_;
+  int c;//pod_choice_buffer_t
 };
 
 enum ns_e_ { four, two, one, nulltype };
@@ -1580,7 +1580,7 @@ struct pucch_cfg_common_s {
   bool               hop_id_present;
   bool               p0_nominal_present;
   uint8_t            pucch_res_common;
-  pucch_group_hop_e_ pucch_group_hop;
+  enum pucch_group_hop_e_ pucch_group_hop;
   uint16_t           hop_id;
   int16_t            p0_nominal;
 };
@@ -1915,7 +1915,7 @@ struct bsr_cfg_s {
 // TAG ::= SEQUENCE
 struct tag_s {
   uint8_t            tag_id;
-  time_align_timer_e time_align_timer;
+  enum time_align_timer_e time_align_timer;
 };
 
 // TAG-Config ::= SEQUENCE
@@ -4778,6 +4778,20 @@ struct uac_barr_info_s_ {
   struct uac_access_category1_sel_assist_info_c_ uac_access_category1_sel_assist_info;
 };
 
+enum cell_reserved_for_oper_e_ { reserved, not_reserved, nulltype };
+// PLMN-IdentityInfo ::= SEQUENCE
+struct plmn_id_info_s {
+  // member variables
+  bool                      tac_present;
+  bool                      ranac_present;
+  A_DYN_ARRAY_OF(struct plmn_id_s)   plmn_id_list;//dyn_array<plmn_id_s>
+  uint8_t                   tac[3];//fixed_bitstring<24>
+  uint16_t                  ranac;
+  uint8_t                   cell_id[5];//fixed_bitstring<36>
+  enum cell_reserved_for_oper_e_ cell_reserved_for_oper;
+};
+
+
 // CellAccessRelatedInfo ::= SEQUENCE
 struct cell_access_related_info_s {
   bool                cell_reserved_for_other_use_present;
@@ -4826,6 +4840,47 @@ struct si_request_cfg_s {
 
 enum si_win_len_e_ { s5, s10, s20, s40, s80, s160, s320, s640, s1280, nulltype };
 
+enum type_e_ {
+  sib_type2,
+  sib_type3,
+  sib_type4,
+  sib_type5,
+  sib_type6,
+  sib_type7,
+  sib_type8,
+  sib_type9,
+  spare8,
+  spare7,
+  spare6,
+  spare5,
+  spare4,
+  spare3,
+  spare2,
+  spare1,
+  // ...
+  nulltype
+};
+
+// SIB-TypeInfo ::= SEQUENCE
+struct sib_type_info_s {
+  // member variables
+  bool    value_tag_present;
+  bool    area_scope_present;
+  enum type_e_ type;
+  uint8_t value_tag;
+};
+
+enum si_broadcast_status_e_ { broadcasting, not_broadcasting, nulltype };
+enum si_periodicity_e_ { rf8, rf16, rf32, rf64, rf128, rf256, rf512, nulltype };
+
+// SchedulingInfo ::= SEQUENCE
+struct sched_info_s {
+  // member variables
+  enum si_broadcast_status_e_ si_broadcast_status;
+  enum si_periodicity_e_      si_periodicity;
+  A_DYN_ARRAY_OF(struct sib_type_info_s)   sib_map_info;//dyn_array<sib_type_info_s>
+};
+
 // SI-SchedulingInfo ::= SEQUENCE
 struct si_sched_info_s {
   // member variables
@@ -4833,20 +4888,20 @@ struct si_sched_info_s {
   bool                si_request_cfg_sul_present;
   bool                sys_info_area_id_present;
   A_DYN_ARRAY_OF(struct sched_info_s)  sched_info_list;//dyn_array<sched_info_s>
-  si_win_len_e_              si_win_len;
+  enum si_win_len_e_              si_win_len;
   struct si_request_cfg_s    si_request_cfg;
   struct si_request_cfg_s    si_request_cfg_sul;
   uint8_t                    sys_info_area_id[3];//fixed_bitstring<24>
 };
 
 enum n_timing_advance_offset_e_ { n0, n25600, n39936, nulltype };
-struct ssb_positions_in_burst_s_ {
+/*struct ssb_positions_in_burst_s_ {
   bool		group_presence_present;
   uint8_t   in_one_group;//fixed_bitstring<8>
   uint8_t   group_presence;//fixed_bitstring<8>
-};
+};*/
 
-enum ssb_periodicity_serving_cell_e_ { ms5, ms10, ms20, ms40, ms80, ms160, nulltype };
+enum ssb_periodicity_serving_cell_e_sib { ms5, ms10, ms20, ms40, ms80, ms160, nulltype };
 
 // ServingCellConfigCommonSIB ::= SEQUENCE
 struct serving_cell_cfg_common_sib_s {
@@ -4860,9 +4915,24 @@ struct serving_cell_cfg_common_sib_s {
   struct ul_cfg_common_sib_s             supplementary_ul;
   enum n_timing_advance_offset_e_        n_timing_advance_offset;
   struct ssb_positions_in_burst_s_       ssb_positions_in_burst;
-  enum ssb_periodicity_serving_cell_e_   ssb_periodicity_serving_cell;
+  enum ssb_periodicity_serving_cell_e_sib   ssb_periodicity_serving_cell;
   struct tdd_ul_dl_cfg_common_s          tdd_ul_dl_cfg_common;
   int8_t                                 ss_pbch_block_pwr;// = -60
+};
+
+enum t300_e_ { ms100, ms200, ms300, ms400, ms600, ms1000, ms1500, ms2000, nulltype };
+enum t301_e_ { ms100, ms200, ms300, ms400, ms600, ms1000, ms1500, ms2000, nulltype };
+enum t319_e_ { ms100, ms200, ms300, ms400, ms600, ms1000, ms1500, ms2000, nulltype };
+
+// UE-TimersAndConstants ::= SEQUENCE
+struct ue_timers_and_consts_s {
+  enum t300_e_ t300;
+  enum t301_e_ t301;
+  enum t310_e_ t310;
+  enum n310_e_ n310;
+  enum t311_e_ t311;
+  enum n311_e_ n311;
+  enum t319_e_ t319;
 };
 
 // SIB1 ::= SEQUENCE
@@ -4937,18 +5007,18 @@ struct ul_specific_params_s_ {
   bool					   lc_ch_group_present;
   bool					   sched_request_id_present;
   uint8_t				   prio;//	 = 1
-  prioritised_bit_rate_e_  prioritised_bit_rate;
-  bucket_size_dur_e_	   bucket_size_dur;
+  enum prioritised_bit_rate_e_  prioritised_bit_rate;
+  enum bucket_size_dur_e_	   bucket_size_dur;
   A_DYN_ARRAY_OF(uint8_t)  allowed_serving_cells;//bounded_array<uint8_t, 31>
   A_DYN_ARRAY_OF(struct subcarrier_spacing_e)  allowed_scs_list;//bounded_array<subcarrier_spacing_e, 5>
-  max_pusch_dur_e_		   max_pusch_dur;
+  enum max_pusch_dur_e_		   max_pusch_dur;
   uint8_t				   lc_ch_group;
   uint8_t				   sched_request_id;
   bool					   lc_ch_sr_mask;
   bool					   lc_ch_sr_delay_timer_applied;
   // ...
   bool							   bit_rate_query_prohibit_timer_present;
-  bit_rate_query_prohibit_timer_e_ bit_rate_query_prohibit_timer;
+  enum bit_rate_query_prohibit_timer_e_ bit_rate_query_prohibit_timer;
 };
 
 // LogicalChannelConfig ::= SEQUENCE
@@ -4961,7 +5031,7 @@ struct lc_ch_cfg_s {
 
 struct served_radio_bearer_c_ {
   enum types { srb_id, drb_id, nulltype }  type_;
-  void *c;//pod_choice_buffer_t
+  uint8_t c;//pod_choice_buffer_t
 };
 
 // RLC-BearerConfig ::= SEQUENCE

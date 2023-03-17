@@ -167,7 +167,7 @@ void fill_ul_cfg_common_sib(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_UplinkConfigCom
 		asn1cCallocOne(nrMultiBandInfo->freqBandIndicatorNR, cell_cfg->band);
 	}
 	asn1cCallocOne(out->frequencyInfoUL.absoluteFrequencyPointA,
-	               get_abs_freq_point_a_arfcn_2c(cell_cfg->phy_cell.carrier.nof_prb, cell_cfg->ul_arfcn));
+	               get_abs_freq_point_a_arfcn_2c(band_helper, cell_cfg->phy_cell.carrier.nof_prb, cell_cfg->ul_arfcn));
 
 	for(int i = 0; i< 1; i++) {
 		asn1cSequenceAdd(out->frequencyInfoUL.scs_SpecificCarrierList.list, struct ASN_RRC_SCS_SpecificCarrier, SCS_SpecificCarrier);
@@ -210,7 +210,7 @@ void fill_ul_cfg_common_sib(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_UplinkConfigCom
 
 void fill_tdd_ul_dl_config_common(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_TDD_UL_DL_ConfigCommon_t *tdd)
 {
-	oset_assert(cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_TDD, "This function should only be called for TDD configs");
+	ASSERT_IF_NOT(cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_TDD, "This function should only be called for TDD configs");
 	// TDD UL-DL config
 	tdd->referenceSubcarrierSpacing = cell_cfg->phy_cell.carrier.scs;
 	tdd->pattern1.dl_UL_TransmissionPeriodicity = ASN_RRC_TDD_UL_DL_Pattern__dl_UL_TransmissionPeriodicity_ms10;
@@ -319,7 +319,7 @@ int fill_sib1_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_DL_SCH_Mess
 
 	// servingCellConfigCommon
 	asn1cCalloc(sib1->servingCellConfigCommon,	ServCellCom);
-	HANDLE_ERROR(fill_serv_cell_cfg_common_sib(cfg, cell_cfg->cell_idx, sib1->servingCellConfigCommon));
+	HANDLE_ERROR(fill_serv_cell_cfg_common_sib(cfg, sib1->servingCellConfigCommon));
 
     asn1cCalloc(sib1->ue_TimersAndConstants, ue_timers);
 	ue_timers->t300 = ASN_RRC_UE_TimersAndConstants__t300_ms1000;
@@ -342,7 +342,7 @@ int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_
 
 	ASN_RRC_MIB_t *mib = mib_pdu->message.choice.mib;
 
-	oset_asn_uint8_to_BIT_STRING(0, (8-2), &mib->systemFrameNumber);
+	oset_asn_uint8_to_BIT_STRING(0, (8-6), &mib->systemFrameNumber);
 	switch (cell_cfg.phy_cell.carrier.scs) {
 	case srsran_subcarrier_spacing_15kHz:
 	case srsran_subcarrier_spacing_60kHz:
@@ -361,14 +361,14 @@ int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_
 	mib->pdcch_ConfigSIB1.searchSpaceZero = 0;
 	mib->cellBarred                 = ASN_RRC_MIB__cellBarred_notBarred;
 	mib->intraFreqReselection       = ASN_RRC_MIB__intraFreqReselection_allowed;
-	oset_asn_uint8_to_BIT_STRING(0, (8-7), &mib->spare);// This makes a spare of 1 bits
+	oset_asn_uint8_to_BIT_STRING(0, (8-1), &mib->spare);// This makes a spare of 1 bits
 
 	return OSET_OK;
 }
 
 
 /// Fill SRB with parameters derived from cfg
-void fill_srb(const rrc_nr_cfg_t *cfg, nr_srb srb_id, ASN_RRC_RLC_BearerConfig_t *out)
+void fill_srb(rrc_nr_cfg_t *cfg, nr_srb srb_id, ASN_RRC_RLC_BearerConfig_t *out)
 {
 	ASSERT_IF_NOT(srb_id > srb0 && srb_id < count, "Invalid srb_id argument");
 

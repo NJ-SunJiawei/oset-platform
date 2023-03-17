@@ -315,7 +315,7 @@ static int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_con
 	struct cell_access_related_info_s_* cell_access = &sib1->cell_access_related_info;
     mcc_to_bytes(args_->nr_stack.ngap.mcc, &cell_access->plmn_id_list[0].plmn_id.mcc);
     mnc_to_bytes(args_->nr_stack.ngap.mnc, &cell_access->plmn_id_list[0].plmn_id.mnc,&cell_access->plmn_id_list[0].plmn_id.nof_mnc_digits);
-	cell_access->plmn_id_list[0].cell_reserved_for_oper = not_reserved;
+	cell_access->plmn_id_list[0].cell_reserved_for_oper = (enum cell_reserved_for_oper_opts)not_reserved;
 	sib1->cell_sel_info.q_rx_lev_min_offset 			= 0;
 
     /***********sib2****************/
@@ -340,11 +340,11 @@ static int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_con
 	}
 
 	// Copy PHY common configuration
-	phy_config_common->prach_cnfg  = sib2->rr_cfg_common.prach_cfg;
-	phy_config_common->pdsch_cnfg  = sib2->rr_cfg_common.pdsch_cfg_common;
-	phy_config_common->pusch_cnfg  = sib2->rr_cfg_common.pusch_cfg_common;
-	phy_config_common->pucch_cnfg  = sib2->rr_cfg_common.pucch_cfg_common;
-	phy_config_common->srs_ul_cnfg = sib2->rr_cfg_common.srs_ul_cfg_common;
+	//phy_config_common->prach_cnfg  = sib2->rr_cfg_common.prach_cfg;
+	//phy_config_common->pdsch_cnfg  = sib2->rr_cfg_common.pdsch_cfg_common;
+	//phy_config_common->pusch_cnfg  = sib2->rr_cfg_common.pusch_cfg_common;
+	//phy_config_common->pucch_cnfg  = sib2->rr_cfg_common.pucch_cfg_common;
+	//phy_config_common->srs_ul_cnfg = sib2->rr_cfg_common.srs_ul_cfg_common;
 
 	return OSET_OK;
 }
