@@ -219,7 +219,7 @@ void rrc_config_mac(uint32_t cc)
 
 }
 
-static int sched_cell_destory(sched_nr_cell_cfg_t  *cell){
+static int sched_cell_array_destory(sched_nr_cell_cfg_t  *cell){
 	//release freq_info_dl.freq_band_list
 	byn_array_empty(&cell->dl_cfg_common.freq_info_dl.freq_band_list);
 	//release freq_info_dl.scs_specific_carrier_list
@@ -381,9 +381,42 @@ static int rrc_destory(void)
 		if(1 == csi_res_cfg->csi_rs_res_set_list.type_) byn_array_empty(&csi_res_cfg->csi_rs_res_set_list.c.csi_im_res_set_list);
 	}
 	byn_array_empty(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_res_cfg_to_add_mod_list);
-	//free NZP-CSI-RS-ResourceSet
+	//free NZP-CSI-RS-Resource
 	byn_array_empty(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_to_add_mod_list);
+	//free NZP-CSI Resource Sets
+    for(m = 0; m < byn_array_get_count(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_set_to_add_mod_list); m++){
+		struct nzp_csi_rs_res_set_s *nzp_csi_res_set = byn_array_get_data(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_set_to_add_mod_list, m);
+		byn_array_empty(&nzp_csi_res_set->nzp_csi_rs_res);
+	}
+	byn_array_empty(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_set_to_add_mod_list);
+	//free csi-IM-ResourceToAddModList
+	byn_array_empty(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_to_add_mod_list);
+	//free csi-IM-ResourceSetToAddModList
+    for(m = 0; m < byn_array_get_count(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_set_to_add_mod_list); m++){
+		struct csi_im_res_set_s *csi_im_res_set = byn_array_get_data(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_set_to_add_mod_list, m);
+		byn_array_empty(&csi_im_res_set->csi_im_res);
+	}
+	byn_array_empty(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_set_to_add_mod_list);
 
+	//free CSI-ReportConfig
+    for(m = 0; m < byn_array_get_count(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_report_cfg_to_add_mod_list); m++){
+		struct csi_report_cfg_s *csi_report = byn_array_get_data(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_report_cfg_to_add_mod_list, m);
+		byn_array_empty(&csi_report->report_cfg_type.c.periodic.pucch_csi_res_list);
+	}
+	byn_array_empty(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_report_cfg_to_add_mod_list);
+	//free init_dl_bwp pdsch_cfg
+	byn_array_empty(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.c.tci_states_to_add_mod_list);
+	byn_array_empty(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.c.zp_csi_rs_res_to_add_mod_list);
+
+	//free init_dl_bwp pdsch_cfg
+    for(m = 0; m < byn_array_get_count(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_set_to_add_mod_list); m++){
+		struct pucch_res_set_s *pucch_res_set = byn_array_get_data(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_set_to_add_mod_list, m);
+		byn_array_empty(&pucch_res_set->res_list);
+	}
+	byn_array_empty(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_set_to_add_mod_list);
+	byn_array_empty(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_to_add_mod_list);
+	byn_array_empty(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.sched_request_res_to_add_mod_list);
+	byn_array_empty(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.dl_data_to_ul_ack);
 
 	//todo
 	rrc_manager_destory();

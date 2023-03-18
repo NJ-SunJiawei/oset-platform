@@ -344,6 +344,216 @@ bool fill_rach_cfg_common_default_inner(srsran_prach_cfg_t *prach_cfg, struct ra
   return true;
 }
 
+bool make_phy_nzp_csi_rs_resource(struct nzp_csi_rs_res_s *asn1_nzp_csi_rs_res,
+                                             srsran_csi_rs_nzp_resource_t *out_csi_rs_nzp_resource)
+{
+  srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource = {0};
+  csi_rs_nzp_resource.id                           = asn1_nzp_csi_rs_res->nzp_csi_rs_res_id;
+  switch (asn1_nzp_csi_rs_res->res_map.freq_domain_alloc.type_)) {
+    case (enum freq_domain_alloc_e_)row1:
+      csi_rs_nzp_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_1;
+      for (uint32_t i = 0; i < 4; i++) {
+        csi_rs_nzp_resource.resource_mapping.frequency_domain_alloc[i] =
+			   bit_get(asn1_nzp_csi_rs_res->res_map.freq_domain_alloc.c, 4 - 1 - i);
+      }
+      break;
+    case (enum freq_domain_alloc_e_)row2:
+      csi_rs_nzp_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_2;
+      for (uint32_t i = 0; i < 12; i++) {
+        csi_rs_nzp_resource.resource_mapping.frequency_domain_alloc[i] =
+			    bit_get(asn1_nzp_csi_rs_res->res_map.freq_domain_alloc.c, 12 - 1 - i);
+      }
+      break;
+    case (enum freq_domain_alloc_e_)row4:
+      csi_rs_nzp_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_4;
+      for (uint32_t i = 0; i < 3; i++) {
+        csi_rs_nzp_resource.resource_mapping.frequency_domain_alloc[i] =
+			    bit_get(asn1_nzp_csi_rs_res->res_map.freq_domain_alloc.c, 3 - 1 - i);
+      }
+      break;
+    case (enum freq_domain_alloc_e_)other:
+      csi_rs_nzp_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_other;
+      break;
+    default:
+      oset_error("Invalid option for freq_domain_alloc %d", asn1_nzp_csi_rs_res->res_map.freq_domain_alloc.type_);
+      return false;
+  }
+
+  uint8_t options_nrof_ports[] = {1, 2, 4, 8, 12, 16, 24, 32};
+  csi_rs_nzp_resource.resource_mapping.nof_ports        = options_nrof_ports[asn1_nzp_csi_rs_res->res_map.nrof_ports];
+  csi_rs_nzp_resource.resource_mapping.first_symbol_idx = asn1_nzp_csi_rs_res->res_map.first_ofdm_symbol_in_time_domain;
+
+  switch (asn1_nzp_csi_rs_res->res_map.cdm_type) {
+    case (enum cdm_type_e_)no_cdm:
+      csi_rs_nzp_resource.resource_mapping.cdm = srsran_csi_rs_cdm_nocdm;
+      break;
+    case (enum cdm_type_e_)fd_cdm2:
+      csi_rs_nzp_resource.resource_mapping.cdm = srsran_csi_rs_cdm_fd_cdm2;
+      break;
+    case (enum cdm_type_e_)cdm4_fd2_td2:
+      csi_rs_nzp_resource.resource_mapping.cdm = srsran_csi_rs_cdm_cdm4_fd2_td2;
+      break;
+    case (enum cdm_type_e_)cdm8_fd2_td4:
+      csi_rs_nzp_resource.resource_mapping.cdm = srsran_csi_rs_cdm_cdm8_fd2_td4;
+      break;
+    default:
+      oset_error("Invalid option for cdm_type %d", asn1_nzp_csi_rs_res->res_map.cdm_type);
+      return false;
+  }
+
+  switch (asn1_nzp_csi_rs_res->res_map.density.type()) {
+    case csi_rs_res_map_s::density_c_::types_opts::options::dot5:
+      switch (asn1_nzp_csi_rs_res->res_map.density.dot5()) {
+        case csi_rs_res_map_s::density_c_::dot5_opts::options::even_prbs:
+          csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_dot5_even;
+          break;
+        case csi_rs_res_map_s::density_c_::dot5_opts::options::odd_prbs:
+          csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_dot5_odd;
+          break;
+        default:
+          asn1::log_warning("Invalid option for dot5 %s", asn1_nzp_csi_rs_res->res_map.density.dot5().to_string());
+          return false;
+      }
+      break;
+    case csi_rs_res_map_s::density_c_::types_opts::options::one:
+      csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_one;
+      break;
+    case csi_rs_res_map_s::density_c_::types_opts::options::three:
+      csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_three;
+      break;
+    case csi_rs_res_map_s::density_c_::types_opts::options::spare:
+      csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_spare;
+      break;
+    default:
+      asn1::log_warning("Invalid option for density %s", asn1_nzp_csi_rs_res->res_map.density.type().to_string());
+      return false;
+  }
+  csi_rs_nzp_resource.resource_mapping.freq_band.nof_rb   = asn1_nzp_csi_rs_res->res_map.freq_band.nrof_rbs;
+  csi_rs_nzp_resource.resource_mapping.freq_band.start_rb = asn1_nzp_csi_rs_res->res_map.freq_band.start_rb;
+
+  // Validate CSI-RS resource mapping
+  if (not srsran_csi_rs_resource_mapping_is_valid(&csi_rs_nzp_resource.resource_mapping)) {
+    asn1::json_writer json_writer;
+    asn1_nzp_csi_rs_res->res_map.to_json(json_writer);
+    asn1::log_error("Resource mapping is invalid or not implemented: %s", json_writer.to_string());
+    return false;
+  }
+
+  csi_rs_nzp_resource.power_control_offset = asn1_nzp_csi_rs_res->pwr_ctrl_offset;
+  if (asn1_nzp_csi_rs_res->pwr_ctrl_offset_ss_present) {
+    csi_rs_nzp_resource.power_control_offset_ss = asn1_nzp_csi_rs_res->pwr_ctrl_offset_ss.to_number();
+  }
+
+  if (asn1_nzp_csi_rs_res->periodicity_and_offset_present) {
+    switch (asn1_nzp_csi_rs_res->periodicity_and_offset.type()) {
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots4:
+        csi_rs_nzp_resource.periodicity.period = 4;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots4();
+        break;
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots5:
+        csi_rs_nzp_resource.periodicity.period = 5;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots5();
+        break;
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots8:
+        csi_rs_nzp_resource.periodicity.period = 8;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots8();
+        break;
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots10:
+        csi_rs_nzp_resource.periodicity.period = 10;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots10();
+        break;
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots16:
+        csi_rs_nzp_resource.periodicity.period = 16;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots16();
+        break;
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots20:
+        csi_rs_nzp_resource.periodicity.period = 20;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots20();
+        break;
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots32:
+        csi_rs_nzp_resource.periodicity.period = 32;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots32();
+        break;
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots40:
+        csi_rs_nzp_resource.periodicity.period = 40;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots40();
+        break;
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots64:
+        csi_rs_nzp_resource.periodicity.period = 64;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots64();
+        break;
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots80:
+        csi_rs_nzp_resource.periodicity.period = 80;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots80();
+        break;
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots160:
+        csi_rs_nzp_resource.periodicity.period = 160;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots160();
+        break;
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots320:
+        csi_rs_nzp_resource.periodicity.period = 320;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots320();
+        break;
+      case csi_res_periodicity_and_offset_c::types_opts::options::slots640:
+        csi_rs_nzp_resource.periodicity.period = 640;
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots640();
+        break;
+      default:
+        asn1::log_warning("Invalid option for periodicity_and_offset %s",
+                          asn1_nzp_csi_rs_res->periodicity_and_offset.type().to_string());
+        return false;
+    }
+  } else {
+    asn1::log_warning("Option periodicity_and_offset not present");
+    return false;
+  }
+
+  csi_rs_nzp_resource.scrambling_id = asn1_nzp_csi_rs_res->scrambling_id;
+
+  *out_csi_rs_nzp_resource = csi_rs_nzp_resource;
+  return true;
+}
+
+
+bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl)
+{
+  int i = 0;
+  if (serv_cell->csi_meas_cfg_present && serv_cell->csi_meas_cfg.type_ == (enum setup_release_e)setup) {
+    struct csi_meas_cfg_s *setup = &serv_cell.csi_meas_cfg.c;
+
+    // Configure NZP-CSI
+	for (i = 0 ; i < byn_array_get_count(&setup->nzp_csi_rs_res_set_to_add_mod_list); i++) {
+	  struct nzp_csi_rs_res_set_s *nzp_set = byn_array_get_data(&setup->nzp_csi_rs_res_set_to_add_mod_list, i);
+      srsran_csi_rs_nzp_set_t *uecfg_set    = &sch_hl->nzp_csi_rs_sets[nzp_set->nzp_csi_res_set_id];
+      uecfg_set->trs_info = nzp_set->trs_info_present;
+      uecfg_set->count    = byn_array_get_count(&nzp_set->nzp_csi_rs_res);
+      uint32_t count     = 0;
+      for (uint8_t nzp_rs_idx = 0;  nzp_rs_idx < byn_array_get_count(&nzp_set->nzp_csi_rs_res); nzp_rs_idx++) {
+        srsran_csi_rs_nzp_resource_t *res = &uecfg_set->data[count++];
+        if (!make_phy_nzp_csi_rs_resource(setup.nzp_csi_rs_res_to_add_mod_list[nzp_rs_idx], res)) {
+          return false;
+        }
+      }
+    }
+  }
+
+  if (serv_cell.init_dl_bwp.pdsch_cfg_present and serv_cell.init_dl_bwp.pdsch_cfg.is_setup()) {
+    const auto& setup = serv_cell.init_dl_bwp.pdsch_cfg.setup();
+    if (setup.p_zp_csi_rs_res_set_present) {
+      auto& setup_set               = setup.p_zp_csi_rs_res_set.setup();
+      sch_hl->p_zp_csi_rs_set.count = setup_set.zp_csi_rs_res_id_list.size();
+      for (uint8_t zp_res_id : setup_set.zp_csi_rs_res_id_list) {
+        const asn1::rrc_nr::zp_csi_rs_res_s& setup_res = setup.zp_csi_rs_res_to_add_mod_list[zp_res_id];
+        auto&                                res       = sch_hl->p_zp_csi_rs_set.data[zp_res_id];
+        if (not srsran::make_phy_zp_csi_rs_resource(setup_res, &res)) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -684,108 +894,286 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 			struct nzp_csi_rs_res_s *nzp_csi_res0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_s));
 			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res0);
 			// item 0
-			nzp_csi_res0->res_map.freq_domain_alloc.type_ = 1;//row2
+			nzp_csi_res0->nzp_csi_rs_res_id = 0;
+			nzp_csi_res0->res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row2;//row2
 			bitstring_from_number(&nzp_csi_res0->res_map.freq_domain_alloc.c, 0x800, 12);
-			nzp_csi_res0->res_map.nrof_ports                 = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p1;
+			nzp_csi_res0->res_map.nrof_ports                 = (enum nrof_ports_e_)p1;
 			nzp_csi_res0->res_map.first_ofdm_symbol_in_time_domain = 4;
-			nzp_csi_res0->res_map.cdm_type.value                   = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::no_cdm;
-			nzp_csi_res0->res_map.density.set_one();
+			nzp_csi_res0->res_map.cdm_type                   = (enum cdm_type_e_)no_cdm;
+			nzp_csi_res0->res_map.density.type_          = 1;//one
 			nzp_csi_res0->res_map.freq_band.start_rb     = 0;
-			nzp_csi_res0->res_map.freq_band.nrof_rbs     = 52;
+			nzp_csi_res0->res_map.freq_band.nrof_rbs     = cell_cfg->phy_cell.carrier.nof_prb;//52
 			nzp_csi_res0->pwr_ctrl_offset                = 0;
 			nzp_csi_res0->pwr_ctrl_offset_ss_present     = true;
-			nzp_csi_res0->pwr_ctrl_offset_ss.value       = asn1::rrc_nr::nzp_csi_rs_res_s::pwr_ctrl_offset_ss_opts::db0;
-			nzp_csi_res0->scrambling_id                  = cfg.cell_list[0].phy_cell.cell_id;
+			nzp_csi_res0->pwr_ctrl_offset_ss             = (enum pwr_ctrl_offset_ss_e_)db0;
+			nzp_csi_res0->scrambling_id                  = cell_cfg->phy_cell.cell_id;
 			nzp_csi_res0->periodicity_and_offset_present = true;
-			nzp_csi_res0->periodicity_and_offset.set_slots80();
-			nzp_csi_res0->periodicity_and_offset.slots80() = 1;
+			nzp_csi_res0->periodicity_and_offset.type_ = (enum csi_res_periodicity_and_offset_type_e)slots80;
+			nzp_csi_res0->periodicity_and_offset.c     = 1;
 			// optional
-			nzp_csi_res[0].qcl_info_periodic_csi_rs_present = true;
-			nzp_csi_res[0].qcl_info_periodic_csi_rs         = 0;
+			nzp_csi_res0->qcl_info_periodic_csi_rs_present = true;
+			nzp_csi_res0->qcl_info_periodic_csi_rs         = 0;
+
 			// item 1
-			nzp_csi_res[1]                   = nzp_csi_res[0];
-			nzp_csi_res[1].nzp_csi_rs_res_id = 1;
-			nzp_csi_res[1].res_map.freq_domain_alloc.set_row1();
-			nzp_csi_res[1].res_map.freq_domain_alloc.row1().from_number(0x1);
-			nzp_csi_res[1].res_map.nrof_ports.value = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p1;
-			nzp_csi_res[1].res_map.cdm_type.value   = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::no_cdm;
-			nzp_csi_res[1].res_map.density.set_three();
-			nzp_csi_res[1].periodicity_and_offset.set_slots40();
-			nzp_csi_res[1].periodicity_and_offset.slots40() = 11;
+			struct nzp_csi_rs_res_s *nzp_csi_res1 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_s));
+			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res1);
+			nzp_csi_res1->nzp_csi_rs_res_id = 1;
+			nzp_csi_res1->res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row1;//row1
+			bitstring_from_number(&nzp_csi_res1->res_map.freq_domain_alloc.c, 0x1, 4);
+			nzp_csi_res1->res_map.nrof_ports                 = (enum nrof_ports_e_)p1;
+			nzp_csi_res1->res_map.first_ofdm_symbol_in_time_domain = 4;
+			nzp_csi_res1->res_map.cdm_type                   = (enum cdm_type_e_)no_cdm;
+			nzp_csi_res1->res_map.density.type_          = 2;//three
+			nzp_csi_res1->res_map.freq_band.start_rb     = 0;
+			nzp_csi_res1->res_map.freq_band.nrof_rbs     = cell_cfg->phy_cell.carrier.nof_prb;//52
+			nzp_csi_res1->pwr_ctrl_offset                = 0;
+			nzp_csi_res1->pwr_ctrl_offset_ss_present     = true;
+			nzp_csi_res1->pwr_ctrl_offset_ss             = (enum pwr_ctrl_offset_ss_e_)db0;
+			nzp_csi_res1->scrambling_id                  = cell_cfg->phy_cell.cell_id;
+			nzp_csi_res1->periodicity_and_offset_present = true;
+			nzp_csi_res1->periodicity_and_offset.type_ = (enum csi_res_periodicity_and_offset_type_e)slots40;
+			nzp_csi_res1->periodicity_and_offset.c     = 11;
+			nzp_csi_res1->qcl_info_periodic_csi_rs_present = true;
+			nzp_csi_res1->qcl_info_periodic_csi_rs         = 0;
+
 			// item 2
-			nzp_csi_res[2]                                          = nzp_csi_res[1];
-			nzp_csi_res[2].nzp_csi_rs_res_id                        = 2;
-			nzp_csi_res[2].res_map.first_ofdm_symbol_in_time_domain = 8;
+			struct nzp_csi_rs_res_s *nzp_csi_res2 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_s));
+			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res2);
+			nzp_csi_res2->nzp_csi_rs_res_id = 2;
+			nzp_csi_res2->res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row1;//row1
+			bitstring_from_number(&nzp_csi_res2->res_map.freq_domain_alloc.c, 0x1, 4);
+			nzp_csi_res2->res_map.nrof_ports                 = (enum nrof_ports_e_)p1;
+			nzp_csi_res2->res_map.first_ofdm_symbol_in_time_domain = 8;
+			nzp_csi_res2->res_map.cdm_type                   = (enum cdm_type_e_)no_cdm;
+			nzp_csi_res2->res_map.density.type_          = 2;//three
+			nzp_csi_res2->res_map.freq_band.start_rb     = 0;
+			nzp_csi_res2->res_map.freq_band.nrof_rbs     = cell_cfg->phy_cell.carrier.nof_prb;//52
+			nzp_csi_res2->pwr_ctrl_offset                = 0;
+			nzp_csi_res2->pwr_ctrl_offset_ss_present     = true;
+			nzp_csi_res2->pwr_ctrl_offset_ss             = (enum pwr_ctrl_offset_ss_e_)db0;
+			nzp_csi_res2->scrambling_id                  = cell_cfg->phy_cell.cell_id;
+			nzp_csi_res2->periodicity_and_offset_present = true;
+			nzp_csi_res2->periodicity_and_offset.type_ = (enum csi_res_periodicity_and_offset_type_e)slots40;
+			nzp_csi_res2->periodicity_and_offset.c     = 11;
+			nzp_csi_res2->qcl_info_periodic_csi_rs_present = true;
+			nzp_csi_res2->qcl_info_periodic_csi_rs         = 0;
+
 			// item 3
-			nzp_csi_res[3]                                          = nzp_csi_res[1];
-			nzp_csi_res[3].nzp_csi_rs_res_id                        = 3;
-			nzp_csi_res[3].res_map.first_ofdm_symbol_in_time_domain = 4;
-			nzp_csi_res[3].periodicity_and_offset.set_slots40();
-			nzp_csi_res[3].periodicity_and_offset.slots40() = 12;
+			struct nzp_csi_rs_res_s *nzp_csi_res3 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_s));
+			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res3);
+			nzp_csi_res3->nzp_csi_rs_res_id = 3;
+			nzp_csi_res3->res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row1;//row1
+			bitstring_from_number(&nzp_csi_res3->res_map.freq_domain_alloc.c, 0x1, 4);
+			nzp_csi_res3->res_map.nrof_ports                 = (enum nrof_ports_e_)p1;
+			nzp_csi_res3->res_map.first_ofdm_symbol_in_time_domain = 4;
+			nzp_csi_res3->res_map.cdm_type                   = (enum cdm_type_e_)no_cdm;
+			nzp_csi_res3->res_map.density.type_          = 2;//three
+			nzp_csi_res3->res_map.freq_band.start_rb     = 0;
+			nzp_csi_res3->res_map.freq_band.nrof_rbs     = cell_cfg->phy_cell.carrier.nof_prb;//52
+			nzp_csi_res3->pwr_ctrl_offset                = 0;
+			nzp_csi_res3->pwr_ctrl_offset_ss_present     = true;
+			nzp_csi_res3->pwr_ctrl_offset_ss             = (enum pwr_ctrl_offset_ss_e_)db0;
+			nzp_csi_res3->scrambling_id                  = cell_cfg->phy_cell.cell_id;
+			nzp_csi_res3->periodicity_and_offset_present = true;
+			nzp_csi_res3->periodicity_and_offset.type_ = (enum csi_res_periodicity_and_offset_type_e)slots40;
+			nzp_csi_res3->periodicity_and_offset.c     = 12;
+			nzp_csi_res3->qcl_info_periodic_csi_rs_present = true;
+			nzp_csi_res3->qcl_info_periodic_csi_rs         = 0;
+
 			// item 4
-			nzp_csi_res[4]                                          = nzp_csi_res[1];
-			nzp_csi_res[4].nzp_csi_rs_res_id                        = 4;
-			nzp_csi_res[4].res_map.first_ofdm_symbol_in_time_domain = 8;
-			nzp_csi_res[4].periodicity_and_offset.set_slots40();
-			nzp_csi_res[4].periodicity_and_offset.slots40() = 12;
+			struct nzp_csi_rs_res_s *nzp_csi_res4 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_s));
+			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res4);
+			nzp_csi_res4->nzp_csi_rs_res_id = 4;
+			nzp_csi_res4->res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row1;//row1
+			bitstring_from_number(&nzp_csi_res1->res_map.freq_domain_alloc.c, 0x1, 4);
+			nzp_csi_res1->res_map.nrof_ports                 = (enum nrof_ports_e_)p1;
+			nzp_csi_res1->res_map.first_ofdm_symbol_in_time_domain = 8;
+			nzp_csi_res1->res_map.cdm_type                   = (enum cdm_type_e_)no_cdm;
+			nzp_csi_res1->res_map.density.type_          = 2;//three
+			nzp_csi_res1->res_map.freq_band.start_rb     = 0;
+			nzp_csi_res1->res_map.freq_band.nrof_rbs     = cell_cfg->phy_cell.carrier.nof_prb;//52
+			nzp_csi_res1->pwr_ctrl_offset                = 0;
+			nzp_csi_res1->pwr_ctrl_offset_ss_present     = true;
+			nzp_csi_res1->pwr_ctrl_offset_ss             = (enum pwr_ctrl_offset_ss_e_)db0;
+			nzp_csi_res1->scrambling_id                  = cell_cfg->phy_cell.cell_id;
+			nzp_csi_res1->periodicity_and_offset_present = true;
+			nzp_csi_res1->periodicity_and_offset.type_ = (enum csi_res_periodicity_and_offset_type_e)slots40;
+			nzp_csi_res1->periodicity_and_offset.c     = 12;
+			nzp_csi_res1->qcl_info_periodic_csi_rs_present = true;
+			nzp_csi_res1->qcl_info_periodic_csi_rs         = 0;
 		} else {
-			csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list.resize(1);
-			auto& nzp_csi_res                = csi_meas_cfg.nzp_csi_rs_res_to_add_mod_list;
-			nzp_csi_res[0].nzp_csi_rs_res_id = 0;
-			nzp_csi_res[0].res_map.freq_domain_alloc.set_row2();
-			nzp_csi_res[0].res_map.freq_domain_alloc.row2().from_number(0b100000000000);
-			nzp_csi_res[0].res_map.nrof_ports.value                 = asn1::rrc_nr::csi_rs_res_map_s::nrof_ports_opts::p1;
-			nzp_csi_res[0].res_map.first_ofdm_symbol_in_time_domain = 4;
-			nzp_csi_res[0].res_map.cdm_type.value                   = asn1::rrc_nr::csi_rs_res_map_s::cdm_type_opts::no_cdm;
-			nzp_csi_res[0].res_map.density.set_one();
-			nzp_csi_res[0].res_map.freq_band.start_rb = 0;
-			nzp_csi_res[0].res_map.freq_band.nrof_rbs = 52;
-			nzp_csi_res[0].pwr_ctrl_offset            = 0;
-			// Skip pwr_ctrl_offset_ss_present
-			nzp_csi_res[0].periodicity_and_offset_present       = true;
-			nzp_csi_res[0].periodicity_and_offset.set_slots80() = 0;
+			byn_array_set_bounded(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, 5);
+
+			struct nzp_csi_rs_res_s *nzp_csi_res0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_s));
+			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res0);
+
+			nzp_csi_res0->nzp_csi_rs_res_id = 0;
+			nzp_csi_res0->res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row2;//row2
+			bitstring_from_number(&nzp_csi_res0->res_map.freq_domain_alloc.c, 0b100000000000, 12);
+			nzp_csi_res0->res_map.nrof_ports                 = (enum nrof_ports_e_)p1;
+			nzp_csi_res0->res_map.first_ofdm_symbol_in_time_domain = 4;
+			nzp_csi_res0->res_map.cdm_type                   = (enum cdm_type_e_)no_cdm;
+			nzp_csi_res0->res_map.density.type_          = 1;//one
+			nzp_csi_res0->res_map.freq_band.start_rb     = 0;
+			nzp_csi_res0->res_map.freq_band.nrof_rbs     = cell_cfg->phy_cell.carrier.nof_prb;//52
+			nzp_csi_res0->pwr_ctrl_offset                = 0;
+			nzp_csi_res0->pwr_ctrl_offset_ss_present     = true;
+			nzp_csi_res0->pwr_ctrl_offset_ss             = (enum pwr_ctrl_offset_ss_e_)db0;
+			nzp_csi_res0->scrambling_id                  = cell_cfg->phy_cell.cell_id;
+			nzp_csi_res0->periodicity_and_offset_present = true;
+			nzp_csi_res0->periodicity_and_offset.type_ = (enum csi_res_periodicity_and_offset_type_e)slots80;
+			nzp_csi_res0->periodicity_and_offset.c     = 0;
 			// optional
-			nzp_csi_res[0].qcl_info_periodic_csi_rs_present = true;
-			nzp_csi_res[0].qcl_info_periodic_csi_rs         = 0;
+			nzp_csi_res0->qcl_info_periodic_csi_rs_present = true;
+			nzp_csi_res0->qcl_info_periodic_csi_rs         = 0;
 		}
 
 		// Fill NZP-CSI Resource Sets
 		if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-			csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list.resize(2);
-			auto& nzp_csi_res_set = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list;
+			byn_array_set_bounded(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, 2);
 			// item 0
-			nzp_csi_res_set[0].nzp_csi_res_set_id = 0;
-			nzp_csi_res_set[0].nzp_csi_rs_res.resize(1);
-			nzp_csi_res_set[0].nzp_csi_rs_res[0] = 0;
+			struct nzp_csi_rs_res_set_s *nzp_csi_res_set0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_set_s));
+			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, nzp_csi_res_set0);
+			nzp_csi_res_set0->nzp_csi_res_set_id = 0;
+			byn_array_set_bounded(&nzp_csi_res_set0->nzp_csi_rs_res, 1);
+			struct uint8_t *nzp_csi_rs_res0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+			byn_array_add(&nzp_csi_res_set0->nzp_csi_rs_res, nzp_csi_rs_res0);
+			*nzp_csi_rs_res0 = 0;
+
 			// item 1
-			nzp_csi_res_set[1].nzp_csi_res_set_id = 1;
-			nzp_csi_res_set[1].nzp_csi_rs_res.resize(4);
-			nzp_csi_res_set[1].nzp_csi_rs_res[0] = 1;
-			nzp_csi_res_set[1].nzp_csi_rs_res[1] = 2;
-			nzp_csi_res_set[1].nzp_csi_rs_res[2] = 3;
-			nzp_csi_res_set[1].nzp_csi_rs_res[3] = 4;
-			nzp_csi_res_set[1].trs_info_present  = true;
+			struct nzp_csi_rs_res_set_s *nzp_csi_res_set1 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_set_s));
+			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, nzp_csi_res_set1);
+
+			nzp_csi_res_set1->nzp_csi_res_set_id = 1;
+			byn_array_set_bounded(&nzp_csi_res_set1->nzp_csi_rs_res, 4);
+			struct uint8_t *nzp_csi_rs_res0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+			byn_array_add(&nzp_csi_res_set1->nzp_csi_rs_res, nzp_csi_rs_res0);
+			*nzp_csi_rs_res0 = 1;
+			struct uint8_t *nzp_csi_rs_res1 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+			byn_array_add(&nzp_csi_res_set1->nzp_csi_rs_res, nzp_csi_rs_res1);
+			*nzp_csi_rs_res1 = 2;
+			struct uint8_t *nzp_csi_rs_res2 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+			byn_array_add(&nzp_csi_res_set1->nzp_csi_rs_res, nzp_csi_rs_res2);
+			*nzp_csi_rs_res2 = 3;
+			struct uint8_t *nzp_csi_rs_res3 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+			byn_array_add(&nzp_csi_res_set1->nzp_csi_rs_res, nzp_csi_rs_res3);
+			*nzp_csi_rs_res3 = 4;
+			nzp_csi_res_set1->trs_info_present  = true;
 			  //    // Skip TRS info
 	} else {
-			csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list.resize(1);
-			auto& nzp_csi_res_set                 = csi_meas_cfg.nzp_csi_rs_res_set_to_add_mod_list;
-			nzp_csi_res_set[0].nzp_csi_res_set_id = 0;
-			nzp_csi_res_set[0].nzp_csi_rs_res.resize(1);
-			nzp_csi_res_set[0].nzp_csi_rs_res[0] = 0;
+			byn_array_set_bounded(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, 1);
+			// item 0
+			struct nzp_csi_rs_res_set_s *nzp_csi_res_set0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_set_s));
+			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, nzp_csi_res_set0);
+			nzp_csi_res_set0->nzp_csi_res_set_id = 0;
+			byn_array_set_bounded(&nzp_csi_res_set0->nzp_csi_rs_res, 1);
+			struct uint8_t *nzp_csi_rs_res0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+			byn_array_add(&nzp_csi_res_set0->nzp_csi_rs_res, nzp_csi_rs_res0);
+			*nzp_csi_rs_res0 = 0;
 			// Skip TRS info
 		}
 	}
 }
 
+void fill_csi_im_resource_cfg_to_add_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, struct csi_meas_cfg_s *csi_meas_cfg)
+{
+	if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+		// csi-IM-ResourceToAddModList
+		byn_array_set_bounded(&csi_meas_cfg->csi_im_res_to_add_mod_list, 1);
+		struct csi_im_res_s *csi_im_res = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct csi_im_res_s));
+		byn_array_add(&csi_meas_cfg->csi_im_res_to_add_mod_list, csi_im_res);
+		csi_im_res->csi_im_res_id                   = 0;
+		csi_im_res->csi_im_res_elem_pattern_present = true;
+		// csi-im-resource pattern1
+		csi_im_res->csi_im_res_elem_pattern.type_ = 1;//pattern1
+		struct pattern1_s_ *csi_res_pattern1 = &csi_im_res->csi_im_res_elem_pattern.c.pattern1;
+		csi_res_pattern1->subcarrier_location_p1 = (enum subcarrier_location_p1_e_)s8;
+		csi_res_pattern1->symbol_location_p1 = 8;
+		// csi-im-resource freqBand
+		csi_im_res->freq_band_present  = true;
+		csi_im_res->freq_band.start_rb = 0;
+		csi_im_res->freq_band.nrof_rbs = cell_cfg->phy_cell.carrier.nof_prb;//52
+		// csi-im-resource periodicity_and_offset
+		csi_im_res->periodicity_and_offset_present = true;
+		csi_im_res->periodicity_and_offset.type_ = (csi_res_periodicity_and_offset_type_e)slots80;
+		csi_im_res->periodicity_and_offset.c = 1;
+
+		// csi-IM-ResourceSetToAddModList
+		byn_array_set_bounded(&csi_meas_cfg->csi_im_res_set_to_add_mod_list, 1);
+		struct csi_im_res_set_s *csi_im_res_set = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct csi_im_res_set_s));
+		byn_array_add(&csi_meas_cfg->csi_im_res_set_to_add_mod_list, csi_im_res_set);
+		csi_im_res_set->csi_im_res_set_id = 0;
+		byn_array_set_bounded(&csi_im_res_set->csi_im_res, 1);
+		struct uint8_t *cir = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+		byn_array_add(&csi_im_res_set->csi_im_res, cir);
+		*cir = 0;
+	}
+}
+
+/// Fill list of CSI-ReportConfig with gNB config
+int fill_csi_report_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, csi_meas_cfg_s& csi_meas_cfg)
+{
+	ASSERT_IF_NOT(cfg->is_standalone, "Not support NSA now!")
+
+	if (cfg->is_standalone) {
+		byn_array_set_bounded(&csi_meas_cfg->csi_report_cfg_to_add_mod_list, 1);
+		struct csi_report_cfg_s *csi_report = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct csi_report_cfg_s));
+		byn_array_add(&csi_meas_cfg->csi_report_cfg_to_add_mod_list, csi_report);
+
+		csi_report->report_cfg_id                       = 0;
+		csi_report->res_for_ch_meas                     = 0;
+		csi_report->csi_im_res_for_interference_present = true;
+		csi_report->csi_im_res_for_interference         = 1;
+		csi_report->report_cfg_type.type_ = (enum report_cfg_type_e_)periodic;
+		csi_report->report_cfg_type.c.periodic.report_slot_cfg.type_ = (enum csi_report_periodicity_and_offset_e_)slots80;
+
+		byn_array_set_bounded(&csi_report->report_cfg_type.c.periodic.pucch_csi_res_list, 1);
+		struct pucch_csi_res_s *pucch_csi_res = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct pucch_csi_res_s));
+		byn_array_add(&csi_report->report_cfg_type.c.periodic.pucch_csi_res_list, pucch_csi_res);
+		pucch_csi_res->ul_bw_part_id = 0;
+		pucch_csi_res->pucch_res = 17; // was 17 in orig PCAP, but code for NSA it was set to 1
+		csi_report->report_quant.type_ = (enum report_quant_e_)cri_ri_pmi_cqi;
+		// Report freq config (optional)
+		csi_report->report_freq_cfg_present                = true;
+		csi_report->report_freq_cfg.cqi_format_ind_present = true;
+		csi_report->report_freq_cfg.cqi_format_ind = (enum cqi_format_ind_e_)wideband_cqi;
+		csi_report->report_freq_cfg.pmi_format_ind_present = true;
+		csi_report->report_freq_cfg.pmi_format_ind = (enum pmi_format_ind_e_)wideband_pmi;
+		csi_report->time_restrict_for_ch_meass = (enum time_restrict_for_ch_meass_e_)not_cfgured;
+		csi_report->time_restrict_for_interference_meass = (enum time_restrict_for_interference_meass_e_)not_cfgured;
+		csi_report->codebook_cfg_present = true;
+		csi_report->codebook_cfg.codebook_type.type_ = 0;//type1
+
+		struct type1_s_ *type1 = csi_report->codebook_cfg.codebook_type.c.type1;
+		type1->sub_type.type_ = 0;//type_i_single_panel
+		type1->sub_type.c.type_i_single_panel.nr_of_ant_ports.type_ = 0;//two
+		bitstring_from_number(&type1->sub_type.c.type_i_single_panel.nr_of_ant_ports.c.two.two_tx_codebook_subset_restrict, 0b111111, 6);
+		bitstring_from_number(&type1->sub_type.c.type_i_single_panel.type_i_single_panel_ri_restrict, 0x03, 8);
+		type1->codebook_mode = 1;
+		csi_report->group_based_beam_report.type_ = 1;//disabled
+		// Skip CQI table (optional)
+		csi_report->cqi_table_present = true;
+		csi_report->cqi_table         = (enum cqi_table_e_)table1;
+		csi_report->subband_size      = (enum subband_size_e_)value1;
+
+		if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+			csi_report->report_cfg_type.type_ = (enum report_cfg_type_e_)periodic;
+			csi_report->report_cfg_type.c.periodic.report_slot_cfg.type_ = (enum csi_report_periodicity_and_offset_e_)slots80;
+			csi_report->report_cfg_type.c.periodic.report_slot_cfg.c = 1;
+		} else {
+			csi_report->report_cfg_type.type_ = (enum report_cfg_type_e_)periodic;
+			csi_report->report_cfg_type.c.periodic.report_slot_cfg.type_ = (enum csi_report_periodicity_and_offset_e_)slots80;
+			csi_report->report_cfg_type.c.periodic.report_slot_cfg.c = 7;
+		}
+	}
+
+  return OSET_OK;
+}
+
+
 /// Fill CSI-MeasConfig with gNB config
 int fill_csi_meas_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, struct csi_meas_cfg_s *csi_meas_cfg)
 {
-  //  // Fill CSI Report
-  //  if (fill_csi_report_from_enb_cfg(cfg, csi_meas_cfg) != SRSRAN_SUCCESS) {
-  //    get_logger(cfg).error("Failed to configure eNB CSI Report");
-  //    return OSET_ERROR;
-  //  }
-
   // Fill CSI resource config
   fill_csi_resource_cfg_to_add_inner(cfg, cell_cfg, csi_meas_cfg);
 
@@ -794,15 +1182,243 @@ int fill_csi_meas_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_
 
   if (cfg->is_standalone) {
     // CSI IM config
-    fill_csi_im_resource_cfg_to_add(cfg, cell_cfg, csi_meas_cfg);
+    fill_csi_im_resource_cfg_to_add_inner(cfg, cell_cfg, csi_meas_cfg);
 
     // CSI report config
-    fill_csi_report_from_enb_cfg(cfg, cell_cfg, csi_meas_cfg);
+    fill_csi_report_from_enb_cfg_inner(cfg, cell_cfg, csi_meas_cfg);
   }
 
   return OSET_OK;
 }
 
+void fill_pdsch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, pdsch_cfg_s& out)
+{
+  out->dmrs_dl_for_pdsch_map_type_a_present = true;
+  out->dmrs_dl_for_pdsch_map_type_a.type_ = setup;
+  out->dmrs_dl_for_pdsch_map_type_a.c.dmrs_add_position_present = true;
+  out->dmrs_dl_for_pdsch_map_type_a.c.dmrs_add_position         = (enum dmrs_add_position_e_)pos1;
+
+  byn_array_set_bounded(&out->tci_states_to_add_mod_list, 1);
+  struct tci_state_s *tci_ss = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct tci_state_s));
+  byn_array_add(&out->tci_states_to_add_mod_list, tci_ss);
+  tci_ss->tci_state_id = 0;
+  tci_ss->qcl_type1.ref_sig.type_ = 1;//ssb
+  tci_ss->qcl_type1.ref_sig.c = 0;
+  tci_ss->qcl_type1.qcl_type  = (enum qcl_type_e_)type_d;
+
+  out->res_alloc = (enum res_alloc_e_)res_alloc_type1;
+  out->rbg_size  = (enum rbg_size_e_)cfg1;
+  out->prb_bundling_type.type_ = 0;//static_bundling
+  out->prb_bundling_type.c.static.bundle_size_present = true;
+  out->prb_bundling_type.c.static.bundle_size = (enum bundle_size_e_)wideband;
+
+  // MCS Table
+  // NOTE: For Table 1 or QAM64, set false and comment value
+  // out->mcs_table_present = true;
+  // out->mcs_table = qam256;
+
+  // ZP-CSI
+  byn_array_set_bounded(&out->zp_csi_rs_res_to_add_mod_list, 1);
+  struct zp_csi_rs_res_s *zp_csi_rs_res = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct zp_csi_rs_res_s));
+  byn_array_add(&out->zp_csi_rs_res_to_add_mod_list, zp_csi_rs_res);
+  zp_csi_rs_res->zp_csi_rs_res_id = 0;
+  zp_csi_rs_res->res_map.freq_domain_alloc.type_ = 2;//row4
+  bitstring_from_number(&zp_csi_rs_res->res_map.freq_domain_alloc.c, 0b100, 12);
+  zp_csi_rs_res->res_map.nrof_ports = (enum nrof_ports_e_)p4;
+
+  zp_csi_rs_res->res_map.first_ofdm_symbol_in_time_domain = 8;
+  zp_csi_rs_res->res_map.cdm_type = (enum cdm_type_e_)fd_cdm2;
+  zp_csi_rs_res->res_map.density.type_ = 1;//one
+
+  zp_csi_rs_res->res_map.freq_band.start_rb     = 0;
+  zp_csi_rs_res->res_map.freq_band.nrof_rbs     = cell_cfg->phy_cell.carrier.nof_prb;
+  zp_csi_rs_res->periodicity_and_offset_present = true;
+  zp_csi_rs_res->periodicity_and_offset.type_ = (enum csi_res_periodicity_and_offset_type_e)slots80;
+  zp_csi_rs_res->periodicity_and_offset.c = 1;
+}
+
+
+/// Fill InitDlBwp with gNB config
+int fill_init_dl_bwp_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, struct bwp_dl_ded_s *init_dl_bwp)
+{
+  init_dl_bwp->pdcch_cfg_present     = true;
+  init_dl_bwp->pdcch_cfg.type_       = setup;
+  init_dl_bwp->pdcch_cfg.c = cell_cfg->pdcch_cfg_ded;
+
+  init_dl_bwp->pdsch_cfg_present = true;
+  init_dl_bwp->pdsch_cfg.type_       = setup;
+  fill_pdsch_cfg_from_enb_cfg_inner(cfg, cell_cfg, &init_dl_bwp->pdsch_cfg.c);
+
+  // TODO: ADD missing fields
+  return OSET_OK;
+}
+
+void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, struct pucch_cfg_s *out)
+{
+  // Make 2 PUCCH resource sets
+  byn_array_set_bounded(&out->res_set_to_add_mod_list, 2);
+
+  // Make PUCCH resource set for 1-2 bit
+  for (uint32_t set_id = 0; set_id < out->res_set_to_add_mod_list.size; ++set_id) {
+	struct pucch_res_set_s *pucch_res_set = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct pucch_res_set_s));
+	byn_array_add(&out->res_set_to_add_mod_list, pucch_res_set);
+	pucch_res_set->pucch_res_set_id = set_id;
+	byn_array_set_bounded(&pucch_res_set->res_list, 8);
+    for (uint32_t i = 0; i < pucch_res_set->res_list.size; ++i) {
+		struct uint8_t *c = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+		byn_array_add(&pucch_res_set->res_list, c);
+		if (cfg->is_standalone) {
+			*c = i + set_id * 8;
+		} else {
+			*c = set_id;
+		}
+    }
+  }
+
+  // Make 3 possible resources
+  byn_array_set_bounded(&out->res_to_add_mod_list, 18);
+  uint32_t j = 0, j2 = 0;
+  for (uint32_t i = 0; i < out->res_to_add_mod_list.size; ++i) {
+	struct pucch_res_s *pucch_res = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct pucch_res_s));
+	byn_array_add(&out->res_to_add_mod_list, pucch_res);
+    pucch_res->pucch_res_id                = i;
+    pucch_res->intra_slot_freq_hop_present = false;
+    if (i < 8 || i == 16) {
+      pucch_res->start_prb                         = cell_cfg->phy_cell.carrier.nof_prb - 1;//51
+      pucch_res->second_hop_prb_present            = true;
+      pucch_res->second_hop_prb                    = 0;
+	  pucch_res->format.type_                      = 1;//format1
+      pucch_res->format.c.f1.init_cyclic_shift     = (4 * (j % 3));
+      pucch_res->format.c.f1.nrof_symbols          = 14;
+      pucch_res->format.c.f1.start_symbol_idx      = 0;
+      pucch_res->format.c.f1.time_domain_occ       = j / 3;
+      j++;
+    } else if (i < 15) {
+      pucch_res->start_prb                         = 1;
+      pucch_res->second_hop_prb_present            = true;
+      pucch_res->second_hop_prb                    = cell_cfg->phy_cell.carrier.nof_prb-2;//50
+      pucch_res->format.type_                      = 2;//format2
+      pucch_res->format.c.f2.nrof_prbs             = 1;
+      pucch_res->format.c.f2.nrof_symbols          = 2;
+      pucch_res->format.c.f2.start_symbol_idx      = 2 * (j2 % 7);
+      j2++;
+    } else {
+      pucch_res->start_prb                         = cell_cfg->phy_cell.carrier.nof_prb -2;//50
+      pucch_res->second_hop_prb_present            = true;
+      pucch_res->second_hop_prb                    = 1;
+      pucch_res->format.type_                      = 2;//format2
+      pucch_res->format.c.f2.nrof_prbs             = 1;
+      pucch_res->format.c.f2.nrof_symbols          = 2;
+      pucch_res->format.c.f2.start_symbol_idx      = 2 * (j2 % 7);
+      j2++;
+    }
+  }
+
+  out->format1_present = true;
+  out->format1.type_ = setup;
+
+  out->format2_present = true;
+  out->format2.type_ = setup;
+  out->format2.c.max_code_rate_present = true;
+  out->format2.c.max_code_rate         = (enum pucch_max_code_rate_e)zero_dot25;
+  // NOTE: IMPORTANT!! The gNB expects the CSI to be reported along with HARQ-ACK
+  // If simul_harq_ack_csi_present = false, PUCCH might not be decoded properly when CSI is reported
+  out->format2.c.simul_harq_ack_csi_present = true;
+
+  // SR resources
+  byn_array_set_bounded(&out->sched_request_res_to_add_mod_list, 1);
+  struct sched_request_res_cfg_s *sr_res1 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct sched_request_res_cfg_s));
+  byn_array_add(&out->sched_request_res_to_add_mod_list, sr_res1);
+  sr_res1->sched_request_res_id              = 1;
+  sr_res1->sched_request_id                  = 0;
+  sr_res1->periodicity_and_offset_present    = true;
+  sr_res1->periodicity_and_offset.type_      = (enum periodicity_and_offset_e_)sl40;
+  sr_res1->periodicity_and_offset.c          = 8;
+  sr_res1->res_present                       = true;
+  sr_res1->res                               = 2;
+
+  // DL data
+  if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+	byn_array_set_bounded(&out->dl_data_to_ul_ack, 1);
+	struct uint8_t *ack = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+	byn_array_add(&out->sched_request_res_to_add_mod_list, ack);
+	*ack = 4;
+  } else {
+	byn_array_set_bounded(&out->dl_data_to_ul_ack, 6);
+	struct uint8_t *ack0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+	byn_array_add(&out->sched_request_res_to_add_mod_list, ack0);
+	*ack0 = 6;
+	struct uint8_t *ack1 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+	byn_array_add(&out->sched_request_res_to_add_mod_list, ack1);
+	*ack1 = 5;
+	struct uint8_t *ack2 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+	byn_array_add(&out->sched_request_res_to_add_mod_list, ack2);
+	*ack2 = 4;
+	struct uint8_t *ack3 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+	byn_array_add(&out->sched_request_res_to_add_mod_list, ack3);
+	*ack3 = 4;
+	struct uint8_t *ack4 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+	byn_array_add(&out->sched_request_res_to_add_mod_list, ack4);
+	*ack4 = 4;
+	struct uint8_t *ack5 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
+	byn_array_add(&out->sched_request_res_to_add_mod_list, ack5);
+	*ack5 = 4;
+  }
+}
+
+void fill_pusch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, struct pusch_cfg_s *out)
+{
+  out->dmrs_ul_for_pusch_map_type_a_present = true;
+  out->dmrs_ul_for_pusch_map_type_a.type_ = setup;
+  out->dmrs_ul_for_pusch_map_type_a.c.dmrs_add_position_present = true;
+  out->dmrs_ul_for_pusch_map_type_a.c.dmrs_add_position         = (enum dmrs_add_position_e_)pos1;
+  // PUSH power control skipped
+  out->res_alloc = (enum res_alloc_e_)res_alloc_type1;
+
+  // UCI
+  out->uci_on_pusch_present = true;
+  out->uci_on_pusch.type_   = setup;
+  out->uci_on_pusch.c.beta_offsets_present = true;
+  out->uci_on_pusch.c.beta_offsets.set_semi_static();
+  out->uci_on_pusch.c.beta_offsets.type_ = 1;//semi_static
+  struct beta_offsets_s *beta_offset_semi_static   = &out->uci_on_pusch.c.beta_offsets.c.semi;
+  beta_offset_semi_static->beta_offset_ack_idx1_present       = true;
+  beta_offset_semi_static->beta_offset_ack_idx1               = 9;
+  beta_offset_semi_static->beta_offset_ack_idx2_present       = true;
+  beta_offset_semi_static->beta_offset_ack_idx2               = 9;
+  beta_offset_semi_static->beta_offset_ack_idx3_present       = true;
+  beta_offset_semi_static->beta_offset_ack_idx3               = 9;
+  beta_offset_semi_static->beta_offset_csi_part1_idx1_present = true;
+  beta_offset_semi_static->beta_offset_csi_part1_idx1         = 6;
+  beta_offset_semi_static->beta_offset_csi_part1_idx2_present = true;
+  beta_offset_semi_static->beta_offset_csi_part1_idx2         = 6;
+  beta_offset_semi_static->beta_offset_csi_part2_idx1_present = true;
+  beta_offset_semi_static->beta_offset_csi_part2_idx1         = 6;
+  beta_offset_semi_static->beta_offset_csi_part2_idx2_present = true;
+  beta_offset_semi_static->beta_offset_csi_part2_idx2         = 6;
+
+  out->uci_on_pusch.c.scaling = (enum scaling_e_)f1;
+}
+
+void fill_init_ul_bwp_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, struct bwp_ul_ded_s *out)
+{
+  if (cfg->is_standalone) {
+    out->pucch_cfg_present = true;
+	out->pucch_cfg.type_ = setup;
+    fill_pucch_cfg_from_enb_cfg_inner(cfg, cell_cfg, &out->pucch_cfg.c);
+
+    out->pusch_cfg_present = true;
+	out->pusch_cfg.type_ = setup;
+    fill_pusch_cfg_from_enb_cfg_inner(cfg, cell_cfg, &out->pusch_cfg.c);
+  }
+}
+
+/// Fill InitUlBwp with gNB config
+void fill_ul_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, struct ul_cfg_s *out)
+{
+  out->init_ul_bwp_present = true;
+  fill_init_ul_bwp_from_enb_cfg_inner(cfg, cell_cfg, &out->init_ul_bwp);
+}
 
 /// Fill ServingCellConfig with gNB config
 int fill_serv_cell_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, struct serving_cell_cfg_s *serv_cell)
@@ -814,7 +1430,7 @@ int fill_serv_cell_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, struct ser
 	HANDLE_ERROR(fill_csi_meas_from_enb_cfg_inner(cfg, cell_cfg, &serv_cell->csi_meas_cfg.c));
 
 	serv_cell->init_dl_bwp_present = true;
-	fill_init_dl_bwp_from_enb_cfg(cfg, cell_cfg, &serv_cell->init_dl_bwp);
+	fill_init_dl_bwp_from_enb_cfg_inner(cfg, cell_cfg, &serv_cell->init_dl_bwp);
 
 	serv_cell->first_active_dl_bwp_id_present = true;
 	if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
@@ -824,7 +1440,7 @@ int fill_serv_cell_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, struct ser
 	}
 
 	serv_cell->ul_cfg_present = true;
-	fill_ul_cfg_from_enb_cfg(cfg, cell_cfg, serv_cell->ul_cfg);
+	fill_ul_cfg_from_enb_cfg_inner(cfg, cell_cfg, &serv_cell->ul_cfg);
 
   // TODO: remaining fields
 

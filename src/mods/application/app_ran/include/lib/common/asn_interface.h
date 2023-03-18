@@ -2468,7 +2468,7 @@ struct dmrs_dl_cfg_s {
 
 struct ref_sig_c_ {
   enum types { csi_rs, ssb, nulltype }		type_;
-  void *c;//pod_choice_buffer_t
+  int  c;//pod_choice_buffer_t
 };
 
 enum qcl_type_e_{ type_a, type_b, type_c, type_d, nulltype };
@@ -2507,10 +2507,15 @@ struct rate_match_pattern_group_item_c_ {
   void *c;//pod_choice_buffer_t
 };
 
+enum freq_domain_alloc_e_ { row1, row2, row4, other, nulltype };
 struct freq_domain_alloc_c_ {
-  enum types { row1, row2, row4, other, nulltype }	 type_;
+  enum freq_domain_alloc_e_  type_;
   uint8_t c[2];//choice_buffer_t//fixed_bitstring<12>
 };
+//fixed_bitstring<4>  set_row1();
+//fixed_bitstring<12> set_row2();
+//fixed_bitstring<3>  set_row4();
+//fixed_bitstring<6>  set_other();
 
 enum nrof_ports_e_ { p1, p2, p4, p8, p12, p16, p24, p32, nulltype };
 enum cdm_type_e_ { no_cdm, fd_cdm2, cdm4_fd2_td2, cdm8_fd2_td4, nulltype };
@@ -2540,25 +2545,27 @@ struct csi_rs_res_map_s {
   struct csi_freq_occupation_s freq_band;
 };
 
+enum csi_res_periodicity_and_offset_type_e {
+  slots4,
+  slots5,
+  slots8,
+  slots10,
+  slots16,
+  slots20,
+  slots32,
+  slots40,
+  slots64,
+  slots80,
+  slots160,
+  slots320,
+  slots640,
+  nulltype
+};
+
 // CSI-ResourcePeriodicityAndOffset ::= CHOICE
 struct csi_res_periodicity_and_offset_c {
-    enum types {
-      slots4,
-      slots5,
-      slots8,
-      slots10,
-      slots16,
-      slots20,
-      slots32,
-      slots40,
-      slots64,
-      slots80,
-      slots160,
-      slots320,
-      slots640,
-      nulltype
-    }type_;
-   void   *c;//pod_choice_buffer_t
+    enum csi_res_periodicity_and_offset_type_e type_;
+    int   c;//pod_choice_buffer_t
 };
 
 // ZP-CSI-RS-Resource ::= SEQUENCE
@@ -2764,28 +2771,29 @@ struct pucch_res_s {
   struct format_c_ format;
 };
 
-struct periodicity_and_offset_c_ {
-   enum types {
-	  sym2,
-	  sym6or7,
-	  sl1,
-	  sl2,
-	  sl4,
-	  sl5,
-	  sl8,
-	  sl10,
-	  sl16,
-	  sl20,
-	  sl40,
-	  sl80,
-	  sl160,
-	  sl320,
-	  sl640,
-	  nulltype
-	}type_;
-    void  *c;//pod_choice_buffer_t
-};
+enum periodicity_and_offset_e_ {
+   sym2,
+   sym6or7,
+   sl1,
+   sl2,
+   sl4,
+   sl5,
+   sl8,
+   sl10,
+   sl16,
+   sl20,
+   sl40,
+   sl80,
+   sl160,
+   sl320,
+   sl640,
+   nulltype
+ };
 
+struct periodicity_and_offset_c_ {
+    enum periodicity_and_offset_e_ type_;
+    int  c;//pod_choice_buffer_t
+};
 
 // SchedulingRequestResourceConfig ::= SEQUENCE
 struct sched_request_res_cfg_s {
@@ -3659,7 +3667,8 @@ struct csi_im_res_elem_pattern_c_ {
   enum types { pattern0, pattern1, nulltype } type_;
   union{
   	    struct pattern0_s_ pattern0;
-		struct pattern1_s_ pattern1;} c;//choice_buffer_t
+		struct pattern1_s_ pattern1;
+	   }c;//choice_buffer_t
 };
 
 // CSI-IM-Resource ::= SEQUENCE
@@ -3721,22 +3730,24 @@ struct pucch_csi_res_s {
   uint8_t pucch_res;
 };
 
+  enum csi_report_periodicity_and_offset_e_ {
+  slots4,
+  slots5,
+  slots8,
+  slots10,
+  slots16,
+  slots20,
+  slots40,
+  slots80,
+  slots160,
+  slots320,
+  nulltype
+};
+
 // CSI-ReportPeriodicityAndOffset ::= CHOICE
 struct csi_report_periodicity_and_offset_c {
-      enum types {
-      slots4,
-      slots5,
-      slots8,
-      slots10,
-      slots16,
-      slots20,
-      slots40,
-      slots80,
-      slots160,
-      slots320,
-      nulltype
-    }type_;
-    void *c;//pod_choice_buffer_t
+     enum csi_report_periodicity_and_offset_e_ type_;
+     int c;//pod_choice_buffer_t
 };
 
 struct periodic_s_ {
@@ -3763,8 +3774,10 @@ struct aperiodic_s_ {
   A_DYN_ARRAY_OF(uint8_t)   report_slot_offset_list;//bounded_array<uint8_t, 16>
 };
 
+enum report_cfg_type_e_ { periodic, semi_persistent_on_pucch, semi_persistent_on_pusch, aperiodic, nulltype };
+
 struct report_cfg_type_c_ {
-  enum types { periodic, semi_persistent_on_pucch, semi_persistent_on_pusch, aperiodic, nulltype }	type_;
+  enum report_cfg_type_e_ type_;
   union{
 		  struct aperiodic_s_ aperiodic;
 		  struct periodic_s_ periodic;
@@ -3780,18 +3793,20 @@ struct cri_ri_i1_cqi_s_ {
   enum pdsch_bundle_size_for_csi_e_ pdsch_bundle_size_for_csi;
 };
 
+enum report_quant_e_ {
+	none,
+	cri_ri_pmi_cqi,
+	cri_ri_i1,
+	cri_ri_i1_cqi,
+	cri_ri_cqi,
+	cri_rsrp,
+	ssb_idx_rsrp,
+	cri_ri_li_pmi_cqi,
+	nulltype
+};
+
 struct report_quant_c_ {
-  enum types {
-	  none,
-	  cri_ri_pmi_cqi,
-	  cri_ri_i1,
-	  cri_ri_i1_cqi,
-	  cri_ri_cqi,
-	  cri_rsrp,
-	  ssb_idx_rsrp,
-	  cri_ri_li_pmi_cqi,
-	  nulltype
-	}type_;
+  enum report_quant_e_ type_;
   struct cri_ri_i1_cqi_s_ c;
 };
 
