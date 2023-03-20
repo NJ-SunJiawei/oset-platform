@@ -50,7 +50,14 @@ int32_t rrc_generate_sibs(uint32_t cc)
 	oset_assert(du_cell);
 
 	byn_array_add(&rrc_manager.cell_ctxt->sib_buffer, du_cell->packed_sib1);
-	
+
+	// SI messages packing
+	//byn_array_set_bounded(&rrc_manager.cell_ctxt->sibs, 1);
+	//struct sib_type_and_info_item_c_ *si = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct sib2_s));;
+	//byn_array_add(&rrc_manager.cell_ctxt->sibs, si);
+	//si->types = (enum sib_type_and_info_item_e_)sib2;
+	//si->c.sib2.cell_resel_info_common.q_hyst = (enum q_hyst_e_)db5;
+
 	// SI messages packing Todo parse_sib2()
 	ASN_RRC_BCCH_DL_SCH_Message_t *sib_pdu = CALLOC(1,sizeof(ASN_RRC_BCCH_DL_SCH_Message_t));
 	sib_pdu->message.present = ASN_RRC_BCCH_DL_SCH_MessageType_PR_c1;
@@ -80,7 +87,7 @@ void rrc_config_phy(uint32_t cc)
 	oset_assert(du_cell);
 	//fill carrier
 	common_cfg->carrier = rrc_cell_cfg->phy_cell.carrier;
-	//fill pucch
+	//fill pdcch
 	fill_phy_pdcch_cfg_common(du_cell, rrc_cell_cfg, &common_cfg->pdcch);
 	bool ret = fill_phy_pdcch_cfg(rrc_cell_cfg, &common_cfg->pdcch);
 	ASSERT_IF_NOT(ret, "Failed to generate Dedicated PDCCH config");
@@ -183,7 +190,7 @@ void rrc_config_mac(uint32_t cc)
 	cell->dl_cfg_common       = serv_cell->dl_cfg_common;
 	cell->ul_cfg_common       = serv_cell->ul_cfg_common;
 	cell->ss_pbch_block_power = serv_cell->ss_pbch_block_pwr;
-	bool valid_cfg = make_pdsch_cfg_from_serv_cell(rrc_manager.cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded,
+	bool valid_cfg = make_pdsch_cfg_from_serv_cell(&rrc_manager.cell_ctxt->master_cell_group->sp_cell_cfg.sp_cell_cfg_ded,
 	                                                     &cell->bwps[0].pdsch);
 	ASSERT_IF_NOT(valid_cfg, "Invalid NR cell configuration.");
 	cell->ssb_positions_in_burst = serv_cell->ssb_positions_in_burst;
@@ -198,15 +205,17 @@ void rrc_config_mac(uint32_t cc)
 	}
 
 	// Set SIB1 and SI messages
-	cell.sibs.resize(cell_ctxt->sib_buffer.size());
-	for (uint32_t i = 0; i < cell_ctxt->sib_buffer.size(); i++) {
-		cell.sibs[i].len = cell_ctxt->sib_buffer[i]->N_bytes;
+	uint16_t options_si_periodicity[] = {8, 16, 32, 64, 128, 256, 512};
+	uint16_t options_si_win_len[] = {5, 10, 20, 40, 80, 160, 320, 640, 1280};
+	byn_array_set_bounded(&cell->sibs, byn_array_get_count(&rrc_manager.cell_ctxt->sib_buffer));
+	for (uint32_t i = 0; i < byn_array_get_count(&rrc_manager.cell_ctxt->sib_buffer); i++) {
+		cell->sibs[i].len = byn_array_get_data(&rrc_manager.cell_ctxt->sib_buffer, i)->len;
 		if (i == 0) {
-		  cell.sibs[i].period_rf       = 16; // SIB1 is always 16 rf
-		  cell.sibs[i].si_window_slots = 160;
+		  cell->sibs[i].period_rf       = 16; // SIB1 is always 16 rf
+		  cell->sibs[i].si_window_slots = 160;
 		} else {
-		  cell.sibs[i].period_rf = du_cfg->cell(0).sib1.si_sched_info.sched_info_list[i - 1].si_periodicity.to_number();
-		  cell.sibs[i].si_window_slots = du_cfg->cell(0).sib1.si_sched_info.si_win_len.to_number();
+		  cell->sibs[i].period_rf = options_si_periodicity[byn_array_get_data(&du_cell->sib1.si_sched_info.sched_info_list, i-1)->si_periodicity];
+		  cell->sibs[i].si_window_slots = options_si_win_len[du_cell->sib1.si_sched_info.si_win_len];
 		}
 	}
 
@@ -235,6 +244,9 @@ static int sched_cell_array_destory(sched_nr_cell_cfg_t  *cell){
 	byn_array_empty(&cell->ul_cfg_common.freq_info_ul.scs_specific_carrier_list);
 	//release pusch_cfg_common.pusch_time_domain_alloc_list
 	byn_array_empty(&cell->ul_cfg_common.init_ul_bwp.pusch_cfg_common.c.pusch_time_domain_alloc_list);
+
+	//release si
+	byn_array_empty(&cell->sibs);
 }
 
 static int rrc_init(void)
@@ -361,7 +373,7 @@ static int rrc_destory(void)
 		oset_free(byn_array_get_data(&rrc_manager.cell_ctxt->sib_buffer, i));
 	}
 	byn_array_empty(&rrc_manager.cell_ctxt->sib_buffer);
-
+	//byn_array_empty(&rrc_manager.cell_ctxt->sibs);
 
     /*free cell_ctxt->master_cell_group*/
     //free rlc_bearer_to_add_mod_list

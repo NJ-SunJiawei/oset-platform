@@ -1287,7 +1287,7 @@ struct speed_state_resel_pars_s_ {
   struct q_hyst_sf_s_	q_hyst_sf;
 };
 
-struct cell_resel_info_common_s_ {
+struct cell_resel_info_common_lte_s_ {
   bool						speed_state_resel_pars_present;
   enum q_hyst_opts			q_hyst;
   struct speed_state_resel_pars_s_ speed_state_resel_pars;
@@ -1326,7 +1326,7 @@ struct intra_freq_cell_resel_info_s_ {
 
 // SystemInformationBlockType3
 struct sib_type3_lte_s {
-  struct cell_resel_info_common_s_       cell_resel_info_common;
+  struct cell_resel_info_common_lte_s_       cell_resel_info_common;
   struct cell_resel_serving_freq_info_s_ cell_resel_serving_freq_info;
   struct intra_freq_cell_resel_info_s_   intra_freq_cell_resel_info;
 };
@@ -2520,8 +2520,10 @@ struct freq_domain_alloc_c_ {
 enum nrof_ports_e_ { p1, p2, p4, p8, p12, p16, p24, p32, nulltype };
 enum cdm_type_e_ { no_cdm, fd_cdm2, cdm4_fd2_td2, cdm8_fd2_td4, nulltype };
 enum dot5_e_ { even_prbs, odd_prbs, nulltype };
+enum density_e_ { dot5, one, three, spare, nulltype };
+
 struct density_c_ {
-  enum types { dot5, one, three, spare, nulltype }	 type_;
+  enum density_e_ type_;
   enum dot5_e_ c;
 };
 
@@ -4700,9 +4702,9 @@ struct sib9_s {
   dyn_octstring late_non_crit_ext;
 };
 
-
+enum sib_type_and_info_item_e_ { sib2, sib3, sib4, sib5, sib6, sib7, sib8, sib9, /*...*/ nulltype };
 struct sib_type_and_info_item_c_ {
-  enum types { sib2, sib3, sib4, sib5, sib6, sib7, sib8, sib9, /*...*/ nulltype } 	type_;
+  enum sib_type_and_info_item_e_  type_;
   union{
 		struct sib2_s sib2;
 		struct sib3_s sib3;

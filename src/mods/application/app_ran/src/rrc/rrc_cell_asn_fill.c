@@ -305,7 +305,7 @@ int fill_sib1_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_DL_SCH_Mess
 	sib1->si_SchedulingInfo->si_RequestConfig = CALLOC(1, sizeof(struct ASN_RRC_SI_RequestConfig));
 	sib1->si_SchedulingInfo->si_RequestConfig->rach_OccasionsSI = CALLOC(1, sizeof(struct ASN_RRC_SI_RequestConfig__rach_OccasionsSI));
 	sib1->si_SchedulingInfo->si_RequestConfig->rach_OccasionsSI->rach_ConfigSI.ra_ResponseWindow = ASN_RRC_RACH_ConfigGeneric__ra_ResponseWindow_sl8;
-	sib1->si_SchedulingInfo->si_WindowLength = ASN_RRC_SI_SchedulingInfo__si_WindowLength_s20;
+	sib1->si_SchedulingInfo->si_WindowLength = ASN_RRC_SI_SchedulingInfo__si_WindowLength_s160;
 	for(int i = 0; i < 1; i++){
 		asn1cSequenceAdd(sib1->si_SchedulingInfo->schedulingInfoList.list, struct ASN_RRC_SchedulingInfo, si_info);
 		si_info->si_BroadcastStatus = ASN_RRC_SchedulingInfo__si_BroadcastStatus_broadcasting;

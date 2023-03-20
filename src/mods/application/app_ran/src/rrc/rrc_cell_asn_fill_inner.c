@@ -344,6 +344,9 @@ bool fill_rach_cfg_common_default_inner(srsran_prach_cfg_t *prach_cfg, struct ra
   return true;
 }
 
+uint8_t options_nrof_ports[] = {1, 2, 4, 8, 12, 16, 24, 32};
+int8_t options_pwr_ctrl_offset_ss[] = {-3, 0, 3, 6};
+
 bool make_phy_nzp_csi_rs_resource(struct nzp_csi_rs_res_s *asn1_nzp_csi_rs_res,
                                              srsran_csi_rs_nzp_resource_t *out_csi_rs_nzp_resource)
 {
@@ -379,7 +382,6 @@ bool make_phy_nzp_csi_rs_resource(struct nzp_csi_rs_res_s *asn1_nzp_csi_rs_res,
       return false;
   }
 
-  uint8_t options_nrof_ports[] = {1, 2, 4, 8, 12, 16, 24, 32};
   csi_rs_nzp_resource.resource_mapping.nof_ports        = options_nrof_ports[asn1_nzp_csi_rs_res->res_map.nrof_ports];
   csi_rs_nzp_resource.resource_mapping.first_symbol_idx = asn1_nzp_csi_rs_res->res_map.first_ofdm_symbol_in_time_domain;
 
@@ -401,110 +403,108 @@ bool make_phy_nzp_csi_rs_resource(struct nzp_csi_rs_res_s *asn1_nzp_csi_rs_res,
       return false;
   }
 
-  switch (asn1_nzp_csi_rs_res->res_map.density.type()) {
-    case csi_rs_res_map_s::density_c_::types_opts::options::dot5:
-      switch (asn1_nzp_csi_rs_res->res_map.density.dot5()) {
-        case csi_rs_res_map_s::density_c_::dot5_opts::options::even_prbs:
+  switch (asn1_nzp_csi_rs_res->res_map.density.type_) {
+    case (enum density_e_)dot5:
+      switch (asn1_nzp_csi_rs_res->res_map.density.c) {
+        case (enum dot5_e_)even_prbs:
           csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_dot5_even;
           break;
-        case csi_rs_res_map_s::density_c_::dot5_opts::options::odd_prbs:
+        case (enum dot5_e_)odd_prbs:
           csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_dot5_odd;
           break;
         default:
-          asn1::log_warning("Invalid option for dot5 %s", asn1_nzp_csi_rs_res->res_map.density.dot5().to_string());
+          oset_error("Invalid option for dot5 %d", asn1_nzp_csi_rs_res->res_map.density.c);
           return false;
       }
       break;
-    case csi_rs_res_map_s::density_c_::types_opts::options::one:
+    case (enum density_e_)one:
       csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_one;
       break;
-    case csi_rs_res_map_s::density_c_::types_opts::options::three:
+    case (enum density_e_)three:
       csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_three;
       break;
-    case csi_rs_res_map_s::density_c_::types_opts::options::spare:
+    case (enum density_e_)spare:
       csi_rs_nzp_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_spare;
       break;
     default:
-      asn1::log_warning("Invalid option for density %s", asn1_nzp_csi_rs_res->res_map.density.type().to_string());
+      oset_error("Invalid option for density %d", asn1_nzp_csi_rs_res->res_map.density.type_));
       return false;
   }
   csi_rs_nzp_resource.resource_mapping.freq_band.nof_rb   = asn1_nzp_csi_rs_res->res_map.freq_band.nrof_rbs;
   csi_rs_nzp_resource.resource_mapping.freq_band.start_rb = asn1_nzp_csi_rs_res->res_map.freq_band.start_rb;
 
   // Validate CSI-RS resource mapping
-  if (not srsran_csi_rs_resource_mapping_is_valid(&csi_rs_nzp_resource.resource_mapping)) {
-    asn1::json_writer json_writer;
-    asn1_nzp_csi_rs_res->res_map.to_json(json_writer);
-    asn1::log_error("Resource mapping is invalid or not implemented: %s", json_writer.to_string());
+  if (!srsran_csi_rs_resource_mapping_is_valid(&csi_rs_nzp_resource.resource_mapping)) {
+    oset_error("Resource mapping is invalid or not implemented");
     return false;
   }
 
   csi_rs_nzp_resource.power_control_offset = asn1_nzp_csi_rs_res->pwr_ctrl_offset;
   if (asn1_nzp_csi_rs_res->pwr_ctrl_offset_ss_present) {
-    csi_rs_nzp_resource.power_control_offset_ss = asn1_nzp_csi_rs_res->pwr_ctrl_offset_ss.to_number();
+    csi_rs_nzp_resource.power_control_offset_ss = options_pwr_ctrl_offset_ss[asn1_nzp_csi_rs_res->pwr_ctrl_offset_ss];
   }
 
   if (asn1_nzp_csi_rs_res->periodicity_and_offset_present) {
-    switch (asn1_nzp_csi_rs_res->periodicity_and_offset.type()) {
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots4:
+    switch (asn1_nzp_csi_rs_res->periodicity_and_offset.type_) {
+      case (enum csi_res_periodicity_and_offset_type_e)slots4:
         csi_rs_nzp_resource.periodicity.period = 4;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots4();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c;
         break;
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots5:
+      case (enum csi_res_periodicity_and_offset_type_e)slots5:
         csi_rs_nzp_resource.periodicity.period = 5;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots5();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c;
         break;
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots8:
+      case (enum csi_res_periodicity_and_offset_type_e)slots8:
         csi_rs_nzp_resource.periodicity.period = 8;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots8();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c;
         break;
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots10:
+      case (enum csi_res_periodicity_and_offset_type_e)slots10:
         csi_rs_nzp_resource.periodicity.period = 10;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots10();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c;
         break;
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots16:
+      case (enum csi_res_periodicity_and_offset_type_e)slots16:
         csi_rs_nzp_resource.periodicity.period = 16;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots16();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c;
         break;
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots20:
+      case (enum csi_res_periodicity_and_offset_type_e)slots20:
         csi_rs_nzp_resource.periodicity.period = 20;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots20();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c;
         break;
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots32:
+      case (enum csi_res_periodicity_and_offset_type_e)slots32:
         csi_rs_nzp_resource.periodicity.period = 32;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots32();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c;
         break;
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots40:
+      case (enum csi_res_periodicity_and_offset_type_e)slots40:
         csi_rs_nzp_resource.periodicity.period = 40;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots40();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c;
         break;
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots64:
+      case (enum csi_res_periodicity_and_offset_type_e)slots64:
         csi_rs_nzp_resource.periodicity.period = 64;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots64();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c;
         break;
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots80:
+      case (enum csi_res_periodicity_and_offset_type_e)slots80:
         csi_rs_nzp_resource.periodicity.period = 80;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots80();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c;
         break;
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots160:
+      case (enum csi_res_periodicity_and_offset_type_e)slots160:
         csi_rs_nzp_resource.periodicity.period = 160;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots160();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c);
         break;
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots320:
+      case (enum csi_res_periodicity_and_offset_type_e)slots320:
         csi_rs_nzp_resource.periodicity.period = 320;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots320();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c;
         break;
-      case csi_res_periodicity_and_offset_c::types_opts::options::slots640:
+      case (enum csi_res_periodicity_and_offset_type_e)slots640:
         csi_rs_nzp_resource.periodicity.period = 640;
-        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.slots640();
+        csi_rs_nzp_resource.periodicity.offset = asn1_nzp_csi_rs_res->periodicity_and_offset.c;
         break;
       default:
-        asn1::log_warning("Invalid option for periodicity_and_offset %s",
-                          asn1_nzp_csi_rs_res->periodicity_and_offset.type().to_string());
+        oset_error("Invalid option for periodicity_and_offset %s",
+                          asn1_nzp_csi_rs_res->periodicity_and_offset.type_);
         return false;
     }
   } else {
-    asn1::log_warning("Option periodicity_and_offset not present");
+    oset_error("Option periodicity_and_offset not present");
     return false;
   }
 
@@ -514,12 +514,172 @@ bool make_phy_nzp_csi_rs_resource(struct nzp_csi_rs_res_s *asn1_nzp_csi_rs_res,
   return true;
 }
 
+bool make_phy_zp_csi_rs_resource(struct zp_csi_rs_res_s *zp_csi_rs_res,
+								  srsran_csi_rs_zp_resource_t* out_zp_csi_rs_resource)
+{
+   srsran_csi_rs_zp_resource_t zp_csi_rs_resource = {0};
+   zp_csi_rs_resource.id						  = zp_csi_rs_res->zp_csi_rs_res_id;
+   switch (zp_csi_rs_res->res_map.freq_domain_alloc.type_) {
+	 case (enum freq_domain_alloc_e_)row1:
+	   zp_csi_rs_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_1;
+	   for (uint32_t i = 0; i < 4; i++) {
+		 zp_csi_rs_resource.resource_mapping.frequency_domain_alloc[i] =
+		 	 bit_get(zp_csi_rs_res->res_map.freq_domain_alloc.c, 4 - 1 - i);
+	   }
+	   break;
+	 case (enum freq_domain_alloc_e_)row2:
+	   zp_csi_rs_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_2;
+	   for (uint32_t i = 0; i < 12; i++) {
+		 zp_csi_rs_resource.resource_mapping.frequency_domain_alloc[i] =
+			 bit_get(zp_csi_rs_res->res_map.freq_domain_alloc.c, 12 - 1 - i);
+	   }
+	   break;
+	 case (enum freq_domain_alloc_e_)row4:
+	   zp_csi_rs_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_4;
+	   for (uint32_t i = 0; i < 3; i++) {
+		 zp_csi_rs_resource.resource_mapping.frequency_domain_alloc[i] =
+			 bit_get(zp_csi_rs_res->res_map.freq_domain_alloc.c, 3 - 1 - i);
+	   }
+	   break;
+	 case (enum freq_domain_alloc_e_)other:
+	   zp_csi_rs_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_other;
+	   break;
+	 default:
+	   oset_error("Invalid option for freq_domain_alloc %s",
+						 zp_csi_rs_res->res_map.freq_domain_alloc.type_);
+	   return false;
+   }
+   zp_csi_rs_resource.resource_mapping.nof_ports		= options_nrof_ports[zp_csi_rs_res->res_map.nrof_ports];
+   zp_csi_rs_resource.resource_mapping.first_symbol_idx = zp_csi_rs_res->res_map.first_ofdm_symbol_in_time_domain;
+ 
+   switch (zp_csi_rs_res->res_map.cdm_type) {
+	 case (enum cdm_type_e_)no_cdm:
+	   zp_csi_rs_resource.resource_mapping.cdm = srsran_csi_rs_cdm_nocdm;
+	   break;
+	 case (enum cdm_type_e_)fd_cdm2:
+	   zp_csi_rs_resource.resource_mapping.cdm = srsran_csi_rs_cdm_fd_cdm2;
+	   break;
+	 case (enum cdm_type_e_)cdm4_fd2_td2:
+	   zp_csi_rs_resource.resource_mapping.cdm = srsran_csi_rs_cdm_cdm4_fd2_td2;
+	   break;
+	 case (enum cdm_type_e_)cdm8_fd2_td4:
+	   zp_csi_rs_resource.resource_mapping.cdm = srsran_csi_rs_cdm_cdm8_fd2_td4;
+	   break;
+	 default:
+	   oset_error("Invalid option for cdm_type %d", zp_csi_rs_res->res_map.cdm_type);
+	   return false;
+   }
+ 
+   switch (zp_csi_rs_res->res_map.density.type_) {
+	 case (enum density_e_)dot5:
+	   switch (zp_csi_rs_res->res_map.density.c) {
+		 case (enum dot5_e_)even_prbs:
+		   zp_csi_rs_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_dot5_even;
+		   break;
+		 case (enum dot5_e_)odd_prbs:
+		   zp_csi_rs_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_dot5_odd;
+		   break;
+		 default:
+		   oset_error("Invalid option for dot5 %d", zp_csi_rs_res->res_map.density.c);
+		   return false;
+	   }
+	   break;
+	 case (enum density_e_)one:
+	   zp_csi_rs_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_one;
+	   break;
+	 case (enum density_e_)three:
+	   zp_csi_rs_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_three;
+	   break;
+	 case (enum density_e_)spare:
+	   zp_csi_rs_resource.resource_mapping.density = srsran_csi_rs_resource_mapping_density_spare;
+	   break;
+	 default:
+	   oset_error("Invalid option for density %s", zp_csi_rs_res->res_map.density.type_);
+	   return false;
+   }
+   zp_csi_rs_resource.resource_mapping.freq_band.nof_rb   = zp_csi_rs_res->res_map.freq_band.nrof_rbs;
+   zp_csi_rs_resource.resource_mapping.freq_band.start_rb = zp_csi_rs_res->res_map.freq_band.start_rb;
+ 
+   // Validate CSI-RS resource mapping
+   if (!srsran_csi_rs_resource_mapping_is_valid(&zp_csi_rs_resource.resource_mapping)) {
+	 oset_error("Resource mapping is invalid or not implemented");
+	 return false;
+   }
+ 
+   if (zp_csi_rs_res->periodicity_and_offset_present) {
+	 switch (zp_csi_rs_res->periodicity_and_offset.type_) {
+	   case (enum csi_res_periodicity_and_offset_type_e)slots4:
+		 zp_csi_rs_resource.periodicity.period = 4;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   case (enum csi_res_periodicity_and_offset_type_e)slots5:
+		 zp_csi_rs_resource.periodicity.period = 5;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   case (enum csi_res_periodicity_and_offset_type_e)slots8:
+		 zp_csi_rs_resource.periodicity.period = 8;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   case (enum csi_res_periodicity_and_offset_type_e)slots10:
+		 zp_csi_rs_resource.periodicity.period = 10;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   case (enum csi_res_periodicity_and_offset_type_e)slots16:
+		 zp_csi_rs_resource.periodicity.period = 16;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   case (enum csi_res_periodicity_and_offset_type_e)slots20:
+		 zp_csi_rs_resource.periodicity.period = 20;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   case (enum csi_res_periodicity_and_offset_type_e)slots32:
+		 zp_csi_rs_resource.periodicity.period = 32;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   case (enum csi_res_periodicity_and_offset_type_e)slots40:
+		 zp_csi_rs_resource.periodicity.period = 40;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   case (enum csi_res_periodicity_and_offset_type_e)slots64:
+		 zp_csi_rs_resource.periodicity.period = 64;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   case (enum csi_res_periodicity_and_offset_type_e)slots80:
+		 zp_csi_rs_resource.periodicity.period = 80;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   case (enum csi_res_periodicity_and_offset_type_e)slots160:
+		 zp_csi_rs_resource.periodicity.period = 160;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   case (enum csi_res_periodicity_and_offset_type_e)slots320:
+		 zp_csi_rs_resource.periodicity.period = 320;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   case (enum csi_res_periodicity_and_offset_type_e)slots640:
+		 zp_csi_rs_resource.periodicity.period = 640;
+		 zp_csi_rs_resource.periodicity.offset = zp_csi_rs_res->periodicity_and_offset.c;
+		 break;
+	   default:
+		 oset_error("Invalid option for periodicity_and_offset %d",
+						   zp_csi_rs_res->periodicity_and_offset.type_);
+		 return false;
+	 }
+   } else {
+	 oset_error("Option periodicity_and_offset not present");
+	 return false;
+   }
+ 
+   *out_zp_csi_rs_resource = zp_csi_rs_resource;
+   return true;
+}
+
 
 bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl)
 {
   int i = 0;
   if (serv_cell->csi_meas_cfg_present && serv_cell->csi_meas_cfg.type_ == (enum setup_release_e)setup) {
-    struct csi_meas_cfg_s *setup = &serv_cell.csi_meas_cfg.c;
+    struct csi_meas_cfg_s *setup = &serv_cell->csi_meas_cfg.c;
 
     // Configure NZP-CSI
 	for (i = 0 ; i < byn_array_get_count(&setup->nzp_csi_rs_res_set_to_add_mod_list); i++) {
@@ -530,22 +690,22 @@ bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_
       uint32_t count     = 0;
       for (uint8_t nzp_rs_idx = 0;  nzp_rs_idx < byn_array_get_count(&nzp_set->nzp_csi_rs_res); nzp_rs_idx++) {
         srsran_csi_rs_nzp_resource_t *res = &uecfg_set->data[count++];
-        if (!make_phy_nzp_csi_rs_resource(setup.nzp_csi_rs_res_to_add_mod_list[nzp_rs_idx], res)) {
+        if (!make_phy_nzp_csi_rs_resource(byn_array_get_data(&setup->nzp_csi_rs_res_to_add_mod_list, nzp_rs_idx), res)) {
           return false;
         }
       }
     }
   }
 
-  if (serv_cell.init_dl_bwp.pdsch_cfg_present and serv_cell.init_dl_bwp.pdsch_cfg.is_setup()) {
-    const auto& setup = serv_cell.init_dl_bwp.pdsch_cfg.setup();
-    if (setup.p_zp_csi_rs_res_set_present) {
-      auto& setup_set               = setup.p_zp_csi_rs_res_set.setup();
-      sch_hl->p_zp_csi_rs_set.count = setup_set.zp_csi_rs_res_id_list.size();
-      for (uint8_t zp_res_id : setup_set.zp_csi_rs_res_id_list) {
-        const asn1::rrc_nr::zp_csi_rs_res_s& setup_res = setup.zp_csi_rs_res_to_add_mod_list[zp_res_id];
-        auto&                                res       = sch_hl->p_zp_csi_rs_set.data[zp_res_id];
-        if (not srsran::make_phy_zp_csi_rs_resource(setup_res, &res)) {
+  if (serv_cell.init_dl_bwp.pdsch_cfg_present && serv_cell.init_dl_bwp.pdsch_cfg.type_ == (enum setup_release_e)setup) {
+    struct pdsch_cfg_s *setup = serv_cell->init_dl_bwp.pdsch_cfg.c;
+    if (setup->p_zp_csi_rs_res_set_present) {
+      struct zp_csi_rs_res_set_s *setup_set  = setup->p_zp_csi_rs_res_set.c;
+      sch_hl->p_zp_csi_rs_set.count = byn_array_get_count(&setup_set->zp_csi_rs_res_id_list);
+      for (uint8_t zp_res_id = 0;  zp_res_id < byn_array_get_count(&setup_set->zp_csi_rs_res_id_list); zp_res_id++) {
+        struct zp_csi_rs_res_s *setup_res = byn_array_get_data(&setup->zp_csi_rs_res_to_add_mod_list, zp_res_id);
+        srsran_csi_rs_zp_resource_t *res  = sch_hl->p_zp_csi_rs_set.data[zp_res_id];
+        if (!make_phy_zp_csi_rs_resource(setup_res, &res)) {
           return false;
         }
       }
@@ -1235,6 +1395,13 @@ void fill_pdsch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
   zp_csi_rs_res->periodicity_and_offset_present = true;
   zp_csi_rs_res->periodicity_and_offset.type_ = (enum csi_res_periodicity_and_offset_type_e)slots80;
   zp_csi_rs_res->periodicity_and_offset.c = 1;
+
+  out->p_zp_csi_rs_res_set_present = false; // TEMP
+  //out->p_zp_csi_rs_res_set.type_ = (enum setup_release_e)setup;
+  //out->p_zp_csi_rs_res_set.c.zp_csi_rs_res_set_id = 0;
+  //out->p_zp_csi_rs_res_set.c.zp_csi_rs_res_id_list.resize(1);
+  //out->p_zp_csi_rs_res_set.c.zp_csi_rs_res_id_list[0] = 0;
+
 }
 
 
@@ -1555,7 +1722,7 @@ int fill_sib1_from_enb_cfg_inner(rrc_cell_cfg_nr_t *cell_cfg, struct sib1_s *sib
 	sib1->si_sched_info_present                                  = true;
 	sib1->si_sched_info.si_request_cfg.rach_occasions_si_present = true;
 	sib1->si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.ra_resp_win = (enum ra_resp_win_e_)sl8;
-	sib1->si_sched_info.si_win_len = (enum si_win_len_e_)s20;
+	sib1->si_sched_info.si_win_len = (enum si_win_len_e_)s160;
 
 	byn_array_set_bounded(&sib1->si_sched_info.sched_info_list, 1);
 	struct sched_info_s *sched_info = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct sched_info_s));
