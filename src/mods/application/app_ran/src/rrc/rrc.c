@@ -198,7 +198,7 @@ void rrc_config_mac(uint32_t cc)
 	cell->ssb_periodicity_ms     = options_ssb_periodicity_ms[serv_cell->ssb_periodicity_serving_cell];
 	cell->ssb_scs                = rrc_cell_cfg->phy_cell.carrier.scs;
 	cell->ssb_offset             = du_cell->mib.ssb_subcarrier_offset;
-	if (!rrc_manager.cfg.is_standalone) {
+	if (!rrc_manager.cfg->is_standalone) {
 		//const serving_cell_cfg_common_s& serv_cell = rrc_manager.cell_ctxt->master_cell_group->sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common;
 		// Derive cell config from ASN1
 		//cell->ssb_scs = serv_cell->ssb_subcarrier_spacing;
@@ -259,7 +259,7 @@ static int rrc_init(void)
 	rrc_manager.cfg = &gnb_manager_self()->rrc_nr_cfg;
 
 	// log cell configs
-	oset_list2_for_each(rrc_manager.cfg.cell_list, lnode){
+	oset_list2_for_each(rrc_manager.cfg->cell_list, lnode){
 	    rrc_cell_cfg_nr_t *cell_tt =  (rrc_cell_cfg_nr_t *)lnode->data;
 		oset_notice("Cell idx=%d, pci=%d, nr_dl_arfcn=%d, nr_ul_arfcn=%d, band=%d, duplex=%s, n_rb_dl=%d, ssb_arfcn=%d",
 					cell_tt->cell_idx,
@@ -272,7 +272,7 @@ static int rrc_init(void)
 					cell_tt->ssb_absolute_freq_point);
 	}
 
-	oset_list2_for_each(rrc_manager.cfg.cell_list, lnode){
+	oset_list2_for_each(rrc_manager.cfg->cell_list, lnode){
 	    rrc_cell_cfg_nr_t *cell =  (rrc_cell_cfg_nr_t *)lnode->data;
 		ret = du_config_manager_add_cell(cell);
 		ASSERT_IF_NOT(ret == OSET_OK, "Failed to configure NR cell %d", cell->cell_idx);
@@ -293,18 +293,12 @@ static int rrc_init(void)
 	rrc_config_phy(0); // if PHY is not yet initialized, config will be stored and applied on initialization
 	rrc_config_mac(0);
 
-	oset_info("Number of 5QI %d", rrc_manager.cfg.five_qi_cfg->count);
-	/*for (const std::pair<const uint32_t, rrc_nr_cfg_five_qi_t>& five_qi_cfg : cfg.five_qi_cfg) {
-	  logger.info("5QI configuration. 5QI=%d", five_qi_cfg.first);
-	  if (logger.info.enabled()) {
-		asn1::json_writer js{};
-		five_qi_cfg.second.pdcp_cfg.to_json(js);
-		logger.info("PDCP NR configuration: %s", js.to_string().c_str());
-		js = {};
-		five_qi_cfg.second.rlc_cfg.to_json(js);
-		logger.info("RLC NR configuration: %s", js.to_string().c_str());
-	  }
-	}*/
+	oset_info("Number of 5QI %d", rrc_manager.cfg->five_qi_cfg->count);
+	oset_lnode2_t *lnode = NULL;
+	oset_list2_for_each(rrc_manager.cfg->five_qi_cfg, lnode){
+		rrc_nr_cfg_five_qi_t* five_qi_cfg = (rrc_nr_cfg_five_qi_t*)lnode->data;
+		oset_info("5QI configuration. 5QI=%d", five_qi_cfg->five_qi);
+	}
 
 	oset_info("NIA preference list: NIA%d, NIA%d, NIA%d",
 				rrc_manager.cfg.nia_preference_list[0],
