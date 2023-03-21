@@ -7,7 +7,10 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
+#include "lib/rrc/rrc_util.h"
+#include "lib/mac/sched_nr_util.h"
 #include "mac/mac.h"
+
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-mac"
@@ -61,11 +64,46 @@ static int mac_init(void)
 
 static int mac_destory(void)
 {
+	byn_array_empty(&mac_manager.bcch_dlsch_payload);
+	byn_array_empty(&mac_manager.detected_rachs);
+	mac_manager.cell_config = NULL;
+
 	//todo
 	oset_hash_destroy(mac_manager.ue_db);
 	oset_pool_final(&mac_manager.ue_nr_mac_pool);
 	mac_manager.started = false;
 	mac_manager_destory();
+	return OSET_OK;
+}
+
+int mac_cell_cfg(void *sche_cells)
+{
+	A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) *nr_cells = (A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) *)sche_cells;
+
+	mac_manager.cell_config = nr_cells;
+	sched_nr_config(&mac_manager.sched, &mac_manager.args->sched_cfg, sche_cells);
+	byn_array_set_bounded(&mac_manager.detected_rachs, byn_array_get_count(&mac_manager.cell_config));
+
+    //cell 0
+    sched_nr_cell_cfg_t * cell = byn_array_get_data(&mac_manager.cell_config , 0);
+	
+	// read SIBs from RRC (SIB1 for now only)
+	for (uint32_t i = 0; i < byn_array_get_count(&cell->sibs); i++) {
+		sib_info_t *sib  = oset_core_alloc(mac_manager.app_pool, sizeof(sib_info_t));
+		sib->index       = i;
+		sib->periodicity = 160; // TODO: read period_rf from config
+		if (rrc_read_pdu_bcch_dlsch(sib->index, sib->payload) != OSET_OK) {
+		  oset_error("Couldn't read SIB %d from RRC", sib->index);
+		}
+
+		oset_info("Including SIB %d into SI scheduling", sib->index + 1);
+		byn_array_add(&mac_manager.bcch_dlsch_payload, sib);
+	}
+
+	rx.reset(new mac_nr_rx{rlc, rrc, stack_task_queue, sched.get(), *this, logger});
+
+	mac_manager.default_ue_phy_cfg = get_common_ue_phy_cfg(cell);
+
 	return OSET_OK;
 }
 

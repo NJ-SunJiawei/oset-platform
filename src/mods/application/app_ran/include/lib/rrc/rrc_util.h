@@ -4,13 +4,20 @@
  *
  *Current Version:
  *Author: create by sunjiawei
- *Date: 2022.12
+ *Date: 2023.02
 ************************************************************************/
 
-#include "gnb_common.h"
-#include "mac/mac_sch_pdu_nr.h"
+#ifndef RRC_UTIL_H_
+#define RRC_UTIL_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-mac"
+int rrc_read_pdu_bcch_dlsch(uint32_t sib_index, oset_pkbuf_t *buffer);
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif

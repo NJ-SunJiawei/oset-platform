@@ -26,7 +26,7 @@ extern "C" {
 typedef struct sib_info_s {
   uint32_t			   index;
   uint32_t			   periodicity;
-  byte_buffer_t        *payload;
+  oset_pkbuf_t         *payload;
 }sib_info_t;
 
 
@@ -45,7 +45,7 @@ typedef struct mac_manager_s{
 
 	bool                   started;
 	sched_nr               sched;
-	A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) cell_config;//std::vector<sched_nr_cell_cfg_t>
+	A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) *cell_config;//std::vector<sched_nr_cell_cfg_t>
 	// Map of active UEs
 	OSET_POOL(ue_nr_mac_pool, ue_nr);
 	oset_hash_t            *ue_db;//static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES>
@@ -53,7 +53,7 @@ typedef struct mac_manager_s{
 	A_DYN_ARRAY_OF(sib_info_t) bcch_dlsch_payload; //std::vector<sib_info_t>
 	byte_buffer_t          *bcch_bch_payload;
 	// Number of rach preambles detected for a CC
-	uint32_t               detected_rachs[SRSRAN_MAX_CARRIERS];
+	A_DYN_ARRAY_OF(uint32_t)  detected_rachs;//SRSRAN_MAX_CARRIERS
 	// Decoding of UL PDUs
 	void                   *rx;
 }mac_manager_t;

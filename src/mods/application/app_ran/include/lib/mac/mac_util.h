@@ -4,13 +4,22 @@
  *
  *Current Version:
  *Author: create by sunjiawei
- *Date: 2022.12
+ *Date: 2023.02
 ************************************************************************/
 
-#include "gnb_common.h"
-#include "mac/mac_sch_pdu_nr.h"
+#ifndef MAC_UTIL_H_
+#define MAC_UTIL_H_
 
+#include "lib/mac/sched_nr_interface.h"
 
-#undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-mac"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+int mac_cell_cfg(void *sche_cells);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

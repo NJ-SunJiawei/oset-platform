@@ -89,10 +89,14 @@ typedef struct {
 
 /// Structure packing both the sched args and all gNB NR cell configurations
 typedef struct sched_params_s {
-  sched_args_t                         sched_cfg;
-  A_DYN_ARRAY_OF(cell_config_manager)  *cells; //std::vector<cell_config_manager> 
+  sched_args_t                         *sched_cfg;
+  A_DYN_ARRAY_OF(cell_config_manager)  cells; //std::vector<cell_config_manager> 
 }sched_params_t;
 
+void cell_config_manager_init(cell_config_manager *cell_cof_manager,
+										uint32_t cc_,
+										sched_nr_cell_cfg_t *cell,
+										sched_args_t *sched_args_);
 
 #ifdef __cplusplus
 }

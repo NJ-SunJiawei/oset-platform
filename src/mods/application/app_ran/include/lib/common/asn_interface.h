@@ -1533,8 +1533,9 @@ struct group_bcfgured_s_ {
 };
 
 enum ra_contention_resolution_timer_e_ { sf8, sf16, sf24, sf32, sf40, sf48, sf56, sf64, nulltype };
+enum prach_root_seq_idx_e_ { l839, l139, nulltype };
 struct prach_root_seq_idx_c_ {
-  enum types { l839, l139, nulltype } type_;
+  enum prach_root_seq_idx_e_ type_;
   uint32_t  c;
 };
 
@@ -4918,7 +4919,7 @@ enum n_timing_advance_offset_e_ { n0, n25600, n39936, nulltype };
   uint8_t   group_presence;//fixed_bitstring<8>
 };*/
 
-enum ssb_periodicity_serving_cell_e_sib { ms5, ms10, ms20, ms40, ms80, ms160, nulltype };
+enum ssb_periodicity_serving_cell_sib_e_ { ms5, ms10, ms20, ms40, ms80, ms160, nulltype };
 
 // ServingCellConfigCommonSIB ::= SEQUENCE
 struct serving_cell_cfg_common_sib_s {
@@ -4932,7 +4933,7 @@ struct serving_cell_cfg_common_sib_s {
   struct ul_cfg_common_sib_s             supplementary_ul;
   enum n_timing_advance_offset_e_        n_timing_advance_offset;
   struct ssb_positions_in_burst_s_       ssb_positions_in_burst;
-  enum ssb_periodicity_serving_cell_e_sib   ssb_periodicity_serving_cell;
+  enum ssb_periodicity_serving_cell_sib_e_   ssb_periodicity_serving_cell;
   struct tdd_ul_dl_cfg_common_s          tdd_ul_dl_cfg_common;
   int8_t                                 ss_pbch_block_pwr;// = -60
 };

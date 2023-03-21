@@ -13,7 +13,7 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc-inner"
 
-bool make_phy_tdd_cfg(srsran_duplex_config_nr_t	       	*srsran_duplex_config_nr,
+bool make_phy_tdd_cfg_inner(srsran_duplex_config_nr_t	       	*srsran_duplex_config_nr,
 					        srsran_subcarrier_spacing_t	  scs,
 					        struct tdd_ul_dl_cfg_common_s *tdd_ul_dl_cfg_common)
 {
@@ -75,7 +75,7 @@ bool make_phy_tdd_cfg(srsran_duplex_config_nr_t	       	*srsran_duplex_config_nr
 }
 
 
-bool make_phy_rach_cfg(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_prach_cfg_t *prach_cfg)
+bool make_phy_rach_cfg_inner(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_prach_cfg_t *prach_cfg)
 {
 	srsran_duplex_mode_t duplex_mode = rrc_cell_cfg->duplex_mode;
 
@@ -931,7 +931,7 @@ int fill_serv_cell_cfg_common_sib_inner(rrc_cell_cfg_nr_t *cell_cfg, struct serv
 	
 	bitstring_from_number(&out->ssb_positions_in_burst.in_one_group, 0x80, 8);
 
-	out->ssb_periodicity_serving_cell = (enum ssb_periodicity_serving_cell_e_sib)ms10;
+	out->ssb_periodicity_serving_cell = (enum ssb_periodicity_serving_cell_sib_e_)ms10;
 
 	// The time advance offset is not supported by the current PHY
 	out->n_timing_advance_offset_present = true;
@@ -1631,6 +1631,68 @@ int fill_sp_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, struct s
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void free_master_cell_cfg_dyn_array(struct cell_group_cfg_s *master_cell_group)
+{
+    //free rlc_bearer_to_add_mod_list
+	byn_array_empty(&master_cell_group->rlc_bearer_to_add_mod_list);
+
+    //free sched_request_to_add_mod_list
+	byn_array_empty(&master_cell_group->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list);
+    //free tag_to_add_mod_list
+	byn_array_empty(&master_cell_group->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list);
+
+
+    //free csi-ResoureConfigToAddModList
+    for(m = 0; m < byn_array_get_count(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_res_cfg_to_add_mod_list); m++){
+		//release csi_rs_res_set_list
+		struct csi_res_cfg_s *csi_res_cfg = byn_array_get_data(&&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_res_cfg_to_add_mod_list, m);
+		if(0 == csi_res_cfg->csi_rs_res_set_list.type_) byn_array_empty(&csi_res_cfg->csi_rs_res_set_list.c.nzp_csi_rs_ssb.nzp_csi_rs_res_set_list);	
+		if(1 == csi_res_cfg->csi_rs_res_set_list.type_) byn_array_empty(&csi_res_cfg->csi_rs_res_set_list.c.csi_im_res_set_list);
+	}
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_res_cfg_to_add_mod_list);
+	//free NZP-CSI-RS-Resource
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_to_add_mod_list);
+	//free NZP-CSI Resource Sets
+    for(m = 0; m < byn_array_get_count(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_set_to_add_mod_list); m++){
+		struct nzp_csi_rs_res_set_s *nzp_csi_res_set = byn_array_get_data(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_set_to_add_mod_list, m);
+		byn_array_empty(&nzp_csi_res_set->nzp_csi_rs_res);
+	}
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_set_to_add_mod_list);
+	//free csi-IM-ResourceToAddModList
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_to_add_mod_list);
+	//free csi-IM-ResourceSetToAddModList
+    for(m = 0; m < byn_array_get_count(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_set_to_add_mod_list); m++){
+		struct csi_im_res_set_s *csi_im_res_set = byn_array_get_data(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_set_to_add_mod_list, m);
+		byn_array_empty(&csi_im_res_set->csi_im_res);
+	}
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_set_to_add_mod_list);
+
+	//free CSI-ReportConfig
+    for(m = 0; m < byn_array_get_count(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_report_cfg_to_add_mod_list); m++){
+		struct csi_report_cfg_s *csi_report = byn_array_get_data(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_report_cfg_to_add_mod_list, m);
+		byn_array_empty(&csi_report->report_cfg_type.c.periodic.pucch_csi_res_list);
+	}
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_report_cfg_to_add_mod_list);
+
+	//free init_dl_bwp pdcch_cfg  //???cell_cfg->pdcch_cfg_ded
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.c.ctrl_res_set_to_add_mod_list);
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.c.search_spaces_to_add_mod_list);
+
+	//free init_dl_bwp pdsch_cfg
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.c.tci_states_to_add_mod_list);
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.c.zp_csi_rs_res_to_add_mod_list);
+
+	//free init_dl_bwp pucch_cfg
+    for(m = 0; m < byn_array_get_count(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_set_to_add_mod_list); m++){
+		struct pucch_res_set_s *pucch_res_set = byn_array_get_data(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_set_to_add_mod_list, m);
+		byn_array_empty(&pucch_res_set->res_list);
+	}
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_set_to_add_mod_list);
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_to_add_mod_list);
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.sched_request_res_to_add_mod_list);
+	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.dl_data_to_ul_ack);
+
+}
 
 /// Fill MasterCellConfig with gNB config
 int fill_master_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, struct cell_group_cfg_s *out)
@@ -1686,6 +1748,44 @@ int fill_master_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, stru
 	fill_sp_cell_cfg_from_enb_cfg_inner(cfg, cc, &out->sp_cell_cfg);
 
   return OSET_OK;
+}
+
+void free_sib1_dyn_arrary(struct sib1_s *sib1)
+{
+	//release plmn_id_list
+	for(m = 0; m < byn_array_get_count(&sib1->cell_access_related_info.plmn_id_list), m++){
+		//release plmn_id_list
+		struct plmn_id_info_s *plmn_id_info = byn_array_get_data(&sib1->cell_access_related_info.plmn_id_list, m);
+		byn_array_empty(&plmn_id_info->plmn_id_list);	
+	}
+	byn_array_empty(&sib1->cell_access_related_info.plmn_id_list);
+	
+	//release freq_info_dl.freq_band_list
+	byn_array_empty(&sib1->serving_cell_cfg_common.dl_cfg_common.freq_info_dl.freq_band_list);
+	//release freq_info_dl.scs_specific_carrier_list
+	byn_array_empty(&sib1->serving_cell_cfg_common.dl_cfg_common.freq_info_dl.scs_specific_carrier_list);
+	//release init_dl_bwp.common_search_space_list
+	byn_array_empty(&sib1->serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.c.common_search_space_list);
+	//release pdsch_cfg_common.pdsch_time_domain_alloc_list
+	byn_array_empty(&sib1->serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdsch_cfg_common.c.pdsch_time_domain_alloc_list);
+	
+
+	
+	//release freq_info_ul.freq_band_list
+	byn_array_empty(&sib1->serving_cell_cfg_common.ul_cfg_common.freq_info_ul.freq_band_list);
+	//release freq_info_dl.scs_specific_carrier_list
+	byn_array_empty(&sib1->serving_cell_cfg_common.ul_cfg_common.freq_info_ul.scs_specific_carrier_list);
+	//release pusch_cfg_common.pusch_time_domain_alloc_list
+	byn_array_empty(&sib1->serving_cell_cfg_common.ul_cfg_common.init_ul_bwp.pusch_cfg_common.c.pusch_time_domain_alloc_list);
+	
+	//release sched_info_list
+	for(m = 0; m < byn_array_get_count(&sib1->si_sched_info.sched_info_list), m++){
+		struct sched_info_s *sched_info = byn_array_get_data(&sib1->si_sched_info.sched_info_list, m);
+		//release sib_map_info
+		byn_array_empty(&sched_info->sib_map_info);
+	}		
+	byn_array_empty(&sib1->si_sched_info.sched_info_list);
+
 }
 
 int fill_sib1_from_enb_cfg_inner(rrc_cell_cfg_nr_t *cell_cfg, struct sib1_s *sib1)

@@ -84,16 +84,16 @@ typedef struct  {
 
 #define MAX_SIBS  2
 
-typedef struct {
+typedef struct sched_nr_cell_cfg_s{
   uint32_t                                               nof_layers;
   uint32_t                                               pci;
   uint32_t                                               ssb_offset;
   uint32_t                                               dl_cell_nof_prb;
   uint32_t                                               ul_cell_nof_prb;
-  struct dl_cfg_common_sib_s                             dl_cfg_common;
-  struct ul_cfg_common_sib_s                             ul_cfg_common;
-  struct tdd_ul_dl_cfg_common_s                          tdd_ul_dl_cfg_common;
-  struct ssb_positions_in_burst_s_                       ssb_positions_in_burst;
+  struct dl_cfg_common_sib_s                             *dl_cfg_common;
+  struct ul_cfg_common_sib_s                             *ul_cfg_common;
+  struct tdd_ul_dl_cfg_common_s                          *tdd_ul_dl_cfg_common;
+  struct ssb_positions_in_burst_s_                       *ssb_positions_in_burst;
   uint32_t                                               ssb_periodicity_ms;
   enum dmrs_type_a_position_e_                           dmrs_type_a_position;
   enum subcarrier_spacing_e                              ssb_scs;

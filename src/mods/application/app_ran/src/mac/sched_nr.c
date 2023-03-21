@@ -16,15 +16,49 @@
 void sched_nr_init(sched_nr *scheluder)
 {
 	oset_assert(scheluder);
-	oset_pool_init(&scheluder->ue_pool, SRSENB_MAX_UES);
+
+	// Initiate sched_nr_ue memory pool//最大调度64个用户
+	oset_pool_init(scheluder->ue_pool, SRSENB_MAX_UES);
+	scheluder->ue_db = oset_hash_make();
+
 	scheluder->metrics_handler.ues = scheluder->ue_db;
 }
 
 void sched_nr_destory(sched_nr *scheluder)
 {
 	oset_assert(scheluder);
+	byn_array_empty(&scheluder->cfg.cells);
+
 	oset_pool_final(&scheluder->ue_pool);
+	oset_hash_destroy(scheluder->ue_db);
 }
+
+int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, void *sche_cells)
+{
+	A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) *cell_list = (A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) *)sche_cells;
+
+	scheluder->cfg.sched_cfg = sched_cfg;
+
+	// Initiate Common Sched Configuration
+	byn_array_set_bounded(&scheluder->cfg.cells, byn_array_get_count(cell_list));
+	for (uint32_t cc = 0; cc < byn_array_get_count(cell_list); ++cc) {
+		cell_config_manager *cell_cof_manager = oset_core_alloc(mac_manager_self()->app_pool, sizeof(cell_config_manager));
+		byn_array_add(&scheluder->cfg.cells, cell_cof_manager);
+		cell_config_manager_init(cell_cof_manager, cc, byn_array_get_data(cell_list, cc), sched_cfg);
+		cell_cof_manager->default_ue_phy_cfg = get_common_ue_phy_cfg(byn_array_get_data(cell_list, cc));
+	}
+
+	pending_events.reset(new event_manager{cfg});//调度事件管理模块
+
+	// Initiate cell-specific schedulers
+	cc_workers.resize(cfg.cells.size());
+	for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
+	cc_workers[cc].reset(new slot_cc_worker{cfg.cells[cc]});//小区slot调度task
+	}
+
+  return SRSRAN_SUCCESS;
+}
+
 
 int dl_rach_info(rar_info_t *rar_info)
 {

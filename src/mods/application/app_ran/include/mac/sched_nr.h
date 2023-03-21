@@ -84,6 +84,7 @@ typedef struct {
 
 void sched_nr_init(sched_nr *scheluder);
 void sched_nr_destory(sched_nr *scheluder);
+int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, void *sche_cells);
 
 #ifdef __cplusplus
 }
