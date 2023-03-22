@@ -26,8 +26,11 @@ void sched_nr_init(sched_nr *scheluder)
 
 void sched_nr_destory(sched_nr *scheluder)
 {
+    int i = 0;
 	oset_assert(scheluder);
+	//cell_config_manager_destory
 	byn_array_empty(&scheluder->cfg.cells);
+
 
 	oset_pool_final(&scheluder->ue_pool);
 	oset_hash_destroy(scheluder->ue_db);
@@ -42,13 +45,17 @@ int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, void *sche_cel
 	// Initiate Common Sched Configuration
 	byn_array_set_bounded(&scheluder->cfg.cells, byn_array_get_count(cell_list));
 	for (uint32_t cc = 0; cc < byn_array_get_count(cell_list); ++cc) {
+		sched_nr_cell_cfg_t *cell = byn_array_get_data(cell_list, cc);
 		cell_config_manager *cell_cof_manager = oset_core_alloc(mac_manager_self()->app_pool, sizeof(cell_config_manager));
 		byn_array_add(&scheluder->cfg.cells, cell_cof_manager);
-		cell_config_manager_init(cell_cof_manager, cc, byn_array_get_data(cell_list, cc), sched_cfg);
-		cell_cof_manager->default_ue_phy_cfg = get_common_ue_phy_cfg(byn_array_get_data(cell_list, cc));
+		cell_config_manager_init(cell_cof_manager, cc, cell, sched_cfg);
 	}
 
-	pending_events.reset(new event_manager{cfg});//调度事件管理模块
+	scheluder->pending_events.reset(new event_manager{cfg});//调度事件管理模块
+	oset_apr_mutex_init(&scheluder->pending_events.event_mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
+	byn_array_set_bounded(&scheluder->pending_events.carriers, byn_array_get_count(&scheluder->cfg.cells));
+
+	
 
 	// Initiate cell-specific schedulers
 	cc_workers.resize(cfg.cells.size());

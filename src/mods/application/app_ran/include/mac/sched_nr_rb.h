@@ -43,6 +43,8 @@ typedef struct {
   } alloc;
 }prb_grant;
 
+void bwp_rb_bitmap_init(bwp_rb_bitmap *prbmap, uint32_t bwp_nof_prbs, uint32_t bwp_prb_start_, bool config1_or_2);
+
 
 #ifdef __cplusplus
 }

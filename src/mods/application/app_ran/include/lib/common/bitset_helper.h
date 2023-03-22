@@ -31,7 +31,7 @@ typedef struct {
 	size_t  cur_size;
 }bounded_bitset;//= asn1c BIT_STRING_t
 
-
+uint32_t ceil_div(uint32_t x, uint32_t y);
 void bit_init(bounded_bitset *bit, size_t N, bool reversed = false);
 size_t bit_max_size(bounded_bitset *bit);
 size_t bit_size(bounded_bitset *bit);

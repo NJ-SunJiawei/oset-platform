@@ -7,7 +7,7 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-#include "bitset_helper.h"
+#include "lib/common/bitset_helper.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-bitset"
@@ -104,6 +104,11 @@ static word_t find_first_lsb_one(word_t value)
 
 
 /**********************private**********************************/
+uint32_t ceil_div(uint32_t x, uint32_t y)
+{
+  return (x + y - 1) / y;
+}
+
 static size_t get_bitidx_(bounded_bitset *bit, size_t bitpos) { return bit->reversed ? bit_size(bit) - 1 - bitpos : bitpos; }
 
 static word_t maskbit(size_t pos) { return ((word_t)1) << (pos % bits_per_word); }

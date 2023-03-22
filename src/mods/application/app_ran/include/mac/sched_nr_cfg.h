@@ -54,9 +54,9 @@ typedef struct bwp_params_s {
   uint32_t             bwp_id;
   uint32_t             cc;
   sched_nr_bwp_cfg_t   cfg;
-  cell_config_manager cell_cfg;
-  sched_args_t        sched_cfg;
-  sched_nr_bwp_cfg_t  bwp_cfg;
+  cell_config_manager  *cell_cfg;
+  sched_args_t         *sched_cfg;
+  sched_nr_bwp_cfg_t   bwp_cfg;
   // derived params
   uint32_t              P;
   uint32_t              N_rbg;
@@ -77,8 +77,8 @@ typedef struct {
   srsran_carrier_nr_t             carrier;
   srsran_mib_nr_t                 mib;
   ssb_cfg_t                       ssb;
-  A_DYN_ARRAY_OF(bwp_params_t)             bwps; //std::vector<bwp_params_t>// idx0 for BWP-common
-  A_DYN_ARRAY_OF(sched_nr_cell_cfg_sib_t)  sibs; //std::vector<sched_nr_cell_cfg_sib_t>
+  bwp_params_t                    bwps[4]; //std::vector<bwp_params_t>// idx0 for BWP-common
+  A_DYN_ARRAY_OF(sched_nr_cell_cfg_sib_t)  *sibs; //std::vector<sched_nr_cell_cfg_sib_t>
   struct dl_cfg_common_sib_s      dl_cfg_common;
   struct ul_cfg_common_sib_s      ul_cfg_common;
   srsran_duplex_config_nr_t       duplex;
