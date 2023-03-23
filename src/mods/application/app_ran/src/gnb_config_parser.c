@@ -355,7 +355,7 @@ static void make_default_coreset(uint8_t coreset_id, uint32_t nof_prb, struct ct
   // Generate frequency resources for the full BW
   memset(&coreset->freq_domain_res[0], 0, 6);
   for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-    bit_set(&coreset->freq_domain_res[0], SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE - i - 1, i < SRSRAN_FLOOR(nof_prb, 6));
+    bitstring_set(&coreset->freq_domain_res[0], SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE - i - 1, i < SRSRAN_FLOOR(nof_prb, 6));
   }
   coreset->dur = 1;
   coreset->cce_reg_map_type.types = non_interleaved;
@@ -369,7 +369,7 @@ static uint32_t coreset_get_bw(struct ctrl_res_set_s* coreset)
   // Iterate all the frequency domain resources bit-map...
   for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
     // ... and count 6 PRB for every frequency domain resource that it is enabled
-    if (bit_get(&coreset->freq_domain_res[0],i)) {
+    if (bitstring_get(&coreset->freq_domain_res[0],i)) {
       prb_count += 6;
     }
   }
@@ -748,7 +748,7 @@ static int derive_ssb_params(bool                        is_sa,
   cell->ssb_offset = (uint32_t)(ssb_pointA_freq_offset_Hz / SRSRAN_SUBC_SPACING_NR(pdcch_scs)) % SRSRAN_NRE;
 
   // Validate Coreset0 has space
-  srsran_coreset_t coreset0 = {};
+  srsran_coreset_t coreset0 = {0};
   ERROR_IF_NOT(
       srsran_coreset_zero(
           cell->phy_cell.cell_id, ssb_pointA_freq_offset_Hz, cell->ssb_scs, pdcch_scs, coreset0_idx, &coreset0) == 0,

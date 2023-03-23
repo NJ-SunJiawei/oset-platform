@@ -9,11 +9,6 @@
 #include "oset-core.h"
 #include "lib/common/slot_interval.h"
 
-
-#define MAX(a,b) (((a)>(b))?(a):(b))
-#define MIN(a,b) (((a)<(b))?(a):(b))
-
-
 void slot_interval_init(slot_interval *p)
 {
     p->start_ = 0;

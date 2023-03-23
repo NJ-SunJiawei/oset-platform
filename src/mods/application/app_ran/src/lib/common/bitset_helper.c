@@ -245,13 +245,13 @@ static void sanitize_(bounded_bitset *bit)
 }
 
 /**********************public**********************************/
-void bit_init(bounded_bitset *bit, size_t N, bool reversed = false)
+void bit_init(bounded_bitset *bit, size_t N, size_t cur_size, bool reversed = false)
 {
    oset_assert(bit);
    bit->N = N;
    bit->reversed = reversed;
    bit->buffer = oset_malloc(bits_buffer_len(N)*sizeof(word_t)); 
-   bit->cur_size = 0;
+   bit->cur_size = cur_size;
 }
 
 size_t bit_max_size(bounded_bitset *bit) { return bit->N; }
@@ -259,7 +259,7 @@ size_t bit_size(bounded_bitset *bit) { return bit->cur_size; }
 
 void bit_resize(bounded_bitset *bit, size_t new_size)
 {
-  ERROR_IF_NOT_VOID(new_size <= max_size(bit), "new size=%zd exceeds bitset capacity=%zd", new_size, max_size(bit));
+  ERROR_IF_NOT_VOID(new_size <= bit_max_size(bit), "new size=%zd exceeds bitset capacity=%zd", new_size, max_size(bit));
   if (new_size == bit->cur_size) {
 	return;
   }
@@ -267,6 +267,16 @@ void bit_resize(bounded_bitset *bit, size_t new_size)
   sanitize_(bit);
   for (size_t i = nof_words_(bit); i < max_nof_words_(bit); ++i) {
 	bit->buffer[i] = (word_t)0;
+  }
+}
+
+void bit_set(bounded_bitset *bit, size_t pos, bool val)
+{
+  assert_within_bounds_(pos, true);
+  if (val) {
+	set_(pos);
+  } else {
+	reset_(pos);
   }
 }
 

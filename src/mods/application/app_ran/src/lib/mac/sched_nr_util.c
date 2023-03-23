@@ -149,11 +149,11 @@ void make_ssb_cfg(sched_nr_cell_cfg_t *cfg, ssb_cfg_t* ssb)
 	ssb->position_in_burst = {0};
 	uint32_t N             = 8;
 	for (uint32_t i = 0; i < N; ++i) {
-		ssb->position_in_burst[i] = bit_get(&cfg->ssb_positions_in_burst.in_one_group,i)
+		ssb->position_in_burst[i] = bitstring_get(&cfg->ssb_positions_in_burst.in_one_group,i)
 	}
 	if (cfg->ssb_positions_in_burst.group_presence_present) {
 		for (uint32_t i = 1; i < 8; ++i) {
-		  if (bit_get(&cfg->ssb_positions_in_burst.group_presence,i)) {
+		  if (bitstring_get(&cfg->ssb_positions_in_burst.group_presence,i)) {
 		    	//std::copy(
 		    	//    ssb->position_in_burst.begin(), ssb->position_in_burst.begin() + N, ssb->position_in_burst.begin() + i * N);
 				memcpy(ssb->position_in_burst + i * N, ssb->position_in_burst, 8);

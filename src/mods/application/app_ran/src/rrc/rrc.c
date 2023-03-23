@@ -125,7 +125,7 @@ static void get_default_cell_cfg(phy_cfg_nr_t *phy_cfg, sched_nr_cell_cfg_t *cel
 	cell_cfg->nof_layers         = phy_cfg->carrier.max_mimo_layers;
 	cell_cfg->ssb_periodicity_ms = phy_cfg->ssb.periodicity_ms;
 	//for (uint32_t i = 0; i < 8; ++i) {//8bit???
-	//	bit_set(&cell_cfg->ssb_positions_in_burst.in_one_group, i, phy_cfg->ssb.position_in_burst[i]);
+	//	bitstring_set(&cell_cfg->ssb_positions_in_burst.in_one_group, i, phy_cfg->ssb.position_in_burst[i]);
 	//}
 	// TODO: phy_cfg.ssb_positions_in_burst.group_presence_present
 	cell_cfg->dmrs_type_a_position       = (enum dmrs_type_a_position_e_)pos2;

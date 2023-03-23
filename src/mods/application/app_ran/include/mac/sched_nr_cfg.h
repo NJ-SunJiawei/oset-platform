@@ -61,13 +61,13 @@ typedef struct bwp_params_s {
   uint32_t              P;
   uint32_t              N_rbg;
   uint32_t              nof_prb;
-  A_DYN_ARRAY_OF(struct slot_cfg_s) slots;//<slot_cfg, SRSRAN_NOF_SF_X_FRAME>
+  slot_cfg              slots[SRSRAN_NOF_SF_X_FRAME];//<slot_cfg, SRSRAN_NOF_SF_X_FRAME>
   A_DYN_ARRAY_OF(pusch_ra_time_cfg) pusch_ra_list;//std::vector<pusch_ra_time_cfg>
 
   bwp_cce_pos_list                  rar_cce_list;
   A_DYN_ARRAY_OF(bwp_cce_pos_list)  common_cce_list; //optional_vector<bwp_cce_pos_list>
   bwp_rb_bitmap                     cached_empty_prb_mask;
-  A_DYN_ARRAY_OF(coreset_cached_params)  coresets;//optional_vector<coreset_cached_params>
+  coreset_cached_params             coresets[SRSRAN_UE_DL_NR_MAX_NOF_CORESET];//optional_vector<coreset_cached_params>
 }bwp_params_t;
 
 

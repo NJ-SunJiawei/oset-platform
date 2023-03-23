@@ -39,7 +39,7 @@ typedef uint8_t fixed_octstring;
 /************************
 	bitstring util
 ************************/
-inline bool bit_get(const uint8_t* ptr, uint32_t idx)
+inline bool bitstring_get(const uint8_t* ptr, uint32_t idx)
 {
   uint32_t byte_idx = idx / 8;
   uint32_t offset   = idx % 8;
@@ -47,7 +47,7 @@ inline bool bit_get(const uint8_t* ptr, uint32_t idx)
 }
 
 //((uint16_t)(1u << 8u) - 1u) = 0xFF
-inline void bit_set(uint8_t* ptr, uint32_t idx, bool value)
+inline void bitstring_set(uint8_t* ptr, uint32_t idx, bool value)
 {
   uint32_t byte_idx = idx / 8;
   uint32_t offset   = idx % 8;
@@ -82,7 +82,7 @@ inline char* bitstring_to_string(uint8_t* ptr, uint32_t nbits)
 {
   char str[64+1] = {0};
   for (uint32_t i = 0; i < nbits; ++i) {
-    str[i] = bit_get(ptr, nbits - 1 - i) ? '1' : '0';
+    str[i] = bitstring_get(ptr, nbits - 1 - i) ? '1' : '0';
   }
   return str;
 }

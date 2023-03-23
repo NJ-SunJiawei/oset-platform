@@ -136,7 +136,7 @@ bool make_phy_coreset_cfg(struct ctrl_res_set_s *ctrl_res_set, srsran_coreset_t 
 	}
 	srsran_coreset.duration = ctrl_res_set->dur;
 	for (uint32_t i = 0; i < SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-	srsran_coreset.freq_resources[i] = bit_get(ctrl_res_set->freq_domain_res,SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE - 1 - i);
+		srsran_coreset.freq_resources[i] = bitstring_get(ctrl_res_set->freq_domain_res,SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE - 1 - i);
 	}
 	*in_srsran_coreset = srsran_coreset;
 	return true;
@@ -357,21 +357,21 @@ bool make_phy_nzp_csi_rs_resource(struct nzp_csi_rs_res_s *asn1_nzp_csi_rs_res,
       csi_rs_nzp_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_1;
       for (uint32_t i = 0; i < 4; i++) {
         csi_rs_nzp_resource.resource_mapping.frequency_domain_alloc[i] =
-			   bit_get(asn1_nzp_csi_rs_res->res_map.freq_domain_alloc.c, 4 - 1 - i);
+			   bitstring_get(asn1_nzp_csi_rs_res->res_map.freq_domain_alloc.c, 4 - 1 - i);
       }
       break;
     case (enum freq_domain_alloc_e_)row2:
       csi_rs_nzp_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_2;
       for (uint32_t i = 0; i < 12; i++) {
         csi_rs_nzp_resource.resource_mapping.frequency_domain_alloc[i] =
-			    bit_get(asn1_nzp_csi_rs_res->res_map.freq_domain_alloc.c, 12 - 1 - i);
+			    bitstring_get(asn1_nzp_csi_rs_res->res_map.freq_domain_alloc.c, 12 - 1 - i);
       }
       break;
     case (enum freq_domain_alloc_e_)row4:
       csi_rs_nzp_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_4;
       for (uint32_t i = 0; i < 3; i++) {
         csi_rs_nzp_resource.resource_mapping.frequency_domain_alloc[i] =
-			    bit_get(asn1_nzp_csi_rs_res->res_map.freq_domain_alloc.c, 3 - 1 - i);
+			    bitstring_get(asn1_nzp_csi_rs_res->res_map.freq_domain_alloc.c, 3 - 1 - i);
       }
       break;
     case (enum freq_domain_alloc_e_)other:
@@ -524,21 +524,21 @@ bool make_phy_zp_csi_rs_resource(struct zp_csi_rs_res_s *zp_csi_rs_res,
 	   zp_csi_rs_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_1;
 	   for (uint32_t i = 0; i < 4; i++) {
 		 zp_csi_rs_resource.resource_mapping.frequency_domain_alloc[i] =
-		 	 bit_get(zp_csi_rs_res->res_map.freq_domain_alloc.c, 4 - 1 - i);
+		 	 bitstring_get(zp_csi_rs_res->res_map.freq_domain_alloc.c, 4 - 1 - i);
 	   }
 	   break;
 	 case (enum freq_domain_alloc_e_)row2:
 	   zp_csi_rs_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_2;
 	   for (uint32_t i = 0; i < 12; i++) {
 		 zp_csi_rs_resource.resource_mapping.frequency_domain_alloc[i] =
-			 bit_get(zp_csi_rs_res->res_map.freq_domain_alloc.c, 12 - 1 - i);
+			 bitstring_get(zp_csi_rs_res->res_map.freq_domain_alloc.c, 12 - 1 - i);
 	   }
 	   break;
 	 case (enum freq_domain_alloc_e_)row4:
 	   zp_csi_rs_resource.resource_mapping.row = srsran_csi_rs_resource_mapping_row_4;
 	   for (uint32_t i = 0; i < 3; i++) {
 		 zp_csi_rs_resource.resource_mapping.frequency_domain_alloc[i] =
-			 bit_get(zp_csi_rs_res->res_map.freq_domain_alloc.c, 3 - 1 - i);
+			 bitstring_get(zp_csi_rs_res->res_map.freq_domain_alloc.c, 3 - 1 - i);
 	   }
 	   break;
 	 case (enum freq_domain_alloc_e_)other:
@@ -756,9 +756,9 @@ int fill_rach_cfg_common_inner(rrc_cell_cfg_nr_t *cell_cfg, struct rach_cfg_comm
 	rach->ra_contention_resolution_timer = (enum ra_contention_resolution_timer_e_)sf64;
 	rach->prach_root_seq_idx.type_ = 0;//l839
 	rach->prach_root_seq_idx.c	   = cell_cfg->prach_root_seq_idx;
-	rach->restricted_set_cfg                = (enum restricted_set_cfg_e_)unrestricted_set;
+	rach->restricted_set_cfg       = (enum restricted_set_cfg_e_)unrestricted_set;
 
-	return SRSRAN_SUCCESS;
+	return OSET_OK;
 }
 
 void fill_ul_cfg_common_sib_inner(rrc_cell_cfg_nr_t *cell_cfg, struct ul_cfg_common_sib_s *out)

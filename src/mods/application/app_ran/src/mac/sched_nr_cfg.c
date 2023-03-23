@@ -26,28 +26,35 @@ void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_bwp_cfg_
 	ASSERT_IF_NOT(bwp_cfg->pdcch.ra_search_space_present, "BWPs without RA search space not supported");
 	const uint32_t ra_coreset_id = bwp_cfg->pdcch.ra_search_space.coreset_id;
 
-	P     = get_P(bwp_cfg->rb_width, bwp_cfg->pdsch.rbg_size_cfg_1);
-	N_rbg = get_nof_rbgs(bwp_cfg->rb_width, bwp_cfg->start_rb, bwp_cfg->pdsch.rbg_size_cfg_1);
+	cell_bwp->P     = get_P(bwp_cfg->rb_width, bwp_cfg->pdsch.rbg_size_cfg_1);
+	cell_bwp->N_rbg = get_nof_rbgs(bwp_cfg->rb_width, bwp_cfg->start_rb, bwp_cfg->pdsch.rbg_size_cfg_1);
 
-	for (const srsran_coreset_t& cs : view_active_coresets(bwp_cfg->pdcch)) {
-	coresets.emplace(cs.id);
-	uint32_t rb_start                         = srsran_coreset_start_rb(&cs);
-	coresets[cs.id].prb_limits                = prb_interval{rb_start, rb_start + srsran_coreset_get_bw(&cs)};
-	coresets[cs.id].usable_common_ss_prb_mask = cached_empty_prb_mask;
+	for(int i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++i){
+		if(!bwp_cfg->pdcch.coreset_present[i]){
+			/// Get a range of active coresets in a PDCCH configuration
+			continue;
+		}
+		srsran_coreset_t *cs = bwp_cfg->pdcch.coreset[i];
 
-	// TS 38.214, 5.1.2.2 - For DCI format 1_0 and common search space, lowest RB of the CORESET is the RB index = 0
-	//对于DCI格式1_0和公共搜索空间，CORESET的最低RB是RB索引=0
-	coresets[cs.id].usable_common_ss_prb_mask |= prb_interval(0, rb_start);
-	coresets[cs.id].dci_1_0_prb_limits = prb_interval{rb_start, bwp_cfg->rb_width};
+		uint32_t rb_start = srsran_coreset_start_rb(cs);
+		prb_interval_init(&cell_bwp->coresets[cs->id].prb_limits, rb_start, rb_start + srsran_coreset_get_bw(cs));
+		cell_bwp->coresets[cs->id].usable_common_ss_prb_mask = cell_bwp->cached_empty_prb_mask;
 
-	// TS 38.214, 5.1.2.2.2 - when DCI format 1_0, common search space and CORESET#0 is configured for the cell,
-	// RA type 1 allocs shall be within the CORESET#0 region
-	//TS 38.214，5.1.2.2.2-当为小区配置DCI格式1_0、公共搜索空间和CORESET#0时，
-	//RA 1型分配应在CORESET#0区域内
-	if (bwp_cfg->pdcch.coreset_present[0]) {
-	  coresets[cs.id].dci_1_0_prb_limits = coresets[cs.id].prb_limits;
-	  coresets[cs.id].usable_common_ss_prb_mask |= prb_interval(coresets[cs.id].prb_limits.stop(), bwp_cfg->rb_width);
-	}
+		// TS 38.214, 5.1.2.2 - For DCI format 1_0 and common search space, lowest RB of the CORESET is the RB index = 0
+		//对于DCI格式1_0和公共搜索空间，CORESET的最低RB是RB索引=0
+		prb_interval interval = {0, rb_start};
+		bwp_rb_bitmap_add(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);
+		prb_interval_init(&cell_bwp->coresets[cs->id].dci_1_0_prb_limits, rb_start, bwp_cfg->rb_width);//???todo
+
+		// TS 38.214, 5.1.2.2.2 - when DCI format 1_0, common search space and CORESET#0 is configured for the cell,
+		// RA type 1 allocs shall be within the CORESET#0 region
+		//TS 38.214，5.1.2.2.2-当为小区配置DCI格式1_0、公共搜索空间和CORESET#0时，
+		//RA 1型分配应在CORESET#0区域内
+		if (bwp_cfg->pdcch.coreset_present[0]) {
+		  cell_bwp->coresets[cs->id].dci_1_0_prb_limits =  cell_bwp->coresets[cs->id].prb_limits;
+		  prb_interval interval = {cell_bwp->coresets[cs.id].prb_limits.stop_, bwp_cfg->rb_width};
+		  bwp_rb_bitmap_add(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);////???todo
+		}
 	}
 
 	// Derive params of individual slots
@@ -56,15 +63,15 @@ void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_bwp_cfg_
 		slot_cfg sl_cfg = {0};
 		sl_cfg.is_dl = srsran_duplex_nr_is_dl(&cell_cfg->duplex, bwp_cfg->numerology_idx, sl);
 		sl_cfg.is_ul = srsran_duplex_nr_is_ul(&cell_cfg->duplex, bwp_cfg->numerology_idx, sl);
-		slots.push_back(sl_cfg);
+		cell_bwp->slots[sl] = sl_cfg;
 	}
 
-	pusch_ra_list.resize(bwp_cfg->pusch.nof_common_time_ra);
+	cell_bwp->pusch_ra_list.resize(bwp_cfg->pusch.nof_common_time_ra);
 	srsran_sch_grant_nr_t grant;
 	for (uint32_t m = 0; m < bwp_cfg->pusch.nof_common_time_ra; ++m) {
 	int ret =
 	    srsran_ra_ul_nr_time(&bwp_cfg->pusch, srsran_rnti_type_ra, srsran_search_space_type_rar, ra_coreset_id, m, &grant);
-	srsran_assert(ret == SRSRAN_SUCCESS, "Failed to obtain  ");
+	ASSERT_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to obtain");
 	pusch_ra_list[m].msg3_delay = grant.k;
 	ret = srsran_ra_ul_nr_time(&bwp_cfg->pusch, srsran_rnti_type_c, srsran_search_space_type_ue, ra_coreset_id, m, &grant);
 	pusch_ra_list[m].K = grant.k;

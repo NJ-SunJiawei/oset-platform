@@ -32,10 +32,11 @@ typedef struct {
 }bounded_bitset;//= asn1c BIT_STRING_t
 
 uint32_t ceil_div(uint32_t x, uint32_t y);
-void bit_init(bounded_bitset *bit, size_t N, bool reversed = false);
+void bit_init(bounded_bitset *bit, size_t N, size_t cur_size, bool reversed = false);
 size_t bit_max_size(bounded_bitset *bit);
 size_t bit_size(bounded_bitset *bit);
 void bit_resize(bounded_bitset *bit, size_t new_size);
+void bit_set(bounded_bitset *bit, size_t pos, bool val);
 void bit_set(bounded_bitset *bit, size_t pos);
 void bit_reset(bounded_bitset *bit, size_t pos);
 void bit_set_val(bounded_bitset *bit, size_t pos, bool val);
