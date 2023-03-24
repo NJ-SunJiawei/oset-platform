@@ -26,11 +26,32 @@ void sched_nr_init(sched_nr *scheluder)
 
 void sched_nr_destory(sched_nr *scheluder)
 {
-    int i = 0;
 	oset_assert(scheluder);
 	//cell_config_manager_destory
+	for (uint32_t cc = 0; cc < byn_array_get_count(&scheluder->cfg.cells); ++cc) {
+		cell_config_manager *cell_cof_manager = byn_array_get_data(&scheluder->cfg.cells, cc);
+		// just idx0 for BWP-common
+		byn_array_empty(&cell_cof_manager->bwps[0].pusch_ra_list);
+	}
 	byn_array_empty(&scheluder->cfg.cells);
 
+	//event
+	oset_apr_mutex_destroy(scheluder->pending_events.event_mutex);
+	for(int i=0; i < byn_array_get_count(&scheluder->pending_events.carriers); i++){
+		cc_events *cc_e = byn_array_get_data(&scheluder->pending_events.carriers, i);
+		oset_apr_mutex_destroy(cc_e->event_cc_mutex);
+		oset_list_empty(&cc_e->next_slot_ue_events);
+		oset_list_empty(&cc_e->current_slot_ue_events);
+	}
+	byn_array_empty(&scheluder->pending_events.carriers);
+
+	oset_list_empty(&scheluder->pending_events.next_slot_events);
+	oset_list_empty(&scheluder->pending_events.current_slot_events);
+	oset_list_empty(&scheluder->pending_events.next_slot_ue_events);
+	oset_list_empty(&scheluder->pending_events.current_slot_ue_events);
+
+	//cc_worker
+	byn_array_empty(&scheluder->cc_workers);
 
 	oset_pool_final(&scheluder->ue_pool);
 	oset_hash_destroy(scheluder->ue_db);
@@ -38,29 +59,43 @@ void sched_nr_destory(sched_nr *scheluder)
 
 int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, void *sche_cells)
 {
+	uint32_t cc = 0;
 	A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) *cell_list = (A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) *)sche_cells;
 
 	scheluder->cfg.sched_cfg = sched_cfg;
 
 	// Initiate Common Sched Configuration
 	byn_array_set_bounded(&scheluder->cfg.cells, byn_array_get_count(cell_list));
-	for (uint32_t cc = 0; cc < byn_array_get_count(cell_list); ++cc) {
+	for (cc = 0; cc < byn_array_get_count(cell_list); ++cc) {
 		sched_nr_cell_cfg_t *cell = byn_array_get_data(cell_list, cc);
 		cell_config_manager *cell_cof_manager = oset_core_alloc(mac_manager_self()->app_pool, sizeof(cell_config_manager));
 		byn_array_add(&scheluder->cfg.cells, cell_cof_manager);
 		cell_config_manager_init(cell_cof_manager, cc, cell, sched_cfg);
 	}
 
-	scheluder->pending_events.reset(new event_manager{cfg});//调度事件管理模块
+	//调度事件管理模块
 	oset_apr_mutex_init(&scheluder->pending_events.event_mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
-	byn_array_set_bounded(&scheluder->pending_events.carriers, byn_array_get_count(&scheluder->cfg.cells));
-
-	
+	byn_array_set_bounded(&scheluder->pending_events.carriers, byn_array_get_count(cell_list));
+	for(cc = 0; cc < byn_array_get_count(cell_list); ++cc){
+		cc_events *cc_e = oset_core_alloc(mac_manager_self()->app_pool, sizeof(cc_events));
+		byn_array_add(&scheluder->pending_events.carriers, cc_e);
+		oset_apr_mutex_init(&cc_e->event_cc_mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
+		oset_list_init(&cc_e->next_slot_ue_events);
+		oset_list_init(&cc_e->current_slot_ue_events);
+	}
+	oset_list_init(&scheluder->pending_events.next_slot_events);
+	oset_list_init(&scheluder->pending_events.current_slot_events);
+	oset_list_init(&scheluder->pending_events.next_slot_ue_events);
+	oset_list_init(&scheluder->pending_events.current_slot_ue_events);
 
 	// Initiate cell-specific schedulers
-	cc_workers.resize(cfg.cells.size());
-	for (uint32_t cc = 0; cc < cfg.cells.size(); ++cc) {
-	cc_workers[cc].reset(new slot_cc_worker{cfg.cells[cc]});//小区slot调度task
+	byn_array_set_bounded(&scheluder->cc_workers, byn_array_get_count(cell_list));
+	for (cc = 0; cc < byn_array_get_count(cell_list); ++cc) {
+		cc_worker *cc_w = oset_core_alloc(mac_manager_self()->app_pool, sizeof(cc_worker));
+		byn_array_add(&scheluder->cc_workers, cc_w);
+
+		cell_config_manager *cell_conf_manager = byn_array_get_data(&scheluder->cfg.cells, cc);
+		cc_worker_init(cc_w, cell_conf_manager);
 	}
 
   return SRSRAN_SUCCESS;

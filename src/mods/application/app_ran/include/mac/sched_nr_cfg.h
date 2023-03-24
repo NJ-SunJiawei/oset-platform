@@ -22,7 +22,10 @@
 extern "C" {
 #endif
 
-typedef A_DYN_ARRAY_OF(uint32_t)  pdcch_cce_pos_list;//bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
+typedef struct{
+	int arrary_count;
+	uint32_t array[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR];
+}pdcch_cce_pos_list;//bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
 typedef pdcch_cce_pos_list cce_pos_list_tmp[MAX_NOF_AGGR_LEVELS];
 typedef cce_pos_list_tmp bwp_cce_pos_list[SRSRAN_NOF_SF_X_FRAME];//using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
 
@@ -42,6 +45,7 @@ typedef struct {
 
 
 typedef struct {
+  bool          active;
   prb_interval	prb_limits;
   prb_interval	dci_1_0_prb_limits; /// See TS 38.214, section 5.1.2.2
   bwp_rb_bitmap usable_common_ss_prb_mask;
@@ -64,8 +68,9 @@ typedef struct bwp_params_s {
   slot_cfg              slots[SRSRAN_NOF_SF_X_FRAME];//<slot_cfg, SRSRAN_NOF_SF_X_FRAME>
   A_DYN_ARRAY_OF(pusch_ra_time_cfg) pusch_ra_list;//std::vector<pusch_ra_time_cfg>
 
-  bwp_cce_pos_list                  rar_cce_list;
-  A_DYN_ARRAY_OF(bwp_cce_pos_list)  common_cce_list; //optional_vector<bwp_cce_pos_list>
+  bwp_cce_pos_list                  rar_cce_list;//A_DYN_ARRAY_OF(uint32_t) rar_cce_list[SRSRAN_NOF_SF_X_FRAME][MAX_NOF_AGGR_LEVELS]
+  bool                              common_cce_list_active[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
+  bwp_cce_pos_list                  common_cce_list[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE]; //optional_vector<bwp_cce_pos_list>
   bwp_rb_bitmap                     cached_empty_prb_mask;
   coreset_cached_params             coresets[SRSRAN_UE_DL_NR_MAX_NOF_CORESET];//optional_vector<coreset_cached_params>
 }bwp_params_t;

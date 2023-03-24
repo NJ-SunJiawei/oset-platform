@@ -12,6 +12,7 @@
 
 #include "mac/sched_nr_cfg.h"
 #include "mac/sched_nr_ue.h"
+#include "mac/sched_nr_worker.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,16 +29,23 @@ typedef struct {
 }event_t;
 
 typedef struct {
+  oset_lnode_t       next_slot_events_node;
+  oset_lnode_t       current_slot_events_node;
+  oset_lnode_t       next_slot_ue_events_node;
+  oset_lnode_t       current_slot_ue_events_node;
+
   uint16_t			 rnti;
   char               *event_name;
   ue_event_callback  callback;
 }ue_event_t;
 
 struct ue_cc_event_t {
-  uint16_t             rnti;
-  uint32_t			   cc;
-  char                 *event_name;
-  ue_cc_event_callback callback;
+	oset_lnode_t	     next_slot_ue_events_node;
+	oset_lnode_t	     current_slot_ue_events_node;
+	uint16_t             rnti;
+	uint32_t			 cc;
+	char                 *event_name;
+	ue_cc_event_callback callback;
 }ue_cc_event_t;
 
 typedef struct {

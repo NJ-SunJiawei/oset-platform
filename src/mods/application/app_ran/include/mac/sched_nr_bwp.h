@@ -42,6 +42,8 @@ typedef struct {
   bwp_res_grid grid;
 }bwp_manager;
 
+void bwp_manager_init(bwp_manager *bwp_m, bwp_params_t *bwp_cfg);
+
 #ifdef __cplusplus
 }
 #endif

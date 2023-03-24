@@ -14,7 +14,7 @@
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-cfg"
 
 //bwp_cfg from rrc configure
-void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_bwp_cfg_t *bwp_cfg)
+static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_bwp_cfg_t *bwp_cfg)
 {
 	cell_config_manager  *cell_cfg = cell_bwp->cell_cfg;
 
@@ -37,6 +37,7 @@ void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_bwp_cfg_
 		srsran_coreset_t *cs = bwp_cfg->pdcch.coreset[i];
 
 		uint32_t rb_start = srsran_coreset_start_rb(cs);
+		cell_bwp->coresets[cs->id].active  = true;
 		prb_interval_init(&cell_bwp->coresets[cs->id].prb_limits, rb_start, rb_start + srsran_coreset_get_bw(cs));
 		cell_bwp->coresets[cs->id].usable_common_ss_prb_mask = cell_bwp->cached_empty_prb_mask;
 
@@ -66,54 +67,57 @@ void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_bwp_cfg_
 		cell_bwp->slots[sl] = sl_cfg;
 	}
 
-	cell_bwp->pusch_ra_list.resize(bwp_cfg->pusch.nof_common_time_ra);
-	srsran_sch_grant_nr_t grant;
+	byn_array_set_bounded(&cell_bwp->pusch_ra_list, bwp_cfg->pusch.nof_common_time_ra);
+	srsran_sch_grant_nr_t grant = {0};
 	for (uint32_t m = 0; m < bwp_cfg->pusch.nof_common_time_ra; ++m) {
-	int ret =
-	    srsran_ra_ul_nr_time(&bwp_cfg->pusch, srsran_rnti_type_ra, srsran_search_space_type_rar, ra_coreset_id, m, &grant);
-	ASSERT_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to obtain");
-	pusch_ra_list[m].msg3_delay = grant.k;
-	ret = srsran_ra_ul_nr_time(&bwp_cfg->pusch, srsran_rnti_type_c, srsran_search_space_type_ue, ra_coreset_id, m, &grant);
-	pusch_ra_list[m].K = grant.k;
-	pusch_ra_list[m].S = grant.S;
-	pusch_ra_list[m].L = grant.L;
-	srsran_assert(ret == SRSRAN_SUCCESS, "Failed to obtain RA config");
+		pusch_ra_time_cfg *pusch_ra_time = oset_core_alloc(mac_manager_self()->app_pool, sizeof(pusch_ra_time_cfg));
+		byn_array_add(&cell_bwp->pusch_ra_list, pusch_ra_time);
+		int ret =
+		    srsran_ra_ul_nr_time(&bwp_cfg->pusch, srsran_rnti_type_ra, srsran_search_space_type_rar, ra_coreset_id, m, &grant);
+		ASSERT_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to obtain");
+		pusch_ra_time->msg3_delay = grant.k;
+		ret = srsran_ra_ul_nr_time(&bwp_cfg->pusch, srsran_rnti_type_c, srsran_search_space_type_ue, ra_coreset_id, m, &grant);
+		pusch_ra_time->K = grant.k;
+		pusch_ra_time->S = grant.S;
+		pusch_ra_time->L = grant.L;
+		ASSERT_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to obtain RA config");
 	}
-	srsran_assert(not pusch_ra_list.empty(), "Time-Domain Resource Allocation not valid");
+	ASSERT_IF_NOT(byn_array_get_count(&cell_bwp->pusch_ra_list) > 0, "Time-Domain Resource Allocation not valid");
 
 	//计算coreset里cce结构计算
-
 	for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
-	for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
-	  rar_cce_list[sl][agg_idx].resize(SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
-	  int n = srsran_pdcch_nr_locations_coreset(&cell_cfg->bwps[0].cfg.pdcch.coreset[ra_coreset_id],
-	                                            &cell_cfg->bwps[0].cfg.pdcch.ra_search_space,
-	                                            0,
-	                                            agg_idx,
-	                                            sl,
-	                                            rar_cce_list[sl][agg_idx].data());
-	  srsran_assert(n >= 0, "Failed to configure RAR DCI locations");
-	  rar_cce_list[sl][agg_idx].resize(n);
-	}
+		for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
+		  int n = srsran_pdcch_nr_locations_coreset(&cell_cfg->bwps[0].cfg.pdcch.coreset[ra_coreset_id],
+		                                            &cell_cfg->bwps[0].cfg.pdcch.ra_search_space,
+		                                            0,
+		                                            agg_idx,
+		                                            sl,
+		                                            cell_bwp->rar_cce_list[sl][agg_idx].array);
+		  ASSERT_IF_NOT(n >= 0, "Failed to configure RAR DCI locations");
+		  cell_bwp->rar_cce_list[sl][agg_idx].arrary_count = n;
+		}
 	}
 
 	for (uint32_t ss_id = 0; ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ss_id) {
-		if (not cell_cfg->bwps[0].cfg.pdcch.search_space_present[ss_id]) {
+		if (!cell_cfg->bwps[0].cfg.pdcch.search_space_present[ss_id]) {
 		  continue;
 		}
 		srsran_search_space_t *ss = cell_cfg->bwps[0].cfg.pdcch.search_space[ss_id];
-		auto& coreset = cell_cfg->bwps[0].cfg.pdcch.coreset[ss->coreset_id];
-		common_cce_list.emplace(ss_id);
-		bwp_cce_pos_list& ss_cce_list = common_cce_list[ss_id];
+		cell_bwp->common_cce_list_active[ss_id] = true;
+		bwp_cce_pos_list ss_cce_list = {0};
 		for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
 		  for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
-		    ss_cce_list[sl][agg_idx].resize(SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
-		    int n = srsran_pdcch_nr_locations_coreset(
-		        &coreset, &ss, SRSRAN_SIRNTI, agg_idx, sl, ss_cce_list[sl][agg_idx].data());
+		    int n = srsran_pdcch_nr_locations_coreset(&cell_cfg->bwps[0].cfg.pdcch.coreset[ss->coreset_id], 
+													&ss,
+													SRSRAN_SIRNTI,
+													agg_idx,
+													sl,
+													ss_cce_list[sl][agg_idx].array);
 		    ASSERT_IF_NOT(n >= 0, "Failed to configure DCI locations of search space id=%d", ss_id);
-		    ss_cce_list[sl][agg_idx].resize(n);
+		    ss_cce_list[sl][agg_idx].arrary_count = n;
 		  }
 		}
+		cell_bwp->common_cce_list[ss_id] = ss_cce_list;
 	}
 }
 
@@ -158,6 +162,6 @@ void cell_config_manager_init(cell_config_manager *cell_cof_manager,
 		cell_cof_manager->bwps[i].cc = cell_cof_manager->cc;
 		bwp_params_init(&cell_cof_manager->bwps[i], i, cell->bwps[0]);
 	}
-	ASSERT_IF_NOT(!cell_cof_manager->bwps.empty(), "No BWPs were configured");
+	oset_info("BWPs were configured");
 }
 
