@@ -28,7 +28,7 @@ typedef struct {
   uint32_t		n_tx; /// nof transmissions of the same SIB1 / SI message
   alloc_result	result; /// last attempt to schedule SI // = (alloc_result)invalid_coderate
   slot_point	win_start; /// start of SI window, invalid if outside
-  tx_harq_softbuffer *si_softbuffer;
+  tx_harq_softbuffer *si_softbuffer;//srsran_softbuffer_tx_t
 }si_msg_ctxt_t;
 
 /// scheduler for SIBs

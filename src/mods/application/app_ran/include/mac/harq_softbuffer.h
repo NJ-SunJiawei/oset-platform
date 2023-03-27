@@ -19,11 +19,11 @@ extern "C" {
 const static uint32_t MAX_HARQ = 16;
 
 typedef struct {
-  srsran_softbuffer_tx_t *buffer;
+  srsran_softbuffer_tx_t buffer;
 }tx_harq_softbuffer;
 
 typedef struct {
-  srsran_softbuffer_rx_t *buffer;
+  srsran_softbuffer_rx_t buffer;
 }rx_harq_softbuffer;
 
 typedef struct {
@@ -37,8 +37,8 @@ typedef struct {
 void harq_softbuffer_pool_init(harq_softbuffer_pool *harq_pool, uint32_t nof_prb, uint32_t batch_size, uint32_t init_size);
 void harq_softbuffer_pool_destory(harq_softbuffer_pool *harq_pool, uint32_t nof_prb, uint32_t batch_size, uint32_t init_size);
 
-srsran_softbuffer_tx_t *harq_softbuffer_pool_get_tx(harq_softbuffer_pool *harq_pool, uint32_t nof_prb);
-srsran_softbuffer_rx_t *harq_softbuffer_pool_get_rx(harq_softbuffer_pool *harq_pool, uint32_t nof_prb);
+tx_harq_softbuffer *harq_softbuffer_pool_get_tx(harq_softbuffer_pool *harq_pool, uint32_t nof_prb);
+rx_harq_softbuffer *harq_softbuffer_pool_get_rx(harq_softbuffer_pool *harq_pool, uint32_t nof_prb);
 
 #ifdef __cplusplus
 }
