@@ -12,7 +12,6 @@
 
 #include "lib/common/slot_point.h"
 #include "mac/sched_nr_cfg.h"
-#include "mac/harq_softbuffer.h"
 
 #ifdef __cplusplus
 extern "C" {

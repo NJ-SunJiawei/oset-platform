@@ -26,9 +26,11 @@ void sched_nr_init(sched_nr *scheluder)
 
 void sched_nr_destory(sched_nr *scheluder)
 {
+	uint32_t cc = 0;
+
 	oset_assert(scheluder);
 	//cell_config_manager_destory
-	for (uint32_t cc = 0; cc < byn_array_get_count(&scheluder->cfg.cells); ++cc) {
+	for (cc = 0; cc < byn_array_get_count(&scheluder->cfg.cells); ++cc) {
 		cell_config_manager *cell_cof_manager = byn_array_get_data(&scheluder->cfg.cells, cc);
 		// just idx0 for BWP-common
 		byn_array_empty(&cell_cof_manager->bwps[0].pusch_ra_list);
@@ -37,8 +39,8 @@ void sched_nr_destory(sched_nr *scheluder)
 
 	//event
 	oset_apr_mutex_destroy(scheluder->pending_events.event_mutex);
-	for(int i=0; i < byn_array_get_count(&scheluder->pending_events.carriers); i++){
-		cc_events *cc_e = byn_array_get_data(&scheluder->pending_events.carriers, i);
+	for(cc = 0; cc < byn_array_get_count(&scheluder->pending_events.carriers); cc++){
+		cc_events *cc_e = byn_array_get_data(&scheluder->pending_events.carriers, cc);
 		oset_apr_mutex_destroy(cc_e->event_cc_mutex);
 		oset_list_empty(&cc_e->next_slot_ue_events);
 		oset_list_empty(&cc_e->current_slot_ue_events);
@@ -51,6 +53,13 @@ void sched_nr_destory(sched_nr *scheluder)
 	oset_list_empty(&scheluder->pending_events.current_slot_ue_events);
 
 	//cc_worker
+	for (cc = 0; cc < byn_array_get_count(&scheluder->cc_workers); ++cc) {
+		cc_worker *cc_w = byn_array_get_data(&scheluder->cc_workers, cc);
+		// idx0 for BWP-common
+		byn_array_empty(&cc_w->bwps[0].si.pending_sis);
+		//release harqbuffer
+		harq_softbuffer_pool_destory(harq_buffer_pool_self(cc), cc_w->cfg->carrier.nof_prb, 4 * MAX_HARQ, 0);
+	}
 	byn_array_empty(&scheluder->cc_workers);
 
 	oset_pool_final(&scheluder->ue_pool);
@@ -98,7 +107,7 @@ int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, void *sche_cel
 		cc_worker_init(cc_w, cell_conf_manager);
 	}
 
-  return SRSRAN_SUCCESS;
+  return OSET_OK;
 }
 
 
