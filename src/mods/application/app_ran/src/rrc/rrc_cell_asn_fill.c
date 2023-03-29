@@ -40,7 +40,7 @@ void fill_pdcch_cfg_common(rrc_cell_cfg_nr_t *cell_cfg, struct ASN_RRC_PDCCH_Con
 
 	out->commonSearchSpaceList = CALLOC(1,sizeof(*out->commonSearchSpaceList));
 	//just 1 common_search_space_list
-	struct search_space_s *ss = byn_array_get_data(&cell_cfg->pdcch_cfg_common.common_search_space_list, 0);
+	struct search_space_s *ss = DYN_ARRAY_DATA(&cell_cfg->pdcch_cfg_common.common_search_space_list, 0);
 	//????searchspace #0
 	asn1cSequenceAdd(out->commonSearchSpaceList->list, struct ASN_RRC_SearchSpace, ss1);
 	ss1->searchSpaceId = ss->search_space_id;
@@ -860,7 +860,7 @@ int fill_init_dl_bwp_from_enb_cfg(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg
 	//coreset
 	asn1cCalloc(init_dl_bwp->pdcch_Config->choice.setup->controlResourceSetToAddModList, ctl_rsset_add_list);
 	for(int i = 0; i< 1; i++) {
-		struct ctrl_res_set_s *coreset2_data = byn_array_get_data(&cell_cfg->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list, i)
+		struct ctrl_res_set_s *coreset2_data = DYN_ARRAY_DATA(&cell_cfg->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list, i)
 		asn1cSequenceAdd(ctl_rsset_add_list->list, struct ASN_RRC_ControlResourceSet, coreset);
 		coreset->controlResourceSetId = coreset2_data->ctrl_res_set_id;
 		oset_asn_buffer_to_BIT_STRING(coreset2_data->freq_domain_res, 6, 3, &coreset->frequencyDomainResources);
@@ -872,7 +872,7 @@ int fill_init_dl_bwp_from_enb_cfg(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg
 	//searchspace
 	asn1cCalloc(init_dl_bwp->pdcch_Config->choice.setup->searchSpacesToAddModList, ss_add_list);
 	for(int i = 0; i< 1; i++) {
-		struct search_space_s *ss2_data = byn_array_get_data(&cell_cfg->pdcch_cfg_ded.search_spaces_to_add_mod_list, i)
+		struct search_space_s *ss2_data = DYN_ARRAY_DATA(&cell_cfg->pdcch_cfg_ded.search_spaces_to_add_mod_list, i)
 		asn1cSequenceAdd(ss_add_list->list, struct ASN_RRC_SearchSpace, ss);
 		ss->searchSpaceId = ss2_data->search_space_id;
 		asn1cCallocOne(ss->controlResourceSetId, ss2_data->ctrl_res_set_id);

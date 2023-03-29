@@ -41,9 +41,10 @@ typedef struct {
 typedef struct {
   bwp_params_t  *cfg;
   // TTIMOD_SZ is the longest allocation in the future
-  A_DYN_ARRAY_OF(bwp_slot_grid) slots;//bounded_vector<bwp_slot_grid, TTIMOD_SZ>;
+  bwp_slot_grid slots[TTIMOD_SZ];//bounded_vector<bwp_slot_grid, TTIMOD_SZ>;
 }bwp_res_grid;
 
+void bwp_res_grid_init(bwp_res_grid *grid, bwp_params_t *bwp_cfg_);
 
 #ifdef __cplusplus
 }

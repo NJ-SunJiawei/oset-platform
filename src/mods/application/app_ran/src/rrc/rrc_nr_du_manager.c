@@ -24,7 +24,7 @@ int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node)
 	oset_assert(rrc_manager_self()->app_pool);
 	du_cell_config  *cell = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(du_cell_config));
 	oset_assert(cell);
-	byn_array_add(&rrc_manager_self()->du_cfg.cells, cell);
+	DYN_ARRAY_ADD(&rrc_manager_self()->du_cfg.cells, cell);
 
 	cell->cc = node->cell_idx;
 
@@ -105,14 +105,14 @@ void fill_phy_pdcch_cfg_common(du_cell_config *cell, rrc_cell_cfg_nr_t *rrc_cell
 
 bool fill_phy_pdcch_cfg(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_pdcch_cfg_nr_t *pdcch)
 {
-	for (int i = 0; i < byn_array_get_count(&rrc_cell_cfg->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list); i++) {
-		struct ctrl_res_set_s *coreset = byn_array_get_data(&rrc_cell_cfg->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list, i);
+	for (int i = 0; i < DYN_ARRAY_COUNT(&rrc_cell_cfg->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list); i++) {
+		struct ctrl_res_set_s *coreset = DYN_ARRAY_DATA(&rrc_cell_cfg->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list, i);
 		pdcch->coreset_present[coreset->ctrl_res_set_id] = true;
 		make_phy_coreset_cfg(coreset, &pdcch->coreset[coreset->ctrl_res_set_id]);
 	}
 
-	for (int i = 0; i < byn_array_get_count(&rrc_cell_cfg->pdcch_cfg_ded.search_spaces_to_add_mod_list); i++) {
-		struct search_space_s *ss = byn_array_get_data(&rrc_cell_cfg->pdcch_cfg_ded.search_spaces_to_add_mod_list, i);
+	for (int i = 0; i < DYN_ARRAY_COUNT(&rrc_cell_cfg->pdcch_cfg_ded.search_spaces_to_add_mod_list); i++) {
+		struct search_space_s *ss = DYN_ARRAY_DATA(&rrc_cell_cfg->pdcch_cfg_ded.search_spaces_to_add_mod_list, i);
 		pdcch->search_space_present[ss->search_space_id] = true;
 		make_phy_search_space_cfg(ss, &pdcch->search_space[ss->search_space_id]);
 	}

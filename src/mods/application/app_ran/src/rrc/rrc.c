@@ -49,15 +49,15 @@ int32_t rrc_generate_sibs(uint32_t cc)
 	}
 
 	// SIB1 packing
-	du_cell_config  *du_cell = byn_array_get_data(&rrc_manager.du_cfg.cells, cc);
+	du_cell_config  *du_cell = DYN_ARRAY_DATA(&rrc_manager.du_cfg.cells, cc);
 	oset_assert(du_cell);
 
-	byn_array_add(&rrc_manager.cell_ctxt->sib_buffer, du_cell->packed_sib1);
+	DYN_ARRAY_ADD(&rrc_manager.cell_ctxt->sib_buffer, du_cell->packed_sib1);
 
 	// SI messages packing
-	//byn_array_set_bounded(&rrc_manager.cell_ctxt->sibs, 1);
+	//BOUNDED_ARRAY_SET(&rrc_manager.cell_ctxt->sibs, 1);
 	//struct sib_type_and_info_item_c_ *si = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct sib2_s));;
-	//byn_array_add(&rrc_manager.cell_ctxt->sibs, si);
+	//DYN_ARRAY_ADD(&rrc_manager.cell_ctxt->sibs, si);
 	//si->types = (enum sib_type_and_info_item_e_)sib2;
 	//si->c.sib2.cell_resel_info_common.q_hyst = (enum q_hyst_e_)db5;
 
@@ -76,7 +76,7 @@ int32_t rrc_generate_sibs(uint32_t cc)
 
 	oset_pkbuf_t *packed_sib2 = oset_rrc_encode(&asn_DEF_ASN_RRC_BCCH_DL_SCH_Message, sib_pdu, asn_struct_free_all);
 	//oset_free(cell->packed_sib2);
-	byn_array_add(&rrc_manager.cell_ctxt->sib_buffer, packed_sib2);
+	DYN_ARRAY_ADD(&rrc_manager.cell_ctxt->sib_buffer, packed_sib2);
 	return OSET_OK;
 }
 
@@ -86,7 +86,7 @@ void rrc_config_phy(uint32_t cc)
 	oset_assert(common_cfg);
 	rrc_cell_cfg_nr_t *rrc_cell_cfg = oset_list2_find(rrc_manager.cfg.cell_list, cc)->data;
 	oset_assert(rrc_cell_cfg);
-	du_cell_config  *du_cell = byn_array_get_data(&rrc_manager.du_cfg.cells, cc);
+	du_cell_config  *du_cell = DYN_ARRAY_DATA(&rrc_manager.du_cfg.cells, cc);
 	oset_assert(du_cell);
 	//fill carrier
 	common_cfg->carrier = rrc_cell_cfg->phy_cell.carrier;
@@ -111,11 +111,11 @@ static void get_default_cell_cfg(phy_cfg_nr_t *phy_cfg, sched_nr_cell_cfg_t *cel
 	cell_cfg->dl_center_frequency_hz = phy_cfg->carrier.dl_center_frequency_hz;
 	cell_cfg->ul_center_frequency_hz = phy_cfg->carrier.ul_center_frequency_hz;
 	cell_cfg->ssb_center_freq_hz     = phy_cfg->carrier.ssb_center_freq_hz;
-	//byn_array_set_bounded(&cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, 1);
+	//BOUNDED_ARRAY_SET(&cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, 1);
 	//struct scs_specific_carrier_s *ss_carrier = oset_core_alloc(rrc_manager.app_pool, sizeof(struct scs_specific_carrier_s));
 	//ss_carrier->subcarrier_spacing = (enum subcarrier_spacing_e)phy_cfg->carrier.scs;
 	//ss_carrier->offset_to_carrier = phy_cfg->carrier.offset_to_carrier;
-	//byn_array_add(&cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, ss_carrier);
+	//DYN_ARRAY_ADD(&cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, ss_carrier);
 
 	//cell_cfg->dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing = (enum subcarrier_spacing_e)phy_cfg->carrier.scs;
 	//cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common_present = true;
@@ -151,7 +151,7 @@ void rrc_config_mac(uint32_t cc)
 {
 	rrc_cell_cfg_nr_t *rrc_cell_cfg = oset_list2_find(rrc_manager.cfg.cell_list, cc)->data;
 	oset_assert(rrc_cell_cfg);
-	du_cell_config  *du_cell = byn_array_get_data(&rrc_manager.du_cfg.cells, cc);
+	du_cell_config  *du_cell = DYN_ARRAY_DATA(&rrc_manager.du_cfg.cells, cc);
 	oset_assert(du_cell);
 	struct serving_cell_cfg_common_sib_s *serv_cell	  = du_cell->sib1.serving_cell_cfg_common;
 
@@ -174,7 +174,7 @@ void rrc_config_mac(uint32_t cc)
 	phy_cfg_nr_t  phy_cfg = {0};
 	phy_cfg_nr_default_init(&ref_args, &phy_cfg);
 	sched_nr_cell_cfg_t  *cell = oset_core_alloc(rrc_manager.app_pool, sizeof(sched_nr_cell_cfg_t));
-	byn_array_add(&sched_cells_cfg, cell);
+	DYN_ARRAY_ADD(&sched_cells_cfg, cell);
 	get_default_cell_cfg(&phy_cfg, cell);
 
 	// Derive cell config from rrc_nr_cfg_t
@@ -213,16 +213,16 @@ void rrc_config_mac(uint32_t cc)
 	// Set SIB1 and SI messages
 	uint16_t options_si_periodicity[] = {8, 16, 32, 64, 128, 256, 512};
 	uint16_t options_si_win_len[] = {5, 10, 20, 40, 80, 160, 320, 640, 1280};
-	byn_array_set_bounded(&cell->sibs, byn_array_get_count(&rrc_manager.cell_ctxt->sib_buffer));
-	for (uint32_t i = 0; i < byn_array_get_count(&rrc_manager.cell_ctxt->sib_buffer); i++) {
+	BOUNDED_ARRAY_SET(&cell->sibs, DYN_ARRAY_COUNT(&rrc_manager.cell_ctxt->sib_buffer));
+	for (uint32_t i = 0; i < DYN_ARRAY_COUNT(&rrc_manager.cell_ctxt->sib_buffer); i++) {
 		sched_nr_cell_cfg_sib_t  *sibs = oset_core_alloc(rrc_manager.app_pool, sizeof(sched_nr_cell_cfg_sib_t));
-		byn_array_add(&sched_cells_cfg, sibs);
-		sibs->len = byn_array_get_data(&rrc_manager.cell_ctxt->sib_buffer, i)->len;
+		DYN_ARRAY_ADD(&sched_cells_cfg, sibs);
+		sibs->len = DYN_ARRAY_DATA(&rrc_manager.cell_ctxt->sib_buffer, i)->len;
 		if (i == 0) {
 		  sibs->period_rf       = 16; // SIB1 is always 16 rf
 		  sibs->si_window_slots = 160;
 		} else {
-		  sibs->period_rf = options_si_periodicity[byn_array_get_data(&du_cell->sib1.si_sched_info.sched_info_list, i-1)->si_periodicity];
+		  sibs->period_rf = options_si_periodicity[DYN_ARRAY_DATA(&du_cell->sib1.si_sched_info.sched_info_list, i-1)->si_periodicity];
 		  sibs->si_window_slots = options_si_win_len[du_cell->sib1.si_sched_info.si_win_len];
 		}
 	}
@@ -306,33 +306,33 @@ static int rrc_destory(void)
 	int m = 0;
 
 	/*free du*/
-	for(i = 0; i < byn_array_get_count(&rrc_manager.du_cfg.cells), i++){
+	for(i = 0; i < DYN_ARRAY_COUNT(&rrc_manager.du_cfg.cells), i++){
 		//free du->packed_mib
-		du_cell_config *cell = byn_array_get_data(&rrc_manager.du_cfg.cells, i);
+		du_cell_config *cell = DYN_ARRAY_DATA(&rrc_manager.du_cfg.cells, i);
 		oset_free(cell->packed_mib);
 
 		//free du->sib1
 		free_sib1_dyn_arrary(cell->sib1);
 	}
-	byn_array_empty(&rrc_manager.du_cfg.cells);
+	DYN_ARRAY_CLEAR(&rrc_manager.du_cfg.cells);
 
     /****one cell****/
 	/*free cell_ctxt->sib_buffer*/
-	for(i = 0; i < byn_array_get_count(&rrc_manager.cell_ctxt->sib_buffer), i++){
-		oset_free(byn_array_get_data(&rrc_manager.cell_ctxt->sib_buffer, i));
+	for(i = 0; i < DYN_ARRAY_COUNT(&rrc_manager.cell_ctxt->sib_buffer), i++){
+		oset_free(DYN_ARRAY_DATA(&rrc_manager.cell_ctxt->sib_buffer, i));
 	}
-	byn_array_empty(&rrc_manager.cell_ctxt->sib_buffer);
-	//byn_array_empty(&rrc_manager.cell_ctxt->sibs);
+	DYN_ARRAY_CLEAR(&rrc_manager.cell_ctxt->sib_buffer);
+	//DYN_ARRAY_CLEAR(&rrc_manager.cell_ctxt->sibs);
 
     /*free cell_ctxt->master_cell_group*/
 	free_master_cell_cfg_dyn_array(&rrc_manager.cell_ctxt->master_cell_group);
 
     /*free sched_cells_cfg*/
-    for(m = 0; m < byn_array_get_count(&sched_cells_cfg); m++){
-		struct sched_nr_cell_cfg_t *cell = byn_array_get_data(&sched_cells_cfg, m);
-		byn_array_empty(&cell->sibs);
+    for(m = 0; m < DYN_ARRAY_COUNT(&sched_cells_cfg); m++){
+		struct sched_nr_cell_cfg_t *cell = DYN_ARRAY_DATA(&sched_cells_cfg, m);
+		DYN_ARRAY_CLEAR(&cell->sibs);
 	}
-	byn_array_empty(&sched_cells_cfg);
+	DYN_ARRAY_CLEAR(&sched_cells_cfg);
 
 	//todo
 	return OSET_OK;
@@ -340,12 +340,12 @@ static int rrc_destory(void)
 
 int rrc_read_pdu_bcch_dlsch(uint32_t sib_index, oset_pkbuf_t *buffer)
 {
-  if (sib_index >= byn_array_get_count(&rrc_manager.cell_ctxt->sib_buffer)) {
+  if (sib_index >= DYN_ARRAY_COUNT(&rrc_manager.cell_ctxt->sib_buffer)) {
     oset_error("SI%s%d is not a configured SIB.", sib_index == 0 ? "B" : "", sib_index + 1);
     return OSET_ERROR;
   }
 
-  buffer = byn_array_get_data(&rrc_manager.cell_ctxt->sib_buffer, sib_index);
+  buffer = DYN_ARRAY_DATA(&rrc_manager.cell_ctxt->sib_buffer, sib_index);
   return OSET_OK;
 }
 

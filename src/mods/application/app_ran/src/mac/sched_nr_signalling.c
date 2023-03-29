@@ -17,11 +17,11 @@ void si_sched_init(si_sched *si,bwp_params_t *bwp_cfg_)
 {
 	si->bwp_cfg = bwp_cfg_;
 
-	for (uint32_t i = 0; i < byn_array_get_count(bwp_cfg_->cell_cfg.sibs); ++i) {
-		sched_nr_cell_cfg_sib_t *sibs = byn_array_get_data(bwp_cfg_->cell_cfg.sibs, i);
+	for (uint32_t i = 0; i < DYN_ARRAY_COUNT(bwp_cfg_->cell_cfg.sibs); ++i) {
+		sched_nr_cell_cfg_sib_t *sibs = DYN_ARRAY_DATA(bwp_cfg_->cell_cfg.sibs, i);
 
 		si_msg_ctxt_t *si_ct = oset_core_alloc(mac_manager_self()->app_pool, sizeof(si_msg_ctxt_t));
-		byn_array_add(&si->pending_sis, si_ct);
+		DYN_ARRAY_ADD(&si->pending_sis, si_ct);
 		si_ct->n              = i;
 		si_ct->len_bytes      = sibs->len;
 		si_ct->period_frames  = sibs->period_rf;

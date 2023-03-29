@@ -64,8 +64,8 @@ static int mac_init(void)
 
 static int mac_destory(void)
 {
-	byn_array_empty(&mac_manager.bcch_dlsch_payload);
-	byn_array_empty(&mac_manager.detected_rachs);
+	DYN_ARRAY_CLEAR(&mac_manager.bcch_dlsch_payload);
+	DYN_ARRAY_CLEAR(&mac_manager.detected_rachs);
 	mac_manager.cell_config = NULL;
 
 	//todo
@@ -82,13 +82,13 @@ int mac_cell_cfg(void *sche_cells)
 
 	mac_manager.cell_config = nr_cells;
 	sched_nr_config(&mac_manager.sched, &mac_manager.args->sched_cfg, sche_cells);
-	byn_array_set_bounded(&mac_manager.detected_rachs, byn_array_get_count(&mac_manager.cell_config));
+	BOUNDED_ARRAY_SET(&mac_manager.detected_rachs, DYN_ARRAY_COUNT(mac_manager.cell_config));
 
     //cell 0
-    sched_nr_cell_cfg_t * cell = byn_array_get_data(&mac_manager.cell_config , 0);
+    sched_nr_cell_cfg_t * cell = DYN_ARRAY_DATA(&mac_manager.cell_config , 0);
 	
 	// read SIBs from RRC (SIB1 for now only)
-	for (uint32_t i = 0; i < byn_array_get_count(&cell->sibs); i++) {
+	for (uint32_t i = 0; i < DYN_ARRAY_COUNT(&cell->sibs); i++) {
 		sib_info_t *sib  = oset_core_alloc(mac_manager.app_pool, sizeof(sib_info_t));
 		sib->index       = i;
 		sib->periodicity = 160; // TODO: read period_rf from config
@@ -97,7 +97,7 @@ int mac_cell_cfg(void *sche_cells)
 		}
 
 		oset_info("Including SIB %d into SI scheduling", sib->index + 1);
-		byn_array_add(&mac_manager.bcch_dlsch_payload, sib);
+		DYN_ARRAY_ADD(&mac_manager.bcch_dlsch_payload, sib);
 	}
 
 	rx.reset(new mac_nr_rx{rlc, rrc, stack_task_queue, sched.get(), *this, logger});

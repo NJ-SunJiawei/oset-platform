@@ -122,12 +122,6 @@ bool make_phy_rach_cfg(rach_cfg_common_s *asn1_type,
   return true;
 };
 
-uint32_t coreset_nof_cces(srsran_coreset_t *coreset)
-{
-  bool* res_active   = coreset->freq_resources[0];
-  uint32_t nof_freq_res = std::count(res_active, res_active + SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE, true);
-  return nof_freq_res * coreset.duration;
-}
 
 void make_mib_cfg(sched_nr_cell_cfg_t *cfg, srsran_mib_nr_t *mib)
 {
@@ -162,8 +156,8 @@ void make_ssb_cfg(sched_nr_cell_cfg_t *cfg, ssb_cfg_t* ssb)
 	}
 	ssb->scs     = (srsran_subcarrier_spacing_t)cfg->ssb_scs;
 	ssb->pattern = SRSRAN_SSB_PATTERN_A;
-	if (byn_array_get_count(&cfg->dl_cfg_common->freq_info_dl.freq_band_list) > 0){
-		struct nr_multi_band_info_s *multi_band_info = byn_array_get_data(&cfg->dl_cfg_common->freq_info_dl.freq_band_list, 0);
+	if (DYN_ARRAY_COUNT(&cfg->dl_cfg_common->freq_info_dl.freq_band_list) > 0){
+		struct nr_multi_band_info_s *multi_band_info = DYN_ARRAY_DATA(&cfg->dl_cfg_common->freq_info_dl.freq_band_list, 0);
 		if(multi_band_info->freq_band_ind_nr_present) {
 			uint32_t band = multi_band_info->freq_band_ind_nr;
 			ssb->pattern  = get_ssb_pattern_2c(band_helper, band, ssb->scs);

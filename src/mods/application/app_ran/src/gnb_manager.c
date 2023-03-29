@@ -45,9 +45,9 @@ void gnb_manager_destory(void)
 	oset_lnode2_t *lnode = NULL;
 	oset_list2_for_each(gnb_manager.rrc_nr_cfg.cell_list, lnode){
 	    rrc_cell_cfg_nr_t * cell = (rrc_cell_cfg_nr_t *)lnode->data;
-		byn_array_empty(&cell->pdcch_cfg_common.common_search_space_list);
-		byn_array_empty(&cell->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list);
-		byn_array_empty(&cell->pdcch_cfg_ded.search_spaces_to_add_mod_list);
+		DYN_ARRAY_CLEAR(&cell->pdcch_cfg_common.common_search_space_list);
+		DYN_ARRAY_CLEAR(&cell->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list);
+		DYN_ARRAY_CLEAR(&cell->pdcch_cfg_ded.search_spaces_to_add_mod_list);
 	}
 
 	band_helper_destory(gnb_manager.band_helper);//???

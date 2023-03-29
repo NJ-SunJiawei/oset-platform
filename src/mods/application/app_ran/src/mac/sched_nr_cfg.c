@@ -67,11 +67,11 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		cell_bwp->slots[sl] = sl_cfg;
 	}
 
-	byn_array_set_bounded(&cell_bwp->pusch_ra_list, bwp_cfg->pusch.nof_common_time_ra);
+	BOUNDED_ARRAY_SET(&cell_bwp->pusch_ra_list, bwp_cfg->pusch.nof_common_time_ra);
 	srsran_sch_grant_nr_t grant = {0};
 	for (uint32_t m = 0; m < bwp_cfg->pusch.nof_common_time_ra; ++m) {
 		pusch_ra_time_cfg *pusch_ra_time = oset_core_alloc(mac_manager_self()->app_pool, sizeof(pusch_ra_time_cfg));
-		byn_array_add(&cell_bwp->pusch_ra_list, pusch_ra_time);
+		DYN_ARRAY_ADD(&cell_bwp->pusch_ra_list, pusch_ra_time);
 		int ret =
 		    srsran_ra_ul_nr_time(&bwp_cfg->pusch, srsran_rnti_type_ra, srsran_search_space_type_rar, ra_coreset_id, m, &grant);
 		ASSERT_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to obtain");
@@ -82,7 +82,7 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		pusch_ra_time->L = grant.L;
 		ASSERT_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to obtain RA config");
 	}
-	ASSERT_IF_NOT(byn_array_get_count(&cell_bwp->pusch_ra_list) > 0, "Time-Domain Resource Allocation not valid");
+	ASSERT_IF_NOT(DYN_ARRAY_COUNT(&cell_bwp->pusch_ra_list) > 0, "Time-Domain Resource Allocation not valid");
 
 	//计算coreset里cce结构计算
 	for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
@@ -138,7 +138,7 @@ void cell_config_manager_init(cell_config_manager *cell_cof_manager,
 	cell_cof_manager->carrier.nof_prb                = cell->dl_cell_nof_prb;
 	cell_cof_manager->carrier.start                  = 0; // TODO: Check
 	cell_cof_manager->carrier.max_mimo_layers        = cell->nof_layers;
-	cell_cof_manager->carrier.offset_to_carrier      = byn_array_get_data(&cell->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, 0)->offset_to_carrier;
+	cell_cof_manager->carrier.offset_to_carrier      = DYN_ARRAY_DATA(&cell->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, 0)->offset_to_carrier;
 	cell_cof_manager->carrier.scs = (srsran_subcarrier_spacing_t)cell->dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing;
 
 	// TDD-UL-DL-ConfigCommon

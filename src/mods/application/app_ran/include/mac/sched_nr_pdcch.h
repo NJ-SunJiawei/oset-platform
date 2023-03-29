@@ -57,8 +57,8 @@ typedef struct {
 typedef struct {
   bwp_params_t    *bwp_cfg;
   uint32_t        slot_idx;
-  A_DYN_ARRAY_OF(pdcch_dl_t)        pdcch_dl_list;//bounded_vector<pdcch_dl_t, MAX_GRANTS>
-  A_DYN_ARRAY_OF(pdcch_ul_t)        pdcch_ul_list;//bounded_vector<pdcch_ul_t, MAX_GRANTS>
+  A_DYN_ARRAY_OF(pdcch_dl_t)        *pdcch_dl_list;//bounded_vector<pdcch_dl_t, MAX_GRANTS>
+  A_DYN_ARRAY_OF(pdcch_ul_t)        *pdcch_ul_list;//bounded_vector<pdcch_ul_t, MAX_GRANTS>
   A_DYN_ARRAY_OF(coreset_region)    coresets;     //optional_array<coreset_region, SRSRAN_UE_DL_NR_MAX_NOF_CORESET>
   const srsran_dci_ctx_t  *pending_dci; //Saves last PDCCH allocation, in case it needs to be aborted
 }bwp_pdcch_allocator;

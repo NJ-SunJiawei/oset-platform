@@ -240,8 +240,8 @@ bool fill_phy_pdcch_cfg_common2(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_pdcch_cf
 		make_phy_coreset_cfg(rrc_cell_cfg->pdcch_cfg_common.common_ctrl_res_set, &pdcch->coreset[rrc_cell_cfg->pdcch_cfg_common.common_ctrl_res_set.ctrl_res_set_id]);
 	}
 
-	for (int i = 0; i < byn_array_get_count(&rrc_cell_cfg->pdcch_cfg_common.common_search_space_list); i++) {
-		struct search_space_s *ss = byn_array_get_data(&rrc_cell_cfg->pdcch_cfg_common.common_search_space_list, i);
+	for (int i = 0; i < DYN_ARRAY_COUNT(&rrc_cell_cfg->pdcch_cfg_common.common_search_space_list); i++) {
+		struct search_space_s *ss = DYN_ARRAY_DATA(&rrc_cell_cfg->pdcch_cfg_common.common_search_space_list, i);
 
 		pdcch->search_space_present[ss->search_space_id] = true;
 		if (! make_phy_search_space_cfg(ss, &pdcch->search_space[ss->search_space_id])) {
@@ -682,15 +682,15 @@ bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_
     struct csi_meas_cfg_s *setup = &serv_cell->csi_meas_cfg.c;
 
     // Configure NZP-CSI
-	for (i = 0 ; i < byn_array_get_count(&setup->nzp_csi_rs_res_set_to_add_mod_list); i++) {
-	  struct nzp_csi_rs_res_set_s *nzp_set = byn_array_get_data(&setup->nzp_csi_rs_res_set_to_add_mod_list, i);
+	for (i = 0 ; i < DYN_ARRAY_COUNT(&setup->nzp_csi_rs_res_set_to_add_mod_list); i++) {
+	  struct nzp_csi_rs_res_set_s *nzp_set = DYN_ARRAY_DATA(&setup->nzp_csi_rs_res_set_to_add_mod_list, i);
       srsran_csi_rs_nzp_set_t *uecfg_set    = &sch_hl->nzp_csi_rs_sets[nzp_set->nzp_csi_res_set_id];
       uecfg_set->trs_info = nzp_set->trs_info_present;
-      uecfg_set->count    = byn_array_get_count(&nzp_set->nzp_csi_rs_res);
+      uecfg_set->count    = DYN_ARRAY_COUNT(&nzp_set->nzp_csi_rs_res);
       uint32_t count     = 0;
-      for (uint8_t nzp_rs_idx = 0;  nzp_rs_idx < byn_array_get_count(&nzp_set->nzp_csi_rs_res); nzp_rs_idx++) {
+      for (uint8_t nzp_rs_idx = 0;  nzp_rs_idx < DYN_ARRAY_COUNT(&nzp_set->nzp_csi_rs_res); nzp_rs_idx++) {
         srsran_csi_rs_nzp_resource_t *res = &uecfg_set->data[count++];
-        if (!make_phy_nzp_csi_rs_resource(byn_array_get_data(&setup->nzp_csi_rs_res_to_add_mod_list, nzp_rs_idx), res)) {
+        if (!make_phy_nzp_csi_rs_resource(DYN_ARRAY_DATA(&setup->nzp_csi_rs_res_to_add_mod_list, nzp_rs_idx), res)) {
           return false;
         }
       }
@@ -701,9 +701,9 @@ bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_
     struct pdsch_cfg_s *setup = serv_cell->init_dl_bwp.pdsch_cfg.c;
     if (setup->p_zp_csi_rs_res_set_present) {
       struct zp_csi_rs_res_set_s *setup_set  = setup->p_zp_csi_rs_res_set.c;
-      sch_hl->p_zp_csi_rs_set.count = byn_array_get_count(&setup_set->zp_csi_rs_res_id_list);
-      for (uint8_t zp_res_id = 0;  zp_res_id < byn_array_get_count(&setup_set->zp_csi_rs_res_id_list); zp_res_id++) {
-        struct zp_csi_rs_res_s *setup_res = byn_array_get_data(&setup->zp_csi_rs_res_to_add_mod_list, zp_res_id);
+      sch_hl->p_zp_csi_rs_set.count = DYN_ARRAY_COUNT(&setup_set->zp_csi_rs_res_id_list);
+      for (uint8_t zp_res_id = 0;  zp_res_id < DYN_ARRAY_COUNT(&setup_set->zp_csi_rs_res_id_list); zp_res_id++) {
+        struct zp_csi_rs_res_s *setup_res = DYN_ARRAY_DATA(&setup->zp_csi_rs_res_to_add_mod_list, zp_res_id);
         srsran_csi_rs_zp_resource_t *res  = sch_hl->p_zp_csi_rs_set.data[zp_res_id];
         if (!make_phy_zp_csi_rs_resource(setup_res, &res)) {
           return false;
@@ -766,18 +766,18 @@ void fill_ul_cfg_common_sib_inner(rrc_cell_cfg_nr_t *cell_cfg, struct ul_cfg_com
 	rrc_nr_cfg_t *cfg = rrc_manager_self()->cfg;
 	band_helper_t *band_helper = gnb_manager_self()->band_helper;
 
-	byn_array_set_bounded(&out->freq_info_ul.freq_band_list, 1);
+	BOUNDED_ARRAY_SET(&out->freq_info_ul.freq_band_list, 1);
 	struct nr_multi_band_info_s *nr_multi_band_info = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nr_multi_band_info_s));
-	byn_array_add(&out->freq_info_ul.freq_band_list, nr_multi_band_info);
+	DYN_ARRAY_ADD(&out->freq_info_ul.freq_band_list, nr_multi_band_info);
 	nr_multi_band_info->freq_band_ind_nr_present = true;
 	nr_multi_band_info->freq_band_ind_nr         = cell_cfg->band;
 
 	out->freq_info_ul.absolute_freq_point_a_present = true;
 	out->freq_info_ul.absolute_freq_point_a =  get_abs_freq_point_a_arfcn_2c(band_helper, cell_cfg->phy_cell.carrier.nof_prb, cell_cfg->ul_arfcn);
 
-	byn_array_set_bounded(&out->freq_info_ul.scs_specific_carrier_list, 1);
+	BOUNDED_ARRAY_SET(&out->freq_info_ul.scs_specific_carrier_list, 1);
 	struct scs_specific_carrier_s *scs_specific_carrier = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct scs_specific_carrier_s));
-	byn_array_add(&out->freq_info_ul.scs_specific_carrier_list, scs_specific_carrier);
+	DYN_ARRAY_ADD(&out->freq_info_ul.scs_specific_carrier_list, scs_specific_carrier);
 	scs_specific_carrier->offset_to_carrier = cell_cfg->phy_cell.carrier.offset_to_carrier;
 	scs_specific_carrier->subcarrier_spacing = cell_cfg->phy_cell.carrier.scs;
 	scs_specific_carrier->carrier_bw = cell_cfg->phy_cell.carrier.nof_prb;
@@ -796,9 +796,9 @@ void fill_ul_cfg_common_sib_inner(rrc_cell_cfg_nr_t *cell_cfg, struct ul_cfg_com
 	out->init_ul_bwp.pusch_cfg_common.type_  = setup;
 	struct pusch_cfg_common_s *pusch         = &out->init_ul_bwp.pusch_cfg_common.c;
 
-	byn_array_set_bounded(&pusch->pusch_time_domain_alloc_list, 1);
+	BOUNDED_ARRAY_SET(&pusch->pusch_time_domain_alloc_list, 1);
 	struct pusch_time_domain_res_alloc_s *pusch_time_domain_res_alloc = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct pusch_time_domain_res_alloc_s));
-	byn_array_add(&pusch->pusch_time_domain_alloc_list, pusch_time_domain_res_alloc);
+	DYN_ARRAY_ADD(&pusch->pusch_time_domain_alloc_list, pusch_time_domain_res_alloc);
 	pusch_time_domain_res_alloc->k2_present           = true
 	pusch_time_domain_res_alloc->k2                   = 4;
 	pusch_time_domain_res_alloc->map_type       	  = (enum map_type_e_)type_a;
@@ -844,9 +844,9 @@ void fill_pdcch_cfg_common_inner(rrc_cell_cfg_nr_t *cell_cfg, struct pdcch_cfg_c
 
 void fill_pdsch_cfg_common_inner(rrc_cell_cfg_nr_t *cell_cfg, struct pdsch_cfg_common_s *out)
 {
-	byn_array_set_bounded(&out->pdsch_time_domain_alloc_list, 1);
+	BOUNDED_ARRAY_SET(&out->pdsch_time_domain_alloc_list, 1);
 	struct pdsch_time_domain_res_alloc_s *pdsch_time_domain_res_alloc = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct pdsch_time_domain_res_alloc_s));
-	byn_array_add(&out->pdsch_time_domain_alloc_list, pdsch_time_domain_res_alloc);
+	DYN_ARRAY_ADD(&out->pdsch_time_domain_alloc_list, pdsch_time_domain_res_alloc);
 	pdsch_time_domain_res_alloc->map_type = (enum map_type_e_)type_a;
 	pdsch_time_domain_res_alloc->start_symbol_and_len = 40;
 }
@@ -878,9 +878,9 @@ void fill_dl_cfg_common_sib_inner(rrc_cell_cfg_nr_t *cell_cfg, struct dl_cfg_com
 	uint32_t scs_hz = SRSRAN_SUBC_SPACING_NR(cell_cfg->phy_cell.carrier.scs);
 	uint32_t prb_bw = scs_hz * SRSRAN_NRE;
 
-	byn_array_set_bounded(&out->freq_info_dl.freq_band_list, 1);
+	BOUNDED_ARRAY_SET(&out->freq_info_dl.freq_band_list, 1);
 	struct nr_multi_band_info_s *nr_multi_band_info = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nr_multi_band_info_s));
-	byn_array_add(&out->freq_info_dl.freq_band_list, nr_multi_band_info);
+	DYN_ARRAY_ADD(&out->freq_info_dl.freq_band_list, nr_multi_band_info);
 	nr_multi_band_info->freq_band_ind_nr_present = true;
 	nr_multi_band_info->freq_band_ind_nr = cell_cfg->band;
 
@@ -889,9 +889,9 @@ void fill_dl_cfg_common_sib_inner(rrc_cell_cfg_nr_t *cell_cfg, struct dl_cfg_com
 	uint32_t offset_point_a_prbs = offset_point_a_hz / prb_bw;
 	out->freq_info_dl.offset_to_point_a = offset_point_a_prbs;
 
-	byn_array_set_bounded(&out->freq_info_dl.scs_specific_carrier_list, 1);
+	BOUNDED_ARRAY_SET(&out->freq_info_dl.scs_specific_carrier_list, 1);
 	struct scs_specific_carrier_s *scs_specific_carrier = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct scs_specific_carrier_s));
-	byn_array_add(&out->freq_info_dl.scs_specific_carrier_list, scs_specific_carrier);
+	DYN_ARRAY_ADD(&out->freq_info_dl.scs_specific_carrier_list, scs_specific_carrier);
 	scs_specific_carrier->offset_to_carrier = cell_cfg->phy_cell.carrier.offset_to_carrier;
 	scs_specific_carrier->subcarrier_spacing = cell_cfg->phy_cell.carrier.scs;
 	scs_specific_carrier->carrier_bw = cell_cfg->phy_cell.carrier.nof_prb;
@@ -1008,34 +1008,34 @@ void fill_srb_inner(rrc_nr_cfg_t *cfg, nr_srb srb_id, struct rlc_bearer_cfg_s *o
 void fill_csi_resource_cfg_to_add_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, struct csi_meas_cfg_s *csi_meas_cfg)
 {
 	if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-		byn_array_set_bounded(&csi_meas_cfg->csi_res_cfg_to_add_mod_list, 3);
+		BOUNDED_ARRAY_SET(&csi_meas_cfg->csi_res_cfg_to_add_mod_list, 3);
 
 		struct csi_res_cfg_s *csi_res_cfg0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct csi_res_cfg_s));
-		byn_array_add(&csi_meas_cfg->csi_res_cfg_to_add_mod_list, csi_res_cfg0);
+		DYN_ARRAY_ADD(&csi_meas_cfg->csi_res_cfg_to_add_mod_list, csi_res_cfg0);
 		csi_res_cfg0->csi_res_cfg_id = 0;
 		csi_res_cfg0->csi_rs_res_set_list.type_ = 0;//nzp_csi_rs_ssb
 		struct uint8_t *nzp = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-		byn_array_add(&csi_res_cfg0->csi_rs_res_set_list.c.nzp_csi_rs_ssb.nzp_csi_rs_res_set_list, nzp);
+		DYN_ARRAY_ADD(&csi_res_cfg0->csi_rs_res_set_list.c.nzp_csi_rs_ssb.nzp_csi_rs_res_set_list, nzp);
 		*nzp = 0;
 		csi_res_cfg0->bwp_id   = 0;
 		csi_res_cfg0->res_type = (enum res_type_e_)periodic;
 
 		struct csi_res_cfg_s *csi_res_cfg1 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct csi_res_cfg_s));
-		byn_array_add(&csi_meas_cfg->csi_res_cfg_to_add_mod_list, csi_res_cfg1);
+		DYN_ARRAY_ADD(&csi_meas_cfg->csi_res_cfg_to_add_mod_list, csi_res_cfg1);
 		csi_res_cfg1->csi_res_cfg_id = 1;
 		csi_res_cfg1->csi_rs_res_set_list.type_ = 1;//csi_im_res_set_list
 		struct uint8_t *im_res = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-		byn_array_add(&csi_res_cfg0->csi_rs_res_set_list.c.csi_im_res_set_list, im_res);
+		DYN_ARRAY_ADD(&csi_res_cfg0->csi_rs_res_set_list.c.csi_im_res_set_list, im_res);
 		*im_res = 0;
 		csi_res_cfg1->bwp_id   = 0;
 		csi_res_cfg1->res_type = (enum res_type_e_)periodic;
 
 		struct csi_res_cfg_s *csi_res_cfg2 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct csi_res_cfg_s));
-		byn_array_add(&csi_meas_cfg->csi_res_cfg_to_add_mod_list, csi_res_cfg2);
+		DYN_ARRAY_ADD(&csi_meas_cfg->csi_res_cfg_to_add_mod_list, csi_res_cfg2);
 		csi_res_cfg2->csi_res_cfg_id = 2;
 		csi_res_cfg2->csi_rs_res_set_list.type_ = 0;//nzp_csi_rs_ssb
 		struct uint8_t *nzp2 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-		byn_array_add(&csi_res_cfg0->csi_rs_res_set_list.c.nzp_csi_rs_ssb.nzp_csi_rs_res_set_list, nzp2);
+		DYN_ARRAY_ADD(&csi_res_cfg0->csi_rs_res_set_list.c.nzp_csi_rs_ssb.nzp_csi_rs_res_set_list, nzp2);
 		*nzp2 = 1;
 		csi_res_cfg2->bwp_id   = 0;
 		csi_res_cfg2->res_type = (enum res_type_e_)periodic;
@@ -1049,10 +1049,10 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 
 	if (cfg->is_standalone) {
 		if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-			byn_array_set_bounded(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, 5);
+			BOUNDED_ARRAY_SET(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, 5);
 
 			struct nzp_csi_rs_res_s *nzp_csi_res0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_s));
-			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res0);
+			DYN_ARRAY_ADD(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res0);
 			// item 0
 			nzp_csi_res0->nzp_csi_rs_res_id = 0;
 			nzp_csi_res0->res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row2;//row2
@@ -1076,7 +1076,7 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 
 			// item 1
 			struct nzp_csi_rs_res_s *nzp_csi_res1 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_s));
-			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res1);
+			DYN_ARRAY_ADD(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res1);
 			nzp_csi_res1->nzp_csi_rs_res_id = 1;
 			nzp_csi_res1->res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row1;//row1
 			bitstring_from_number(&nzp_csi_res1->res_map.freq_domain_alloc.c, 0x1, 4);
@@ -1098,7 +1098,7 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 
 			// item 2
 			struct nzp_csi_rs_res_s *nzp_csi_res2 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_s));
-			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res2);
+			DYN_ARRAY_ADD(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res2);
 			nzp_csi_res2->nzp_csi_rs_res_id = 2;
 			nzp_csi_res2->res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row1;//row1
 			bitstring_from_number(&nzp_csi_res2->res_map.freq_domain_alloc.c, 0x1, 4);
@@ -1120,7 +1120,7 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 
 			// item 3
 			struct nzp_csi_rs_res_s *nzp_csi_res3 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_s));
-			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res3);
+			DYN_ARRAY_ADD(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res3);
 			nzp_csi_res3->nzp_csi_rs_res_id = 3;
 			nzp_csi_res3->res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row1;//row1
 			bitstring_from_number(&nzp_csi_res3->res_map.freq_domain_alloc.c, 0x1, 4);
@@ -1142,7 +1142,7 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 
 			// item 4
 			struct nzp_csi_rs_res_s *nzp_csi_res4 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_s));
-			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res4);
+			DYN_ARRAY_ADD(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res4);
 			nzp_csi_res4->nzp_csi_rs_res_id = 4;
 			nzp_csi_res4->res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row1;//row1
 			bitstring_from_number(&nzp_csi_res1->res_map.freq_domain_alloc.c, 0x1, 4);
@@ -1162,10 +1162,10 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 			nzp_csi_res1->qcl_info_periodic_csi_rs_present = true;
 			nzp_csi_res1->qcl_info_periodic_csi_rs         = 0;
 		} else {
-			byn_array_set_bounded(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, 5);
+			BOUNDED_ARRAY_SET(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, 5);
 
 			struct nzp_csi_rs_res_s *nzp_csi_res0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_s));
-			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res0);
+			DYN_ARRAY_ADD(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, nzp_csi_res0);
 
 			nzp_csi_res0->nzp_csi_rs_res_id = 0;
 			nzp_csi_res0->res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row2;//row2
@@ -1190,45 +1190,45 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 
 		// Fill NZP-CSI Resource Sets
 		if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-			byn_array_set_bounded(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, 2);
+			BOUNDED_ARRAY_SET(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, 2);
 			// item 0
 			struct nzp_csi_rs_res_set_s *nzp_csi_res_set0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_set_s));
-			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, nzp_csi_res_set0);
+			DYN_ARRAY_ADD(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, nzp_csi_res_set0);
 			nzp_csi_res_set0->nzp_csi_res_set_id = 0;
-			byn_array_set_bounded(&nzp_csi_res_set0->nzp_csi_rs_res, 1);
+			BOUNDED_ARRAY_SET(&nzp_csi_res_set0->nzp_csi_rs_res, 1);
 			struct uint8_t *nzp_csi_rs_res0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-			byn_array_add(&nzp_csi_res_set0->nzp_csi_rs_res, nzp_csi_rs_res0);
+			DYN_ARRAY_ADD(&nzp_csi_res_set0->nzp_csi_rs_res, nzp_csi_rs_res0);
 			*nzp_csi_rs_res0 = 0;
 
 			// item 1
 			struct nzp_csi_rs_res_set_s *nzp_csi_res_set1 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_set_s));
-			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, nzp_csi_res_set1);
+			DYN_ARRAY_ADD(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, nzp_csi_res_set1);
 
 			nzp_csi_res_set1->nzp_csi_res_set_id = 1;
-			byn_array_set_bounded(&nzp_csi_res_set1->nzp_csi_rs_res, 4);
+			BOUNDED_ARRAY_SET(&nzp_csi_res_set1->nzp_csi_rs_res, 4);
 			struct uint8_t *nzp_csi_rs_res0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-			byn_array_add(&nzp_csi_res_set1->nzp_csi_rs_res, nzp_csi_rs_res0);
+			DYN_ARRAY_ADD(&nzp_csi_res_set1->nzp_csi_rs_res, nzp_csi_rs_res0);
 			*nzp_csi_rs_res0 = 1;
 			struct uint8_t *nzp_csi_rs_res1 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-			byn_array_add(&nzp_csi_res_set1->nzp_csi_rs_res, nzp_csi_rs_res1);
+			DYN_ARRAY_ADD(&nzp_csi_res_set1->nzp_csi_rs_res, nzp_csi_rs_res1);
 			*nzp_csi_rs_res1 = 2;
 			struct uint8_t *nzp_csi_rs_res2 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-			byn_array_add(&nzp_csi_res_set1->nzp_csi_rs_res, nzp_csi_rs_res2);
+			DYN_ARRAY_ADD(&nzp_csi_res_set1->nzp_csi_rs_res, nzp_csi_rs_res2);
 			*nzp_csi_rs_res2 = 3;
 			struct uint8_t *nzp_csi_rs_res3 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-			byn_array_add(&nzp_csi_res_set1->nzp_csi_rs_res, nzp_csi_rs_res3);
+			DYN_ARRAY_ADD(&nzp_csi_res_set1->nzp_csi_rs_res, nzp_csi_rs_res3);
 			*nzp_csi_rs_res3 = 4;
 			nzp_csi_res_set1->trs_info_present  = true;
 			  //    // Skip TRS info
 	} else {
-			byn_array_set_bounded(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, 1);
+			BOUNDED_ARRAY_SET(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, 1);
 			// item 0
 			struct nzp_csi_rs_res_set_s *nzp_csi_res_set0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct nzp_csi_rs_res_set_s));
-			byn_array_add(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, nzp_csi_res_set0);
+			DYN_ARRAY_ADD(&csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, nzp_csi_res_set0);
 			nzp_csi_res_set0->nzp_csi_res_set_id = 0;
-			byn_array_set_bounded(&nzp_csi_res_set0->nzp_csi_rs_res, 1);
+			BOUNDED_ARRAY_SET(&nzp_csi_res_set0->nzp_csi_rs_res, 1);
 			struct uint8_t *nzp_csi_rs_res0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-			byn_array_add(&nzp_csi_res_set0->nzp_csi_rs_res, nzp_csi_rs_res0);
+			DYN_ARRAY_ADD(&nzp_csi_res_set0->nzp_csi_rs_res, nzp_csi_rs_res0);
 			*nzp_csi_rs_res0 = 0;
 			// Skip TRS info
 		}
@@ -1239,9 +1239,9 @@ void fill_csi_im_resource_cfg_to_add_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t 
 {
 	if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
 		// csi-IM-ResourceToAddModList
-		byn_array_set_bounded(&csi_meas_cfg->csi_im_res_to_add_mod_list, 1);
+		BOUNDED_ARRAY_SET(&csi_meas_cfg->csi_im_res_to_add_mod_list, 1);
 		struct csi_im_res_s *csi_im_res = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct csi_im_res_s));
-		byn_array_add(&csi_meas_cfg->csi_im_res_to_add_mod_list, csi_im_res);
+		DYN_ARRAY_ADD(&csi_meas_cfg->csi_im_res_to_add_mod_list, csi_im_res);
 		csi_im_res->csi_im_res_id                   = 0;
 		csi_im_res->csi_im_res_elem_pattern_present = true;
 		// csi-im-resource pattern1
@@ -1259,13 +1259,13 @@ void fill_csi_im_resource_cfg_to_add_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t 
 		csi_im_res->periodicity_and_offset.c = 1;
 
 		// csi-IM-ResourceSetToAddModList
-		byn_array_set_bounded(&csi_meas_cfg->csi_im_res_set_to_add_mod_list, 1);
+		BOUNDED_ARRAY_SET(&csi_meas_cfg->csi_im_res_set_to_add_mod_list, 1);
 		struct csi_im_res_set_s *csi_im_res_set = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct csi_im_res_set_s));
-		byn_array_add(&csi_meas_cfg->csi_im_res_set_to_add_mod_list, csi_im_res_set);
+		DYN_ARRAY_ADD(&csi_meas_cfg->csi_im_res_set_to_add_mod_list, csi_im_res_set);
 		csi_im_res_set->csi_im_res_set_id = 0;
-		byn_array_set_bounded(&csi_im_res_set->csi_im_res, 1);
+		BOUNDED_ARRAY_SET(&csi_im_res_set->csi_im_res, 1);
 		struct uint8_t *cir = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-		byn_array_add(&csi_im_res_set->csi_im_res, cir);
+		DYN_ARRAY_ADD(&csi_im_res_set->csi_im_res, cir);
 		*cir = 0;
 	}
 }
@@ -1276,9 +1276,9 @@ int fill_csi_report_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
 	ASSERT_IF_NOT(cfg->is_standalone, "Not support NSA now!")
 
 	if (cfg->is_standalone) {
-		byn_array_set_bounded(&csi_meas_cfg->csi_report_cfg_to_add_mod_list, 1);
+		BOUNDED_ARRAY_SET(&csi_meas_cfg->csi_report_cfg_to_add_mod_list, 1);
 		struct csi_report_cfg_s *csi_report = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct csi_report_cfg_s));
-		byn_array_add(&csi_meas_cfg->csi_report_cfg_to_add_mod_list, csi_report);
+		DYN_ARRAY_ADD(&csi_meas_cfg->csi_report_cfg_to_add_mod_list, csi_report);
 
 		csi_report->report_cfg_id                       = 0;
 		csi_report->res_for_ch_meas                     = 0;
@@ -1287,9 +1287,9 @@ int fill_csi_report_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
 		csi_report->report_cfg_type.type_ = (enum report_cfg_type_e_)periodic;
 		csi_report->report_cfg_type.c.periodic.report_slot_cfg.type_ = (enum csi_report_periodicity_and_offset_e_)slots80;
 
-		byn_array_set_bounded(&csi_report->report_cfg_type.c.periodic.pucch_csi_res_list, 1);
+		BOUNDED_ARRAY_SET(&csi_report->report_cfg_type.c.periodic.pucch_csi_res_list, 1);
 		struct pucch_csi_res_s *pucch_csi_res = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct pucch_csi_res_s));
-		byn_array_add(&csi_report->report_cfg_type.c.periodic.pucch_csi_res_list, pucch_csi_res);
+		DYN_ARRAY_ADD(&csi_report->report_cfg_type.c.periodic.pucch_csi_res_list, pucch_csi_res);
 		pucch_csi_res->ul_bw_part_id = 0;
 		pucch_csi_res->pucch_res = 17; // was 17 in orig PCAP, but code for NSA it was set to 1
 		csi_report->report_quant.type_ = (enum report_quant_e_)cri_ri_pmi_cqi;
@@ -1358,9 +1358,9 @@ void fill_pdsch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
   out->dmrs_dl_for_pdsch_map_type_a.c.dmrs_add_position_present = true;
   out->dmrs_dl_for_pdsch_map_type_a.c.dmrs_add_position         = (enum dmrs_add_position_e_)pos1;
 
-  byn_array_set_bounded(&out->tci_states_to_add_mod_list, 1);
+  BOUNDED_ARRAY_SET(&out->tci_states_to_add_mod_list, 1);
   struct tci_state_s *tci_ss = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct tci_state_s));
-  byn_array_add(&out->tci_states_to_add_mod_list, tci_ss);
+  DYN_ARRAY_ADD(&out->tci_states_to_add_mod_list, tci_ss);
   tci_ss->tci_state_id = 0;
   tci_ss->qcl_type1.ref_sig.type_ = 1;//ssb
   tci_ss->qcl_type1.ref_sig.c = 0;
@@ -1378,9 +1378,9 @@ void fill_pdsch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
   // out->mcs_table = qam256;
 
   // ZP-CSI
-  byn_array_set_bounded(&out->zp_csi_rs_res_to_add_mod_list, 1);
+  BOUNDED_ARRAY_SET(&out->zp_csi_rs_res_to_add_mod_list, 1);
   struct zp_csi_rs_res_s *zp_csi_rs_res = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct zp_csi_rs_res_s));
-  byn_array_add(&out->zp_csi_rs_res_to_add_mod_list, zp_csi_rs_res);
+  DYN_ARRAY_ADD(&out->zp_csi_rs_res_to_add_mod_list, zp_csi_rs_res);
   zp_csi_rs_res->zp_csi_rs_res_id = 0;
   zp_csi_rs_res->res_map.freq_domain_alloc.type_ = 2;//row4
   bitstring_from_number(&zp_csi_rs_res->res_map.freq_domain_alloc.c, 0b100, 12);
@@ -1423,17 +1423,17 @@ int fill_init_dl_bwp_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, struct pucch_cfg_s *out)
 {
   // Make 2 PUCCH resource sets
-  byn_array_set_bounded(&out->res_set_to_add_mod_list, 2);
+  BOUNDED_ARRAY_SET(&out->res_set_to_add_mod_list, 2);
 
   // Make PUCCH resource set for 1-2 bit
   for (uint32_t set_id = 0; set_id < out->res_set_to_add_mod_list.size; ++set_id) {
 	struct pucch_res_set_s *pucch_res_set = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct pucch_res_set_s));
-	byn_array_add(&out->res_set_to_add_mod_list, pucch_res_set);
+	DYN_ARRAY_ADD(&out->res_set_to_add_mod_list, pucch_res_set);
 	pucch_res_set->pucch_res_set_id = set_id;
-	byn_array_set_bounded(&pucch_res_set->res_list, 8);
+	BOUNDED_ARRAY_SET(&pucch_res_set->res_list, 8);
     for (uint32_t i = 0; i < pucch_res_set->res_list.size; ++i) {
 		struct uint8_t *c = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-		byn_array_add(&pucch_res_set->res_list, c);
+		DYN_ARRAY_ADD(&pucch_res_set->res_list, c);
 		if (cfg->is_standalone) {
 			*c = i + set_id * 8;
 		} else {
@@ -1443,11 +1443,11 @@ void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
   }
 
   // Make 3 possible resources
-  byn_array_set_bounded(&out->res_to_add_mod_list, 18);
+  BOUNDED_ARRAY_SET(&out->res_to_add_mod_list, 18);
   uint32_t j = 0, j2 = 0;
   for (uint32_t i = 0; i < out->res_to_add_mod_list.size; ++i) {
 	struct pucch_res_s *pucch_res = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct pucch_res_s));
-	byn_array_add(&out->res_to_add_mod_list, pucch_res);
+	DYN_ARRAY_ADD(&out->res_to_add_mod_list, pucch_res);
     pucch_res->pucch_res_id                = i;
     pucch_res->intra_slot_freq_hop_present = false;
     if (i < 8 || i == 16) {
@@ -1493,9 +1493,9 @@ void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
   out->format2.c.simul_harq_ack_csi_present = true;
 
   // SR resources
-  byn_array_set_bounded(&out->sched_request_res_to_add_mod_list, 1);
+  BOUNDED_ARRAY_SET(&out->sched_request_res_to_add_mod_list, 1);
   struct sched_request_res_cfg_s *sr_res1 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct sched_request_res_cfg_s));
-  byn_array_add(&out->sched_request_res_to_add_mod_list, sr_res1);
+  DYN_ARRAY_ADD(&out->sched_request_res_to_add_mod_list, sr_res1);
   sr_res1->sched_request_res_id              = 1;
   sr_res1->sched_request_id                  = 0;
   sr_res1->periodicity_and_offset_present    = true;
@@ -1506,29 +1506,29 @@ void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
 
   // DL data
   if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-	byn_array_set_bounded(&out->dl_data_to_ul_ack, 1);
+	BOUNDED_ARRAY_SET(&out->dl_data_to_ul_ack, 1);
 	struct uint8_t *ack = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-	byn_array_add(&out->sched_request_res_to_add_mod_list, ack);
+	DYN_ARRAY_ADD(&out->sched_request_res_to_add_mod_list, ack);
 	*ack = 4;
   } else {
-	byn_array_set_bounded(&out->dl_data_to_ul_ack, 6);
+	BOUNDED_ARRAY_SET(&out->dl_data_to_ul_ack, 6);
 	struct uint8_t *ack0 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-	byn_array_add(&out->sched_request_res_to_add_mod_list, ack0);
+	DYN_ARRAY_ADD(&out->sched_request_res_to_add_mod_list, ack0);
 	*ack0 = 6;
 	struct uint8_t *ack1 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-	byn_array_add(&out->sched_request_res_to_add_mod_list, ack1);
+	DYN_ARRAY_ADD(&out->sched_request_res_to_add_mod_list, ack1);
 	*ack1 = 5;
 	struct uint8_t *ack2 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-	byn_array_add(&out->sched_request_res_to_add_mod_list, ack2);
+	DYN_ARRAY_ADD(&out->sched_request_res_to_add_mod_list, ack2);
 	*ack2 = 4;
 	struct uint8_t *ack3 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-	byn_array_add(&out->sched_request_res_to_add_mod_list, ack3);
+	DYN_ARRAY_ADD(&out->sched_request_res_to_add_mod_list, ack3);
 	*ack3 = 4;
 	struct uint8_t *ack4 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-	byn_array_add(&out->sched_request_res_to_add_mod_list, ack4);
+	DYN_ARRAY_ADD(&out->sched_request_res_to_add_mod_list, ack4);
 	*ack4 = 4;
 	struct uint8_t *ack5 = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct uint8_t));
-	byn_array_add(&out->sched_request_res_to_add_mod_list, ack5);
+	DYN_ARRAY_ADD(&out->sched_request_res_to_add_mod_list, ack5);
 	*ack5 = 4;
   }
 }
@@ -1633,64 +1633,65 @@ int fill_sp_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, struct s
 
 void free_master_cell_cfg_dyn_array(struct cell_group_cfg_s *master_cell_group)
 {
+	int m = 0;
     //free rlc_bearer_to_add_mod_list
-	byn_array_empty(&master_cell_group->rlc_bearer_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->rlc_bearer_to_add_mod_list);
 
     //free sched_request_to_add_mod_list
-	byn_array_empty(&master_cell_group->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list);
     //free tag_to_add_mod_list
-	byn_array_empty(&master_cell_group->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list);
 
 
     //free csi-ResoureConfigToAddModList
-    for(m = 0; m < byn_array_get_count(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_res_cfg_to_add_mod_list); m++){
+    for(m = 0; m < DYN_ARRAY_COUNT(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_res_cfg_to_add_mod_list); m++){
 		//release csi_rs_res_set_list
 		struct csi_res_cfg_s *csi_res_cfg = byn_array_get_data(&&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_res_cfg_to_add_mod_list, m);
-		if(0 == csi_res_cfg->csi_rs_res_set_list.type_) byn_array_empty(&csi_res_cfg->csi_rs_res_set_list.c.nzp_csi_rs_ssb.nzp_csi_rs_res_set_list);	
-		if(1 == csi_res_cfg->csi_rs_res_set_list.type_) byn_array_empty(&csi_res_cfg->csi_rs_res_set_list.c.csi_im_res_set_list);
+		if(0 == csi_res_cfg->csi_rs_res_set_list.type_) DYN_ARRAY_CLEAR(&csi_res_cfg->csi_rs_res_set_list.c.nzp_csi_rs_ssb.nzp_csi_rs_res_set_list);	
+		if(1 == csi_res_cfg->csi_rs_res_set_list.type_) DYN_ARRAY_CLEAR(&csi_res_cfg->csi_rs_res_set_list.c.csi_im_res_set_list);
 	}
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_res_cfg_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_res_cfg_to_add_mod_list);
 	//free NZP-CSI-RS-Resource
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_to_add_mod_list);
 	//free NZP-CSI Resource Sets
-    for(m = 0; m < byn_array_get_count(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_set_to_add_mod_list); m++){
-		struct nzp_csi_rs_res_set_s *nzp_csi_res_set = byn_array_get_data(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_set_to_add_mod_list, m);
-		byn_array_empty(&nzp_csi_res_set->nzp_csi_rs_res);
+    for(m = 0; m < DYN_ARRAY_COUNT(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_set_to_add_mod_list); m++){
+		struct nzp_csi_rs_res_set_s *nzp_csi_res_set = DYN_ARRAY_DATA(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_set_to_add_mod_list, m);
+		DYN_ARRAY_CLEAR(&nzp_csi_res_set->nzp_csi_rs_res);
 	}
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_set_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.nzp_csi_rs_res_set_to_add_mod_list);
 	//free csi-IM-ResourceToAddModList
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_to_add_mod_list);
 	//free csi-IM-ResourceSetToAddModList
-    for(m = 0; m < byn_array_get_count(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_set_to_add_mod_list); m++){
-		struct csi_im_res_set_s *csi_im_res_set = byn_array_get_data(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_set_to_add_mod_list, m);
-		byn_array_empty(&csi_im_res_set->csi_im_res);
+    for(m = 0; m < DYN_ARRAY_COUNT(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_set_to_add_mod_list); m++){
+		struct csi_im_res_set_s *csi_im_res_set = DYN_ARRAY_DATA(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_set_to_add_mod_list, m);
+		DYN_ARRAY_CLEAR(&csi_im_res_set->csi_im_res);
 	}
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_set_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_im_res_set_to_add_mod_list);
 
 	//free CSI-ReportConfig
-    for(m = 0; m < byn_array_get_count(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_report_cfg_to_add_mod_list); m++){
-		struct csi_report_cfg_s *csi_report = byn_array_get_data(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_report_cfg_to_add_mod_list, m);
-		byn_array_empty(&csi_report->report_cfg_type.c.periodic.pucch_csi_res_list);
+    for(m = 0; m < DYN_ARRAY_COUNT(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_report_cfg_to_add_mod_list); m++){
+		struct csi_report_cfg_s *csi_report = DYN_ARRAY_DATA(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_report_cfg_to_add_mod_list, m);
+		DYN_ARRAY_CLEAR(&csi_report->report_cfg_type.c.periodic.pucch_csi_res_list);
 	}
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_report_cfg_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_report_cfg_to_add_mod_list);
 
 	//free init_dl_bwp pdcch_cfg  //???cell_cfg->pdcch_cfg_ded
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.c.ctrl_res_set_to_add_mod_list);
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.c.search_spaces_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.c.ctrl_res_set_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.c.search_spaces_to_add_mod_list);
 
 	//free init_dl_bwp pdsch_cfg
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.c.tci_states_to_add_mod_list);
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.c.zp_csi_rs_res_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.c.tci_states_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdsch_cfg.c.zp_csi_rs_res_to_add_mod_list);
 
 	//free init_dl_bwp pucch_cfg
-    for(m = 0; m < byn_array_get_count(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_set_to_add_mod_list); m++){
-		struct pucch_res_set_s *pucch_res_set = byn_array_get_data(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_set_to_add_mod_list, m);
-		byn_array_empty(&pucch_res_set->res_list);
+    for(m = 0; m < DYN_ARRAY_COUNT(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_set_to_add_mod_list); m++){
+		struct pucch_res_set_s *pucch_res_set = DYN_ARRAY_DATA(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_set_to_add_mod_list, m);
+		DYN_ARRAY_CLEAR(&pucch_res_set->res_list);
 	}
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_set_to_add_mod_list);
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_to_add_mod_list);
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.sched_request_res_to_add_mod_list);
-	byn_array_empty(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.dl_data_to_ul_ack);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_set_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.res_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.sched_request_res_to_add_mod_list);
+	DYN_ARRAY_CLEAR(&master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c.dl_data_to_ul_ack);
 
 }
 
@@ -1699,17 +1700,17 @@ int fill_master_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, stru
 {
 	out->cell_group_id = 0;
 
-	byn_array_set_bounded(&out->rlc_bearer_to_add_mod_list, 1);
+	BOUNDED_ARRAY_SET(&out->rlc_bearer_to_add_mod_list, 1);
 	struct rlc_bearer_cfg_s *rlc_bearer = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct rlc_bearer_cfg_s));
-	byn_array_add(&out->rlc_bearer_to_add_mod_list, rlc_bearer);
+	DYN_ARRAY_ADD(&out->rlc_bearer_to_add_mod_list, rlc_bearer);
 	fill_srb_inner(cfg, srb1, rlc_bearer);
 
 	// mac-CellGroupConfig -- Need M
 	out->mac_cell_group_cfg_present                   = true;
 	out->mac_cell_group_cfg.sched_request_cfg_present = true;
-	byn_array_set_bounded(&out->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list, 1);
+	BOUNDED_ARRAY_SET(&out->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list, 1);
 	struct sched_request_to_add_mod_s *sr = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct sched_request_to_add_mod_s));
-	byn_array_add(&out->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list, sr);
+	DYN_ARRAY_ADD(&out->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list, sr);
 	sr->sched_request_id = 0;
 	sr->sr_trans_max = (enum sr_trans_max_e_)n64;
 
@@ -1718,9 +1719,9 @@ int fill_master_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, stru
 	out->mac_cell_group_cfg.bsr_cfg.retx_bsr_timer           = (enum retx_bsr_timer_e_)sf320;
 
 	out->mac_cell_group_cfg.tag_cfg_present                  = true;
-	byn_array_set_bounded(&out->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list, 1);
+	BOUNDED_ARRAY_SET(&out->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list, 1);
 	struct tag_s *tag = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct tag_s));
-	byn_array_add(&out->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list, tag);
+	DYN_ARRAY_ADD(&out->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list, tag);
 	tag->tag_id           = 0;
 	tag->time_align_timer = (enum time_align_timer_e)infinity;
 
@@ -1752,39 +1753,40 @@ int fill_master_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, stru
 
 void free_sib1_dyn_arrary(struct sib1_s *sib1)
 {
+	int m = 0;
 	//release plmn_id_list
-	for(m = 0; m < byn_array_get_count(&sib1->cell_access_related_info.plmn_id_list), m++){
+	for(m = 0; m < DYN_ARRAY_COUNT(&sib1->cell_access_related_info.plmn_id_list), m++){
 		//release plmn_id_list
-		struct plmn_id_info_s *plmn_id_info = byn_array_get_data(&sib1->cell_access_related_info.plmn_id_list, m);
-		byn_array_empty(&plmn_id_info->plmn_id_list);	
+		struct plmn_id_info_s *plmn_id_info = DYN_ARRAY_DATA(&sib1->cell_access_related_info.plmn_id_list, m);
+		DYN_ARRAY_CLEAR(&plmn_id_info->plmn_id_list);	
 	}
-	byn_array_empty(&sib1->cell_access_related_info.plmn_id_list);
+	DYN_ARRAY_CLEAR(&sib1->cell_access_related_info.plmn_id_list);
 	
 	//release freq_info_dl.freq_band_list
-	byn_array_empty(&sib1->serving_cell_cfg_common.dl_cfg_common.freq_info_dl.freq_band_list);
+	DYN_ARRAY_CLEAR(&sib1->serving_cell_cfg_common.dl_cfg_common.freq_info_dl.freq_band_list);
 	//release freq_info_dl.scs_specific_carrier_list
-	byn_array_empty(&sib1->serving_cell_cfg_common.dl_cfg_common.freq_info_dl.scs_specific_carrier_list);
+	DYN_ARRAY_CLEAR(&sib1->serving_cell_cfg_common.dl_cfg_common.freq_info_dl.scs_specific_carrier_list);
 	//release init_dl_bwp.common_search_space_list
-	byn_array_empty(&sib1->serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.c.common_search_space_list);
+	DYN_ARRAY_CLEAR(&sib1->serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdcch_cfg_common.c.common_search_space_list);
 	//release pdsch_cfg_common.pdsch_time_domain_alloc_list
-	byn_array_empty(&sib1->serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdsch_cfg_common.c.pdsch_time_domain_alloc_list);
+	DYN_ARRAY_CLEAR(&sib1->serving_cell_cfg_common.dl_cfg_common.init_dl_bwp.pdsch_cfg_common.c.pdsch_time_domain_alloc_list);
 	
 
 	
 	//release freq_info_ul.freq_band_list
-	byn_array_empty(&sib1->serving_cell_cfg_common.ul_cfg_common.freq_info_ul.freq_band_list);
+	DYN_ARRAY_CLEAR(&sib1->serving_cell_cfg_common.ul_cfg_common.freq_info_ul.freq_band_list);
 	//release freq_info_dl.scs_specific_carrier_list
-	byn_array_empty(&sib1->serving_cell_cfg_common.ul_cfg_common.freq_info_ul.scs_specific_carrier_list);
+	DYN_ARRAY_CLEAR(&sib1->serving_cell_cfg_common.ul_cfg_common.freq_info_ul.scs_specific_carrier_list);
 	//release pusch_cfg_common.pusch_time_domain_alloc_list
-	byn_array_empty(&sib1->serving_cell_cfg_common.ul_cfg_common.init_ul_bwp.pusch_cfg_common.c.pusch_time_domain_alloc_list);
+	DYN_ARRAY_CLEAR(&sib1->serving_cell_cfg_common.ul_cfg_common.init_ul_bwp.pusch_cfg_common.c.pusch_time_domain_alloc_list);
 	
 	//release sched_info_list
-	for(m = 0; m < byn_array_get_count(&sib1->si_sched_info.sched_info_list), m++){
-		struct sched_info_s *sched_info = byn_array_get_data(&sib1->si_sched_info.sched_info_list, m);
+	for(m = 0; m < DYN_ARRAY_COUNT(&sib1->si_sched_info.sched_info_list), m++){
+		struct sched_info_s *sched_info = DYN_ARRAY_DATA(&sib1->si_sched_info.sched_info_list, m);
 		//release sib_map_info
-		byn_array_empty(&sched_info->sib_map_info);
+		DYN_ARRAY_CLEAR(&sched_info->sib_map_info);
 	}		
-	byn_array_empty(&sib1->si_sched_info.sched_info_list);
+	DYN_ARRAY_CLEAR(&sib1->si_sched_info.sched_info_list);
 
 }
 
@@ -1797,13 +1799,13 @@ int fill_sib1_from_enb_cfg_inner(rrc_cell_cfg_nr_t *cell_cfg, struct sib1_s *sib
 	sib1->cell_sel_info.q_qual_min_present = true;
 	sib1->cell_sel_info.q_qual_min         = -20;
 
-	byn_array_set_bounded(&sib1->cell_access_related_info.plmn_id_list, 1);
+	BOUNDED_ARRAY_SET(&sib1->cell_access_related_info.plmn_id_list, 1);
 	struct plmn_id_info_s *plmn_id_info = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct plmn_id_info_s));
-	byn_array_add(&sib1->cell_access_related_info.plmn_id_list, plmn_id_info);
+	DYN_ARRAY_ADD(&sib1->cell_access_related_info.plmn_id_list, plmn_id_info);
 
-	byn_array_set_bounded(&plmn_id_info->plmn_id_list, 1);
+	BOUNDED_ARRAY_SET(&plmn_id_info->plmn_id_list, 1);
 	struct plmn_id_s *plmn_id = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct plmn_id_s));
-	byn_array_add(&plmn_id_info->plmn_id_list, plmn_id);
+	DYN_ARRAY_ADD(&plmn_id_info->plmn_id_list, plmn_id);
 	plmn_id->mcc_present = true;
 	mcc_to_bytes(cfg->mcc ,plmn_id->mcc);
 	mnc_to_bytes(cfg->mnc ,plmn_id->mnc, &plmn_id->nof_mnc_digits);
@@ -1824,15 +1826,15 @@ int fill_sib1_from_enb_cfg_inner(rrc_cell_cfg_nr_t *cell_cfg, struct sib1_s *sib
 	sib1->si_sched_info.si_request_cfg.rach_occasions_si.rach_cfg_si.ra_resp_win = (enum ra_resp_win_e_)sl8;
 	sib1->si_sched_info.si_win_len = (enum si_win_len_e_)s160;
 
-	byn_array_set_bounded(&sib1->si_sched_info.sched_info_list, 1);
+	BOUNDED_ARRAY_SET(&sib1->si_sched_info.sched_info_list, 1);
 	struct sched_info_s *sched_info = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct sched_info_s));
-	byn_array_add(&sib1->si_sched_info.sched_info_list, sched_info);
+	DYN_ARRAY_ADD(&sib1->si_sched_info.sched_info_list, sched_info);
 	sched_info->si_broadcast_status = (enum si_broadcast_status_e_)broadcasting;
 	sched_info->si_periodicity = (enum si_periodicity_e_)rf16;
 
-	byn_array_set_bounded(&sched_info->sib_map_info, 1);
+	BOUNDED_ARRAY_SET(&sched_info->sib_map_info, 1);
 	struct sib_type_info_s *sib_type = oset_core_alloc(rrc_manager_self()->app_pool, sizeof(struct sib_type_info_s));
-	byn_array_add(&sched_info->sib_map_info, sib_type);
+	DYN_ARRAY_ADD(&sched_info->sib_map_info, sib_type);
 	// scheduling of SI messages
 	sib_type->type              = (enum type_e_)sib_type2;
 	sib_type->value_tag_present = true;
