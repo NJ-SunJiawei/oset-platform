@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 typedef struct{
-	int arrary_count;
+	int      array_index;
 	uint32_t array[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR];
 }pdcch_cce_pos_list;//bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
 typedef pdcch_cce_pos_list cce_pos_list_tmp[MAX_NOF_AGGR_LEVELS];
@@ -66,9 +66,9 @@ typedef struct bwp_params_s {
   uint32_t              N_rbg;
   uint32_t              nof_prb;
   slot_cfg              slots[SRSRAN_NOF_SF_X_FRAME];//<slot_cfg, SRSRAN_NOF_SF_X_FRAME>
-  A_DYN_ARRAY_OF(pusch_ra_time_cfg) pusch_ra_list;//std::vector<pusch_ra_time_cfg>
+  cvector_vector_t(pusch_ra_time_cfg) pusch_ra_list;//std::vector<pusch_ra_time_cfg>
 
-  bwp_cce_pos_list                  rar_cce_list;//A_DYN_ARRAY_OF(uint32_t) rar_cce_list[SRSRAN_NOF_SF_X_FRAME][MAX_NOF_AGGR_LEVELS]
+  bwp_cce_pos_list                  rar_cce_list;//cvector_vector_type(uint32_t) rar_cce_list[SRSRAN_NOF_SF_X_FRAME][MAX_NOF_AGGR_LEVELS]
   bool                              common_cce_list_active[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
   bwp_cce_pos_list                  common_cce_list[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE]; //optional_vector<bwp_cce_pos_list>
   bwp_rb_bitmap                     cached_empty_prb_mask;
@@ -82,12 +82,12 @@ typedef struct {
   srsran_carrier_nr_t             carrier;
   srsran_mib_nr_t                 mib;
   ssb_cfg_t                       ssb;
-  bwp_params_t                    bwps[4]; //std::vector<bwp_params_t>// idx0 for BWP-common
-  A_DYN_ARRAY_OF(sched_nr_cell_cfg_sib_t)  *sibs; //std::vector<sched_nr_cell_cfg_sib_t>
+  cvector_vector_t(bwp_params_t)  bwps; //std::vector<bwp_params_t>// idx0 for BWP-common
+  cvector_vector_t(sched_nr_cell_cfg_sib_t)  sibs; //std::vector<sched_nr_cell_cfg_sib_t>
   struct dl_cfg_common_sib_s      dl_cfg_common;
   struct ul_cfg_common_sib_s      ul_cfg_common;
   srsran_duplex_config_nr_t       duplex;
-  sched_args_t                    sched_args;
+  sched_args_t                    *sched_args;
   phy_cfg_nr_t                    default_ue_phy_cfg;
 }cell_config_manager;
 
@@ -95,7 +95,7 @@ typedef struct {
 /// Structure packing both the sched args and all gNB NR cell configurations
 typedef struct sched_params_s {
   sched_args_t                         *sched_cfg;
-  A_DYN_ARRAY_OF(cell_config_manager)  cells; //std::vector<cell_config_manager> 
+  cvector_vector_t(cell_config_manager)  cells; //std::vector<cell_config_manager> 
 }sched_params_t;
 
 void cell_config_manager_init(cell_config_manager *cell_cof_manager,

@@ -138,7 +138,7 @@ typedef struct {
 // Arbitrarily chosen limit, optimal value depends on the RLC (pollPDU) and PDCP config, channel BLER,
 // traffic characterisitcs, etc. The chosen value has been tested with 100 PRB bi-dir TCP
 #define MAX_SDUS_TO_NOTIFY (4096)
-typedef A_DYN_ARRAY_OF(uint32_t) pdcp_sn_vector_t;//srsran::bounded_vector<uint32_t, MAX_SDUS_TO_NOTIFY>
+typedef cvector_vector_t(uint32_t) pdcp_sn_vector_t;//srsran::bounded_vector<uint32_t, MAX_SDUS_TO_NOTIFY>
 
 
 #endif

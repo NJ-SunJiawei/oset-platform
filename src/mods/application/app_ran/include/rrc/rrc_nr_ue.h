@@ -46,7 +46,7 @@ typedef struct {
   // RRC configs for UEs
   struct cell_group_cfg_s              cell_group_cfg, next_cell_group_cfg;
   struct radio_bearer_cfg_s            radio_bearer_cfg, next_radio_bearer_cfg;
-  A_DYN_ARRAY_OF(struct byte_buffer_t) nas_pdu_queue;//std::vector<srsran::unique_byte_buffer_t>
+  cvector_vector_t(struct byte_buffer_t) nas_pdu_queue;//std::vector<srsran::unique_byte_buffer_t>
 
   // MAC controller
   sched_nr_ue_cfg_t uecfg;

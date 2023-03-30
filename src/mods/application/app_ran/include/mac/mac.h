@@ -45,15 +45,15 @@ typedef struct mac_manager_s{
 
 	bool                   started;
 	sched_nr               sched;
-	A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) *cell_config;//std::vector<sched_nr_cell_cfg_t>
+	cvector_vector_t(sched_nr_cell_cfg_t) cell_config;//std::vector<sched_nr_cell_cfg_t>
 	// Map of active UEs
 	OSET_POOL(ue_nr_mac_pool, ue_nr);
 	oset_hash_t            *ue_db;//static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES>
 	uint16_t               ue_counter;
-	A_DYN_ARRAY_OF(sib_info_t) bcch_dlsch_payload; //std::vector<sib_info_t>
+	cvector_vector_t(sib_info_t) bcch_dlsch_payload; //std::vector<sib_info_t>
 	byte_buffer_t          *bcch_bch_payload;
 	// Number of rach preambles detected for a CC
-	A_DYN_ARRAY_OF(uint32_t)  detected_rachs;//SRSRAN_MAX_CARRIERS
+	cvector_vector_t(uint32_t)  detected_rachs;//SRSRAN_MAX_CARRIERS
 	// Decoding of UL PDUs
 	void                   *rx;
 }mac_manager_t;

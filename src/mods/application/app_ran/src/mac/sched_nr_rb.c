@@ -18,7 +18,7 @@ static uint32_t prb_to_rbg_idx(bwp_rb_bitmap *prb_map, uint32_t prb_idx) const
   return ((prb_idx + prb_map->P_ - prb_map->first_rbg_size) >> prb_map->Pnofbits);
 }
 
-static void add_prbs_to_rbgs(bwp_rb_bitmap *prb_map, prb_bitmap *grant)
+static void add_prbs_to_rbgs_by_bitmap(bwp_rb_bitmap *prb_map, prb_bitmap *grant)
 {
   int idx = 0;
   do {
@@ -33,7 +33,7 @@ static void add_prbs_to_rbgs(bwp_rb_bitmap *prb_map, prb_bitmap *grant)
 }
 
 
-static void add_prbs_to_rbgs(bwp_rb_bitmap *prb_map, prb_interval *grant)
+static void add_prbs_to_rbgs_by_interval(bwp_rb_bitmap *prb_map, prb_interval *grant)
 {
   uint32_t rbg_start = prb_to_rbg_idx(prb_map, grant->start_);
   uint32_t rbg_stop  = MIN(prb_to_rbg_idx(prb_map, grant->stop_ - 1) + 1u, (uint32_t)bit_size(prb_map->rbgs_));
@@ -98,7 +98,7 @@ uint32_t get_rbg_size(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_
 void bwp_rb_bitmap_add(bwp_rb_bitmap *prb_map, prb_interval *prbs)
 {
 	bit_fill(&prb_map->prbs_, prbs->start_, prbs->stop_, true);
-	add_prbs_to_rbgs(prb_map, prbs);
+	add_prbs_to_rbgs_by_interval(prb_map, prbs);
 }
 
 

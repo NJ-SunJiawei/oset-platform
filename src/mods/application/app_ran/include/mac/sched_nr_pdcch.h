@@ -43,12 +43,14 @@ typedef struct {
   uint32_t                slot_idx;
   uint32_t                nof_freq_res;
 
-  bwp_cce_pos_list        rar_cce_list;
-  A_DYN_ARRAY_OF(bwp_cce_pos_list) common_cce_list;//optional_vector<bwp_cce_pos_list>
-  A_DYN_ARRAY_OF(alloc_record) dci_list;//bounded_vector<alloc_record, 2 * MAX_GRANTS>
+  bwp_cce_pos_list        *rar_cce_list;
+  bool                    common_cce_list_active[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
+  bwp_cce_pos_list        *common_cce_list[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
+  //cvector_vector_t(bwp_cce_pos_list) common_cce_list;//optional_vector<bwp_cce_pos_list>
+  cvector_vector_t(alloc_record) dci_list;//bounded_vector<alloc_record, 2 * MAX_GRANTS>
 
-  A_DYN_ARRAY_OF(tree_node)     dfs_tree;//std::vector<tree_node>
-  A_DYN_ARRAY_OF(tree_node)     saved_dfs_tree;//std::vector<tree_node>
+  cvector_vector_t(tree_node)     dfs_tree;//std::vector<tree_node>
+  cvector_vector_t(tree_node)     saved_dfs_tree;//std::vector<tree_node>
 }coreset_region;
 
 /**
@@ -57,11 +59,17 @@ typedef struct {
 typedef struct {
   bwp_params_t    *bwp_cfg;
   uint32_t        slot_idx;
-  A_DYN_ARRAY_OF(pdcch_dl_t)        *pdcch_dl_list;//bounded_vector<pdcch_dl_t, MAX_GRANTS>
-  A_DYN_ARRAY_OF(pdcch_ul_t)        *pdcch_ul_list;//bounded_vector<pdcch_ul_t, MAX_GRANTS>
-  A_DYN_ARRAY_OF(coreset_region)    coresets;     //optional_array<coreset_region, SRSRAN_UE_DL_NR_MAX_NOF_CORESET>
-  const srsran_dci_ctx_t  *pending_dci; //Saves last PDCCH allocation, in case it needs to be aborted
+  cvector_vector_t(pdcch_dl_t)        pdcch_dl_list;//bounded_vector<pdcch_dl_t, MAX_GRANTS>
+  cvector_vector_t(pdcch_ul_t)        pdcch_ul_list;//bounded_vector<pdcch_ul_t, MAX_GRANTS>
+  coreset_region    coresets[SRSRAN_UE_DL_NR_MAX_NOF_CORESET];     //optional_array<coreset_region, SRSRAN_UE_DL_NR_MAX_NOF_CORESET>
+  srsran_dci_ctx_t  *pending_dci; //Saves last PDCCH allocation, in case it needs to be aborted
 }bwp_pdcch_allocator;
+
+void bwp_pdcch_allocator_init(bwp_pdcch_allocator *pdcchs,
+										bwp_params_t        *bwp_cfg_,
+										uint32_t            slot_idx_,
+										cvector_vector_t(pdcch_dl_t) dl_pdcchs,
+										cvector_vector_t(pdcch_ul_t) ul_pdcchs);
 
 #ifdef __cplusplus
 }

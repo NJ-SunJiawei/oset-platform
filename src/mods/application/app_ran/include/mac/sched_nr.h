@@ -57,7 +57,7 @@ typedef struct {
   oset_apr_mutex_t          *event_mutex;
   oset_list_t               next_slot_events, current_slot_events;//srsran::deque<event_t>
   oset_list_t               next_slot_ue_events, current_slot_ue_events;//srsran::deque<ue_event_t>
-  A_DYN_ARRAY_OF(cc_events) carriers;//std::vector<cc_events>
+  cvector_vector_t(cc_events) carriers;//std::vector<cc_events>
 }event_manager;
 /*****************************************************/
 
@@ -78,7 +78,7 @@ typedef struct {
   // slot-specific
   slot_point                  current_slot_tx;
   int                         worker_count;
-  A_DYN_ARRAY_OF(cc_worker)   cc_workers; //std::vector<std::unique_ptr<sched_nr_impl::cc_worker> >
+  cvector_vector_t(cc_worker)   cc_workers; //std::vector<std::unique_ptr<sched_nr_impl::cc_worker> >
   // UE Database
   OSET_POOL(ue_pool, sched_nr_ue);
   oset_hash_t			      *ue_db;//static_circular_map<uint16_t, std::unique_ptr<sched_nr_ue>, SRSENB_MAX_UES>
@@ -92,7 +92,7 @@ typedef struct {
 
 void sched_nr_init(sched_nr *scheluder);
 void sched_nr_destory(sched_nr *scheluder);
-int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, void *sche_cells);
+int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector_t(sched_nr_cell_cfg_t) sche_cells);
 
 #ifdef __cplusplus
 }

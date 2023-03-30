@@ -52,8 +52,8 @@ struct ctrl_res_set_s {
   uint8_t							  dur;//1
   struct cce_reg_map_type_c_		  cce_reg_map_type;
   enum precoder_granularity_opts	  precoder_granularity;
-  A_DYN_ARRAY_OF(uint8_t)			  tci_states_pdcch_to_add_list;//dyn_array<uint8_t>
-  A_DYN_ARRAY_OF(uint8_t)			  tci_states_pdcch_to_release_list;//dyn_array<uint8_t>
+  cvector_vector_t(uint8_t)		  tci_states_pdcch_to_add_list;//dyn_array<uint8_t>
+  cvector_vector_t(uint8_t)		  tci_states_pdcch_to_release_list;//dyn_array<uint8_t>
   uint32_t							  pdcch_dmrs_scrambling_id;
 };
 
@@ -193,7 +193,7 @@ struct pdcch_cfg_common_s {
   struct ctrl_res_set_s 	  common_ctrl_res_set;
   uint8_t					  search_space_zero;
   uint8_t					  nof_common_search_space;
-  A_DYN_ARRAY_OF(struct search_space_s)  common_search_space_list;//dyn_array<search_space_s>
+  cvector_vector_t(struct search_space_s)  common_search_space_list;//dyn_array<search_space_s>
   uint8_t					  search_space_sib1;
   uint8_t					  search_space_other_sys_info;
   uint8_t					  paging_search_space;
@@ -208,10 +208,10 @@ struct pdcch_cfg_s {
   bool								   tpc_pucch_present;
   bool								   tpc_srs_present;
   int								   nof_ctrl_res_set_to_add_mod;
-  A_DYN_ARRAY_OF(struct ctrl_res_set_s) ctrl_res_set_to_add_mod_list;//dyn_array<ctrl_res_set_s>
+  cvector_vector_t(struct ctrl_res_set_s) ctrl_res_set_to_add_mod_list;//dyn_array<ctrl_res_set_s>
   uint8_t								ctrl_res_set_to_release_list[3];
   int									nof_search_spaces_to_add_mod;
-  A_DYN_ARRAY_OF(struct search_space_s) search_spaces_to_add_mod_list;//dyn_array<ctrl_res_set_s>
+  cvector_vector_t(struct search_space_s) search_spaces_to_add_mod_list;//dyn_array<ctrl_res_set_s>
   uint8_t								search_spaces_to_release_list[10];
 };
 
@@ -1396,9 +1396,9 @@ struct nr_multi_band_info_s {
 // FrequencyInfoDL-SIB ::= SEQUENCE
 struct freq_info_dl_sib_s {
   // member variables
-  A_DYN_ARRAY_OF(struct nr_multi_band_info_s) freq_band_list;//// MultiFrequencyBandListNR-SIB ::= SEQUENCE (SIZE (1..8)) OF NR-MultiBandInfo
+  cvector_vector_t(struct nr_multi_band_info_s) freq_band_list;//// MultiFrequencyBandListNR-SIB ::= SEQUENCE (SIZE (1..8)) OF NR-MultiBandInfo
   uint16_t                                    offset_to_point_a;
-  A_DYN_ARRAY_OF(struct scs_specific_carrier_s)  scs_specific_carrier_list;// dyn_array
+  cvector_vector_t(struct scs_specific_carrier_s)  scs_specific_carrier_list;// dyn_array
 };
 
 // BWP ::= SEQUENCE
@@ -1410,7 +1410,7 @@ struct bwp_s {
 
 // PDSCH-ConfigCommon ::= SEQUENCE
 struct pdsch_cfg_common_s {
-  A_DYN_ARRAY_OF(struct pdsch_time_domain_res_alloc_s) pdsch_time_domain_alloc_list;//dyn_array<pdsch_time_domain_res_alloc_s>
+  cvector_vector_t(struct pdsch_time_domain_res_alloc_s) pdsch_time_domain_alloc_list;//dyn_array<pdsch_time_domain_res_alloc_s>
 };
 
 // BWP-DownlinkCommon ::= SEQUENCE
@@ -1568,7 +1568,7 @@ struct pusch_cfg_common_s {
   bool                               group_hop_enabled_transform_precoding_present;
   bool                               msg3_delta_preamb_present;
   bool                               p0_nominal_with_grant_present;
-  A_DYN_ARRAY_OF(struct pusch_time_domain_res_alloc_s) pusch_time_domain_alloc_list;//dyn_array<pusch_time_domain_res_alloc_s>;
+  cvector_vector_t(struct pusch_time_domain_res_alloc_s) pusch_time_domain_alloc_list;//dyn_array<pusch_time_domain_res_alloc_s>;
   int8_t                             msg3_delta_preamb;
   int16_t                            p0_nominal_with_grant;
 };
@@ -1857,8 +1857,8 @@ struct sched_request_to_add_mod_s {
 // SchedulingRequestConfig ::= SEQUENCE
 struct sched_request_cfg_s {
   // member variables
-  A_DYN_ARRAY_OF(struct sched_request_to_add_mod_s) sched_request_to_add_mod_list;//dyn_array<sched_request_to_add_mod_s>
-  A_DYN_ARRAY_OF(uint8_t) sched_request_to_release_list;//bounded_array<uint8_t, 8>
+  cvector_vector_t(struct sched_request_to_add_mod_s) sched_request_to_add_mod_list;//dyn_array<sched_request_to_add_mod_s>
+  cvector_vector_t(uint8_t) sched_request_to_release_list;//bounded_array<uint8_t, 8>
 };
 
 enum periodic_bsr_timer_e_ {
@@ -1922,8 +1922,8 @@ struct tag_s {
 // TAG-Config ::= SEQUENCE
 struct tag_cfg_s {
   // member variables
-  A_DYN_ARRAY_OF(uint8_t)        tag_to_release_list;//bounded_array<uint8_t, 4>
-  A_DYN_ARRAY_OF(struct tag_s)   tag_to_add_mod_list;// dyn_array<tag_s>
+  cvector_vector_t(uint8_t)        tag_to_release_list;//bounded_array<uint8_t, 4>
+  cvector_vector_t(struct tag_s)   tag_to_add_mod_list;// dyn_array<tag_s>
 };
 
 
@@ -2038,20 +2038,20 @@ struct cfra_ssb_res_s {
 
 struct ssb_s_ {
 	// member variables
-	A_DYN_ARRAY_OF(struct cfra_ssb_res_s)  ssb_res_list;//dyn_array<cfra_ssb_res_s>
+	cvector_vector_t(struct cfra_ssb_res_s)  ssb_res_list;//dyn_array<cfra_ssb_res_s>
 	uint8_t 		ra_ssb_occasion_mask_idx;
 };
 
 struct cfra_csirs_res_s {
   // member variables
   uint8_t             csi_rs;
-  A_DYN_ARRAY_OF(uint16_t) ra_occasion_list;//dyn_array<uint16_t>
+  cvector_vector_t(uint16_t) ra_occasion_list;//dyn_array<uint16_t>
   uint8_t                  ra_preamb_idx;
 };
 
 struct csirs_s_ {
 	// member variables
-	A_DYN_ARRAY_OF(struct cfra_csirs_res_s)  csirs_res_list;//dyn_array<cfra_csirs_res_s>
+	cvector_vector_t(struct cfra_csirs_res_s)  csirs_res_list;//dyn_array<cfra_csirs_res_s>
 	uint8_t 		  rsrp_thres_csi_rs;
 };
 
@@ -2112,9 +2112,9 @@ struct freq_info_dl_s {
   // member variables
   bool                         absolute_freq_ssb_present;
   uint32_t                     absolute_freq_ssb;
-  A_DYN_ARRAY_OF(uint16_t)     freq_band_list;//bounded_array<uint16_t, 8>//// MultiFrequencyBandListNR ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..1024)
+  cvector_vector_t(uint16_t)     freq_band_list;//bounded_array<uint16_t, 8>//// MultiFrequencyBandListNR ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..1024)
   uint32_t                     absolute_freq_point_a;
-  A_DYN_ARRAY_OF(struct scs_specific_carrier_s)  scs_specific_carrier_list;//dyn_array<scs_specific_carrier_s>
+  cvector_vector_t(struct scs_specific_carrier_s)  scs_specific_carrier_list;//dyn_array<scs_specific_carrier_s>
 };
 
 // DownlinkConfigCommon ::= SEQUENCE
@@ -2167,9 +2167,9 @@ struct freq_info_ul_s {
   bool                         add_spec_emission_present;
   bool                         p_max_present;
   bool                         freq_shift7p5khz_present;
-  A_DYN_ARRAY_OF(uint16_t)        freq_band_list;//bounded_array<uint16_t, 8>//// MultiFrequencyBandListNR ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..1024)
+  cvector_vector_t(uint16_t)        freq_band_list;//bounded_array<uint16_t, 8>//// MultiFrequencyBandListNR ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..1024)
   uint32_t                        absolute_freq_point_a;
-  A_DYN_ARRAY_OF(struct scs_specific_carrier_s)   scs_specific_carrier_list;//dyn_array<scs_specific_carrier_s>
+  cvector_vector_t(struct scs_specific_carrier_s)   scs_specific_carrier_list;//dyn_array<scs_specific_carrier_s>
   uint8_t                         add_spec_emission;
   int8_t                          p_max;//-30
 };
@@ -2240,7 +2240,7 @@ struct rate_match_pattern_lte_crs_s {
   // member variables
   uint16_t                  carrier_freq_dl;
   enum carrier_bw_dl_e_          carrier_bw_dl;
-  A_DYN_ARRAY_OF(struct eutra_mbsfn_sf_cfg_s)    mbsfn_sf_cfg_list;//dyn_array<eutra_mbsfn_sf_cfg_s>//// EUTRA-MBSFN-SubframeConfigList ::= SEQUENCE (SIZE (1..8)) OF EUTRA-MBSFN-SubframeConfig
+  cvector_vector_t(struct eutra_mbsfn_sf_cfg_s)    mbsfn_sf_cfg_list;//dyn_array<eutra_mbsfn_sf_cfg_s>//// EUTRA-MBSFN-SubframeConfigList ::= SEQUENCE (SIZE (1..8)) OF EUTRA-MBSFN-SubframeConfig
   enum nrof_crs_ports_e_         nrof_crs_ports;
   enum v_shift_e_                v_shift;
 };
@@ -2267,8 +2267,8 @@ struct serving_cell_cfg_common_s {
   enum ssb_periodicity_serving_cell_e_          ssb_periodicity_serving_cell;
   enum dmrs_type_a_position_e_                  dmrs_type_a_position;
   setup_release_c(struct rate_match_pattern_lte_crs_s) lte_crs_to_match_around;
-  A_DYN_ARRAY_OF(struct rate_match_pattern_s)    rate_match_pattern_to_add_mod_list;//dyn_array<rate_match_pattern_s>
-  A_DYN_ARRAY_OF(uint8_t)                       rate_match_pattern_to_release_list;//bounded_array<uint8_t, 4>
+  cvector_vector_t(struct rate_match_pattern_s)    rate_match_pattern_to_add_mod_list;//dyn_array<rate_match_pattern_s>
+  cvector_vector_t(uint8_t)                       rate_match_pattern_to_release_list;//bounded_array<uint8_t, 4>
   enum subcarrier_spacing_e                     ssb_subcarrier_spacing;
   struct tdd_ul_dl_cfg_common_s                 tdd_ul_dl_cfg_common;
   int8_t                                        ss_pbch_block_pwr;//-60
@@ -2396,8 +2396,8 @@ struct tdd_ul_dl_slot_cfg_s {
 // TDD-UL-DL-ConfigDedicated ::= SEQUENCE
 struct tdd_ul_dl_cfg_ded_s {
   // member variables
-  A_DYN_ARRAY_OF(struct tdd_ul_dl_slot_cfg_s)   slot_specific_cfgs_to_add_mod_list;//dyn_array<tdd_ul_dl_slot_cfg_s>
-  A_DYN_ARRAY_OF(struct uint16_t)               slot_specific_cfgs_to_release_list;//dyn_array<uint16_t>
+  cvector_vector_t(struct tdd_ul_dl_slot_cfg_s)   slot_specific_cfgs_to_add_mod_list;//dyn_array<tdd_ul_dl_slot_cfg_s>
+  cvector_vector_t(struct uint16_t)               slot_specific_cfgs_to_release_list;//dyn_array<uint16_t>
 };
 
 enum vrb_to_prb_interleaver_e_ { n2, n4, nulltype };
@@ -2584,7 +2584,7 @@ struct zp_csi_rs_res_s {
 struct zp_csi_rs_res_set_s {
   // member variables
   uint8_t                  zp_csi_rs_res_set_id;
-  A_DYN_ARRAY_OF(uint8_t)  zp_csi_rs_res_id_list;//bounded_array<uint8_t, 16>
+  cvector_vector_t(uint8_t)  zp_csi_rs_res_id_list;//bounded_array<uint8_t, 16>
 };
 
 // PDSCH-Config ::= SEQUENCE
@@ -2602,26 +2602,26 @@ struct pdsch_cfg_s {
   uint16_t                                                           data_scrambling_id_pdsch;
   setup_release_c(struct dmrs_dl_cfg_s) dmrs_dl_for_pdsch_map_type_a;
   setup_release_c(struct dmrs_dl_cfg_s) dmrs_dl_for_pdsch_map_type_b;
-  A_DYN_ARRAY_OF(struct tci_state_s)                                 tci_states_to_add_mod_list;
-  A_DYN_ARRAY_OF(uint8_t)                                            tci_states_to_release_list;
+  cvector_vector_t(struct tci_state_s)                                 tci_states_to_add_mod_list;
+  cvector_vector_t(uint8_t)                                            tci_states_to_release_list;
   enum vrb_to_prb_interleaver_e_                                     vrb_to_prb_interleaver;
   enum res_alloc_e_                                                  res_alloc;
-  setup_release_c(A_DYN_ARRAY_OF(struct pdsch_time_domain_res_alloc_s))  pdsch_time_domain_alloc_list;//dyn_seq_of<pdsch_time_domain_res_alloc_s, 1, 16>
+  setup_release_c(cvector_vector_t(struct pdsch_time_domain_res_alloc_s))  pdsch_time_domain_alloc_list;//dyn_seq_of<pdsch_time_domain_res_alloc_s, 1, 16>
   pdsch_aggregation_factor_e_                                        pdsch_aggregation_factor;
-  A_DYN_ARRAY_OF(struct rate_match_pattern_s)                        rate_match_pattern_to_add_mod_list;
-  A_DYN_ARRAY_OF(uint8_t)                                            rate_match_pattern_to_release_list;//bounded_array<uint8_t, 4>
-  A_DYN_ARRAY_OF(struct rate_match_pattern_group_item_c_)            rate_match_pattern_group1;//dyn_array<rate_match_pattern_group_item_c_>//// RateMatchPatternGroup ::= SEQUENCE (SIZE (1..8)) OF RateMatchPatternGroup-item
-  A_DYN_ARRAY_OF(struct rate_match_pattern_group_item_c_)            rate_match_pattern_group2;
+  cvector_vector_t(struct rate_match_pattern_s)                        rate_match_pattern_to_add_mod_list;
+  cvector_vector_t(uint8_t)                                            rate_match_pattern_to_release_list;//bounded_array<uint8_t, 4>
+  cvector_vector_t(struct rate_match_pattern_group_item_c_)            rate_match_pattern_group1;//dyn_array<rate_match_pattern_group_item_c_>//// RateMatchPatternGroup ::= SEQUENCE (SIZE (1..8)) OF RateMatchPatternGroup-item
+  cvector_vector_t(struct rate_match_pattern_group_item_c_)            rate_match_pattern_group2;
   enum rbg_size_e_                                                   rbg_size;
   enum mcs_table_e_                                                  mcs_table;
   enum max_nrof_code_words_sched_by_dci_e_                           max_nrof_code_words_sched_by_dci;
   struct prb_bundling_type_c_                                        prb_bundling_type;
-  A_DYN_ARRAY_OF(struct zp_csi_rs_res_s)                             zp_csi_rs_res_to_add_mod_list;
-  A_DYN_ARRAY_OF(uint8_t)                                            zp_csi_rs_res_to_release_list;//bounded_array<uint8_t, 32>
-  A_DYN_ARRAY_OF(struct zp_csi_rs_res_set_s)                         aperiodic_zp_csi_rs_res_sets_to_add_mod_list;
-  A_DYN_ARRAY_OF(uint8_t)                                            aperiodic_zp_csi_rs_res_sets_to_release_list;//bounded_array<uint8_t, 16>
-  A_DYN_ARRAY_OF(struct zp_csi_rs_res_set_s)                         sp_zp_csi_rs_res_sets_to_add_mod_list;
-  A_DYN_ARRAY_OF(uint8_t)                                            sp_zp_csi_rs_res_sets_to_release_list;//bounded_array<uint8_t, 16>
+  cvector_vector_t(struct zp_csi_rs_res_s)                             zp_csi_rs_res_to_add_mod_list;
+  cvector_vector_t(uint8_t)                                            zp_csi_rs_res_to_release_list;//bounded_array<uint8_t, 32>
+  cvector_vector_t(struct zp_csi_rs_res_set_s)                         aperiodic_zp_csi_rs_res_sets_to_add_mod_list;
+  cvector_vector_t(uint8_t)                                            aperiodic_zp_csi_rs_res_sets_to_release_list;//bounded_array<uint8_t, 16>
+  cvector_vector_t(struct zp_csi_rs_res_set_s)                         sp_zp_csi_rs_res_sets_to_add_mod_list;
+  cvector_vector_t(uint8_t)                                            sp_zp_csi_rs_res_sets_to_release_list;//bounded_array<uint8_t, 16>
   setup_release_c(struct zp_csi_rs_res_set_s)  p_zp_csi_rs_res_set;
 };
 
@@ -2679,8 +2679,8 @@ struct radio_link_monitoring_cfg_s {
   // member variables
   bool                                  beam_fail_instance_max_count_present;
   bool                                  beam_fail_detection_timer_present;
-  A_DYN_ARRAY_OF(struct radio_link_monitoring_rs_s) fail_detection_res_to_add_mod_list;//dyn_array<radio_link_monitoring_rs_s>
-  A_DYN_ARRAY_OF(uint8_t)                           fail_detection_res_to_release_list;//bounded_array<uint8_t, 10>
+  cvector_vector_t(struct radio_link_monitoring_rs_s) fail_detection_res_to_add_mod_list;//dyn_array<radio_link_monitoring_rs_s>
+  cvector_vector_t(uint8_t)                           fail_detection_res_to_release_list;//bounded_array<uint8_t, 10>
   enum beam_fail_instance_max_count_e_       beam_fail_instance_max_count;
   enum beam_fail_detection_timer_e_          beam_fail_detection_timer;
 };
@@ -2712,7 +2712,7 @@ struct pucch_res_set_s {
   // member variables
   bool        max_payload_size_present;
   uint8_t     pucch_res_set_id;
-  A_DYN_ARRAY_OF(uint8_t) res_list;//bounded_array<uint8_t, 32>
+  cvector_vector_t(uint8_t) res_list;//bounded_array<uint8_t, 32>
   uint16_t    max_payload_size;//4
 };
 
@@ -2881,8 +2881,8 @@ struct pucch_pwr_ctrl_s {
   int8_t              delta_f_pucch_f2;//-16
   int8_t              delta_f_pucch_f3;//-16
   int8_t              delta_f_pucch_f4;//-16
-  A_DYN_ARRAY_OF(struct p0_pucch_s) p0_set;//dyn_array<p0_pucch_s>
-  A_DYN_ARRAY_OF(struct pucch_pathloss_ref_rs_s) pathloss_ref_rss;//dyn_array<pucch_pathloss_ref_rs_s>
+  cvector_vector_t(struct p0_pucch_s) p0_set;//dyn_array<p0_pucch_s>
+  cvector_vector_t(struct pucch_pathloss_ref_rs_s) pathloss_ref_rss;//dyn_array<pucch_pathloss_ref_rs_s>
 };
 
 
@@ -2894,20 +2894,20 @@ struct pucch_cfg_s {
   bool                                     format3_present;
   bool                                     format4_present;
   bool                                     pucch_pwr_ctrl_present;
-  A_DYN_ARRAY_OF(struct pucch_res_set_s)   res_set_to_add_mod_list;//dyn_array<pucch_res_set_s>
-  A_DYN_ARRAY_OF(uint8_t)                  res_set_to_release_list;//bounded_array<uint8_t, 4>
-  A_DYN_ARRAY_OF(struct pucch_res_s)       res_to_add_mod_list;//dyn_array<pucch_res_s>
-  A_DYN_ARRAY_OF(struct uint8_t)           res_to_release_list;//dyn_array<uint8_t>
-  setup_release_c<pucch_format_cfg_s>      format1;
-  setup_release_c<pucch_format_cfg_s>      format2;
-  setup_release_c<pucch_format_cfg_s>      format3;
-  setup_release_c<pucch_format_cfg_s>      format4;
-  A_DYN_ARRAY_OF(struct sched_request_res_cfg_s)   sched_request_res_to_add_mod_list;//dyn_array<sched_request_res_cfg_s>
-  A_DYN_ARRAY_OF(uint8_t)                          sched_request_res_to_release_list;//bounded_array<uint8_t, 8>
-  A_DYN_ARRAY_OF(uint8_t)                          multi_csi_pucch_res_list;//bounded_array<uint8_t, 2>
-  A_DYN_ARRAY_OF(uint8_t)                          dl_data_to_ul_ack;//bounded_array<uint8_t, 8>
-  A_DYN_ARRAY_OF(struct pucch_spatial_relation_info_s)   spatial_relation_info_to_add_mod_list;//dyn_array<pucch_spatial_relation_info_s>
-  A_DYN_ARRAY_OF(uint8_t)                                spatial_relation_info_to_release_list;//bounded_array<uint8_t, 8>
+  cvector_vector_t(struct pucch_res_set_s)   res_set_to_add_mod_list;//dyn_array<pucch_res_set_s>
+  cvector_vector_t(uint8_t)                  res_set_to_release_list;//bounded_array<uint8_t, 4>
+  cvector_vector_t(struct pucch_res_s)       res_to_add_mod_list;//dyn_array<pucch_res_s>
+  cvector_vector_t(struct uint8_t)           res_to_release_list;//dyn_array<uint8_t>
+  setup_release_c(pucch_format_cfg_s)      format1;
+  setup_release_c(pucch_format_cfg_s)      format2;
+  setup_release_c(pucch_format_cfg_s)      format3;
+  setup_release_c(pucch_format_cfg_s)      format4;
+  cvector_vector_t(struct sched_request_res_cfg_s)   sched_request_res_to_add_mod_list;//dyn_array<sched_request_res_cfg_s>
+  cvector_vector_t(uint8_t)                          sched_request_res_to_release_list;//bounded_array<uint8_t, 8>
+  cvector_vector_t(uint8_t)                          multi_csi_pucch_res_list;//bounded_array<uint8_t, 2>
+  cvector_vector_t(uint8_t)                          dl_data_to_ul_ack;//bounded_array<uint8_t, 8>
+  cvector_vector_t(struct pucch_spatial_relation_info_s)   spatial_relation_info_to_add_mod_list;//dyn_array<pucch_spatial_relation_info_s>
+  cvector_vector_t(uint8_t)                                spatial_relation_info_to_release_list;//bounded_array<uint8_t, 8>
   struct pucch_pwr_ctrl_s                                pucch_pwr_ctrl;
 };
 
@@ -3028,11 +3028,11 @@ struct pusch_pwr_ctrl_s {
   bool                               delta_mcs_present;
   alpha_e                            msg3_alpha;
   int16_t                            p0_nominal_without_grant;//-202
-  A_DYN_ARRAY_OF(struct p0_pusch_alpha_set_s)    p0_alpha_sets;//dyn_array<p0_pusch_alpha_set_s>
-  A_DYN_ARRAY_OF(struct pusch_pathloss_ref_rs_s) pathloss_ref_rs_to_add_mod_list;//dyn_array<pusch_pathloss_ref_rs_s>
-  A_DYN_ARRAY_OF(uint8_t)                        pathloss_ref_rs_to_release_list;//bounded_array<uint8_t, 4>
-  A_DYN_ARRAY_OF(struct sri_pusch_pwr_ctrl_s)    sri_pusch_map_to_add_mod_list;//dyn_array<sri_pusch_pwr_ctrl_s>
-  A_DYN_ARRAY_OF(uint8_t)                        sri_pusch_map_to_release_list;//bounded_array<uint8_t, 16>
+  cvector_vector_t(struct p0_pusch_alpha_set_s)    p0_alpha_sets;//dyn_array<p0_pusch_alpha_set_s>
+  cvector_vector_t(struct pusch_pathloss_ref_rs_s) pathloss_ref_rs_to_add_mod_list;//dyn_array<pusch_pathloss_ref_rs_s>
+  cvector_vector_t(uint8_t)                        pathloss_ref_rs_to_release_list;//bounded_array<uint8_t, 4>
+  cvector_vector_t(struct sri_pusch_pwr_ctrl_s)    sri_pusch_map_to_add_mod_list;//dyn_array<sri_pusch_pwr_ctrl_s>
+  cvector_vector_t(uint8_t)                        sri_pusch_map_to_release_list;//bounded_array<uint8_t, 16>
 };
 
 enum map_type_e_ { type_a, type_b, nulltype };
@@ -3107,9 +3107,9 @@ struct pusch_cfg_s {
   setup_release_c(struct dmrs_ul_cfg_s)                                 dmrs_ul_for_pusch_map_type_b;
   struct pusch_pwr_ctrl_s                                               pusch_pwr_ctrl;
   enum freq_hop_e_                                                      freq_hop;
-  A_DYN_ARRAY_OF(uint16_t)                                              freq_hop_offset_lists;//bounded_array<uint16_t, 4>
+  cvector_vector_t(uint16_t)                                              freq_hop_offset_lists;//bounded_array<uint16_t, 4>
   enum res_alloc_e_                                                     res_alloc;
-  setup_release_c(A_DYN_ARRAY_OF(struct pusch_time_domain_res_alloc_s)) pusch_time_domain_alloc_list;//dyn_seq_of<pusch_time_domain_res_alloc_s, 1, 16>
+  setup_release_c(cvector_vector_t(struct pusch_time_domain_res_alloc_s)) pusch_time_domain_alloc_list;//dyn_seq_of<pusch_time_domain_res_alloc_s, 1, 16>
   enum pusch_aggregation_factor_e_                                      pusch_aggregation_factor;
   enum mcs_table_e_                                                     mcs_table;
   enum mcs_table_transform_precoder_e_                                  mcs_table_transform_precoder;
@@ -3198,7 +3198,7 @@ struct cg_uci_on_pusch_c {
   enum types { dynamic_type, semi_static, nulltype }   type_;
   union{
   	      struct beta_offsets_s semi;
-		  A_DYN_ARRAY_OF(struct beta_offsets_s) dynamic;//dyn_array<beta_offsets_s>
+		  cvector_vector_t(struct beta_offsets_s) dynamic;//dyn_array<beta_offsets_s>
        } c;//choice_buffer_t
 };
 
@@ -3238,7 +3238,7 @@ struct aperiodic_s_ {
   uint8_t aperiodic_srs_res_trigger;//1
   uint8_t csi_rs;
   uint8_t slot_offset;//1
-  A_DYN_ARRAY_OF(uint8_t) aperiodic_srs_res_trigger_list;//bounded_array<uint8_t, 2>
+  cvector_vector_t(uint8_t) aperiodic_srs_res_trigger_list;//bounded_array<uint8_t, 2>
 };
 
 struct semi_persistent_s_ {
@@ -3272,7 +3272,7 @@ struct srs_res_set_s {
   bool                              pathloss_ref_rs_present;
   bool                              srs_pwr_ctrl_adjustment_states_present;
   uint8_t                           srs_res_set_id;
-  A_DYN_ARRAY_OF(uint8_t)           srs_res_id_list;//bounded_array<uint8_t, 16>
+  cvector_vector_t(uint8_t)           srs_res_id_list;//bounded_array<uint8_t, 16>
   struct res_type_c_                res_type;
   enum usage_e_                     usage;
   enum alpha_e                      alpha;
@@ -3395,10 +3395,10 @@ struct srs_res_s {
 struct srs_cfg_s {
   // member variables
   bool                           tpc_accumulation_present;
-  A_DYN_ARRAY_OF(uint8_t)        srs_res_set_to_release_list;//bounded_array<uint8_t, 16>
-  A_DYN_ARRAY_OF(struct srs_res_set_s) srs_res_set_to_add_mod_list;//dyn_array<srs_res_set_s>
-  A_DYN_ARRAY_OF(uint8_t)              srs_res_to_release_list;//dyn_array<uint8_t>
-  A_DYN_ARRAY_OF(struct srs_res_s)     srs_res_to_add_mod_list;//dyn_array<srs_res_s>
+  cvector_vector_t(uint8_t)        srs_res_set_to_release_list;//bounded_array<uint8_t, 16>
+  cvector_vector_t(struct srs_res_set_s) srs_res_set_to_add_mod_list;//dyn_array<srs_res_set_s>
+  cvector_vector_t(uint8_t)              srs_res_to_release_list;//dyn_array<uint8_t>
+  cvector_vector_t(struct srs_res_s)     srs_res_to_add_mod_list;//dyn_array<srs_res_s>
 };
 
 enum ssb_per_rach_occasion_e_ { one_eighth, one_fourth, one_half, one, two, four, eight, sixteen, nulltype };
@@ -3409,7 +3409,7 @@ struct bfr_csirs_res_s {
   // member variables
   bool                ra_preamb_idx_present;
   uint8_t             csi_rs;
-  A_DYN_ARRAY_OF(uint16_t) ra_occasion_list;//dyn_array<uint16_t>
+  cvector_vector_t(uint16_t) ra_occasion_list;//dyn_array<uint16_t>
   uint8_t             ra_preamb_idx;
 };
 // BFR-SSB-Resource ::= SEQUENCE
@@ -3440,7 +3440,7 @@ struct beam_fail_recovery_cfg_s {
   uint8_t                     root_seq_idx_bfr;
   struct rach_cfg_generic_s   rach_cfg_bfr;
   uint8_t                     rsrp_thres_ssb;
-  A_DYN_ARRAY_OF(struct prach_res_ded_bfr_c)   candidate_beam_rs_list;//dyn_array<prach_res_ded_bfr_c>
+  cvector_vector_t(struct prach_res_ded_bfr_c)   candidate_beam_rs_list;//dyn_array<prach_res_ded_bfr_c>
   enum ssb_per_rach_occasion_e_  ssb_per_rach_occasion;
   uint8_t                          ra_ssb_occasion_mask_idx;
   uint8_t                          recovery_search_space_id;
@@ -3514,14 +3514,14 @@ struct srs_cc_set_idx_s {
 // SRS-TPC-PDCCH-Config ::= SEQUENCE
 struct srs_tpc_pdcch_cfg_s {
   // member variables
-  A_DYN_ARRAY_OF(struct srs_cc_set_idx_s) srs_cc_set_idxlist;//dyn_array<srs_cc_set_idx_s>
+  cvector_vector_t(struct srs_cc_set_idx_s) srs_cc_set_idxlist;//dyn_array<srs_cc_set_idx_s>
 };
 
 struct srs_tpc_pdcch_group_c_ {
   enum types { type_a, type_b, nulltype }	 type_;
   union{
   	    struct srs_tpc_pdcch_cfg_s type_b;
-		A_DYN_ARRAY_OF(struct srs_tpc_pdcch_cfg_s) type_a;//dyn_array<srs_tpc_pdcch_cfg_s>
+		cvector_vector_t(struct srs_tpc_pdcch_cfg_s) type_a;//dyn_array<srs_tpc_pdcch_cfg_s>
 		} c;//choice_buffer_t
 };
 
@@ -3533,7 +3533,7 @@ struct srs_carrier_switching_s {
   uint8_t                    srs_switch_from_serv_cell_idx;
   enum srs_switch_from_carrier_e_   srs_switch_from_carrier;
   struct srs_tpc_pdcch_group_c_     srs_tpc_pdcch_group;
-  A_DYN_ARRAY_OF(uint8_t)           monitoring_cells;//bounded_array<uint8_t, 32>
+  cvector_vector_t(uint8_t)           monitoring_cells;//bounded_array<uint8_t, 32>
 };
 
 // UplinkConfig ::= SEQUENCE
@@ -3544,8 +3544,8 @@ struct ul_cfg_s {
   bool                                      pusch_serving_cell_cfg_present;
   bool                                      carrier_switching_present;
   struct bwp_ul_ded_s                       init_ul_bwp;
-  A_DYN_ARRAY_OF(uint8_t)                   ul_bwp_to_release_list;//bounded_array<uint8_t, 4>
-  A_DYN_ARRAY_OF(struct bwp_ul_s)           ul_bwp_to_add_mod_list;//dyn_array<bwp_ul_s>
+  cvector_vector_t(uint8_t)                   ul_bwp_to_release_list;//bounded_array<uint8_t, 4>
+  cvector_vector_t(struct bwp_ul_s)           ul_bwp_to_add_mod_list;//dyn_array<bwp_ul_s>
   uint8_t                                   first_active_ul_bwp_id;
   setup_release_c(struct pusch_serving_cell_cfg_s) pusch_serving_cell_cfg;
   setup_release_c(struct srs_carrier_switching_s)  carrier_switching;
@@ -3553,14 +3553,14 @@ struct ul_cfg_s {
   // group 0
   bool                               pwr_boost_pi2_bpsk_present;
   bool                               pwr_boost_pi2_bpsk;
-  A_DYN_ARRAY_OF(struct scs_specific_carrier_s) ul_ch_bw_per_scs_list;//dyn_array<scs_specific_carrier_s>
+  cvector_vector_t(struct scs_specific_carrier_s) ul_ch_bw_per_scs_list;//dyn_array<scs_specific_carrier_s>
 };
 
 // SlotFormatCombination ::= SEQUENCE
 struct slot_format_combination_s {
   // member variables
   uint16_t        slot_format_combination_id;
-  A_DYN_ARRAY_OF(uint16_t) slot_formats;//dyn_array<uint16_t>
+  cvector_vector_t(uint16_t) slot_formats;//dyn_array<uint16_t>
 };
 
 // SlotFormatCombinationsPerCell ::= SEQUENCE
@@ -3571,7 +3571,7 @@ struct slot_format_combinations_per_cell_s {
   uint8_t                     serving_cell_id;
   enum subcarrier_spacing_e        subcarrier_spacing;
   enum subcarrier_spacing_e        subcarrier_spacing2;
-  A_DYN_ARRAY_OF(struct slot_format_combination_s) slot_format_combinations;//dyn_array<slot_format_combination_s>
+  cvector_vector_t(struct slot_format_combination_s) slot_format_combinations;//dyn_array<slot_format_combination_s>
   uint8_t                     position_in_dci;
 };
 
@@ -3580,8 +3580,8 @@ struct slot_format_ind_s {
   // member variables
   uint32_t                            sfi_rnti;
   uint8_t                             dci_payload_size;//1
-  A_DYN_ARRAY_OF(struct slot_format_combinations_per_cell_s) slot_format_comb_to_add_mod_list;//dyn_array<slot_format_combinations_per_cell_s>
-  A_DYN_ARRAY_OF(uint8_t) slot_format_comb_to_release_list;//bounded_array<uint8_t, 16>
+  cvector_vector_t(struct slot_format_combinations_per_cell_s) slot_format_comb_to_add_mod_list;//dyn_array<slot_format_combinations_per_cell_s>
+  cvector_vector_t(uint8_t) slot_format_comb_to_release_list;//bounded_array<uint8_t, 16>
 };
 
 // PDCCH-ServingCellConfig ::= SEQUENCE
@@ -3646,7 +3646,7 @@ struct nzp_csi_rs_res_set_s {
   bool              aperiodic_trigger_offset_present;
   bool              trs_info_present;
   uint8_t           nzp_csi_res_set_id;
-  A_DYN_ARRAY_OF(uint8_t) nzp_csi_rs_res;//dyn_array<uint8_t>
+  cvector_vector_t(uint8_t) nzp_csi_rs_res;//dyn_array<uint8_t>
   enum repeat_e_    repeat;
   uint8_t           aperiodic_trigger_offset;
 };
@@ -3658,9 +3658,8 @@ struct pattern0_s_ {
   uint8_t					symbol_location_p0;
 };
 
+enum subcarrier_location_p1_e_ { s0, s4, s8, nulltype };
 struct pattern1_s_ {
-	enum subcarrier_location_p1_e_ { s0, s4, s8, nulltype };
-
   // member variables
   enum subcarrier_location_p1_e_ subcarrier_location_p1;
   uint8_t					symbol_location_p1;
@@ -3690,28 +3689,28 @@ struct csi_im_res_s {
 struct csi_im_res_set_s {
   // member variables
   uint8_t       csi_im_res_set_id;
-  A_DYN_ARRAY_OF(uint8_t) csi_im_res;//bounded_array<uint8_t, 8>
+  cvector_vector_t(uint8_t) csi_im_res;//bounded_array<uint8_t, 8>
 };
 
 // CSI-SSB-ResourceSet ::= SEQUENCE
 struct csi_ssb_res_set_s {
   // member variables
   uint8_t             csi_ssb_res_set_id;
-  A_DYN_ARRAY_OF(uint8_t) csi_ssb_res_list;//dyn_array<uint8_t>
+  cvector_vector_t(uint8_t) csi_ssb_res_list;//dyn_array<uint8_t>
 };
 
 
 struct nzp_csi_rs_ssb_s_ {
   // member variables
   bool		 csi_ssb_res_set_list_present;
-  A_DYN_ARRAY_OF(uint8_t)	 nzp_csi_rs_res_set_list;//bounded_array<uint8_t, 16>
+  cvector_vector_t(uint8_t)	 nzp_csi_rs_res_set_list;//bounded_array<uint8_t, 16>
   uint8_t	 csi_ssb_res_set_list;//std::array<uint8_t, 1>
 };
 
 struct csi_rs_res_set_list_c_ {
   enum types { nzp_csi_rs_ssb, csi_im_res_set_list, nulltype } type_;
   union{
-		  A_DYN_ARRAY_OF(uint8_t) csi_im_res_set_list;//bounded_array<uint8_t, 16>
+		  cvector_vector_t(uint8_t) csi_im_res_set_list;//bounded_array<uint8_t, 16>
 		  struct nzp_csi_rs_ssb_s_ nzp_csi_rs_ssb;
 		} c;//choice_buffer_t
 };
@@ -3756,25 +3755,25 @@ struct csi_report_periodicity_and_offset_c {
 struct periodic_s_ {
   // member variables
   struct csi_report_periodicity_and_offset_c  report_slot_cfg;
-  A_DYN_ARRAY_OF(struct pucch_csi_res_s) 	  pucch_csi_res_list;//dyn_array<pucch_csi_res_s>
+  cvector_vector_t(struct pucch_csi_res_s) 	  pucch_csi_res_list;//dyn_array<pucch_csi_res_s>
 };
 struct semi_persistent_on_pucch_s_ {
   // member variables
   struct csi_report_periodicity_and_offset_c report_slot_cfg;
-  A_DYN_ARRAY_OF(struct pucch_csi_res_s) 	 pucch_csi_res_list;//dyn_array<pucch_csi_res_s>
+  cvector_vector_t(struct pucch_csi_res_s) 	 pucch_csi_res_list;//dyn_array<pucch_csi_res_s>
 };
 
 enum report_slot_cfg_e_ { sl5, sl10, sl20, sl40, sl80, sl160, sl320, nulltype };
 struct semi_persistent_on_pusch_s_ {
   // member variables
   enum report_slot_cfg_e_    report_slot_cfg;
-  A_DYN_ARRAY_OF(uint8_t)    report_slot_offset_list;//bounded_array<uint8_t, 16>
+  cvector_vector_t(uint8_t)    report_slot_offset_list;//bounded_array<uint8_t, 16>
   uint8_t					 p0alpha;
 };
 
 struct aperiodic_s_ {
   // member variables
-  A_DYN_ARRAY_OF(uint8_t)   report_slot_offset_list;//bounded_array<uint8_t, 16>
+  cvector_vector_t(uint8_t)   report_slot_offset_list;//bounded_array<uint8_t, 16>
 };
 
 enum report_cfg_type_e_ { periodic, semi_persistent_on_pucch, semi_persistent_on_pusch, aperiodic, nulltype };
@@ -4075,7 +4074,7 @@ struct csi_report_cfg_s {
   struct group_based_beam_report_c_            group_based_beam_report;
   enum cqi_table_e_                            cqi_table;
   enum subband_size_e_                         subband_size;
-  A_DYN_ARRAY_OF(struct port_idx_for8_ranks_c) non_pmi_port_ind;//dyn_array<port_idx_for8_ranks_c>
+  cvector_vector_t(struct port_idx_for8_ranks_c) non_pmi_port_ind;//dyn_array<port_idx_for8_ranks_c>
   // ...
   // group 0
   struct semi_persistent_on_pusch_v1530_s_ semi_persistent_on_pusch_v1530;
@@ -4084,7 +4083,7 @@ struct csi_report_cfg_s {
 struct nzp_csi_rs_s_ {
   // member variables
   uint8_t	  res_set;//1
-  A_DYN_ARRAY_OF(uint8_t) qcl_info;//bounded_array<uint8_t, 16>
+  cvector_vector_t(uint8_t) qcl_info;//bounded_array<uint8_t, 16>
 };
 
 struct res_for_ch_c_ {
@@ -4105,7 +4104,7 @@ struct csi_associated_report_cfg_info_s {
 
 // CSI-AperiodicTriggerState ::= SEQUENCE
 struct csi_aperiodic_trigger_state_s {
-  A_DYN_ARRAY_OF(struct csi_associated_report_cfg_info_s) associated_report_cfg_info_list;//dyn_array<csi_associated_report_cfg_info_s>
+  cvector_vector_t(struct csi_associated_report_cfg_info_s) associated_report_cfg_info_list;//dyn_array<csi_associated_report_cfg_info_s>
 };
 
 // CSI-SemiPersistentOnPUSCH-TriggerState ::= SEQUENCE
@@ -4119,23 +4118,23 @@ struct csi_meas_cfg_s {
   bool                                  report_trigger_size_present;
   bool                                  aperiodic_trigger_state_list_present;
   bool                                  semi_persistent_on_pusch_trigger_state_list_present;
-  A_DYN_ARRAY_OF(struct nzp_csi_rs_res_s)  nzp_csi_rs_res_to_add_mod_list;//dyn_array<nzp_csi_rs_res_s>
-  A_DYN_ARRAY_OF(uint8_t)                  nzp_csi_rs_res_to_release_list;//dyn_array<uint8_t>
-  A_DYN_ARRAY_OF(struct nzp_csi_rs_res_set_s)  nzp_csi_rs_res_set_to_add_mod_list;//dyn_array<nzp_csi_rs_res_set_s>
-  A_DYN_ARRAY_OF(uint8_t)                      nzp_csi_rs_res_set_to_release_list;//dyn_array<uint8_t>
-  A_DYN_ARRAY_OF(struct csi_im_res_s)          csi_im_res_to_add_mod_list;//dyn_array<csi_im_res_s>
-  A_DYN_ARRAY_OF(uint8_t)                      csi_im_res_to_release_list;//bounded_array<uint8_t, 32>
-  A_DYN_ARRAY_OF(struct csi_im_res_set_s)      csi_im_res_set_to_add_mod_list;//dyn_array<csi_im_res_set_s>
-  A_DYN_ARRAY_OF(uint8_t)                      csi_im_res_set_to_release_list;//dyn_array<uint8_t>
-  A_DYN_ARRAY_OF(struct csi_ssb_res_set_s)     csi_ssb_res_set_to_add_mod_list;//dyn_array<csi_ssb_res_set_s>
-  A_DYN_ARRAY_OF(uint8_t)                      csi_ssb_res_set_to_release_list;//dyn_array<uint8_t>
-  A_DYN_ARRAY_OF(struct csi_res_cfg_s)         csi_res_cfg_to_add_mod_list;//dyn_array<csi_res_cfg_s>
-  A_DYN_ARRAY_OF(uint8_t)                      csi_res_cfg_to_release_list;//dyn_array<uint8_t>
-  A_DYN_ARRAY_OF(struct csi_report_cfg_s)      csi_report_cfg_to_add_mod_list;//dyn_array<csi_report_cfg_s>
-  A_DYN_ARRAY_OF(uint8_t)                      csi_report_cfg_to_release_list;//dyn_array<uint8_t>
+  cvector_vector_t(struct nzp_csi_rs_res_s)  nzp_csi_rs_res_to_add_mod_list;//dyn_array<nzp_csi_rs_res_s>
+  cvector_vector_t(uint8_t)                  nzp_csi_rs_res_to_release_list;//dyn_array<uint8_t>
+  cvector_vector_t(struct nzp_csi_rs_res_set_s)  nzp_csi_rs_res_set_to_add_mod_list;//dyn_array<nzp_csi_rs_res_set_s>
+  cvector_vector_t(uint8_t)                      nzp_csi_rs_res_set_to_release_list;//dyn_array<uint8_t>
+  cvector_vector_t(struct csi_im_res_s)          csi_im_res_to_add_mod_list;//dyn_array<csi_im_res_s>
+  cvector_vector_t(uint8_t)                      csi_im_res_to_release_list;//bounded_array<uint8_t, 32>
+  cvector_vector_t(struct csi_im_res_set_s)      csi_im_res_set_to_add_mod_list;//dyn_array<csi_im_res_set_s>
+  cvector_vector_t(uint8_t)                      csi_im_res_set_to_release_list;//dyn_array<uint8_t>
+  cvector_vector_t(struct csi_ssb_res_set_s)     csi_ssb_res_set_to_add_mod_list;//dyn_array<csi_ssb_res_set_s>
+  cvector_vector_t(uint8_t)                      csi_ssb_res_set_to_release_list;//dyn_array<uint8_t>
+  cvector_vector_t(struct csi_res_cfg_s)         csi_res_cfg_to_add_mod_list;//dyn_array<csi_res_cfg_s>
+  cvector_vector_t(uint8_t)                      csi_res_cfg_to_release_list;//dyn_array<uint8_t>
+  cvector_vector_t(struct csi_report_cfg_s)      csi_report_cfg_to_add_mod_list;//dyn_array<csi_report_cfg_s>
+  cvector_vector_t(uint8_t)                      csi_report_cfg_to_release_list;//dyn_array<uint8_t>
   uint8_t                               report_trigger_size;
-  setup_release_c(A_DYN_ARRAY_OF(struct csi_aperiodic_trigger_state_s))  aperiodic_trigger_state_list;//dyn_seq_of<csi_aperiodic_trigger_state_s, 1, 128> 
-  setup_release_c(A_DYN_ARRAY_OF(struct csi_semi_persistent_on_pusch_trigger_state_s))  semi_persistent_on_pusch_trigger_state_list;//dyn_seq_of<csi_semi_persistent_on_pusch_trigger_state_s, 1, 64>
+  setup_release_c(cvector_vector_t(struct csi_aperiodic_trigger_state_s))  aperiodic_trigger_state_list;//dyn_seq_of<csi_aperiodic_trigger_state_s, 1, 128> 
+  setup_release_c(cvector_vector_t(struct csi_semi_persistent_on_pusch_trigger_state_s))  semi_persistent_on_pusch_trigger_state_list;//dyn_seq_of<csi_semi_persistent_on_pusch_trigger_state_s, 1, 64>
 };
 
 struct own_s_ {
@@ -4179,8 +4178,8 @@ struct serving_cell_cfg_s {
   bool                                      serving_cell_mo_present;
   struct tdd_ul_dl_cfg_ded_s                tdd_ul_dl_cfg_ded;
   struct bwp_dl_ded_s                       init_dl_bwp;
-  A_DYN_ARRAY_OF(uint8_t)                   dl_bwp_to_release_list;//bounded_array<uint8_t, 4>
-  A_DYN_ARRAY_OF(struct bwp_dl_s)           dl_bwp_to_add_mod_list;
+  cvector_vector_t(uint8_t)                   dl_bwp_to_release_list;//bounded_array<uint8_t, 4>
+  cvector_vector_t(struct bwp_dl_s)           dl_bwp_to_add_mod_list;
   uint8_t                                   first_active_dl_bwp_id;
   enum bwp_inactivity_timer_e_              bwp_inactivity_timer;
   uint8_t                                   default_dl_bwp_id;
@@ -4197,9 +4196,9 @@ struct serving_cell_cfg_s {
   // ...
   // group 0
   setup_release_c(struct rate_match_pattern_lte_crs_s) lte_crs_to_match_around;
-  A_DYN_ARRAY_OF(struct rate_match_pattern_s)     rate_match_pattern_to_add_mod_list;//dyn_array<rate_match_pattern_s>
-  A_DYN_ARRAY_OF(uint8_t)                         rate_match_pattern_to_release_list;//bounded_array<uint8_t, 4>
-  A_DYN_ARRAY_OF(struct scs_specific_carrier_s)   dl_ch_bw_per_scs_list;//dyn_array<scs_specific_carrier_s>
+  cvector_vector_t(struct rate_match_pattern_s)     rate_match_pattern_to_add_mod_list;//dyn_array<rate_match_pattern_s>
+  cvector_vector_t(uint8_t)                         rate_match_pattern_to_release_list;//bounded_array<uint8_t, 4>
+  cvector_vector_t(struct scs_specific_carrier_s)   dl_ch_bw_per_scs_list;//dyn_array<scs_specific_carrier_s>
 };
 
 // SpCellConfig ::= SEQUENCE
@@ -4366,8 +4365,8 @@ struct intra_freq_cell_resel_info_s_ {
   uint8_t						s_intra_search_p;
   uint8_t						s_intra_search_q;
   uint8_t						t_resel_nr;
-  A_DYN_ARRAY_OF(struct nr_multi_band_info_s) freq_band_list;//dyn_array<nr_multi_band_info_s>// MultiFrequencyBandListNR-SIB ::= SEQUENCE (SIZE (1..8)) OF NR-MultiBandInfo
-  A_DYN_ARRAY_OF(struct nr_multi_band_info_s) freq_band_list_sul;
+  cvector_vector_t(struct nr_multi_band_info_s) freq_band_list;//dyn_array<nr_multi_band_info_s>// MultiFrequencyBandListNR-SIB ::= SEQUENCE (SIZE (1..8)) OF NR-MultiBandInfo
+  cvector_vector_t(struct nr_multi_band_info_s) freq_band_list_sul;
   int8_t						p_max;// = -30
   struct ssb_mtc_s 				smtc;
   struct ss_rssi_meas_s			ss_rssi_meas;
@@ -4476,8 +4475,8 @@ struct inter_freq_carrier_freq_info_s {
   uint8_t                      cell_resel_prio;
   uint8_t                      neigh_cell_cfg;//fixed_bitstring<2>
   enum q_offset_range_e        q_offset_freq;
-  A_DYN_ARRAY_OF(struct inter_freq_neigh_cell_info_s) inter_freq_neigh_cell_list;// InterFreqNeighCellList ::= SEQUENCE (SIZE (1..16)) OF InterFreqNeighCellInfo
-  A_DYN_ARRAY_OF(struct pci_range_s) inter_freq_black_cell_list;// InterFreqBlackCellList ::= SEQUENCE (SIZE (1..16)) OF PhysCellIdRange
+  cvector_vector_t(struct inter_freq_neigh_cell_info_s) inter_freq_neigh_cell_list;// InterFreqNeighCellList ::= SEQUENCE (SIZE (1..16)) OF InterFreqNeighCellInfo
+  cvector_vector_t(struct pci_range_s) inter_freq_black_cell_list;// InterFreqBlackCellList ::= SEQUENCE (SIZE (1..16)) OF PhysCellIdRange
   // ...
   // group 0
   bool                       q_qual_min_r9_present;
@@ -4511,14 +4510,14 @@ struct sib2_s {
 // SIB3 ::= SEQUENCE
 struct sib3_s {
   bool                         exte;
-  A_DYN_ARRAY_OF(struct intra_freq_neigh_cell_info_s) intra_freq_neigh_cell_list;// IntraFreqNeighCellList ::= SEQUENCE (SIZE (1..16)) OF IntraFreqNeighCellInfo
-  A_DYN_ARRAY_OF(struct pci_range_s) intra_freq_black_cell_list;// IntraFreqBlackCellList ::= SEQUENCE (SIZE (1..16)) OF PCI-Range
+  cvector_vector_t(struct intra_freq_neigh_cell_info_s) intra_freq_neigh_cell_list;// IntraFreqNeighCellList ::= SEQUENCE (SIZE (1..16)) OF IntraFreqNeighCellInfo
+  cvector_vector_t(struct pci_range_s) intra_freq_black_cell_list;// IntraFreqBlackCellList ::= SEQUENCE (SIZE (1..16)) OF PCI-Range
   dyn_octstring                late_non_crit_ext;
 };
 
 // SIB4 ::= SEQUENCE
 struct sib4_s {
-  A_DYN_ARRAY_OF(struct inter_freq_carrier_freq_info_s) inter_freq_carrier_freq_list;// InterFreqCarrierFreqList ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo
+  cvector_vector_t(struct inter_freq_carrier_freq_info_s) inter_freq_carrier_freq_list;// InterFreqCarrierFreqList ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo
   dyn_octstring                  late_non_crit_ext;
 };
 
@@ -4538,7 +4537,7 @@ struct eutra_ns_pmax_value_s {
 // EUTRA-MultiBandInfo ::= SEQUENCE
 struct eutra_multi_band_info_s {
   uint16_t             eutra_freq_band_ind;// = 1
-  A_DYN_ARRAY_OF(struct eutra_ns_pmax_value_s) eutra_ns_pmax_list;//// EUTRA-NS-PmaxList ::= SEQUENCE (SIZE (1..8)) OF EUTRA-NS-PmaxValue
+  cvector_vector_t(struct eutra_ns_pmax_value_s) eutra_ns_pmax_list;//// EUTRA-NS-PmaxList ::= SEQUENCE (SIZE (1..8)) OF EUTRA-NS-PmaxValue
 };
 
 enum eutra_q_offset_range_e {
@@ -4623,9 +4622,9 @@ struct carrier_freq_eutra_s {
   bool                         cell_resel_sub_prio_present;
   bool                         thresh_x_q_present;
   uint32_t                     carrier_freq;
-  A_DYN_ARRAY_OF(struct eutra_multi_band_info_s) eutra_multi_band_info_list;// EUTRA-MultiBandInfoList ::= SEQUENCE (SIZE (1..8)) OF EUTRA-MultiBandInfo
-  A_DYN_ARRAY_OF(struct eutra_freq_neigh_cell_info_s)  eutra_freq_neigh_cell_list;// EUTRA-FreqNeighCellList ::= SEQUENCE (SIZE (1..8)) OF EUTRA-FreqNeighCellInfo
-  A_DYN_ARRAY_OF(struct eutra_pci_range_s) eutra_black_cell_list;// EUTRA-FreqBlackCellList ::= SEQUENCE (SIZE (1..16)) OF EUTRA-PhysCellIdRange
+  cvector_vector_t(struct eutra_multi_band_info_s) eutra_multi_band_info_list;// EUTRA-MultiBandInfoList ::= SEQUENCE (SIZE (1..8)) OF EUTRA-MultiBandInfo
+  cvector_vector_t(struct eutra_freq_neigh_cell_info_s)  eutra_freq_neigh_cell_list;// EUTRA-FreqNeighCellList ::= SEQUENCE (SIZE (1..8)) OF EUTRA-FreqNeighCellInfo
+  cvector_vector_t(struct eutra_pci_range_s) eutra_black_cell_list;// EUTRA-FreqBlackCellList ::= SEQUENCE (SIZE (1..16)) OF EUTRA-PhysCellIdRange
   enum eutra_allowed_meas_bw_e     allowed_meas_bw;
   bool                         presence_ant_port1;
   uint8_t                      cell_resel_prio;
@@ -4641,7 +4640,7 @@ struct carrier_freq_eutra_s {
 // SIB5 ::= SEQUENCE
 struct sib5_s {
   bool                        t_resel_eutra_sf_present;
-  A_DYN_ARRAY_OF(struct carrier_freq_eutra_s)   carrier_freq_list_eutra;//// CarrierFreqListEUTRA ::= SEQUENCE (SIZE (1..8)) OF CarrierFreqEUTRA
+  cvector_vector_t(struct carrier_freq_eutra_s)   carrier_freq_list_eutra;//// CarrierFreqListEUTRA ::= SEQUENCE (SIZE (1..8)) OF CarrierFreqEUTRA
   uint8_t                     t_resel_eutra;
   struct speed_state_scale_factors_s t_resel_eutra_sf;
   dyn_octstring               late_non_crit_ext;
@@ -4753,7 +4752,7 @@ enum uac_access_category1_sel_assist_info_e { a, b, c, nulltype };
 
 struct uac_access_category1_sel_assist_info_c_ {
   enum types { plmn_common, individual_plmn_list, nulltype }  type_;
-  A_DYN_ARRAY_OF(struct uac_access_category1_sel_assist_info_e) c;//choice_buffer_t//bounded_array<uac_access_category1_sel_assist_info_e, 12>
+  cvector_vector_t(struct uac_access_category1_sel_assist_info_e) c;//choice_buffer_t//bounded_array<uac_access_category1_sel_assist_info_e, 12>
 };
 
 // UAC-BarringPerCat ::= SEQUENCE
@@ -4765,7 +4764,7 @@ struct uac_barr_per_cat_s {
 //dyn_array<uac_barr_per_cat_s>//// UAC-BarringPerCatList ::= SEQUENCE (SIZE (1..63)) OF UAC-BarringPerCat
 struct uac_ac_barr_list_type_c_ {
   enum types { uac_implicit_ac_barr_list, uac_explicit_ac_barr_list, nulltype }    type_;
-  union {A_DYN_ARRAY_OF(struct uac_barr_per_cat_s) uac_implicit_ac_barr_l;uint8_t uac_implicit_ac_barr_l[63];} c;//choice_buffer_t<uac_barr_per_cat_list_l, uac_implicit_ac_barr_list_l_>
+  union {cvector_vector_t(struct uac_barr_per_cat_s) uac_implicit_ac_barr_l;uint8_t uac_implicit_ac_barr_l[63];} c;//choice_buffer_t<uac_barr_per_cat_list_l, uac_implicit_ac_barr_list_l_>
 };
 
 // UAC-BarringPerPLMN ::= SEQUENCE
@@ -4790,9 +4789,9 @@ struct uac_barr_info_set_s {
 struct uac_barr_info_s_ {
   // member variables
   bool									  uac_access_category1_sel_assist_info_present;
-  A_DYN_ARRAY_OF(struct uac_barr_per_cat_s)	 uac_barr_for_common;// UAC-BarringPerCatList ::= SEQUENCE (SIZE (1..63)) OF UAC-BarringPerCat
-  A_DYN_ARRAY_OF(struct uac_barr_per_plmn_s) uac_barr_per_plmn_list;// UAC-BarringPerPLMN-List ::= SEQUENCE (SIZE (1..12)) OF UAC-BarringPerPLMN
-  A_DYN_ARRAY_OF(struct uac_barr_info_set_s) uac_barr_info_set_list;// UAC-BarringInfoSetList ::= SEQUENCE (SIZE (1..8)) OF UAC-BarringInfoSet
+  cvector_vector_t(struct uac_barr_per_cat_s)	 uac_barr_for_common;// UAC-BarringPerCatList ::= SEQUENCE (SIZE (1..63)) OF UAC-BarringPerCat
+  cvector_vector_t(struct uac_barr_per_plmn_s) uac_barr_per_plmn_list;// UAC-BarringPerPLMN-List ::= SEQUENCE (SIZE (1..12)) OF UAC-BarringPerPLMN
+  cvector_vector_t(struct uac_barr_info_set_s) uac_barr_info_set_list;// UAC-BarringInfoSetList ::= SEQUENCE (SIZE (1..8)) OF UAC-BarringInfoSet
   struct uac_access_category1_sel_assist_info_c_ uac_access_category1_sel_assist_info;
 };
 
@@ -4802,7 +4801,7 @@ struct plmn_id_info_s {
   // member variables
   bool                      tac_present;
   bool                      ranac_present;
-  A_DYN_ARRAY_OF(struct plmn_id_s)   plmn_id_list;//dyn_array<plmn_id_s>
+  cvector_vector_t(struct plmn_id_s)   plmn_id_list;//dyn_array<plmn_id_s>
   uint8_t                   tac[3];//fixed_bitstring<24>
   uint16_t                  ranac;
   uint8_t                   cell_id[5];//fixed_bitstring<36>
@@ -4813,7 +4812,7 @@ struct plmn_id_info_s {
 // CellAccessRelatedInfo ::= SEQUENCE
 struct cell_access_related_info_s {
   bool                cell_reserved_for_other_use_present;
-  A_DYN_ARRAY_OF(struct plmn_id_info_s) plmn_id_list;// PLMN-IdentityInfoList ::= SEQUENCE (SIZE (1..12)) OF PLMN-IdentityInfo
+  cvector_vector_t(struct plmn_id_info_s) plmn_id_list;// PLMN-IdentityInfoList ::= SEQUENCE (SIZE (1..12)) OF PLMN-IdentityInfo
 };
 
 enum conn_est_fail_count_e_ { n1, n2, n3, n4, nulltype };
@@ -4853,7 +4852,7 @@ struct si_request_cfg_s {
   bool                 si_request_period_present;
   struct rach_occasions_si_s_ rach_occasions_si;
   enum si_request_period_e_   si_request_period;
-  A_DYN_ARRAY_OF(struct si_request_res_s)    si_request_res;//dyn_array<si_request_res_s>
+  cvector_vector_t(struct si_request_res_s)    si_request_res;//dyn_array<si_request_res_s>
 };
 
 enum si_win_len_e_ { s5, s10, s20, s40, s80, s160, s320, s640, s1280, nulltype };
@@ -4896,7 +4895,7 @@ struct sched_info_s {
   // member variables
   enum si_broadcast_status_e_ si_broadcast_status;
   enum si_periodicity_e_      si_periodicity;
-  A_DYN_ARRAY_OF(struct sib_type_info_s)   sib_map_info;//dyn_array<sib_type_info_s>
+  cvector_vector_t(struct sib_type_info_s)   sib_map_info;//dyn_array<sib_type_info_s>
 };
 
 // SI-SchedulingInfo ::= SEQUENCE
@@ -4905,7 +4904,7 @@ struct si_sched_info_s {
   bool                si_request_cfg_present;
   bool                si_request_cfg_sul_present;
   bool                sys_info_area_id_present;
-  A_DYN_ARRAY_OF(struct sched_info_s)  sched_info_list;//dyn_array<sched_info_s>
+  cvector_vector_t(struct sched_info_s)  sched_info_list;//dyn_array<sched_info_s>
   enum si_win_len_e_              si_win_len;
   struct si_request_cfg_s    si_request_cfg;
   struct si_request_cfg_s    si_request_cfg_sul;
@@ -5027,8 +5026,8 @@ struct ul_specific_params_s_ {
   uint8_t				   prio;//	 = 1
   enum prioritised_bit_rate_e_  prioritised_bit_rate;
   enum bucket_size_dur_e_	   bucket_size_dur;
-  A_DYN_ARRAY_OF(uint8_t)  allowed_serving_cells;//bounded_array<uint8_t, 31>
-  A_DYN_ARRAY_OF(struct subcarrier_spacing_e)  allowed_scs_list;//bounded_array<subcarrier_spacing_e, 5>
+  cvector_vector_t(uint8_t)  allowed_serving_cells;//bounded_array<uint8_t, 31>
+  cvector_vector_t(struct subcarrier_spacing_e)  allowed_scs_list;//bounded_array<subcarrier_spacing_e, 5>
   enum max_pusch_dur_e_		   max_pusch_dur;
   uint8_t				   lc_ch_group;
   uint8_t				   sched_request_id;
@@ -5083,13 +5082,13 @@ struct cell_group_cfg_s {
   bool                          phys_cell_group_cfg_present;
   bool                          sp_cell_cfg_present;
   uint8_t                       cell_group_id;
-  A_DYN_ARRAY_OF(struct rlc_bearer_cfg_s) rlc_bearer_to_add_mod_list;//dyn_array<rlc_bearer_cfg_s>
-  A_DYN_ARRAY_OF(uint8_t)       rlc_bearer_to_release_list;//bounded_array<uint8_t, 32>
+  cvector_vector_t(struct rlc_bearer_cfg_s) rlc_bearer_to_add_mod_list;//dyn_array<rlc_bearer_cfg_s>
+  cvector_vector_t(uint8_t)       rlc_bearer_to_release_list;//bounded_array<uint8_t, 32>
   mac_cell_group_cfg_s          mac_cell_group_cfg;
   phys_cell_group_cfg_s         phys_cell_group_cfg;
   sp_cell_cfg_s                 sp_cell_cfg;
-  A_DYN_ARRAY_OF(struct scell_cfg_s)      scell_to_add_mod_list;//dyn_array<scell_cfg_s>
-  A_DYN_ARRAY_OF(uint8_t)       scell_to_release_list;//bounded_array<uint8_t, 31>
+  cvector_vector_t(struct scell_cfg_s)      scell_to_add_mod_list;//dyn_array<scell_cfg_s>
+  cvector_vector_t(uint8_t)       scell_to_release_list;//bounded_array<uint8_t, 31>
 };
 
 // EstablishmentCause ::= ENUMERATED
@@ -5132,8 +5131,8 @@ struct sdap_cfg_s {
   enum sdap_hdr_dl_e_            sdap_hdr_dl;
   enum sdap_hdr_ul_e_            sdap_hdr_ul;
   bool                           default_drb;
-  A_DYN_ARRAY_OF(uint8_t)        mapped_qos_flows_to_add;//dyn_array<uint8_t>
-  A_DYN_ARRAY_OF(uint8_t)        mapped_qos_flows_to_release;//dyn_array<uint8_t>
+  cvector_vector_t(uint8_t)        mapped_qos_flows_to_add;//dyn_array<uint8_t>
+  cvector_vector_t(uint8_t)        mapped_qos_flows_to_release;//dyn_array<uint8_t>
 };
 
 struct cn_assoc_c_ {
@@ -5179,9 +5178,9 @@ struct security_cfg_s {
 struct radio_bearer_cfg_s {
   bool                  srb3_to_release_present;
   bool                  security_cfg_present;
-  A_DYN_ARRAY_OF(struct srb_to_add_mod_s) srb_to_add_mod_list;// SRB-ToAddModList ::= SEQUENCE (SIZE (1..2)) OF SRB-ToAddMod
-  A_DYN_ARRAY_OF(struct drb_to_add_mod_s) drb_to_add_mod_list;// DRB-ToAddModList ::= SEQUENCE (SIZE (1..29)) OF DRB-ToAddMod
-  A_DYN_ARRAY_OF(uint8_t) drb_to_release_list;// DRB-ToReleaseList ::= SEQUENCE (SIZE (1..29)) OF INTEGER (1..32)
+  cvector_vector_t(struct srb_to_add_mod_s) srb_to_add_mod_list;// SRB-ToAddModList ::= SEQUENCE (SIZE (1..2)) OF SRB-ToAddMod
+  cvector_vector_t(struct drb_to_add_mod_s) drb_to_add_mod_list;// DRB-ToAddModList ::= SEQUENCE (SIZE (1..29)) OF DRB-ToAddMod
+  cvector_vector_t(uint8_t) drb_to_release_list;// DRB-ToReleaseList ::= SEQUENCE (SIZE (1..29)) OF INTEGER (1..32)
   struct security_cfg_s   security_cfg;
 };
 

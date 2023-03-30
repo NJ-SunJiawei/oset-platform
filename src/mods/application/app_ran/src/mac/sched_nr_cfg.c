@@ -67,11 +67,10 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		cell_bwp->slots[sl] = sl_cfg;
 	}
 
-	BOUNDED_ARRAY_SET(&cell_bwp->pusch_ra_list, bwp_cfg->pusch.nof_common_time_ra);
+	cvector_reserve(cell_bwp->pusch_ra_list, bwp_cfg->pusch.nof_common_time_ra);
 	srsran_sch_grant_nr_t grant = {0};
 	for (uint32_t m = 0; m < bwp_cfg->pusch.nof_common_time_ra; ++m) {
-		pusch_ra_time_cfg *pusch_ra_time = oset_core_alloc(mac_manager_self()->app_pool, sizeof(pusch_ra_time_cfg));
-		DYN_ARRAY_ADD(&cell_bwp->pusch_ra_list, pusch_ra_time);
+		pusch_ra_time_cfg *pusch_ra_time = cell_bwp->pusch_ra_list[m];
 		int ret =
 		    srsran_ra_ul_nr_time(&bwp_cfg->pusch, srsran_rnti_type_ra, srsran_search_space_type_rar, ra_coreset_id, m, &grant);
 		ASSERT_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to obtain");
@@ -82,32 +81,32 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		pusch_ra_time->L = grant.L;
 		ASSERT_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to obtain RA config");
 	}
-	ASSERT_IF_NOT(DYN_ARRAY_COUNT(&cell_bwp->pusch_ra_list) > 0, "Time-Domain Resource Allocation not valid");
+	ASSERT_IF_NOT(cvector_size(cell_bwp->pusch_ra_list) > 0, "Time-Domain Resource Allocation not valid");
 
 	//计算coreset里cce结构计算
 	for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
 		for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
-		  int n = srsran_pdcch_nr_locations_coreset(&cell_cfg->bwps[0].cfg.pdcch.coreset[ra_coreset_id],
-		                                            &cell_cfg->bwps[0].cfg.pdcch.ra_search_space,
+		  int n = srsran_pdcch_nr_locations_coreset(&cell_bwp->cfg.pdcch.coreset[ra_coreset_id],
+		                                            &cell_bwp->cfg.pdcch.ra_search_space,
 		                                            0,
 		                                            agg_idx,
 		                                            sl,
 		                                            cell_bwp->rar_cce_list[sl][agg_idx].array);
 		  ASSERT_IF_NOT(n >= 0, "Failed to configure RAR DCI locations");
-		  cell_bwp->rar_cce_list[sl][agg_idx].arrary_count = n;
+		  cell_bwp->rar_cce_list[sl][agg_idx].array_index = n;
 		}
 	}
 
 	for (uint32_t ss_id = 0; ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++ss_id) {
-		if (!cell_cfg->bwps[0].cfg.pdcch.search_space_present[ss_id]) {
+		if (!cell_bwp->cfg.pdcch.search_space_present[ss_id]) {
 		  continue;
 		}
-		srsran_search_space_t *ss = cell_cfg->bwps[0].cfg.pdcch.search_space[ss_id];
+		srsran_search_space_t *ss = cell_bwp->cfg.pdcch.search_space[ss_id];
 		cell_bwp->common_cce_list_active[ss_id] = true;
 		bwp_cce_pos_list ss_cce_list = {0};
 		for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
 		  for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
-		    int n = srsran_pdcch_nr_locations_coreset(&cell_cfg->bwps[0].cfg.pdcch.coreset[ss->coreset_id], 
+		    int n = srsran_pdcch_nr_locations_coreset(&cell_bwp->cfg.pdcch.coreset[ss->coreset_id], 
 													&ss,
 													SRSRAN_SIRNTI,
 													agg_idx,
@@ -128,8 +127,9 @@ void cell_config_manager_init(cell_config_manager *cell_cof_manager,
 										sched_args_t *sched_args_)
 {
 	cell_cof_manager->cc = cc_;
+	cell_cof_manager->sched_args = sched_args_;
 	cell_cof_manager->default_ue_phy_cfg = get_common_ue_phy_cfg(cell);
-	cell_cof_manager->sibs = &cell->sibs;
+	cell_cof_manager->sibs = cell->sibs;
 
 	cell_cof_manager->carrier.pci                    = cell->pci;
 	cell_cof_manager->carrier.dl_center_frequency_hz = cell->dl_center_frequency_hz;
@@ -138,7 +138,7 @@ void cell_config_manager_init(cell_config_manager *cell_cof_manager,
 	cell_cof_manager->carrier.nof_prb                = cell->dl_cell_nof_prb;
 	cell_cof_manager->carrier.start                  = 0; // TODO: Check
 	cell_cof_manager->carrier.max_mimo_layers        = cell->nof_layers;
-	cell_cof_manager->carrier.offset_to_carrier      = DYN_ARRAY_DATA(&cell->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, 0)->offset_to_carrier;
+	cell_cof_manager->carrier.offset_to_carrier      = cell->dl_cfg_common.freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier;
 	cell_cof_manager->carrier.scs = (srsran_subcarrier_spacing_t)cell->dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing;
 
 	// TDD-UL-DL-ConfigCommon
@@ -154,14 +154,15 @@ void cell_config_manager_init(cell_config_manager *cell_cof_manager,
 	// MIB
 	make_mib_cfg(cell, &cell_cof_manager->mib);
 
-	cell_cof_manager->bwps[4] = {0};
+	cvector_reserve(cell_cof_manager->bwps, cvector_size(cell->bwps));
 	// just idx0 for BWP-common
-	for (uint32_t i = 0; i < 1; ++i) {
+	for (uint32_t i = 0; i < cvector_size(cell->bwps); ++i) {
 		cell_cof_manager->bwps[i].cell_cfg = cell_cof_manager;
 		cell_cof_manager->bwps[i].sched_cfg = sched_args_;
 		cell_cof_manager->bwps[i].cc = cell_cof_manager->cc;
-		bwp_params_init(&cell_cof_manager->bwps[i], i, cell->bwps[0]);
+		bwp_params_init(&cell_cof_manager->bwps[i], i, cell->bwps[i]);
 	}
-	oset_info("BWPs were configured");
+	ASSERT_IF_NOT(!cvector_empty(cell_cof_manager->bwps), "No BWPs were configured");
+
 }
 

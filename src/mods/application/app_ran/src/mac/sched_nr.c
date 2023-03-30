@@ -26,86 +26,94 @@ void sched_nr_init(sched_nr *scheluder)
 
 void sched_nr_destory(sched_nr *scheluder)
 {
-	uint32_t cc = 0;
-
 	oset_assert(scheluder);
 	//cell_config_manager_destory
-	for (cc = 0; cc < DYN_ARRAY_COUNT(&scheluder->cfg.cells); ++cc) {
-		cell_config_manager *cell_cof_manager = DYN_ARRAY_DATA(&scheluder->cfg.cells, cc);
+	cell_config_manager *cell_cof_manager = NULL;
+	cvector_for_each_in(cell_cof_manager, scheluder->cfg.cells){
+		cvector_free(cell_cof_manager->sibs);
 		// just idx0 for BWP-common
-		DYN_ARRAY_CLEAR(&cell_cof_manager->bwps[0].pusch_ra_list);
+		bwp_params_t *bwp = NULL;
+		cvector_for_each_in(bwp, cell_cof_manager->bwps){
+			cvector_free(bwp->pusch_ra_list);
+		}
+		cvector_free(cell_cof_manager->bwps);
 	}
-	DYN_ARRAY_CLEAR(&scheluder->cfg.cells);
+	cvector_free(scheluder->cfg.cells);
 
 	//event
 	oset_apr_mutex_destroy(scheluder->pending_events.event_mutex);
-	for(cc = 0; cc < DYN_ARRAY_COUNT(&scheluder->pending_events.carriers); cc++){
-		cc_events *cc_e = DYN_ARRAY_DATA(&scheluder->pending_events.carriers, cc);
+	cc_events *cc_e = NULL;
+	cvector_for_each_in(cc_e, scheluder->pending_events.carriers){
 		oset_apr_mutex_destroy(cc_e->event_cc_mutex);
 		oset_list_empty(&cc_e->next_slot_ue_events);
 		oset_list_empty(&cc_e->current_slot_ue_events);
 	}
-	DYN_ARRAY_CLEAR(&scheluder->pending_events.carriers);
+	cvector_free(scheluder->pending_events.carriers);
 	oset_list_empty(&scheluder->pending_events.next_slot_events);
 	oset_list_empty(&scheluder->pending_events.current_slot_events);
 	oset_list_empty(&scheluder->pending_events.next_slot_ue_events);
 	oset_list_empty(&scheluder->pending_events.current_slot_ue_events);
 
 	//cc_worker
-	for (cc = 0; cc < DYN_ARRAY_COUNT(&scheluder->cc_workers); ++cc) {
-		cc_worker *cc_w = DYN_ARRAY_DATA(&scheluder->cc_workers, cc);
-		// idx0 for BWP-common
-		//si
-		DYN_ARRAY_CLEAR(&cc_w->bwps[0].si.pending_sis);
-		//bwp_res_grid
-		for (uint32_t sl = 0; sl < TTIMOD_SZ; ++sl){
-			//dl init
-			DYN_ARRAY_CLEAR(&cc_w->bwps[0].grid.slots[sl].dl.phy.ssb);
-			DYN_ARRAY_CLEAR(&cc_w->bwps[0].grid.slots[sl].dl.phy.pdcch_dl);
-			DYN_ARRAY_CLEAR(&cc_w->bwps[0].grid.slots[sl].dl.phy.pdcch_ul);
-			DYN_ARRAY_CLEAR(&cc_w->bwps[0].grid.slots[sl].dl.phy.pdsch);
-			DYN_ARRAY_CLEAR(&cc_w->bwps[0].grid.slots[sl].dl.phy.nzp_csi_rs);
-			DYN_ARRAY_CLEAR(&cc_w->bwps[0].grid.slots[sl].dl.data);
-			DYN_ARRAY_CLEAR(&cc_w->bwps[0].grid.slots[sl].dl.rar);
-			DYN_ARRAY_CLEAR(&cc_w->bwps[0].grid.slots[sl].dl.sib_idxs);
-			//ul init
-			DYN_ARRAY_CLEAR(&cc_w->bwps[0].grid.slots[sl].ul.pucch);
-			DYN_ARRAY_CLEAR(&cc_w->bwps[0].grid.slots[sl].ul.pusch);
-			//ack init
-			DYN_ARRAY_CLEAR(&cc_w->bwps[0].grid.slots[sl].pending_acks);
-		}
-		
+	cc_worker *cc_w = NULL;
+	cvector_for_each_in(cc_w, scheluder->cc_workers){
+		// just idx0 for BWP-common
+		bwp_manager *bwp = NULL;
+		cvector_for_each_in(bwp, cc_w->bwps){
+			//si
+			cvector_free(bwp->si.pending_sis);
+			//bwp_res_grid
+			for (uint32_t sl = 0; sl < TTIMOD_SZ; ++sl){
+				//dl
+				cvector_free(bwp->grid.slots[sl].dl.phy.ssb);
+				cvector_free(bwp->grid.slots[sl].dl.phy.pdcch_dl);
+				cvector_free(bwp->grid.slots[sl].dl.phy.pdcch_ul);
+				cvector_free(bwp->grid.slots[sl].dl.phy.pdsch);
+				cvector_free(bwp->grid.slots[sl].dl.phy.nzp_csi_rs);
+				cvector_free(bwp->grid.slots[sl].dl.data);
+				cvector_free(bwp->grid.slots[sl].dl.rar);
+				cvector_free(bwp->grid.slots[sl].dl.sib_idxs);
+				//ul
+				cvector_free(bwp->grid.slots[sl].ul.pucch);
+				cvector_free(bwp->grid.slots[sl].ul.pusch);
+				//ack
+				cvector_free(bwp->grid.slots[sl].pending_acks);
+				//pddchs
+				for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
+					cvector_free(bwp->grid.slots[sl].pdcchs.coresets[cs_idx].dci_list);
+					cvector_free(bwp->grid.slots[sl].pdcchs.coresets[cs_idx].dfs_tree);
+					cvector_free(bwp->grid.slots[sl].pdcchs.coresets[cs_idx].saved_dfs_tree);
+				}
+			}
+		}		
 		//release harqbuffer
 		harq_softbuffer_pool_destory(harq_buffer_pool_self(cc), cc_w->cfg->carrier.nof_prb, 4 * MAX_HARQ, 0);
 	}
-	DYN_ARRAY_CLEAR(&scheluder->cc_workers);
+	cvector_free(scheluder->cc_workers);
 
 	oset_pool_final(&scheluder->ue_pool);
 	oset_hash_destroy(scheluder->ue_db);
 }
 
-int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, void *sche_cells)
+int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector_t(sched_nr_cell_cfg_t) sche_cells)
 {
 	uint32_t cc = 0;
-	A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) *cell_list = (A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) *)sche_cells;
+	uint32 cell_size = cvector_size(sche_cells);
 
 	scheluder->cfg.sched_cfg = sched_cfg;
 
-	// Initiate Common Sched Configuration
-	BOUNDED_ARRAY_SET(&scheluder->cfg.cells, DYN_ARRAY_COUNT(cell_list));
-	for (cc = 0; cc < DYN_ARRAY_COUNT(cell_list); ++cc) {
-		sched_nr_cell_cfg_t *cell = DYN_ARRAY_DATA(cell_list, cc);
-		cell_config_manager *cell_cof_manager = oset_core_alloc(mac_manager_self()->app_pool, sizeof(cell_config_manager));
-		DYN_ARRAY_ADD(&scheluder->cfg.cells, cell_cof_manager);
-		cell_config_manager_init(cell_cof_manager, cc, cell, sched_cfg);
+	// Initiate Common Sched Configuration form rrc sched-config
+	cvector_reserve(scheluder->cfg.cells, cell_size);
+	for (cc = 0; cc < cvector_size(scheluder->cfg.cells); ++cc) {
+		cell_config_manager *cell_cof_manager = &scheluder->cfg.cells[cc];
+		cell_config_manager_init(cell_cof_manager, cc, &sche_cells[cc], sched_cfg);
 	}
 
 	//调度事件管理模块
 	oset_apr_mutex_init(&scheluder->pending_events.event_mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
-	BOUNDED_ARRAY_SET(&scheluder->pending_events.carriers, DYN_ARRAY_COUNT(cell_list));
-	for(cc = 0; cc < DYN_ARRAY_COUNT(cell_list); ++cc){
-		cc_events *cc_e = oset_core_alloc(mac_manager_self()->app_pool, sizeof(cc_events));
-		DYN_ARRAY_ADD(&scheluder->pending_events.carriers, cc_e);
+	cvector_reserve(scheluder->pending_events.carriers, cell_size);
+	for(cc = 0; cc < cvector_size(scheluder->cfg.cells); ++cc){
+		cc_events *cc_e = scheluder->pending_events.carriers[cc];
 		oset_apr_mutex_init(&cc_e->event_cc_mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
 		oset_list_init(&cc_e->next_slot_ue_events);
 		oset_list_init(&cc_e->current_slot_ue_events);
@@ -116,13 +124,10 @@ int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, void *sche_cel
 	oset_list_init(&scheluder->pending_events.current_slot_ue_events);
 
 	// Initiate cell-specific schedulers
-	BOUNDED_ARRAY_SET(&scheluder->cc_workers, DYN_ARRAY_COUNT(cell_list));
-	for (cc = 0; cc < DYN_ARRAY_COUNT(cell_list); ++cc) {
-		cc_worker *cc_w = oset_core_alloc(mac_manager_self()->app_pool, sizeof(cc_worker));
-		DYN_ARRAY_ADD(&scheluder->cc_workers, cc_w);
-
-		cell_config_manager *cell_conf_manager = DYN_ARRAY_DATA(&scheluder->cfg.cells, cc);
-		cc_worker_init(cc_w, cell_conf_manager);
+	cvector_reserve(scheluder->cc_workers, cell_size);
+	for (cc = 0; cc < cvector_size(scheluder->cc_workers); ++cc) {
+		cc_worker *cc_w = &scheluder->cc_workers[cc];
+		cc_worker_init(cc_w, &scheluder->cfg.cells[cc]);
 	}
 
   return OSET_OK;

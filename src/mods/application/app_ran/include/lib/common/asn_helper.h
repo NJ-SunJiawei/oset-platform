@@ -33,7 +33,7 @@ typedef struct {
 	int bits_unused;/* Unused trailing bits in the last octet (0..7) */
 } bitstring;
 
-typedef A_DYN_ARRAY_OF(uint8_t) dyn_octstring;
+typedef cvector_vector_t(uint8_t) dyn_octstring;
 typedef uint8_t fixed_octstring;
 
 /************************

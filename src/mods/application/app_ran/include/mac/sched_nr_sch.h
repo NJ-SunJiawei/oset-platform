@@ -21,7 +21,7 @@ extern "C" {
 typedef struct {
   bwp_params_t  *bwp_cfg;
   uint32_t      slot_idx;
-  A_DYN_ARRAY_OF(pdsch_t) *pdschs;//bounded_vector<pdsch_t, MAX_GRANTS>;
+  cvector_vector_t(pdsch_t) *pdschs;//bounded_vector<pdsch_t, MAX_GRANTS>;
   bwp_rb_bitmap dl_prbs;
 }pdsch_allocator;
 
@@ -30,7 +30,7 @@ typedef struct {
   bwp_params_t  *bwp_cfg;
   uint32_t      slot_idx;
 
-  A_DYN_ARRAY_OF(pusch_t) *puschs;//bounded_vector<pusch_t, MAX_GRANTS>
+  cvector_vector_t(pusch_t) *puschs;//bounded_vector<pusch_t, MAX_GRANTS>
   bwp_rb_bitmap ul_prbs;
 }pusch_allocator;
 

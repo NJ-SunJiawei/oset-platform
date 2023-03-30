@@ -37,7 +37,7 @@ typedef struct {
 }du_cell_config;
 
 typedef struct{
-  A_DYN_ARRAY_OF(du_cell_config) cells;//std::vector<std::unique_ptr<du_cell_config> >
+  cvector_vector_t(du_cell_config *) cells;//std::vector<std::unique_ptr<du_cell_config> >
 }du_config_manager;
 
 int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node);

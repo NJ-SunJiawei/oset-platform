@@ -34,7 +34,7 @@ typedef struct {
 /// scheduler for SIBs
 typedef struct {
   bwp_params_t                  *bwp_cfg;
-  A_DYN_ARRAY_OF(si_msg_ctxt_t)  pending_sis; /// configured SIB1 and SI messages //bounded_vector<si_msg_ctxt_t, 10>
+  cvector_vector_t(si_msg_ctxt_t)  pending_sis; /// configured SIB1 and SI messages //bounded_vector<si_msg_ctxt_t, 10>
 }si_sched;
 
 void si_sched_init(si_sched *c,bwp_params_t *bwp_cfg_);

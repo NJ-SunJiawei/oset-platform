@@ -22,7 +22,7 @@ typedef struct {
   uint16_t	     ra_rnti;
   slot_point	 prach_slot;
   slot_interval  rar_win;
-  A_DYN_ARRAY_OF(rar_info_t)  msg3_grant;//bounded_vector<dl_sched_rar_info_t, MAX_GRANTS>
+  cvector_vector_t(rar_info_t)  msg3_grant;//bounded_vector<dl_sched_rar_info_t, MAX_GRANTS>
 }pending_rar_t;
 
 /// RAR/Msg3 scheduler

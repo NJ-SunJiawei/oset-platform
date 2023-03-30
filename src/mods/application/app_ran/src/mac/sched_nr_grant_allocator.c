@@ -15,23 +15,23 @@
 static void bwp_slot_grid_init(bwp_slot_grid *grid, bwp_params_t *bwp_cfg_, uint32_t slot_idx_)
 {
 	//dl init
-	BOUNDED_ARRAY_SET(&grid->dl.phy.ssb, MAX_SSB);
-	BOUNDED_ARRAY_SET(&grid->dl.phy.pdcch_dl, MAX_GRANTS);
-	BOUNDED_ARRAY_SET(&grid->dl.phy.pdcch_ul, MAX_GRANTS);
-	BOUNDED_ARRAY_SET(&grid->dl.phy.pdsch, MAX_GRANTS);
-	BOUNDED_ARRAY_SET(&grid->dl.phy.nzp_csi_rs, MAX_NZP_CSI_RS);
-	BOUNDED_ARRAY_SET(&grid->dl.data, MAX_GRANTS);
-	BOUNDED_ARRAY_SET(&grid->dl.rar, MAX_GRANTS);
-	BOUNDED_ARRAY_SET(&grid->dl.sib_idxs, MAX_GRANTS);
+	cvector_reserve(grid->dl.phy.ssb, MAX_SSB);
+	cvector_reserve(grid->dl.phy.pdcch_dl, MAX_GRANTS);
+	cvector_reserve(grid->dl.phy.pdcch_ul, MAX_GRANTS);
+	cvector_reserve(grid->dl.phy.pdsch, MAX_GRANTS);
+	cvector_reserve(grid->dl.phy.nzp_csi_rs, MAX_NZP_CSI_RS);
+	cvector_reserve(grid->dl.data, MAX_GRANTS);
+	cvector_reserve(grid->dl.rar, MAX_GRANTS);
+	cvector_reserve(grid->dl.sib_idxs, MAX_GRANTS);
 	//ul init
-	BOUNDED_ARRAY_SET(&grid->ul.pucch, MAX_GRANTS);
-	BOUNDED_ARRAY_SET(&grid->ul.pusch, MAX_GRANTS);
+	cvector_reserve(grid->ul.pucch, MAX_GRANTS);
+	cvector_reserve(grid->ul.pusch, MAX_GRANTS);
 	//ack init
-	BOUNDED_ARRAY_SET(&grid->pending_acks, MAX_GRANTS);
+	cvector_reserve(grid->pending_acks, MAX_GRANTS);
 
 	grid->slot_idx = slot_idx_;
 	grid->cfg = bwp_cfg_;
-	bwp_pdcch_allocator_init(grid->pdcchs, slot_idx_, &grid->dl.phy.pdcch_dl, &grid->dl.phy.pdcch_ul);
+	bwp_pdcch_allocator_init(grid->pdcchs, slot_idx_, grid->dl.phy.pdcch_dl, grid->dl.phy.pdcch_ul);
 
 	grid->rar_softbuffer = harq_softbuffer_pool_get_tx(harq_buffer_pool_self(bwp_cfg_->cc), bwp_cfg_->cfg.rb_width);//bwp_cfg_->nof_prb
 

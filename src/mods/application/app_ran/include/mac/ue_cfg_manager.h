@@ -18,7 +18,7 @@ extern "C" {
 
 typedef struct {
   uint32_t                                  maxharq_tx;//4
-  A_DYN_ARRAY_OF(sched_nr_ue_cc_cfg_t)      carriers;//bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS>
+  cvector_vector_t(sched_nr_ue_cc_cfg_t) carriers;//bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS>
   mac_lc_ch_cfg_t                           ue_bearers[SCHED_NR_MAX_LCID];
   phy_cfg_nr_t                              phy_cfg;
 }ue_cfg_manager;
@@ -35,7 +35,7 @@ typedef struct ue_carrier_params_s{
   bwp_params_t     *bwp_cfg;
 
   // derived
-  A_DYN_ARRAY_OF(bwp_cce_pos_list)    cce_positions_list;//std::vector<bwp_cce_pos_list>
+  cvector_vector_t(bwp_cce_pos_list)    cce_positions_list;//std::vector<bwp_cce_pos_list>
   uint32_t                            ss_id_to_cce_idx[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
   srsran_dci_cfg_nr_t                 cached_dci_cfg;
 }ue_carrier_params_t;

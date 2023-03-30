@@ -64,8 +64,8 @@ static int mac_init(void)
 
 static int mac_destory(void)
 {
-	DYN_ARRAY_CLEAR(&mac_manager.bcch_dlsch_payload);
-	DYN_ARRAY_CLEAR(&mac_manager.detected_rachs);
+	cvector_free(mac_manager.bcch_dlsch_payload);
+	cvector_free(mac_manager.detected_rachs);
 	mac_manager.cell_config = NULL;
 
 	//todo
@@ -76,33 +76,31 @@ static int mac_destory(void)
 	return OSET_OK;
 }
 
-int mac_cell_cfg(void *sche_cells)
+int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sche_cells)
 {
-	A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) *nr_cells = (A_DYN_ARRAY_OF(sched_nr_cell_cfg_t) *)sche_cells;
-
-	mac_manager.cell_config = nr_cells;
+	mac_manager.cell_config = sche_cells;
 	sched_nr_config(&mac_manager.sched, &mac_manager.args->sched_cfg, sche_cells);
-	BOUNDED_ARRAY_SET(&mac_manager.detected_rachs, DYN_ARRAY_COUNT(mac_manager.cell_config));
+	cvector_reserve(mac_manager.detected_rachs, cvector_size(mac_manager.cell_config));
 
     //cell 0
-    sched_nr_cell_cfg_t * cell = DYN_ARRAY_DATA(&mac_manager.cell_config , 0);
-	
+    sched_nr_cell_cfg_t *sched_nr_cell_cfg = &mac_manager.cell_config[0];
+	oset_assert(sched_nr_cell_cfg);
 	// read SIBs from RRC (SIB1 for now only)
-	for (uint32_t i = 0; i < DYN_ARRAY_COUNT(&cell->sibs); i++) {
-		sib_info_t *sib  = oset_core_alloc(mac_manager.app_pool, sizeof(sib_info_t));
-		sib->index       = i;
-		sib->periodicity = 160; // TODO: read period_rf from config
-		if (rrc_read_pdu_bcch_dlsch(sib->index, sib->payload) != OSET_OK) {
-		  oset_error("Couldn't read SIB %d from RRC", sib->index);
+	for (uint32_t i = 0; i < cvector_size(sched_nr_cell_cfg->sibs); i++) {
+		sib_info_t sib  = {0};
+		sib.index       = i;
+		sib.periodicity = 160; // TODO: read period_rf from config
+		if (rrc_read_pdu_bcch_dlsch(sib.index, sib.payload) != OSET_OK) {
+		  oset_error("Couldn't read SIB %d from RRC", sib.index);
 		}
 
-		oset_info("Including SIB %d into SI scheduling", sib->index + 1);
-		DYN_ARRAY_ADD(&mac_manager.bcch_dlsch_payload, sib);
+		oset_info("Including SIB %d into SI scheduling", sib.index + 1);
+		cvector_push_back(mac_manager.bcch_dlsch_payload, sib);
 	}
 
 	rx.reset(new mac_nr_rx{rlc, rrc, stack_task_queue, sched.get(), *this, logger});
 
-	mac_manager.default_ue_phy_cfg = get_common_ue_phy_cfg(cell);
+	mac_manager.default_ue_phy_cfg = get_common_ue_phy_cfg(sched_nr_cell_cfg);
 
 	return OSET_OK;
 }

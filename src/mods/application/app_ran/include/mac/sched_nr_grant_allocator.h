@@ -29,7 +29,7 @@ typedef struct {
 
   dl_res_t                    dl;
   ul_sched_t                  ul;
-  A_DYN_ARRAY_OF(harq_ack_t)  pending_acks;//bounded_vector<harq_ack_t, MAX_GRANTS>;
+  cvector_vector_t(harq_ack_t)  pending_acks;//bounded_vector<harq_ack_t, MAX_GRANTS>;
   bwp_pdcch_allocator pdcchs; /// slot PDCCH resource allocator
   pdsch_allocator     pdschs; /// slot PDSCH resource allocator
   pusch_allocator     puschs; /// slot PUSCH resource allocator

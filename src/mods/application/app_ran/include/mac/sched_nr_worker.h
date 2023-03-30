@@ -21,9 +21,10 @@ typedef struct {
 	// const params
     cell_config_manager     *cfg;
 	// cc-specific resources
-	bwp_manager bwps[SCHED_NR_MAX_BWP_PER_CELL]; //bounded_vector<bwp_manager, SCHED_NR_MAX_BWP_PER_CELL>
+	cvector_vector_t(bwp_manager) bwps; //bounded_vector<bwp_manager, SCHED_NR_MAX_BWP_PER_CELL>
 }cc_worker;
 
+harq_softbuffer_pool *harq_buffer_pool_self(uint32_t cc);
 void cc_worker_init(cc_worker *cc_w, cell_config_manager *params);
 
 #ifdef __cplusplus

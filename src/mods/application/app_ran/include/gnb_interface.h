@@ -54,11 +54,11 @@ typedef struct ssb_s {
 }ssb_t;
 
 typedef struct  dl_sched_s{
-  A_DYN_ARRAY_OF(ssb_t)      ssb;//bounded_vector<ssb_t, MAX_SSB>
-  A_DYN_ARRAY_OF(pdcch_dl_t) pdcch_dl;//bounded_vector<pdcch_dl_t, MAX_GRANTS>
-  A_DYN_ARRAY_OF(pdcch_ul_t) pdcch_ul;//bounded_vector<pdcch_ul_t, MAX_GRANTS>
-  A_DYN_ARRAY_OF(pdsch_t)    pdsch;//bounded_vector<pdsch_t, MAX_GRANTS>
-  A_DYN_ARRAY_OF(srsran_csi_rs_nzp_resource_t) nzp_csi_rs;//bounded_vector<srsran_csi_rs_nzp_resource_t, MAX_NZP_CSI_RS>
+  cvector_vector_t(ssb_t)      ssb;//bounded_vector<ssb_t, MAX_SSB>
+  cvector_vector_t(pdcch_dl_t) pdcch_dl;//bounded_vector<pdcch_dl_t, MAX_GRANTS>
+  cvector_vector_t(pdcch_ul_t) pdcch_ul;//bounded_vector<pdcch_ul_t, MAX_GRANTS>
+  cvector_vector_t(pdsch_t)    pdsch;//bounded_vector<pdsch_t, MAX_GRANTS>
+  cvector_vector_t(srsran_csi_rs_nzp_resource_t) nzp_csi_rs;//bounded_vector<srsran_csi_rs_nzp_resource_t, MAX_NZP_CSI_RS>
 }dl_sched_t;
 
 
@@ -80,12 +80,12 @@ typedef struct pucch_candidate_s {
 
 typedef struct pucch_s {
   srsran_pucch_nr_common_cfg_t	pucch_cfg;  ///< UE dedicated PUCCH configuration
-  A_DYN_ARRAY_OF(pucch_candidate_t) candidates; ///< PUCCH candidates to decode要解码的PUCCH候选//bounded_vector<pucch_candidate_t, MAX_PUCCH_CANDIDATES>
+  cvector_vector_t(pucch_candidate_t) candidates; ///< PUCCH candidates to decode要解码的PUCCH候选//bounded_vector<pucch_candidate_t, MAX_PUCCH_CANDIDATES>
 }pucch_t;
 
 typedef struct ul_sched_s {
-   A_DYN_ARRAY_OF(pusch_t) pusch;//bounded_vector<pusch_t, MAX_GRANTS>
-   A_DYN_ARRAY_OF(pucch_t) pucch;//bounded_vector<pucch_t, MAX_GRANTS>
+   cvector_vector_t(pusch_t) pusch;//bounded_vector<pusch_t, MAX_GRANTS>
+   cvector_vector_t(pucch_t) pucch;//bounded_vector<pucch_t, MAX_GRANTS>
 }ul_sched_t;
 
 typedef struct pucch_info_s {

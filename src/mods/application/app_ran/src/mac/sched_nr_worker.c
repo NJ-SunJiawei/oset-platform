@@ -22,13 +22,15 @@ harq_softbuffer_pool *harq_buffer_pool_self(uint32_t cc)
 
 void cc_worker_init(cc_worker *cc_w, cell_config_manager *params)
 {
-	cc_w->cfg = params;
+	ASSERT_IF_NOT(cvector_size(params->bwps) > SCHED_NR_MAX_BWP_PER_CELL, "cc_worker_init error: MAX_BWP_PER_CELL > 2")
 
+	cc_w->cfg = params;
 	// Pre-allocate HARQs in common pool of softbuffers
 	harq_softbuffer_pool_init(&g_harq_buffer_pool[params->cc], params->carrier.nof_prb, 4 * MAX_HARQ, 0);
 
+	cvector_reserve(cc_w->bwps[bwp_id], SCHED_NR_MAX_BWP_PER_CELL);
 	// idx0 for BWP-common
-	for (uint32_t bwp_id = 0; bwp_id < 1; ++bwp_id) {
+	for (uint32_t bwp_id = 0; bwp_id < cvector_size(params->bwps); ++bwp_id) {
 		bwp_manager_init(&cc_w->bwps[bwp_id], params->bwps[bwp_id]);
 	}
 }

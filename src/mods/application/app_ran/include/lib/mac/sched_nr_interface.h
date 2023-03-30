@@ -55,13 +55,13 @@ typedef struct sched_nr_ue_lc_ch_cfg_s {
 
 typedef struct  sched_nr_ue_cfg_s{
   uint32_t                                  maxharq_tx;//=4
-  A_DYN_ARRAY_OF(sched_nr_ue_cc_cfg_t)      carriers;//bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> 
+  cvector_vector_t(sched_nr_ue_cc_cfg_t)      carriers;//bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> 
   phy_cfg_nr_t                              phy_cfg;
   struct  mac_cell_group_cfg_s              mac_cell_group_cfg;
   struct  phys_cell_group_cfg_s             phy_cell_group_cfg;
   struct  sp_cell_cfg_s                     sp_cell_cfg;
-  A_DYN_ARRAY_OF(sched_nr_ue_lc_ch_cfg_t)   lc_ch_to_add;//sched_nr_ue_lc_ch_cfg_t
-  A_DYN_ARRAY_OF(uint32_t)                  lc_ch_to_rem;//uint32_t
+  cvector_vector_t(sched_nr_ue_lc_ch_cfg_t)   lc_ch_to_add;//sched_nr_ue_lc_ch_cfg_t
+  cvector_vector_t(uint32_t)                  lc_ch_to_rem;//uint32_t
 }sched_nr_ue_cfg_t;
 
 typedef struct  {
@@ -100,8 +100,8 @@ typedef struct sched_nr_cell_cfg_s{
   struct pdcch_cfg_sib1_s                                pdcch_cfg_sib1;
   int                                                    ss_pbch_block_power;
   // Extras
-  sched_nr_bwp_cfg_t                        bwps[4]; //std::vector<sched_nr_bwp_cfg_t> bwps{1}// idx0 for BWP-common
-  A_DYN_ARRAY_OF(sched_nr_cell_cfg_sib_t)   sibs;// std::vector<sched_nr_cell_cfg_sib_t>
+  cvector_vector_t(sched_nr_bwp_cfg_t)        bwps; //std::vector<sched_nr_bwp_cfg_t> bwps{1}// idx0 for BWP-common
+  cvector_vector_t(sched_nr_cell_cfg_sib_t)   sibs;// std::vector<sched_nr_cell_cfg_sib_t> //from rrc
   double                               dl_center_frequency_hz;
   double                               ul_center_frequency_hz;
   double                               ssb_center_freq_hz;
@@ -128,22 +128,22 @@ typedef struct msg3_grant_s {
 }msg3_grant_t;
 
 typedef struct rar_s {
-  A_DYN_ARRAY_OF(msg3_grant_t) grants;//srsran::bounded_vector<msg3_grant_t, MAX_GRANTS>
+  cvector_vector_t(msg3_grant_t) grants;//srsran::bounded_vector<msg3_grant_t, MAX_GRANTS>
 }rar_t;
 
 
 ////// DL data signalling //////
 typedef struct dl_pdu_s {
-   A_DYN_ARRAY_OF(uint32_t) subpdus;//srsran::bounded_vector<uint32_t, MAX_SUBPDUS>
+   cvector_vector_t(uint32_t) subpdus;//srsran::bounded_vector<uint32_t, MAX_SUBPDUS>
 }dl_pdu_t;
 
 
 /***sched_nr_interface***/
 typedef struct dl_res_s{
-  dl_sched_t		       phy;
-  A_DYN_ARRAY_OF(dl_pdu_t) data; //bounded_vector<dl_pdu_t, MAX_GRANTS>
-  A_DYN_ARRAY_OF(rar_t)	   rar; //bounsed_vector<rar_t, MAX_GRANTS>;
-  A_DYN_ARRAY_OF(uint32_t) sib_idxs;//bounded_vector<uint32_t, MAX_GRANTS>//list of SI indexes
+  dl_sched_t		         phy;
+  cvector_vector_t(dl_pdu_t) data; //bounded_vector<dl_pdu_t, MAX_GRANTS>
+  cvector_vector_t(rar_t)	 rar; //bounsed_vector<rar_t, MAX_GRANTS>;
+  cvector_vector_t(uint32_t) sib_idxs;//bounded_vector<uint32_t, MAX_GRANTS>//list of SI indexes
 }dl_res_t;
 
 #ifdef __cplusplus

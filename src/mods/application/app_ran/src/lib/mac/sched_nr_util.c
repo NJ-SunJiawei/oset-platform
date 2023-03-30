@@ -156,8 +156,8 @@ void make_ssb_cfg(sched_nr_cell_cfg_t *cfg, ssb_cfg_t* ssb)
 	}
 	ssb->scs     = (srsran_subcarrier_spacing_t)cfg->ssb_scs;
 	ssb->pattern = SRSRAN_SSB_PATTERN_A;
-	if (DYN_ARRAY_COUNT(&cfg->dl_cfg_common->freq_info_dl.freq_band_list) > 0){
-		struct nr_multi_band_info_s *multi_band_info = DYN_ARRAY_DATA(&cfg->dl_cfg_common->freq_info_dl.freq_band_list, 0);
+	if (cvector_size(cfg->dl_cfg_common->freq_info_dl.freq_band_list) > 0){
+		struct nr_multi_band_info_s *multi_band_info = &cfg->dl_cfg_common->freq_info_dl.freq_band_list[0];
 		if(multi_band_info->freq_band_ind_nr_present) {
 			uint32_t band = multi_band_info->freq_band_ind_nr;
 			ssb->pattern  = get_ssb_pattern_2c(band_helper, band, ssb->scs);

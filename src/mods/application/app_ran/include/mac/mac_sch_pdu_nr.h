@@ -33,7 +33,7 @@ typedef struct lcg_bsr_s {
 
 typedef struct lbsr_s {
   uint8_t		 bitmap; // the first octet of LBSR and Long Trunc BSR
-  A_DYN_ARRAY_OF(lcg_bsr_t)  list;	 //std::vector<lcg_bsr_t> // one entry for each reported LCG
+  cvector_vector_t(lcg_bsr_t)  list;	 //std::vector<lcg_bsr_t> // one entry for each reported LCG
 }lbsr_t;
 
 // TA
@@ -86,7 +86,7 @@ typedef struct {
 
 typedef struct {
   bool                  ulsch;
-  A_DYN_ARRAY_OF(mac_sch_subpdu_nr)  subpdus;//std::vector<mac_sch_subpdu_nr>
+  cvector_vector_t(mac_sch_subpdu_nr)  subpdus;//std::vector<mac_sch_subpdu_nr>
   byte_buffer_t         *buffer;
   uint32_t              pdu_len;
   uint32_t              remaining_len;

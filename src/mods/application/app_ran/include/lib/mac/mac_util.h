@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-int mac_cell_cfg(void *sche_cells);
+int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sche_cells);
 
 #ifdef __cplusplus
 }

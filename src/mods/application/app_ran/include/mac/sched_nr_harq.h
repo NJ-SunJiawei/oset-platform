@@ -49,8 +49,8 @@ typedef struct {
 typedef struct{
   uint16_t           rnti;
   slot_point         slot_rx;
-  A_DYN_ARRAY_OF(struct dl_harq_proc) dl_harqs;//std::vector<dl_harq_proc>
-  A_DYN_ARRAY_OF(struct ul_harq_proc) ul_harqs;//std::vector<ul_harq_proc>
+  cvector_vector_t(struct dl_harq_proc) dl_harqs;//std::vector<dl_harq_proc>
+  cvector_vector_t(struct ul_harq_proc) ul_harqs;//std::vector<ul_harq_proc>
 }harq_entity;
 
 

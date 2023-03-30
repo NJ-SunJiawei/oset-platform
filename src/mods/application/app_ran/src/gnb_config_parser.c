@@ -430,17 +430,17 @@ static void generate_default_nr_cell(rrc_cell_cfg_nr_t* cell)
   // PDCCH
   // - Add CORESET#2 as UE-specific
   //cell->pdcch_cfg_ded.nof_ctrl_res_set_to_add_mod = 1;
-  struct ctrl_res_set_s *coreset2 = oset_core_alloc(gnb_manager_self()->app_pool, sizeof(struct ctrl_res_set_s));
-  make_default_coreset(2, cell->phy_cell.carrier.nof_prb, coreset2);
-  DYN_ARRAY_ADD(&cell->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list, coreset2)
+  struct ctrl_res_set_s coreset2 = {0};
+  make_default_coreset(2, cell->phy_cell.carrier.nof_prb, &coreset2);
+  cvector_push_back(cell->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list, coreset2)
 
   // - Add SearchSpace#2 as UE-specific -> CORESET#2
   //cell->pdcch_cfg_ded.nof_search_spaces_to_add_mod = 1;
-  struct search_space_s *ss2 = oset_core_alloc(gnb_manager_self()->app_pool, sizeof(struct search_space_s));
-  make_default_common_search_space(2, coreset2, ss2);
+  struct search_space_s ss2 = {0};
+  make_default_common_search_space(2, coreset2, &ss2);
   ss2->search_space_type.types = ue_specific;
   ss2->search_space_type.c.ue_spec.dci_formats = formats0_minus0_and_minus1_minus0;
-  DYN_ARRAY_ADD(&cell->pdcch_cfg_ded.search_spaces_to_add_mod_list, ss2)
+  cvector_push_back(cell->pdcch_cfg_ded.search_spaces_to_add_mod_list, ss2)
 }
 
 
@@ -824,28 +824,28 @@ static int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t *cell)
 
   // Configure SearchSpace#1
   //cell->pdcch_cfg_common.nof_common_search_space = 1;
-  struct search_space_s *ss1 = oset_core_alloc(gnb_manager_self()->app_pool, struct search_space_s);
-  DYN_ARRAY_ADD(&cell->pdcch_cfg_common.common_search_space_list, ss1);
+  struct search_space_s ss1 = {0};
 
   if (is_sa) {
     // Configure SearchSpace#1 -> CORESET#0
     struct ctrl_res_set_s dummy_coreset = {0};//?????????
     make_default_coreset(0, cell->phy_cell.carrier.nof_prb , &dummy_coreset);
-    make_default_common_search_space(1, &dummy_coreset, ss1);
-    ss1->nrof_candidates.aggregation_level1  = (enum aggregation_level1_opts)n0//n0;
-    ss1->nrof_candidates.aggregation_level2  = (enum aggregation_level2_opts)n0//n0;
-    ss1->nrof_candidates.aggregation_level4  = (enum aggregation_level4_opts)n1//n1;
-    ss1->nrof_candidates.aggregation_level8  = (enum aggregation_level8_opts)n0//n0;
-    ss1->nrof_candidates.aggregation_level16 = (enum aggregation_level16_opts)n0//n0;
+    make_default_common_search_space(1, &dummy_coreset, &ss1);
+    ss1.nrof_candidates.aggregation_level1  = (enum aggregation_level1_opts)n0//n0;
+    ss1.nrof_candidates.aggregation_level2  = (enum aggregation_level2_opts)n0//n0;
+    ss1.nrof_candidates.aggregation_level4  = (enum aggregation_level4_opts)n1//n1;
+    ss1.nrof_candidates.aggregation_level8  = (enum aggregation_level8_opts)n0//n0;
+    ss1.nrof_candidates.aggregation_level16 = (enum aggregation_level16_opts)n0//n0;
 
   } else {
     // Configure SearchSpace#1 -> CORESET#1
-    make_default_common_search_space(1, &cell->pdcch_cfg_common.common_ctrl_res_set, ss1);
+    make_default_common_search_space(1, &cell->pdcch_cfg_common.common_ctrl_res_set, &ss1);
     //cell.phy_cell.pdcch.search_space[1].type       = srsran_search_space_type_common_3;
   }
   cell->pdcch_cfg_common.ra_search_space_present = true;
   cell->pdcch_cfg_common.ra_search_space         = ss1.search_space_id;
 
+  cvector_push_back(cell->pdcch_cfg_common.common_search_space_list, ss1);
   return OSET_OK;
 }
 
