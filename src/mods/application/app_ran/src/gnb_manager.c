@@ -42,20 +42,19 @@ void gnb_manager_destory(void)
 
 	gnb_manager.running = false;
 
-	oset_lnode2_t *lnode = NULL;
-	oset_list2_for_each(gnb_manager.rrc_nr_cfg.cell_list, lnode){
-	    rrc_cell_cfg_nr_t * cell = (rrc_cell_cfg_nr_t *)lnode->data;
+	rrc_cell_cfg_nr_t *cell = NULL;
+	cvector_for_each_in(cell, gnb_manager.rrc_nr_cfg.cell_list){
 		cvector_free(cell->pdcch_cfg_common.common_search_space_list);
 		cvector_free(cell->pdcch_cfg_ded.ctrl_res_set_to_add_mod_list);
 		cvector_free(cell->pdcch_cfg_ded.search_spaces_to_add_mod_list);
 	}
+	cvector_free(gnb_manager.rrc_nr_cfg.cell_list);
 
 	band_helper_destory(gnb_manager.band_helper);//???
 
-	oset_list2_free(gnb_manager.rrc_nr_cfg.cell_list);
 	oset_list2_free(gnb_manager.rrc_nr_cfg.five_qi_cfg);
-	oset_list2_free(gnb_manager.phy_cfg->phy_cell_cfg_nr);
 
+	cvector_free(gnb_manager.phy_cfg->phy_cell_cfg_nr);
 
 	oset_timer_mgr_destroy(gnb_manager.app_timer);
 

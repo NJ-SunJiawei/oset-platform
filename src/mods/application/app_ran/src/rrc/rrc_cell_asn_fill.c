@@ -1063,7 +1063,7 @@ void fill_ul_cfg_from_enb_cfg(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, AS
 /// Fill ServingCellConfig with gNB config
 int fill_serv_cell_from_enb_cfg(rrc_nr_cfg_t *cfg, uint32_t cc, ASN_RRC_ServingCellConfig_t *serv_cell)
 {
-	rrc_cell_cfg_nr_t *cell_cfg = oset_list2_find(cfg->cell_list, cc)->data;
+	rrc_cell_cfg_nr_t *cell_cfg = &cfg->cell_list[cc];
 
 	serv_cell->csi_MeasConfig = CALLOC(1, sizeof(struct ASN_RRC_SetupRelease_CSI_MeasConfig));
 	serv_cell->csi_MeasConfig->present = ASN_RRC_SetupRelease_CSI_MeasConfig_PR_setup;

@@ -84,7 +84,7 @@ void rrc_config_phy(uint32_t cc)
 {
 	common_cfg_t *common_cfg = phy_manager_self()->common_cfg;
 	oset_assert(common_cfg);
-	rrc_cell_cfg_nr_t *rrc_cell_cfg = oset_list2_find(rrc_manager.cfg.cell_list, cc)->data;
+	rrc_cell_cfg_nr_t *rrc_cell_cfg = &rrc_manager.cfg.cell_list[cc];
 	oset_assert(rrc_cell_cfg);
 	du_cell_config  *du_cell = rrc_manager.du_cfg.cells[cc];
 	oset_assert(du_cell);
@@ -149,7 +149,7 @@ static void get_default_cell_cfg(phy_cfg_nr_t *phy_cfg, sched_nr_cell_cfg_t *cel
 
 void rrc_config_mac(uint32_t cc)
 {
-	rrc_cell_cfg_nr_t *rrc_cell_cfg = oset_list2_find(rrc_manager.cfg.cell_list, cc)->data;
+	rrc_cell_cfg_nr_t *rrc_cell_cfg = &rrc_manager.cfg.cell_list[cc];
 	oset_assert(rrc_cell_cfg);
 	du_cell_config  *du_cell = rrc_manager.du_cfg.cells[cc];
 	oset_assert(du_cell);
@@ -241,22 +241,21 @@ static int rrc_init(void)
 	//todo
 	rrc_manager.cfg = &gnb_manager_self()->rrc_nr_cfg;
 
+	rrc_cell_cfg_nr_t *cell = NULL;
 	// log cell configs
-	oset_list2_for_each(rrc_manager.cfg->cell_list, lnode){
-	    rrc_cell_cfg_nr_t *cell_tt =  (rrc_cell_cfg_nr_t *)lnode->data;
+	cvector_for_each_in(cell, rrc_manager.cfg->cell_list){
 		oset_notice("Cell idx=%d, pci=%d, nr_dl_arfcn=%d, nr_ul_arfcn=%d, band=%d, duplex=%s, n_rb_dl=%d, ssb_arfcn=%d",
-					cell_tt->cell_idx,
-					cell_tt->phy_cell.carrier.pci,
-					cell_tt->dl_arfcn,
-					cell_tt->ul_arfcn,
-					cell_tt->band,
-					cell_tt->duplex_mode == SRSRAN_DUPLEX_MODE_FDD ? "FDD" : "TDD",
-					cell_tt->phy_cell.carrier.nof_prb,
-					cell_tt->ssb_absolute_freq_point);
+					cell->cell_idx,
+					cell->phy_cell.carrier.pci,
+					cell->dl_arfcn,
+					cell->ul_arfcn,
+					cell->band,
+					cell->duplex_mode == SRSRAN_DUPLEX_MODE_FDD ? "FDD" : "TDD",
+					cell->phy_cell.carrier.nof_prb,
+					cell->ssb_absolute_freq_point);
 	}
 
-	oset_list2_for_each(rrc_manager.cfg->cell_list, lnode){
-	    rrc_cell_cfg_nr_t *cell =  (rrc_cell_cfg_nr_t *)lnode->data;
+	cvector_for_each_in(cell, rrc_manager.cfg->cell_list){
 		ret = du_config_manager_add_cell(cell);
 		ASSERT_IF_NOT(ret == OSET_OK, "Failed to configure NR cell %d", cell->cell_idx);
 	}

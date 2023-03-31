@@ -20,11 +20,9 @@ extern "C" {
 #endif
 
 /*******************phy_cfg_t************************/
-typedef oset_list2_t phy_cell_cfg_list_nr_t;
-
 typedef struct phy_cfg_s {
   // Individual cell/sector configuration list
-  phy_cell_cfg_list_nr_t          *phy_cell_cfg_nr; //std::vector<phy_cell_cfg_nr_t>
+  cvector_vector_t(phy_cell_cfg_nr_t) phy_cell_cfg_nr; //std::vector<phy_cell_cfg_nr_t>
 
   // Common configuration for all cells
   //struct prach_cfg_sib_lte_s      prach_cnfg;//4G??

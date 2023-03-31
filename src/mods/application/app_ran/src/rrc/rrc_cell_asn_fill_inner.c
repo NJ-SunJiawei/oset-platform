@@ -1494,7 +1494,7 @@ void fill_ul_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_c
 /// Fill ServingCellConfig with gNB config
 int fill_serv_cell_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, struct serving_cell_cfg_s *serv_cell)
 {
-	rrc_cell_cfg_nr_t *cell_cfg = oset_list2_find(cfg->cell_list, cc)->data;
+	rrc_cell_cfg_nr_t *cell_cfg = &cfg->cell_list[cc];
 
 	serv_cell->csi_meas_cfg_present = true;
 	serv_cell->csi_meas_cfg.type_ = setup;

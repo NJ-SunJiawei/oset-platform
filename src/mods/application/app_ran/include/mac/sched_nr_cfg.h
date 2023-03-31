@@ -26,6 +26,8 @@ typedef struct{
 	int      array_index;
 	uint32_t array[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR];
 }pdcch_cce_pos_list;//bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
+
+//typedef cvector_vector_t(uint32_t) pdcch_cce_pos_list;
 typedef pdcch_cce_pos_list cce_pos_list_tmp[MAX_NOF_AGGR_LEVELS];
 typedef cce_pos_list_tmp bwp_cce_pos_list[SRSRAN_NOF_SF_X_FRAME];//using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
 

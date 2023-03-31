@@ -523,26 +523,24 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
 	rrc_cfg_->cqi_cfg.m_ri = 8;//RI period in CQI period
 	rrc_cfg_->cqi_cfg.simultaneousAckCQI = true;
 
-	rrc_nr_cfg_->cell_list=oset_list2_create();
-
 	// NR RRC and cell config section(list)
     for(int i =0 ; i < 1; ++i){
-		rrc_cell_cfg_nr_t *cell_cfg = oset_core_alloc(gnb_manager_self()->app_pool, sizeof(rrc_cell_cfg_nr_t));
-		cell_cfg->cell_idx = i;
-		generate_default_nr_cell(cell_cfg);
-	    cell_cfg->phy_cell.rf_port = 0;
-		cell_cfg->phy_cell.carrier.pci = 500;
-		cell_cfg->phy_cell.carrier.pci = cell_cfg.phy_cell.carrier.pci % SRSRAN_NOF_NID_NR;
+		rrc_cell_cfg_nr_t cell_cfg = {0};
+		cell_cfg.cell_idx = i;
+		generate_default_nr_cell(&cell_cfg);
+	    cell_cfg.phy_cell.rf_port = 0;
+		cell_cfg.phy_cell.carrier.pci = 500;
+		cell_cfg.phy_cell.carrier.pci = cell_cfg.phy_cell.carrier.pci % SRSRAN_NOF_NID_NR;
 
-		cell_cfg->phy_cell.cell_id = 2;
-		cell_cfg->coreset0_idx = 6;
-		cell_cfg->prach_root_seq_idx = 1;
-		cell_cfg->tac = 7;
+		cell_cfg.phy_cell.cell_id = 2;
+		cell_cfg.coreset0_idx = 6;
+		cell_cfg.prach_root_seq_idx = 1;
+		cell_cfg.tac = 7;
 
-		cell_cfg->dl_arfcn = 368500;
-		//cell_cfg->ul_arfcn = 0;
-		cell_cfg->band = 3;
-		oset_list2_add(rrc_nr_cfg_->cell_list, cell_cfg);
+		cell_cfg.dl_arfcn = 368500;
+		//cell_cfg.ul_arfcn = 0;
+		cell_cfg.band = 3;
+		cvector_push_back(rrc_nr_cfg_->cell_list, cell_cfg);
 	}
 
     /*todo */
@@ -854,9 +852,7 @@ static int set_derived_nr_rrc_params(rrc_nr_cfg_t* rrc_cfg)
 {
 	oset_lnode2_t *lnode = NULL;
 	rrc_cell_cfg_nr_t *cell = NULL;
-
-	oset_list2_for_each(rrc_cfg->cell_list, lnode){
-	    cell = (rrc_cell_cfg_nr_t *)lnode->data;
+	cvector_for_each_in(cell, rrc_cfg->cell_list){
 		HANDLE_ERROR(set_derived_nr_cell_params(rrc_cfg.is_standalone, cell));
 	}
 	
@@ -870,35 +866,34 @@ static int set_derived_args_nr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cf
 	rrc_cell_cfg_nr_t *cfg = NULL;
 
 	// we only support one NR cell
-	if (rrc_nr_cfg_->cell_list.count > 1) {
-	  oset_error("Only a single NR cell supported.");
-	  return OSET_ERROR;
+	if (cvector_size(rrc_nr_cfg_->cell_list) > 1) {
+		oset_error("Only a single NR cell supported.");
+		return OSET_ERROR;
 	}
 
 	rrc_nr_cfg_->inactivity_timeout_ms = args_->general.rrc_inactivity_timer;
 
-	oset_list2_for_each(rrc_nr_cfg_->cell_list, lnode){
-	   cfg = (rrc_cell_cfg_nr_t *)lnode->data;
-	   cfg.phy_cell.carrier.max_mimo_layers = args_->enb.nof_ports;
+	cvector_for_each_in(cfg, rrc_nr_cfg_->cell_list){
+	   cfg->phy_cell.carrier.max_mimo_layers = args_->enb.nof_ports;
 	   // NR cells have the same bandwidth as EUTRA cells, adjust PRB sizes
 	   switch (args_->enb.n_prb) {
 		 case 25:
-		   cfg.phy_cell.carrier.nof_prb = 25;
+		   cfg->phy_cell.carrier.nof_prb = 25;
 		   break;
 		 case 50:
-		   cfg.phy_cell.carrier.nof_prb = 52;
+		   cfg->phy_cell.carrier.nof_prb = 52;
 		   break;
 		 case 100:
-		   cfg.phy_cell.carrier.nof_prb = 106;
+		   cfg->phy_cell.carrier.nof_prb = 106;
 		   break;
 		 default:
 		   oset_error("The only accepted number of PRB is: 25, 50, 100");
 		   return OSET_ERROR;
 	   }
-	   // phy_cell_cfg.root_seq_idx = cfg.root_seq_idx;
+	   // phy_cell_cfg.root_seq_idx = cfg->root_seq_idx;
 	   
 	   // PDSCH
-	   cfg.pdsch_rs_power = 0;//phy_cfg_->pdsch_cnfg.ref_sig_pwr
+	   cfg->pdsch_rs_power = 0;//phy_cfg_->pdsch_cnfg.ref_sig_pwr
 	}
 	rrc_nr_cfg_->enb_id = args_->enb.enb_id;
 	rrc_nr_cfg_->mcc	= args_->nr_stack.ngap.mcc;
@@ -911,14 +906,11 @@ static int set_derived_args_nr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cf
 	}
 	
 	// Update PHY with RRC cell configs
-	phy_cfg_->phy_cell_cfg_nr = oset_list2_create();
-	oset_list2_for_each(rrc_nr_cfg_->cell_list, lnode){
-	   cfg = (rrc_cell_cfg_nr_t *)lnode->data;
-	   oset_list2_add(phy_cfg_->phy_cell_cfg_nr,cfg->phy_cell);
+	cvector_for_each_in(cfg, rrc_nr_cfg_->cell_list){
+		cvector_push_back(phy_cfg_->phy_cell_cfg_nr, *cfg);
 	}
 
-	oset_list2_for_each(rrc_nr_cfg_->cell_list, lnode){
-		cfg = (rrc_cell_cfg_nr_t *)lnode->data;
+	cvector_for_each_in(cfg, rrc_nr_cfg_->cell_list){
 		if (cfg->phy_cell.carrier.nof_prb != 52) {
 		  oset_error("Only 10 MHz bandwidth supported.");
 		  return OSET_ERROR;
@@ -1063,8 +1055,8 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
       return OSET_ERROR;
     }
 
-	rrc_cfg_->num_nr_cells = rrc_nr_cfg_->cell_list.count;
-	args_->rf.nof_carriers = rrc_nr_cfg_->cell_list.count;
+	rrc_cfg_->num_nr_cells = cvector_size(rrc_nr_cfg_->cell_list);
+	args_->rf.nof_carriers = cvector_size(rrc_nr_cfg_->cell_list);
     oset_assert(args_->rf.nof_carriers > 0);
     if (rrc_cfg_->num_nr_cells) {
       // SA mode.
@@ -1080,14 +1072,10 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr
 
 	// update number of NR cells
 	  // NR cells available.
-	  if ((rrc_nr_cfg_->cell_list.count =1 ) && (rrc_nr_cfg_->is_standalone)) {
-          oset_lnode2_t *node = NULL;
-		  rrc_cell_cfg_nr_t *cell = NULL; 
-		  node = oset_list2_find(rrc_nr_cfg_->cell_list, 0);
-	      cell = (rrc_cell_cfg_nr_t *)node->data;
+	  if (cvector_size(rrc_nr_cfg_->cell_list > 0) && (rrc_nr_cfg_->is_standalone)) {
 		  // SA mode. Update NGAP args
-	      args_->nr_stack.ngap.cell_id = cell->phy_cell.cell_id;
-		  args_->nr_stack.ngap.tac	 = cell->tac;
+	      args_->nr_stack.ngap.cell_id = rrc_nr_cfg_->cell_list[0].phy_cell.cell_id;
+		  args_->nr_stack.ngap.tac	 = rrc_nr_cfg_->cell_list[0].tac;
 		  //update NGAP params
 		  args_->nr_stack.ngap.gnb_id = args_->enb.enb_id;
 		  
