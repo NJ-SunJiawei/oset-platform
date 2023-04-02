@@ -288,7 +288,7 @@ static double get_dev_cal_tx_adv_sec(const char *device_name)
 {
   int nsamples = 0;
   /* Set time advance for each known device if in auto mode */
-  if (tx_adv_auto) {
+  if (rf_manager.tx_adv_auto) {
     /* This values have been calibrated using the prach_test_usrp tool in srsRAN */
 
     if (!strcmp(device_name, "uhd_b200")) {

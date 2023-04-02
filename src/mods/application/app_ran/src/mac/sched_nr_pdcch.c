@@ -12,6 +12,12 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-pdcch"
 
+static void coreset_region_reset(coreset_region *coreset){
+	cvector_clear(coreset->dfs_tree);
+	cvector_clear(coreset->saved_dfs_tree);
+	cvector_clear(coreset->dci_list);
+}
+
 static void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32_t coreset_id_, uint32_t slot_idx_)
 {
 	int i = 0;
@@ -21,10 +27,10 @@ static void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_,
 	coreset->coreset_cfg = &bwp_cfg_->cfg.pdcch.coreset[coreset_id_];
 	coreset->coreset_id = coreset_id_;
 	coreset->slot_idx = slot_idx_;
-	coreset->rar_cce_list = &bwp_cfg_->rar_cce_list;
+	coreset->rar_cce_list = bwp_cfg_->rar_cce_list;
 	for(i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE, ++i){
 		coreset->common_cce_list_active[i] = bwp_cfg_->common_cce_list_active[i];
-		coreset->common_cce_list[i] = &bwp_cfg_->common_cce_list[i];
+		coreset->common_cce_list[i] = bwp_cfg_->common_cce_list[i];
 	}
 
 
@@ -43,6 +49,18 @@ static void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_,
 	            bwp_cfg_->cell_cfg->carrier.nof_prb);
 }
 
+void bwp_pdcch_allocator_reset(bwp_pdcch_allocator *pdcchs)
+{
+	pdcchs->pending_dci = NULL;
+	cvector_clear(pdcchs->pdcch_dl_list);
+	cvector_clear(pdcchs->pdcch_ul_list);
+	for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
+	  if (pdcchs->bwp_cfg->cfg.pdcch.coreset_present[cs_idx]) {
+		uint32_t cs_id = pdcchs->bwp_cfg->cfg.pdcch.coreset[cs_idx].id;
+		coreset_region_reset(&pdcchs->coresets[cs_id]);
+	  }
+	}
+}
 
 void bwp_pdcch_allocator_init(bwp_pdcch_allocator *pdcchs,
 										bwp_params_t        *bwp_cfg_,

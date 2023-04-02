@@ -37,7 +37,7 @@ typedef struct {
   // channel-specific schedulers
   si_sched                       si;
   ra_sched                       ra;
-  void                           *data_sched;//sched_nr_base
+  //void                           *data_sched;//sched_nr_base
   // Stores pending allocations and PRB bitmaps
   bwp_res_grid grid;
 }bwp_manager;

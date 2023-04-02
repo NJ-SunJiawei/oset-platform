@@ -20,6 +20,7 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 
 	cell_bwp->bwp_id = bwp_id_;
 	cell_bwp->cfg = bwp_cfg;
+	cell_bwp->bwp_cfg = bwp_cfg;//???
 	cell_bwp->nof_prb = cell_cfg->carrier.nof_prb;
 	bwp_rb_bitmap_init(&cell_bwp->cached_empty_prb_mask, bwp_cfg->rb_width, bwp_cfg->start_rb, bwp_cfg->pdsch.rbg_size_cfg_1);
 
@@ -113,7 +114,7 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 													sl,
 													ss_cce_list[sl][agg_idx].array);
 		    ASSERT_IF_NOT(n >= 0, "Failed to configure DCI locations of search space id=%d", ss_id);
-		    ss_cce_list[sl][agg_idx].arrary_count = n;
+		    ss_cce_list[sl][agg_idx].array_index = n;
 		  }
 		}
 		cell_bwp->common_cce_list[ss_id] = ss_cce_list;

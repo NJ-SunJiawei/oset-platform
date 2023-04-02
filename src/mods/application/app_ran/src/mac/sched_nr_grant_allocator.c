@@ -31,16 +31,31 @@ static void bwp_slot_grid_init(bwp_slot_grid *grid, bwp_params_t *bwp_cfg_, uint
 
 	grid->slot_idx = slot_idx_;
 	grid->cfg = bwp_cfg_;
-	bwp_pdcch_allocator_init(grid->pdcchs, slot_idx_, grid->dl.phy.pdcch_dl, grid->dl.phy.pdcch_ul);
-
+	bwp_pdcch_allocator_init(&grid->pdcchs, bwp_cfg_, slot_idx_, grid->dl.phy.pdcch_dl, grid->dl.phy.pdcch_ul);
+	pdsch_allocator_init(&grid->pdschs, bwp_cfg_, slot_idx_, grid->dl.phy.pdsch);
+	pusch_allocator_init(&grid->puschs, bwp_cfg_, slot_idx_, grid->dl.phy.pdsch);
 	grid->rar_softbuffer = harq_softbuffer_pool_get_tx(harq_buffer_pool_self(bwp_cfg_->cc), bwp_cfg_->cfg.rb_width);//bwp_cfg_->nof_prb
+}
 
+void bwp_slot_grid_reset(bwp_slot_grid *grid)
+{
+	bwp_pdcch_allocator_reset(&grid->pdcchs);
+	pdsch_allocator_reset(&grid->pdschs);
+	pusch_allocator_reset(&grid->puschs);
+	cvector_clear(grid->dl.phy.ssb);
+	cvector_clear(grid->dl.phy.nzp_csi_rs);
+	cvector_clear(grid->dl.data);
+	cvector_clear(grid->dl.rar);
+	cvector_clear(grid->dl.sib_idxs);
+	cvector_clear(grid->ul.pucch);
+	cvector_clear(grid->pending_acks);
 }
 
 
 void bwp_res_grid_init(bwp_res_grid *grid, bwp_params_t *bwp_cfg_)
 {
 	grid->cfg = bwp_cfg_;
+	cvector_reserve(grid->slots, TTIMOD_SZ);
 	//1 frame 20 slot(30khz)
 	for (uint32_t sl = 0; sl < TTIMOD_SZ; ++sl){
 		bwp_slot_grid_init(&grid->slots[sl], bwp_cfg_, sl % ((uint32_t)SRSRAN_NSLOTS_PER_FRAME_NR(bwp_cfg_->cell_cfg.carrier.scs)));

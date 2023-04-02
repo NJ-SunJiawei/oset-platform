@@ -27,7 +27,6 @@ void bwp_manager_init(bwp_manager *bwp_m, bwp_params_t *bwp_cfg)
 	ra_sched_init(&bwp_m->ra, bwp_cfg);
 	si_sched_init(&bwp_m->si, bwp_cfg);
 	bwp_res_grid_init(&bwp_m->grid, bwp_cfg);
-
 }
 
 

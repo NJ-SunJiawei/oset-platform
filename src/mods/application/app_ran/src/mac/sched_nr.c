@@ -63,28 +63,30 @@ void sched_nr_destory(sched_nr *scheluder)
 			//si
 			cvector_free(bwp->si.pending_sis);
 			//bwp_res_grid
-			for (uint32_t sl = 0; sl < TTIMOD_SZ; ++sl){
+			bwp_slot_grid *slot = NULL;
+			cvector_for_each_in(slot, bwp->grid.slots){
 				//dl
-				cvector_free(bwp->grid.slots[sl].dl.phy.ssb);
-				cvector_free(bwp->grid.slots[sl].dl.phy.pdcch_dl);
-				cvector_free(bwp->grid.slots[sl].dl.phy.pdcch_ul);
-				cvector_free(bwp->grid.slots[sl].dl.phy.pdsch);
-				cvector_free(bwp->grid.slots[sl].dl.phy.nzp_csi_rs);
-				cvector_free(bwp->grid.slots[sl].dl.data);
-				cvector_free(bwp->grid.slots[sl].dl.rar);
-				cvector_free(bwp->grid.slots[sl].dl.sib_idxs);
+				cvector_free(slot->dl.phy.ssb);
+				cvector_free(slot->dl.phy.pdcch_dl);
+				cvector_free(slot->dl.phy.pdcch_ul);
+				cvector_free(slot->dl.phy.pdsch);
+				cvector_free(slot->dl.phy.nzp_csi_rs);
+				cvector_free(slot->dl.data);
+				cvector_free(slot->dl.rar);
+				cvector_free(slot->dl.sib_idxs);
 				//ul
-				cvector_free(bwp->grid.slots[sl].ul.pucch);
-				cvector_free(bwp->grid.slots[sl].ul.pusch);
+				cvector_free(slot->ul.pucch);
+				cvector_free(slot->ul.pusch);
 				//ack
 				cvector_free(bwp->grid.slots[sl].pending_acks);
 				//pddchs
 				for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
-					cvector_free(bwp->grid.slots[sl].pdcchs.coresets[cs_idx].dci_list);
-					cvector_free(bwp->grid.slots[sl].pdcchs.coresets[cs_idx].dfs_tree);
-					cvector_free(bwp->grid.slots[sl].pdcchs.coresets[cs_idx].saved_dfs_tree);
+					cvector_free(slot->pdcchs.coresets[cs_idx].dci_list);
+					cvector_free(slot->pdcchs.coresets[cs_idx].dfs_tree);
+					cvector_free(slot->pdcchs.coresets[cs_idx].saved_dfs_tree);
 				}
 			}
+			cvector_free(bwp->grid.slots);
 		}		
 		//release harqbuffer
 		harq_softbuffer_pool_destory(harq_buffer_pool_self(cc), cc_w->cfg->carrier.nof_prb, 4 * MAX_HARQ, 0);

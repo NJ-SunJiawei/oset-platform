@@ -21,7 +21,7 @@ extern "C" {
 typedef struct {
   bwp_params_t  *bwp_cfg;
   uint32_t      slot_idx;
-  cvector_vector_t(pdsch_t) *pdschs;//bounded_vector<pdsch_t, MAX_GRANTS>;
+  cvector_vector_t(pdsch_t) pdschs;//bounded_vector<pdsch_t, MAX_GRANTS>;
   bwp_rb_bitmap dl_prbs;
 }pdsch_allocator;
 
@@ -30,9 +30,14 @@ typedef struct {
   bwp_params_t  *bwp_cfg;
   uint32_t      slot_idx;
 
-  cvector_vector_t(pusch_t) *puschs;//bounded_vector<pusch_t, MAX_GRANTS>
+  cvector_vector_t(pusch_t) puschs;//bounded_vector<pusch_t, MAX_GRANTS>
   bwp_rb_bitmap ul_prbs;
 }pusch_allocator;
+
+void pdsch_allocator_reset(pdsch_allocator *pdsch);
+void pdsch_allocator_init(pdsch_allocator *pdsch, bwp_params_t *cfg_, uint32_t slot_index, cvector_vector_t(pdsch_t) pdsch_lst);
+void pusch_allocator_reset(pusch_allocator *pusch);
+void pusch_allocator_init(pusch_allocator *pusch, bwp_params_t *cfg_, uint32_t slot_index,  cvector_vector_t(pusch_t) pusch_lst);
 
 #ifdef __cplusplus
 }

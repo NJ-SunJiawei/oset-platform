@@ -43,9 +43,9 @@ typedef struct {
   uint32_t                slot_idx;
   uint32_t                nof_freq_res;
 
-  bwp_cce_pos_list        *rar_cce_list;
+  bwp_cce_pos_list        rar_cce_list;
   bool                    common_cce_list_active[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
-  bwp_cce_pos_list        *common_cce_list[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
+  bwp_cce_pos_list        common_cce_list[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
   //cvector_vector_t(bwp_cce_pos_list) common_cce_list;//optional_vector<bwp_cce_pos_list>
   cvector_vector_t(alloc_record) dci_list;//bounded_vector<alloc_record, 2 * MAX_GRANTS>
 
@@ -64,6 +64,8 @@ typedef struct {
   coreset_region    coresets[SRSRAN_UE_DL_NR_MAX_NOF_CORESET];     //optional_array<coreset_region, SRSRAN_UE_DL_NR_MAX_NOF_CORESET>
   srsran_dci_ctx_t  *pending_dci; //Saves last PDCCH allocation, in case it needs to be aborted
 }bwp_pdcch_allocator;
+
+void bwp_pdcch_allocator_reset(bwp_pdcch_allocator *pdcchs);
 
 void bwp_pdcch_allocator_init(bwp_pdcch_allocator *pdcchs,
 										bwp_params_t        *bwp_cfg_,
