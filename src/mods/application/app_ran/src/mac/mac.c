@@ -29,19 +29,10 @@ static void mac_manager_init(void)
 	oset_apr_mutex_init(&mac_manager.mutex, OSET_MUTEX_NESTED, mac_manager.app_pool);
 	oset_apr_thread_cond_create(&mac_manager.cond, mac_manager.app_pool);
 	oset_apr_thread_rwlock_create(&mac_manager.rwmutex, mac_manager.app_pool);
-
-	mac_manager.bcch_bch_payload = oset_malloc(sizeof(byte_buffer_t));
-	mac_manager.rar_pdu_buffer = oset_malloc(sizeof(byte_buffer_t));
-	sched_nr_init(&mac_manager.sched);
-
 }
 
 static void mac_manager_destory(void)
 {
-    sched_nr_destory(&mac_manager.sched);
-	oset_free(mac_manager.bcch_bch_payload);
-	oset_free(mac_manager.rar_pdu_buffer);
-
 	oset_apr_mutex_destroy(mac_manager.mutex);
 	oset_apr_thread_cond_destroy(mac_manager.cond);
 	oset_apr_thread_rwlock_destroy(mac_manager.rwmutex);
@@ -52,8 +43,19 @@ static void mac_manager_destory(void)
 static int mac_init(void)
 {
 	mac_manager_init();
+	mac_manager.bcch_bch_payload = oset_malloc(sizeof(byte_buffer_t));
+	mac_manager.rar_pdu_buffer = oset_malloc(sizeof(byte_buffer_t));
+	sched_nr_init(&mac_manager.sched);
+
 	mac_manager.started = true;
 	mac_manager.args = &gnb_manager_self()->args.nr_stack.mac_nr;
+
+	if (mac_manager.args->pcap.enable) {
+		oset_apr_mutex_init(&mac_manager.pcap.base.mutex, OSET_MUTEX_NESTED, mac_manager.app_pool);
+		mac_manager.pcap.base.queue = oset_ring_queue_create(MAX_MAC_PCAP_QUE_SIZE);
+	  	mac_manager.pcap.base.buf = oset_ring_buf_create(MAX_MAC_PCAP_QUE_SIZE, sizeof(pcap_pdu_t));
+		mac_pcap_open(&mac_manager.pcap, mac_manager.args->pcap.filename, 0);
+	}
 
 	oset_pool_init(&mac_manager.ue_nr_mac_pool, SRSENB_MAX_UES);
 	mac_manager.ue_db = oset_hash_make();
@@ -71,7 +73,17 @@ static int mac_destory(void)
 	//todo
 	oset_hash_destroy(mac_manager.ue_db);
 	oset_pool_final(&mac_manager.ue_nr_mac_pool);
+	if (mac_manager.args->pcap.enable) {
+		oset_apr_mutex_destroy(mac_manager.pcap.base.mutex);
+		oset_ring_buf_destroy(mac_manager.pcap.base.buf);
+		oset_ring_queue_destroy(mac_manager.pcap.base.queue);
+	  	pcap->close(args.pcap.filename);//???
+	}
 	mac_manager.started = false;
+
+    sched_nr_destory(&mac_manager.sched);
+	oset_free(mac_manager.bcch_bch_payload);
+	oset_free(mac_manager.rar_pdu_buffer);
 	mac_manager_destory();
 	return OSET_OK;
 }
@@ -97,8 +109,8 @@ int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sche_cells)
 		oset_info("Including SIB %d into SI scheduling", sib.index + 1);
 		cvector_push_back(mac_manager.bcch_dlsch_payload, sib);
 	}
-
-	rx.reset(new mac_nr_rx{rlc, rrc, stack_task_queue, sched.get(), *this, logger});
+	
+	//mac_manager.rx = new mac_nr_rx; ???callback func
 
 	mac_manager.default_ue_phy_cfg = get_common_ue_phy_cfg(sched_nr_cell_cfg);
 

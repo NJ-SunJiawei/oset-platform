@@ -41,7 +41,7 @@ typedef struct mac_manager_s{
 	mac_nr_args_t		   *args;
 	// initial UE config, before RRC setup (without UE-dedicated)
     phy_cfg_nr_t           default_ue_phy_cfg;
-	mac_pcap               *pcap;
+	mac_pcap               pcap;
 
 	bool                   started;
 	sched_nr               sched;

@@ -167,8 +167,8 @@ OSET_DECLARE(int) om_sess_resource_init(void)
 #define MAX_POD_NUM_OF_PER_SYSTEM   4
 
 	self.listen_queue = oset_ring_queue_create(self.omc_thread_que_size + self.pod_thread_que_size);
-	self.pod_queue = oset_ring_queue_create(self.omc_thread_que_size);
-	self.omc_queue = oset_ring_queue_create(self.pod_thread_que_size);
+	self.pod_queue = oset_ring_queue_create(self.pod_thread_que_size);
+	self.omc_queue = oset_ring_queue_create(self.omc_thread_que_size);
 
     for(id = 0; id < self.worker_thread_num; id++)
     {

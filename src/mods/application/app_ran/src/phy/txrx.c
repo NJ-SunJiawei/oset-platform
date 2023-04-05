@@ -169,7 +169,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		rx_now(&buffer, &timestamp)
 
 		if (gnb_manager_self()->ul_channel) {
-	    channel_run(gnb_manager_self()->ul_channel, buffer.sample_buffer, buffer.sample_buffer, sf_len, timestamp.timestamps[0]);
+	    	channel_run(gnb_manager_self()->ul_channel, buffer.sample_buffer, buffer.sample_buffer, sf_len, timestamp.timestamps[0]);
 		}
 
 		// Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time

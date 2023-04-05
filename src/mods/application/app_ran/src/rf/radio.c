@@ -567,7 +567,7 @@ int rf_init(void)
 	if (strcmp(args->device_name ,"file") || strcmp(rf_manager.device_args_list[0] ,"auto")) {
 	  // regular RF device
 	  for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_manager.nof_device_args; device_idx++) {
-		if (not open_dev(device_idx, args->device_name, rf_manager.device_args_list[device_idx])) {
+		if (!open_dev(device_idx, args->device_name, rf_manager.device_args_list[device_idx])) {
 		  oset_error("Error opening RF device %d", device_idx);
 		  return OSET_ERROR;
 		}
@@ -579,7 +579,7 @@ int rf_init(void)
 		return OSET_ERROR;
 	  }
 	  for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_manager.nof_device_args; device_idx++) {
-		if (not open_file_dev(device_idx,
+		if (!open_file_dev(device_idx,
 						 &args->rx_files[device_idx * rf_manager.nof_channels_x_dev],
 						 &args->tx_files[device_idx * rf_manager.nof_channels_x_dev],
 						 rf_manager.nof_channels_x_dev,
@@ -882,7 +882,7 @@ bool rx_now(rf_buffer_t *buffer, rf_timestamp_t *rxd_time)
   if (ratio > 1) {
     for (uint32_t ch = 0; ch < rf_manager.nof_channels; ch++) {
       if (buffer->sample_buffer[ch] && buffer_rx.sample_buffer[ch]) {//buffer out
-        srsran_resampler_fft_run(&rf_manager.decimators[ch], buffer_rx.sample_buffer[ch], buffer->sample_buffer[ch], buffer_rx.nof_samples;
+        srsran_resampler_fft_run(&rf_manager.decimators[ch], buffer_rx.sample_buffer[ch], buffer->sample_buffer[ch], buffer_rx.nof_samples);
       }
     }
   }

@@ -94,7 +94,7 @@ static void phy_parse_common_config(const phy_cfg_t *cfg)
 static bool init_slot_worker(const slot_worker_args_t *args)
 {
 	// Calculate subframe length
-	phy_manager.slot_worker.sf_len = (uint32_t)(args->srate_hz / 1000.0);//1/(15000*2048)~15symbol*2048FFT
+	phy_manager.slot_worker.sf_len = (uint32_t)(args->srate_hz / 1000.0);//1/(15000*2048)~~~15symbol*2048FFT
 
 	// Copy common configurations
 	phy_manager.slot_worker.cell_index = args->cell_index;
