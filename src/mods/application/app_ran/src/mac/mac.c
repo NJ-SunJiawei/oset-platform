@@ -74,10 +74,10 @@ static int mac_destory(void)
 	oset_hash_destroy(mac_manager.ue_db);
 	oset_pool_final(&mac_manager.ue_nr_mac_pool);
 	if (mac_manager.args->pcap.enable) {
-		oset_apr_mutex_destroy(mac_manager.pcap.base.mutex);
+	  	mac_pcap_close(&mac_manager.pcap);
 		oset_ring_buf_destroy(mac_manager.pcap.base.buf);
 		oset_ring_queue_destroy(mac_manager.pcap.base.queue);
-	  	pcap->close(args.pcap.filename);//???
+		oset_apr_mutex_destroy(mac_manager.pcap.base.mutex);
 	}
 	mac_manager.started = false;
 

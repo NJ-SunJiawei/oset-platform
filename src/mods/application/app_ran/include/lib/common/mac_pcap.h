@@ -26,7 +26,7 @@ typedef struct {
   srsran_rat_t	        rat;
   MAC_Context_Info_t	context;
   mac_nr_context_info_t context_nr;
-  byte_buffer_t	        *pdu;
+  oset_pkbuf_t	        *pdu;//byte_buffer_t
 } pcap_pdu_t;
 
 
@@ -36,6 +36,7 @@ typedef struct {
 	oset_ring_queue_t 			*queue;
 	oset_ring_buf_t             *buf;//static_blocking_queue<pcap_pdu_t, 1024>
 	uint16_t				    ue_id;
+	oset_threadplus_t           *thread;
 	//int 						emergency_handler_id;
 }mac_pcap_base;
 
@@ -47,9 +48,41 @@ typedef struct {
 	char           *filename;
 }mac_pcap;
 
-void mac_pcap_base_enable(mac_pcap *pcap, bool enable_);
-void mac_pcap_base_set_ue_id(mac_pcap *pcap, uint16_t ue_id_);
+void mac_pcap_enable(mac_pcap *pcap, bool enable_);
+void mac_pcap_set_ue_id(mac_pcap *pcap, uint16_t ue_id_);
+void mac_pcap_write_dl_crnti_nr(mac_pcap *pcap, uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti);
+void mac_pcap_write_dl_crnti_nr(mac_pcap *pcap,
+									uint8_t* pdu,
+									uint32_t pdu_len_bytes,
+									uint16_t crnti,
+									uint16_t ue_id,
+									uint8_t  harqid,
+									uint32_t tti);
+void mac_pcap_write_ul_crnti_nr(mac_pcap *pcap, uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti);
+void mac_pcap_write_ul_crnti_nr(mac_pcap *pcap,
+									uint8_t* pdu,
+									uint32_t pdu_len_bytes,
+									uint16_t rnti,
+									uint16_t ue_id,
+									uint8_t  harqid,
+									uint32_t tti);
+void mac_pcap_write_dl_ra_rnti_nr(mac_pcap *pcap,
+										uint8_t* pdu,
+									  uint32_t pdu_len_bytes,
+									  uint16_t rnti,
+									  uint8_t  harqid,
+									  uint32_t tti);
+void mac_pcap_write_dl_bch_nr(mac_pcap *pcap, uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti);
+void mac_pcap_write_dl_pch_nr(mac_pcap *pcap, uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti);
+void mac_pcap_write_dl_si_rnti_nr(mac_pcap *pcap,
+									  uint8_t* pdu,
+									  uint32_t pdu_len_bytes,
+									  uint16_t rnti,
+									  uint8_t  harqid,
+									  uint32_t tti);
+
 uint32_t mac_pcap_open(mac_pcap *pcap, char *filename_, uint32_t ue_id_);
+uint32_t mac_pcap_close(mac_pcap *pcap);
 
 #ifdef __cplusplus
 }

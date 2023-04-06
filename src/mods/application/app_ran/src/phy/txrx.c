@@ -58,7 +58,7 @@ void txrx_stop(void)
 	oset_apr_mutex_lock(phy_manager_self()->mutex);
 	oset_apr_thread_cond_broadcast(phy_manager_self()->cond);
 	oset_apr_mutex_unlock(phy_manager_self()->mutex);
-	oset_threadplus_destroy(task_map_self(TASK_RXTX)->thread);
+	oset_threadplus_destroy(task_map_self(TASK_RXTX)->thread, 5);
 }
 
 void txrx_init(void)

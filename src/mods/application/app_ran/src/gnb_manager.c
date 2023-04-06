@@ -110,9 +110,9 @@ void gnb_layer_tasks_destory(void)
 {
 	phy_destory();
 	rf_destory();
-	oset_threadplus_destroy(task_map_self(TASK_MAC)->thread);
-	oset_threadplus_destroy(task_map_self(TASK_RRC)->thread);
-	oset_threadplus_destroy(task_map_self(TASK_TIMER)->thread);
+	oset_threadplus_destroy(task_map_self(TASK_MAC)->thread, 5);
+	oset_threadplus_destroy(task_map_self(TASK_RRC)->thread, 5);
+	oset_threadplus_destroy(task_map_self(TASK_TIMER)->thread, 5);
 
 }
 
