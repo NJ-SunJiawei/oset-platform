@@ -197,7 +197,7 @@ int main(int argc, const char *const argv[])
          oset_info_tt("%d", i++);
 		 if(i == 1000) i = 0;
 	}
-	oset_thread_destroy(thread);
+	oset_thread_destroy(thread, 5);
 
     oset_socknode_free(node1);
     oset_pkbuf_default_destroy();
