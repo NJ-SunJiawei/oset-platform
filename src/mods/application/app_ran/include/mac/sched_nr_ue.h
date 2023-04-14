@@ -25,7 +25,8 @@ typedef struct {
 }ce_t;
 
 typedef struct {
-   oset_list_t  pending_ces;//srsran::deque<ce_t>
+	base_ue_buffer_manager        base_ue;
+	oset_stl_queue_def(ce_t, ce)  pending_ces;//srsran::deque<ce_t>
 }ue_buffer_manager;
 
 
@@ -70,6 +71,9 @@ typedef struct {
 	ue_buffer_manager buffers;
 }sched_nr_ue;
 
+
+void sched_nr_ue_remove(sched_nr_ue *u);
+sched_nr_ue *sched_nr_ue_add(uint16_t rnti_, uint32_t cc, sched_params_t *sched_cfg_);
 
 
 #ifdef __cplusplus

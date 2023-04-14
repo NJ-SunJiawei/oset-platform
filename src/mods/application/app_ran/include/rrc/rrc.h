@@ -51,7 +51,7 @@ typedef struct rrc_manager_s{
 }rrc_manager_t;
 
 rrc_manager_t *rrc_manager_self(void);
-
+int rrc_read_pdu_bcch_dlsch(uint32_t sib_index, oset_pkbuf_t *buffer);
 void *gnb_rrc_task(oset_threadplus_t *thread, void *data);
 
 #ifdef __cplusplus

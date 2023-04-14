@@ -96,7 +96,7 @@ typedef struct {
 
 /// Structure packing both the sched args and all gNB NR cell configurations
 typedef struct sched_params_s {
-  sched_args_t                         *sched_cfg;
+  sched_args_t                           *sched_cfg;
   cvector_vector_t(cell_config_manager)  cells; //std::vector<cell_config_manager> 
 }sched_params_t;
 

@@ -44,6 +44,8 @@ typedef struct phy_cfg_nr_s {
   uint32_t                  t_offset; ///< n-TimingAdvanceOffset //0
 }phy_cfg_nr_t;
 
+srsran_dci_cfg_nr_t get_dci_cfg(phy_cfg_nr_t *phy_cfg);
+
 #ifdef __cplusplus
 }
 #endif

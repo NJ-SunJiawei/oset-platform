@@ -55,13 +55,13 @@ typedef struct sched_nr_ue_lc_ch_cfg_s {
 
 typedef struct  sched_nr_ue_cfg_s{
   uint32_t                                  maxharq_tx;//=4
-  cvector_vector_t(sched_nr_ue_cc_cfg_t)      carriers;//bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> 
+  cvector_vector_t(sched_nr_ue_cc_cfg_t)    carriers;//bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> 
   phy_cfg_nr_t                              phy_cfg;
-  struct  mac_cell_group_cfg_s              mac_cell_group_cfg;
-  struct  phys_cell_group_cfg_s             phy_cell_group_cfg;
-  struct  sp_cell_cfg_s                     sp_cell_cfg;
-  cvector_vector_t(sched_nr_ue_lc_ch_cfg_t)   lc_ch_to_add;//sched_nr_ue_lc_ch_cfg_t
-  cvector_vector_t(uint32_t)                  lc_ch_to_rem;//uint32_t
+  struct  mac_cell_group_cfg_s              *mac_cell_group_cfg;
+  struct  phys_cell_group_cfg_s             *phy_cell_group_cfg;
+  struct  sp_cell_cfg_s                     *sp_cell_cfg;
+  cvector_vector_t(sched_nr_ue_lc_ch_cfg_t) lc_ch_to_add;//sched_nr_ue_lc_ch_cfg_t
+  cvector_vector_t(uint32_t)                lc_ch_to_rem;//uint32_t
 }sched_nr_ue_cfg_t;
 
 typedef struct  {
@@ -119,7 +119,7 @@ typedef struct rar_info_s {
   uint32_t	 ofdm_symbol_idx;
   uint32_t	 freq_idx;
   uint32_t	 preamble_idx;
-  uint32_t	 ta_cmd;
+  uint32_t	 ta_cmd;//ta time
 }rar_info_t;
 
 typedef struct msg3_grant_s {

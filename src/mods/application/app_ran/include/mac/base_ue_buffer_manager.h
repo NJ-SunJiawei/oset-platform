@@ -37,6 +37,7 @@ typedef struct {
   int              lcg_bsr[MAX_NOF_LCGS];
 }base_ue_buffer_manager;
 
+void base_ue_buffer_manager_init(base_ue_buffer_manager *base_ue, uint16_t rnti_);
 
 #ifdef __cplusplus
 }

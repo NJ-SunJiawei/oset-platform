@@ -42,13 +42,13 @@ typedef struct {
 	mac_sch_pdu_nr	mac_pdu_dl;
 	mac_sch_pdu_nr	mac_pdu_ul;
 
-	byte_buffer_t    *ue_rlc_buffer;
+	byte_buffer_t    *ue_rlc_buffer;//oset_pkbuf_t??
 	byte_buffer_t    *last_msg3; ///< holds UE ID received in Msg3 for ConRes CE
-}ue_nr;
+}ue_nr;//user xontext
 
 ue_nr *ue_nr_add(uint16_t rnti);
-void ue_nr_remove(ue_nr *ue_nr_ct);
-int ue_nr_set_rnti(ue_nr *ue_nr_ct, uint16_t rnti);
+void ue_nr_remove(ue_nr *ue_nr_cxt);
+int ue_nr_set_rnti(ue_nr *ue_nr_cxt, uint16_t rnti);
 ue_nr *ue_nr_find_by_rnti(uint16_t rnti);
 
 #ifdef __cplusplus

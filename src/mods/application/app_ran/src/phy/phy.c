@@ -238,16 +238,16 @@ static int set_common_cfg_from_rrc(common_cfg_t *common_cfg)
 	srsran_cell_t cell = {0};
 	int           ret  = srsran_carrier_to_cell(&common_cfg->carrier, &cell);
 	if (ret < OSET_OK) {
-	oset_error("Converting carrier to cell for PRACH (%d)", ret);
-	return OSET_ERROR;
+		oset_error("Converting carrier to cell for PRACH (%d)", ret);
+		return OSET_ERROR;
 	}
 
 	// Best effort to set up NR-PRACH config reused for NR
 	srsran_prach_cfg_t *prach_cfg           = &common_cfg->prach;
 	uint32_t           lte_nr_prach_offset = (common_cfg->carrier.nof_prb - cell.nof_prb) / 2;
 	if (prach_cfg->freq_offset < lte_nr_prach_offset) {
-	oset_error("prach_cfg.freq_offset=%d is not compatible with LTE", prach_cfg->freq_offset);
-	return OSET_ERROR;
+		oset_error("prach_cfg.freq_offset=%d is not compatible with LTE", prach_cfg->freq_offset);
+		return OSET_ERROR;
 	}
 	prach_cfg->freq_offset -= lte_nr_prach_offset;
 	prach_cfg->is_nr                 = true;
@@ -255,7 +255,7 @@ static int set_common_cfg_from_rrc(common_cfg_t *common_cfg)
 
 	// Set the PRACH configuration
 	prach_worker_init(0, &cell, prach_cfg, phy_manager.worker_args.nof_prach_workers)
-	prach_work_manager_self()->max_prach_offset_us = 1000;
+	prach_work_manager_self(0)->max_prach_offset_us = 1000;
 
 	// Setup SSB sampling rate and scaling
 	srsran_ssb_cfg_t *ssb_cfg = &common_cfg->ssb;
@@ -333,6 +333,10 @@ int phy_init(void)
 int phy_destory(void)
 {
 	int i = -1;
+
+	for (i = 0; i < get_nof_carriers(); i++) {
+		prach_worker_stop(i);
+	}
 
 	txrx_stop();
 

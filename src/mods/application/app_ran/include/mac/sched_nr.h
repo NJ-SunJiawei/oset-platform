@@ -49,14 +49,17 @@ struct ue_cc_event_t {
 }ue_cc_event_t;
 
 typedef struct {
-  oset_apr_mutex_t	   *event_cc_mutex;
-  oset_list_t          next_slot_ue_events, current_slot_ue_events;//srsran::deque<ue_cc_event_t>
+  oset_apr_mutex_t	                   *event_cc_mutex;
+  oset_stl_queue_def(ue_cc_event_t, ue_cc_event)    next_slot_ue_events;
+  oset_stl_queue_def(ue_cc_event_t, ue_cc_event)    current_slot_ue_events;//srsran::deque<ue_cc_event_t>
 }cc_events;
 
 typedef struct {
   oset_apr_mutex_t          *event_mutex;
-  oset_list_t               next_slot_events, current_slot_events;//srsran::deque<event_t>
-  oset_list_t               next_slot_ue_events, current_slot_ue_events;//srsran::deque<ue_event_t>
+  oset_stl_queue_def(event_t, event)       next_slot_events;
+  oset_stl_queue_def(event_t, event)       current_slot_events;//srsran::deque<event_t>
+  oset_stl_queue_def(ue_event_t, ue_event) next_slot_ue_events;
+  oset_stl_queue_def(ue_event_t, ue_event) current_slot_ue_events;//srsran::deque<ue_event_t>
   cvector_vector_t(cc_events) carriers;//std::vector<cc_events>
 }event_manager;
 /*****************************************************/
@@ -80,7 +83,7 @@ typedef struct {
   int                         worker_count;
   cvector_vector_t(cc_worker)   cc_workers; //std::vector<std::unique_ptr<sched_nr_impl::cc_worker> >
   // UE Database
-  OSET_POOL(ue_pool, sched_nr_ue);
+  OSET_POOL(ue_pool, sched_nr_ue);//sched rnti context 
   oset_hash_t			      *ue_db;//static_circular_map<uint16_t, std::unique_ptr<sched_nr_ue>, SRSENB_MAX_UES>
     // Feedback management
   event_manager               pending_events;
@@ -92,7 +95,8 @@ typedef struct {
 
 void sched_nr_init(sched_nr *scheluder);
 void sched_nr_destory(sched_nr *scheluder);
-int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector_t(sched_nr_cell_cfg_t) sche_cells);
+int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector_t(sched_nr_cell_cfg_t) sched_cells);
+int sched_nr_dl_rach_info(sched_nr *scheluder, rar_info_t *rar_info);
 
 #ifdef __cplusplus
 }

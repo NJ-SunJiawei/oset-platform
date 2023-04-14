@@ -47,7 +47,7 @@ typedef struct mac_manager_s{
 	sched_nr               sched;
 	cvector_vector_t(sched_nr_cell_cfg_t) cell_config;//std::vector<sched_nr_cell_cfg_t>
 	// Map of active UEs
-	OSET_POOL(ue_nr_mac_pool, ue_nr);
+	OSET_POOL(ue_nr_mac_pool, ue_nr); //mac rnti user context
 	oset_hash_t            *ue_db;//static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES>
 	uint16_t               ue_counter;
 	cvector_vector_t(sib_info_t) bcch_dlsch_payload; //std::vector<sib_info_t>
@@ -58,9 +58,9 @@ typedef struct mac_manager_s{
 	void                   *rx;
 }mac_manager_t;
 mac_manager_t *mac_manager_self(void);
+int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells);
 
 void *gnb_mac_task(oset_threadplus_t *thread, void *data);
-void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv);
 
 #ifdef __cplusplus
 }

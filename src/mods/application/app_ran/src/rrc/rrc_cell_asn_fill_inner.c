@@ -346,7 +346,7 @@ bool fill_rach_cfg_common_default_inner(srsran_prach_cfg_t *prach_cfg, struct ra
 uint8_t options_nrof_ports[] = {1, 2, 4, 8, 12, 16, 24, 32};
 int8_t options_pwr_ctrl_offset_ss[] = {-3, 0, 3, 6};
 
-bool make_phy_nzp_csi_rs_resource(struct nzp_csi_rs_res_s *asn1_nzp_csi_rs_res,
+static bool make_phy_nzp_csi_rs_resource(struct nzp_csi_rs_res_s *asn1_nzp_csi_rs_res,
                                              srsran_csi_rs_nzp_resource_t *out_csi_rs_nzp_resource)
 {
   srsran_csi_rs_nzp_resource_t csi_rs_nzp_resource = {0};
@@ -513,7 +513,7 @@ bool make_phy_nzp_csi_rs_resource(struct nzp_csi_rs_res_s *asn1_nzp_csi_rs_res,
   return true;
 }
 
-bool make_phy_zp_csi_rs_resource(struct zp_csi_rs_res_s *zp_csi_rs_res,
+static bool make_phy_zp_csi_rs_resource(struct zp_csi_rs_res_s *zp_csi_rs_res,
 								  srsran_csi_rs_zp_resource_t* out_zp_csi_rs_resource)
 {
    srsran_csi_rs_zp_resource_t zp_csi_rs_resource = {0};
@@ -711,6 +711,236 @@ bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_
 
   return true;
 }
+
+
+uint16_t options_csi_report_periodicity_and_offset[] = {4, 5, 8, 10, 16, 20, 40, 80, 160, 320};
+float options_max_code_rate[] = {0.08, 0.15, 0.25, 0.35, 0.45, 0.6, 0.8};
+static bool make_phy_csi_report(csi_report_cfg_s *csi_report_cfg,
+                         		        srsran_csi_hl_report_cfg_t* in_srsran_csi_hl_report_cfg)
+{
+  srsran_csi_hl_report_cfg_t srsran_csi_hl_report_cfg = {0};
+  switch (csi_report_cfg->report_cfg_type.type_) {
+    case (enum report_cfg_type_e_)nulltype:
+      srsran_csi_hl_report_cfg.type = SRSRAN_CSI_REPORT_TYPE_NONE;
+      break;
+    case (enum report_cfg_type_e_)periodic:
+      srsran_csi_hl_report_cfg.type = SRSRAN_CSI_REPORT_TYPE_PERIODIC;
+      break;
+    case (enum report_cfg_type_e_)aperiodic:
+      srsran_csi_hl_report_cfg.type = SRSRAN_CSI_REPORT_TYPE_APERIODIC;
+      break;
+    case (enum report_cfg_type_e_)semi_persistent_on_pucch:
+      srsran_csi_hl_report_cfg.type = SRSRAN_CSI_REPORT_TYPE_SEMI_PERSISTENT_ON_PUCCH;
+      break;
+    case (enum report_cfg_type_e_)semi_persistent_on_pusch:
+      srsran_csi_hl_report_cfg.type = SRSRAN_CSI_REPORT_TYPE_SEMI_PERSISTENT_ON_PUSCH;
+      break;
+    default:
+      oset_error("Invalid option for report_cfg_type %d", csi_report_cfg->report_cfg_type.type_);
+      return false;
+  }
+
+  if (srsran_csi_hl_report_cfg.type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
+    struct periodic_s_ *csi_periodic = csi_report_cfg->report_cfg_type.c.periodic;
+    srsran_csi_hl_report_cfg.periodic.period = options_csi_report_periodicity_and_offset[csi_periodic->report_slot_cfg.type_];
+    switch (csi_periodic->report_slot_cfg.type_) {
+      case (enum csi_report_periodicity_and_offset_e_)slots4:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic->report_slot_cfg.c;
+        break;
+      case (enum csi_report_periodicity_and_offset_e_)slots5:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic->report_slot_cfg.c;
+        break;
+      case (enum csi_report_periodicity_and_offset_e_)slots8:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic->report_slot_cfg.c;
+        break;
+      case (enum csi_report_periodicity_and_offset_e_)slots10:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic->report_slot_cfg.c;
+        break;
+      case (enum csi_report_periodicity_and_offset_e_)slots16:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic->report_slot_cfg.c;
+        break;
+      case (enum csi_report_periodicity_and_offset_e_)slots20:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic->report_slot_cfg.c;
+        break;
+      case (enum csi_report_periodicity_and_offset_e_)slots40:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic->report_slot_cfg.c;
+        break;
+      case (enum csi_report_periodicity_and_offset_e_)slots80:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic->report_slot_cfg.c;
+        break;
+      case (enum csi_report_periodicity_and_offset_e_)slots160:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic->report_slot_cfg.c;
+        break;
+      case (enum csi_report_periodicity_and_offset_e_)slots320:
+        srsran_csi_hl_report_cfg.periodic.offset = csi_periodic->report_slot_cfg.c;
+        break;
+      default:
+        oset_error("Invalid option for report_slot_cfg %d", csi_periodic->report_slot_cfg.type_);
+        return false;
+    }
+  }
+
+  srsran_csi_hl_report_cfg.channel_meas_id = csi_report_cfg->res_for_ch_meas;
+
+  srsran_csi_hl_report_cfg.interf_meas_present = csi_report_cfg->csi_im_res_for_interference_present;
+  srsran_csi_hl_report_cfg.interf_meas_id      = csi_report_cfg->csi_im_res_for_interference;
+
+  switch (csi_report_cfg->report_quant.type_) {
+    case (enum report_quant_e_)none:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_NONE;
+      break;
+    case (enum report_quant_e_)cri_ri_pmi_cqi:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI;
+      break;
+    case (enum report_quant_e_)cri_ri_i1:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_I1;
+      break;
+    case (enum report_quant_e_)cri_ri_i1_cqi:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_I1_CQI;
+      break;
+    case (enum report_quant_e_)cri_ri_cqi:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_CQI;
+      break;
+    case (enum report_quant_e_)cri_rsrp:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_CRI_RSRP;
+      break;
+    case (enum report_quant_e_)ssb_idx_rsrp:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_SSB_INDEX_RSRP;
+      break;
+    case (enum report_quant_e_)cri_ri_li_pmi_cqi:
+      srsran_csi_hl_report_cfg.quantity = SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_LI_PMI_CQI;
+      break;
+    default:
+      oset_error("Invalid option for report_quant %d", csi_report_cfg->report_quant.type_);
+      return false;
+  }
+
+  if (! csi_report_cfg->report_freq_cfg_present) {
+    oset_error("report_freq_cfg_present option not present");
+    return false;
+  }
+
+  if (!csi_report_cfg->report_freq_cfg.cqi_format_ind_present) {
+    oset_error("cqi_format_ind option not present");
+    return false;
+  }
+
+  switch (csi_report_cfg->report_freq_cfg.cqi_format_ind) {
+    case (enum cqi_format_ind_e_)wideband_cqi:
+      srsran_csi_hl_report_cfg.freq_cfg = SRSRAN_CSI_REPORT_FREQ_WIDEBAND;
+      break;
+    case (enum cqi_format_ind_e_)subband_cqi:
+      srsran_csi_hl_report_cfg.freq_cfg = SRSRAN_CSI_REPORT_FREQ_SUBBAND;
+      break;
+    default:
+      oset_error("Invalid option for cqi_format_ind %s",
+                        csi_report_cfg->report_freq_cfg.cqi_format_ind);
+      return false;
+
+      break;
+  }
+
+  if (! csi_report_cfg.cqi_table_present) {
+    oset_error("cqi_table_present not present");
+    return false;
+  }
+
+  switch (csi_report_cfg->cqi_table) {
+    case (enum cqi_table_e_)table1:
+      srsran_csi_hl_report_cfg.cqi_table = SRSRAN_CSI_CQI_TABLE_1;
+      break;
+    case (enum cqi_table_e_)table2:
+      srsran_csi_hl_report_cfg.cqi_table = SRSRAN_CSI_CQI_TABLE_2;
+      break;
+    case (enum cqi_table_e_)table3:
+      srsran_csi_hl_report_cfg.cqi_table = SRSRAN_CSI_CQI_TABLE_3;
+      break;
+    default:
+      oset_error("Invalid option for cqi_table %d", csi_report_cfg->cqi_table);
+      return false;
+  }
+
+  *in_srsran_csi_hl_report_cfg = srsran_csi_hl_report_cfg;
+  return true;
+}
+
+static bool make_phy_res_config(const pucch_res_s     	   *pucch_res,
+						 uint32_t					format_2_max_code_rate,
+						 srsran_pucch_nr_resource_t *in_srsran_pucch_nr_resource)
+{
+	srsran_pucch_nr_resource_t srsran_pucch_nr_resource = {0};
+	srsran_pucch_nr_resource.starting_prb 			  = pucch_res->start_prb;
+	srsran_pucch_nr_resource.intra_slot_hopping		  = pucch_res->intra_slot_freq_hop_present;
+	if (pucch_res->second_hop_prb_present) {
+		srsran_pucch_nr_resource.second_hop_prb = pucch_res->second_hop_prb;
+	}
+	switch (pucch_res->format.type_) {
+	case (enum pucch_format_types)format0:
+	  srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_0;
+	  break;
+	case (enum pucch_format_types)format1:
+	  srsran_pucch_nr_resource.format				= SRSRAN_PUCCH_NR_FORMAT_1;
+	  srsran_pucch_nr_resource.initial_cyclic_shift = pucch_res->format.c.f1.init_cyclic_shift;
+	  srsran_pucch_nr_resource.nof_symbols			= pucch_res->format.c.f1.nrof_symbols;
+	  srsran_pucch_nr_resource.start_symbol_idx 	= pucch_res->format.c.f1.start_symbol_idx;
+	  srsran_pucch_nr_resource.time_domain_occ		= pucch_res->format.c.f1.time_domain_occ;
+	  break;
+	case (enum pucch_format_types)format2:
+	  srsran_pucch_nr_resource.format			= SRSRAN_PUCCH_NR_FORMAT_2;
+	  srsran_pucch_nr_resource.nof_symbols		= pucch_res->format.c.f2.nrof_symbols;
+	  srsran_pucch_nr_resource.start_symbol_idx = pucch_res->format.c.f2.start_symbol_idx;
+	  srsran_pucch_nr_resource.nof_prb			= pucch_res->format.c.f2.nrof_prbs;
+	  break;
+	case (enum pucch_format_types)format3:
+	  srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_3;
+	  oset_error("SRSRAN_PUCCH_NR_FORMAT_3 conversion not supported");
+	  return false;
+	case (enum pucch_format_types)format4:
+	  srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_4;
+	  oset_error("SRSRAN_PUCCH_NR_FORMAT_4 conversion not supported");
+	  return false;
+	default:
+	  srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_ERROR;
+	  return false;
+	}
+	srsran_pucch_nr_resource.max_code_rate = format_2_max_code_rate;
+	*in_srsran_pucch_nr_resource			 = srsran_pucch_nr_resource;
+	return true;
+}
+
+
+bool make_csi_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_csi_hl_cfg_t* csi_hl)
+{
+	if (serv_cell->csi_meas_cfg_present && serv_cell->csi_meas_cfg.type_ == (enum setup_release_e)setup) {
+		struct csi_meas_cfg_s *setup = &serv_cell->csi_meas_cfg.c;
+
+		// Configure CSI-Report
+		for (uint32_t i = 0; i < cvector_size(setup->csi_report_cfg_to_add_mod_list); ++i) {
+			 struct csi_report_cfg_s *csi_rep = setup->csi_report_cfg_to_add_mod_list[i];
+			if (! make_phy_csi_report(csi_rep, &csi_hl->reports[i])) {
+				return false;
+			}
+			if (csi_rep->report_cfg_type.type_ == (enum report_cfg_type_e_)periodic) {
+				struct pucch_cfg_s *pucch_setup = serv_cell.ul_cfg.init_ul_bwp.pucch_cfg.c;
+				srsran_pucch_nr_resource_t *resource    = &csi_hl->reports[i].periodic.resource;
+				uint32_t    pucch_resource_id           = csi_rep->report_cfg_type.c.periodic.pucch_csi_res_list[0].pucch_res;
+				struct pucch_res_s *asn1_resource               = pucch_setup->res_to_add_mod_list[pucch_resource_id];
+				uint32_t    format2_rate                = 0;
+				if (pucch_setup->format2_present &&
+					pucch_setup->format2.type_ == (enum setup_release_e)setup &&
+					pucch_setup->format2.c.max_code_rate_present) {
+					format2_rate = options_max_code_rate[pucch_setup->format2.c.max_code_rate];
+				}
+				if (! make_phy_res_config(asn1_resource, format2_rate, resource)) {
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////

@@ -8,11 +8,13 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "lib/common/phy_cfg_nr_default.h"
-#include "lib/mac/mac_util.h"
+//#include "lib/mac/mac_util.h"
 #include "lib/mac/sched_nr_util.h"
 #include "rrc/rrc_cell_asn_fill.h"
 #include "rrc/rrc_cell_asn_fill_inner.h"
 #include "rrc/rrc.h"
+#include "phy/phy.h"//tochange
+#include "mac/mac.h"//tochange
 
 
 #undef  OSET_LOG2_DOMAIN
@@ -82,7 +84,7 @@ int32_t rrc_generate_sibs(uint32_t cc)
 
 void rrc_config_phy(uint32_t cc)
 {
-	common_cfg_t *common_cfg = phy_manager_self()->common_cfg;
+	common_cfg_t *common_cfg = &phy_manager_self()->common_cfg;
 	oset_assert(common_cfg);
 	rrc_cell_cfg_nr_t *rrc_cell_cfg = &rrc_manager.cfg.cell_list[cc];
 	oset_assert(rrc_cell_cfg);

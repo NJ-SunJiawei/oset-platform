@@ -97,10 +97,10 @@ void sched_nr_destory(sched_nr *scheluder)
 	oset_hash_destroy(scheluder->ue_db);
 }
 
-int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector_t(sched_nr_cell_cfg_t) sche_cells)
+int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector_t(sched_nr_cell_cfg_t) sched_cells)
 {
 	uint32_t cc = 0;
-	uint32 cell_size = cvector_size(sche_cells);
+	uint32 cell_size = cvector_size(sched_cells);
 
 	scheluder->cfg.sched_cfg = sched_cfg;
 
@@ -108,7 +108,7 @@ int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector
 	cvector_reserve(scheluder->cfg.cells, cell_size);
 	for (cc = 0; cc < cvector_size(scheluder->cfg.cells); ++cc) {
 		cell_config_manager *cell_cof_manager = &scheluder->cfg.cells[cc];
-		cell_config_manager_init(cell_cof_manager, cc, &sche_cells[cc], sched_cfg);
+		cell_config_manager_init(cell_cof_manager, cc, &sched_cells[cc], sched_cfg);
 	}
 
 	//调度事件管理模块
@@ -136,26 +136,25 @@ int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector
 }
 
 
-int dl_rach_info(rar_info_t *rar_info)
+int sched_nr_dl_rach_info(sched_nr *scheluder, rar_info_t *rar_info)
 {
-	ue *u = NULL; 
+	sched_nr_ue *u = sched_nr_ue_add(rar_info.temp_crnti, rar_info.cc, scheluder->cfg);
 
-	// create user object outside of sched main thread
-	oset_pool_alloc(&mac_manager_self()->sched.ue_pool, &u);
+
 	unique_ue_ptr u =
 	  srsran::make_pool_obj_with_fallback<ue>(*ue_pool, rar_info.temp_crnti, rar_info.temp_crnti, rar_info.cc, cfg);
 
 	// enqueue UE creation event + RACH handling
 	auto add_ue = [this, rar_info, u = std::move(u)](event_manager::logger& ev_logger) mutable {
-	uint16_t rnti = rar_info.temp_crnti;
-	if (add_ue_impl(rnti, std::move(u)) == SRSRAN_SUCCESS) {
-	  ev_logger.push("dl_rach_info(temp c-rnti=0x{:x})", rar_info.temp_crnti);
-	  // RACH is handled only once the UE object is created and inserted in the ue_db
-	  uint32_t cc = rar_info.cc;
-	  cc_workers[cc]->dl_rach_info(rar_info);//void cc_worker::dl_rach_info(const sched_nr_interface::rar_info_t& rar_info)
-	} else {
-	  logger->warning("Failed to create UE object with rnti=0x%x", rar_info.temp_crnti);
-	}
+		uint16_t rnti = rar_info.temp_crnti;
+		if (add_ue_impl(rnti, std::move(u)) == SRSRAN_SUCCESS) {
+		  ev_logger.push("dl_rach_info(temp c-rnti=0x{:x})", rar_info.temp_crnti);
+		  // RACH is handled only once the UE object is created and inserted in the ue_db
+		  uint32_t cc = rar_info.cc;
+		  cc_workers[cc]->dl_rach_info(rar_info);//void cc_worker::dl_rach_info(const sched_nr_interface::rar_info_t& rar_info)
+		} else {
+		  logger->warning("Failed to create UE object with rnti=0x%x", rar_info.temp_crnti);
+		}
 	};
 	pending_events->enqueue_event("dl_rach_info", std::move(add_ue));
 	return SRSRAN_SUCCESS;

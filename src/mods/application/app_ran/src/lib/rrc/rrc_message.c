@@ -8,6 +8,10 @@
 ************************************************************************/
 #include "lib/rrc/rrc_message_list.h"
 
+#undef  OSET_LOG2_DOMAIN
+#define OSET_LOG2_DOMAIN   "app-gnb-rrc-msg"
+
+
 oset_pkbuf_t *oset_rrc_encode(const asn_TYPE_descriptor_t *td, void *message, ASN_STRUCT_FREE_FLAG free_flag)
 {
     oset_pkbuf_t *pkbuf = NULL;

@@ -7,7 +7,8 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-#include "lib/rrc/rrc_util.h"
+//#include "lib/rrc/rrc_util.h"
+#include "rrc/rrc.h"//tochange
 #include "lib/mac/sched_nr_util.h"
 #include "mac/mac.h"
 
@@ -88,10 +89,10 @@ static int mac_destory(void)
 	return OSET_OK;
 }
 
-int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sche_cells)
+int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells)
 {
-	mac_manager.cell_config = sche_cells;
-	sched_nr_config(&mac_manager.sched, &mac_manager.args->sched_cfg, sche_cells);
+	mac_manager.cell_config = sched_cells;
+	sched_nr_config(&mac_manager.sched, &mac_manager.args->sched_cfg, sched_cells);
 	cvector_reserve(mac_manager.detected_rachs, cvector_size(mac_manager.cell_config));
 
     //cell 0
@@ -140,42 +141,28 @@ static uint16_t mac_alloc_ue(uint32_t enb_cc_idx)
 	uint16_t rnti        = SRSRAN_INVALID_RNTI;
 
 	do {
-	// Assign new RNTI
-	rnti = (uint16_t)FIRST_RNTI + (mac_manager.ue_counter++) % 60000);
+		// Assign new RNTI
+		//oset_apr_mutex_lock(mac_manager.mutex);
+		rnti = (uint16_t)FIRST_RNTI + (mac_manager.ue_counter++) % 60000);
+		//oset_apr_mutex_unlock(mac_manager.mutex);
 
-	// Pre-check if rnti is valid
-	{
-	  //srsran::rwlock_read_guard read_lock(rwmutex);
-	  if (! is_rnti_valid(rnti)) {
-	    continue;
-	  }
-	}
+		// Pre-check if rnti is valid
+		{
+		  //srsran::rwlock_read_guard read_lock(rwmutex);
+		  if (! is_rnti_valid(rnti)) {
+		    continue;
+		  }
+		}
 
-	// Allocate and initialize UE object
-	inserted_ue = ue_nr_add(rnti);
-	if(NULL == inserted_ue){
-	    oset_error("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
-	}
+		// Allocate and initialize UE object
+		inserted_ue = ue_nr_add(rnti);
+		if(NULL == inserted_ue){
+		    oset_error("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
+		}
 
 	} while (inserted_ue == NULL);
 
 	return rnti;
-}
-
-
-void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
-{
-	rach_info_t rach_info = {0};
-	rach_info.enb_cc_idx	= enb_cc_idx;
-	rach_info.slot_index	= tti;
-	rach_info.preamble		= preamble_idx;
-	rach_info.time_adv		= time_adv;
-
-	msg_def_t *msg_ptr = NULL;
-	msg_ptr = task_alloc_msg (TASK_MAC, RACH_MAC_DETECTED_INFO);
-	RQUE_MSG_TTI(msg_ptr) = tti;
-	RACH_MAC_DETECTED_INFO(msg_ptr) = rach_info;
-	task_send_msg(TASK_MAC, msg_ptr);
 }
 
 static void mac_handle_rach_info(rach_info_t *rach_info)
@@ -185,7 +172,9 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 	rnti = mac_alloc_ue(rach_info->enb_cc_idx);//alloc rnti
 	{
 		//srsran::rwlock_write_guard lock(rwmutex);
+		//oset_apr_mutex_lock(mac_manager.mutex);
 		++mac_manager.detected_rachs[rach_info->enb_cc_idx];
+		//oset_apr_mutex_unlock(mac_manager.mutex);
 	}
 	// Trigger scheduler RACH
 	rar_info_t rar_info = {0};
@@ -195,7 +184,7 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 	rar_info.ta_cmd		 = rach_info->time_adv;
 	slot_point_init(&rar_info.prach_slot, NUMEROLOGY_IDX, rach_info->slot_index);
 
-	dl_rach_info(&rar_info); //int sched_nr::dl_rach_info(const rar_info_t& rar_info)//todo
+	sched_nr_dl_rach_info(&mac_manager.sched, &rar_info); //int sched_nr::dl_rach_info(const rar_info_t& rar_info)//todo
 	rrc->add_user(rnti, rach_info->enb_cc_idx);//todo
 
 	oset_info("RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
@@ -218,7 +207,7 @@ static void gnb_mac_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 			break;
 		
 		default:
-			oset_error("Received unhandled message: %d:%s",  RQUE_MSG_ID(msg_p), RQUE_MSG_NAME(msg_p));
+			oset_error("Received unknown message: %d:%s",  RQUE_MSG_ID(msg_p), RQUE_MSG_NAME(msg_p));
 			break;
 	}
 }

@@ -2757,9 +2757,10 @@ struct pucch_format4_s {
   uint8_t    start_symbol_idx;
 };
 
+enum pucch_format_types { format0, format1, format2, format3, format4, nulltype };
 
 struct format_c_ {
-  enum types { format0, format1, format2, format3, format4, nulltype }	  type_;
+  enum pucch_format_types type_;
   union{struct pucch_format0_s f0; struct pucch_format1_s f1; struct pucch_format2_s f2; struct pucch_format3_s f3; struct  pucch_format4_s f4;} c;//choice_buffer_t
 };
 

@@ -13,7 +13,7 @@
 #include "oset-core.h"
 #include "lib/srsran/srsran.h"
 
-#define sf_buffer_sz  128 * 1024
+#define sf_buffer_sz  64 * 2048
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,7 +41,7 @@ typedef struct{
 	uint32_t		   sf_cnt;
 	uint32_t		   nof_workers;
 }prach_worker_manager_t;
-prach_worker_manager_t *prach_work_manager_self(void);
+prach_worker_manager_t *prach_work_manager_self(uint32_t		   cc_idx);
 
 int prach_worker_init(uint32_t		   cc_idx,
                              const srsran_cell_t *cell_,
