@@ -226,12 +226,13 @@ void rrc_config_mac(uint32_t cc)
 		}
 	}
 
-	// Configure MAC/scheduler
-	mac_cell_cfg(sched_cells_cfg);
-
 	// Make default UE PHY config object
 	rrc_manager.cell_ctxt->default_phy_ue_cfg_nr = get_common_ue_phy_cfg(&cell);
+
 	cvector_push_back(sched_cells_cfg, cell);
+
+	// Configure MAC/scheduler
+	mac_cell_cfg(sched_cells_cfg);
 }
 
 static int rrc_init(void)

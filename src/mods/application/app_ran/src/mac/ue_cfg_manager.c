@@ -59,23 +59,22 @@ void ue_carrier_params_init(ue_carrier_params_t *param, uint16_t rnti_, bwp_para
 	param->cfg_ = uecfg_;
 	param->bwp_cfg = bwp_cfg_;
 	param->cached_dci_cfg = get_dci_cfg(&uecfg_->phy_cfg);
+	memset(param->ss_id_to_cce_idx, 0, SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE*sizeof(uint32_t))
 
-
-
-
-	
-	std::fill(ss_id_to_cce_idx.begin(), ss_id_to_cce_idx.end(), SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE);
-	const auto& pdcch        = phy().pdcch;
-	auto        ss_view      = srsran::make_optional_span(pdcch.search_space, pdcch.search_space_present);
-	auto        coreset_view = srsran::make_optional_span(pdcch.coreset, pdcch.coreset_present);
-	for (const auto& ss : ss_view) {
-	srsran_assert(coreset_view.contains(ss.coreset_id),
-	              "Invalid mapping search space id=%d to coreset id=%d",
-	              ss.id,
-	              ss.coreset_id);
-	cce_positions_list.emplace_back();
-	get_dci_locs(coreset_view[ss.coreset_id], ss, rnti, cce_positions_list.back());
-	ss_id_to_cce_idx[ss.id] = cce_positions_list.size() - 1;
+	srsran_pdcch_cfg_nr_t *pdcch  = &uecfg_->phy_cfg.pdcch;
+	for (int i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++i) {
+		if(pdcch->search_space_present[i]){
+			uint32_t coreset_idx = pdcch->search_space[i].coreset_id;
+			uint32_t ss_id = pdcch->search_space[i].id;
+			ASSERT_IF_NOT(pdcch.coreset_present[coreset_idx],
+			              "Invalid mapping search space id=%d to coreset id=%d",
+			              ss_id,
+			              coreset_idx);
+			bwp_cce_pos_list bwp_cce_pos_lt = {0};
+			get_dci_locs(pdcch->coreset[coreset_idx], pdcch->search_space[i], rnti_, bwp_cce_pos_lt);
+			cvector_push_back(param->cce_positions_list, bwp_cce_pos_lt);
+			param->ss_id_to_cce_idx[ss_id] = cvector_size(param->cce_positions_list) - 1;				
+		}
 	}
 }
 

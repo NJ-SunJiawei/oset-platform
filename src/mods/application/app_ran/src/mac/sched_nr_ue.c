@@ -22,6 +22,13 @@ static void pdu_builder_init(pdu_builder        *pdu_builders, uint32_t cc_, ue_
 
 
 //////////////////////////////////////////ue_carrier////////////////////////////////////////////
+static void ue_carrier_destory(ue_carrier *carrier)
+{
+	cvector_free(carrier->bwp_cfg.cce_positions_list);
+	oset_free(carrier);
+}
+
+
 static ue_carrier* ue_carrier_init(sched_nr_ue       *u, uint32_t cc)
 {
 	osset_assert(u);
@@ -41,6 +48,14 @@ static ue_carrier* ue_carrier_init(sched_nr_ue       *u, uint32_t cc)
 
 
 //////////////////////////////////////////sched_nr_ue////////////////////////////////////////////
+static void free_rach_ue_cfg_helper(sched_nr_ue_cfg_t *uecfg)
+{
+	cvector_free(uecfg->carriers);
+	cvector_free(uecfg->lc_ch_to_add);
+	cvector_free(uecfg->lc_ch_to_rem);
+	oset_free(uecfg);
+}
+
 static sched_nr_ue_cfg_t* get_rach_ue_cfg_helper(uint32_t cc, sched_params_t *sched_params)
 {
 	sched_nr_ue_cfg_t *uecfg = oset_malloc(sizeof(sched_nr_ue_cfg_t));
@@ -50,14 +65,6 @@ static sched_nr_ue_cfg_t* get_rach_ue_cfg_helper(uint32_t cc, sched_params_t *sc
 	uecfg->carriers[0].cc     = cc;
 	uecfg->phy_cfg            = sched_params->cells[cc].default_ue_phy_cfg;
 	return uecfg;
-}
-
-static void free_rach_ue_cfg_helper(sched_nr_ue_cfg_t *uecfg)
-{
-	cvector_free(uecfg->carriers);
-	cvector_free(uecfg->lc_ch_to_add);
-	cvector_free(uecfg->lc_ch_to_rem);
-	oset_free(uecfg);
 }
 
 static void sched_nr_ue_set_cfg(sched_nr_ue *u, sched_nr_ue_cfg_t *cfg)
@@ -85,7 +92,7 @@ void sched_nr_ue_remove(sched_nr_ue *u)
 	//todo
 	sched_nr_ue_cc_cfg_t *ue_cc_cfg = NULL;
 	cvector_for_each_in(ue_cc_cfg, u->ue_cfg.carriers){
-		oset_free(u->carriers[ue_cc_cfg->cc]);
+		ue_carrier_destory(u->carriers[ue_cc_cfg->cc]);
 	}
 	cvector_free(u->ue_cfg.carriers);
 }

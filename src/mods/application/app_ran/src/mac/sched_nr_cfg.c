@@ -13,6 +13,21 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-cfg"
 
+void get_dci_locs(srsran_coreset_t      coreset,
+                      srsran_search_space_t search_space,
+                      uint16_t             rnti,
+                      pdcch_cce_pos_list  (*cce_locs)[MAX_NOF_AGGR_LEVELS])
+{
+	for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
+		for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
+		  uint32_t n = srsran_pdcch_nr_locations_coreset(coreset, search_space, rnti, agg_idx, sl, cce_locs[sl][agg_idx].array);
+		  cce_locs[sl][agg_idx].array_index = n;
+		}
+	}
+}
+
+
+
 //bwp_cfg from rrc configure
 static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_bwp_cfg_t *bwp_cfg)
 {
@@ -25,7 +40,7 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 	bwp_rb_bitmap_init(&cell_bwp->cached_empty_prb_mask, bwp_cfg->rb_width, bwp_cfg->start_rb, bwp_cfg->pdsch.rbg_size_cfg_1);
 
 	ASSERT_IF_NOT(bwp_cfg->pdcch.ra_search_space_present, "BWPs without RA search space not supported");
-	const uint32_t ra_coreset_id = bwp_cfg->pdcch.ra_search_space.coreset_id;
+	const uint32_t ra_coreset_id = bwp_cfg->pdcch.ra_search_space.coreset_id; //coreset_id 0
 
 	cell_bwp->P     = get_P(bwp_cfg->rb_width, bwp_cfg->pdsch.rbg_size_cfg_1);
 	cell_bwp->N_rbg = get_nof_rbgs(bwp_cfg->rb_width, bwp_cfg->start_rb, bwp_cfg->pdsch.rbg_size_cfg_1);

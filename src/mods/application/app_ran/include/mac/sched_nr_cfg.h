@@ -28,8 +28,8 @@ typedef struct{
 }pdcch_cce_pos_list;//bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
 
 //typedef cvector_vector_t(uint32_t) pdcch_cce_pos_list;
-typedef pdcch_cce_pos_list cce_pos_list_tmp[MAX_NOF_AGGR_LEVELS];
-typedef cce_pos_list_tmp bwp_cce_pos_list[SRSRAN_NOF_SF_X_FRAME];//using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
+typedef pdcch_cce_pos_list bwp_cce_pos_list[SRSRAN_NOF_SF_X_FRAME][MAX_NOF_AGGR_LEVELS];
+//using bwp_cce_pos_list   = std::array<std::array<pdcch_cce_pos_list, MAX_NOF_AGGR_LEVELS>, SRSRAN_NOF_SF_X_FRAME>;
 
 
 /// Table specifying if a slot has DL or UL enabled
@@ -62,7 +62,7 @@ typedef struct bwp_params_s {
   sched_nr_bwp_cfg_t   cfg;
   cell_config_manager  *cell_cfg;
   sched_args_t         *sched_cfg;
-  sched_nr_bwp_cfg_t   bwp_cfg;
+  sched_nr_bwp_cfg_t   bwp_cfg;//???
   // derived params
   uint32_t              P;
   uint32_t              N_rbg;
@@ -99,6 +99,12 @@ typedef struct sched_params_s {
   sched_args_t                           *sched_cfg;
   cvector_vector_t(cell_config_manager)  cells; //std::vector<cell_config_manager> 
 }sched_params_t;
+
+
+void get_dci_locs(srsran_coreset_t      coreset,
+                      srsran_search_space_t search_space,
+                      uint16_t             rnti,
+                      pdcch_cce_pos_list  (*cce_locs)[MAX_NOF_AGGR_LEVELS]);
 
 void cell_config_manager_init(cell_config_manager *cell_cof_manager,
 										uint32_t cc_,
