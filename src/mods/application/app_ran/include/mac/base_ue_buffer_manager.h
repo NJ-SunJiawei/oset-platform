@@ -38,6 +38,7 @@ typedef struct {
 }base_ue_buffer_manager;
 
 void base_ue_buffer_manager_init(base_ue_buffer_manager *base_ue, uint16_t rnti_);
+void base_ue_buffer_manager_config_lcids(base_ue_buffer_manager *base_ue, mac_lc_ch_cfg_t bearer_cfg_list[SCHED_NR_MAX_LCID]);
 
 #ifdef __cplusplus
 }

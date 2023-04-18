@@ -18,13 +18,15 @@
 extern "C" {
 #endif
 
-typedef int (*event_callback)(void *data);
-typedef int (*ue_event_callback)(void *data);
-typedef int (*ue_cc_event_callback)(void *data);
+typedef int (*event_callback)(int argc, void **argv);
+typedef int (*ue_event_callback)(int argc, void **argv);
+typedef int (*ue_cc_event_callback)(int argc, void **argv);
 
 typedef struct {
   char            *event_name;
   event_callback  callback;
+  int             argc;
+  void            *argv[10];
   //void (*callback)(void *)
 }event_t;
 
@@ -91,6 +93,7 @@ typedef struct {
   ue_metrics_manager          metrics_handler;
 }sched_nr;
 
+void dl_rach_info_callback(int argc, void **argv);
 
 
 void sched_nr_init(sched_nr *scheluder);

@@ -1489,9 +1489,9 @@ struct freq_info_ul_sib_s {
   bool                          absolute_freq_point_a_present;
   bool                          p_max_present;
   bool                          freq_shift7p5khz_present;
-  struct nr_multi_band_info_s   freq_band_list;
+  cvector_vector_t(struct nr_multi_band_info_s)   freq_band_list;
   uint32_t                      absolute_freq_point_a;
-  struct scs_specific_carrier_s scs_specific_carrier_list[5];//???5
+  cvector_vector_t(struct scs_specific_carrier_s) scs_specific_carrier_list;//???5
   int8_t                        p_max;//-30
 };
 

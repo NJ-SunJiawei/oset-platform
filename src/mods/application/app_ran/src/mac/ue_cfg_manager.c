@@ -16,10 +16,12 @@
 
 void ue_cfg_manager_init(ue_cfg_manager *ue_cfg, uint32_t enb_cc_idx)
 {
-	cvector_reserve(ue_cfg->carriers, 1);//SCHED_NR_MAX_CARRIERS
 	ue_cfg->maxharq_tx = 4;
-	ue_cfg->carriers[enb_cc_idx].active = true;
-	ue_cfg->carriers[enb_cc_idx].cc     = enb_cc_idx;
+	//cvector_reserve(ue_cfg->carriers, 1);//SCHED_NR_MAX_CARRIERS
+	sched_nr_ue_cc_cfg_t carrier = {0};
+	carrier.active = true;
+	carrier.cc     = enb_cc_idx;
+	cvector_push_back(ue_cfg->carriers, carrier)
 	ue_cfg->ue_bearers[0].direction     = (direction_t)BOTH;
 }
 

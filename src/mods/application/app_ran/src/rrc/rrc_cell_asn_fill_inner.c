@@ -994,6 +994,7 @@ void fill_ul_cfg_common_sib_inner(rrc_cell_cfg_nr_t *cell_cfg, struct ul_cfg_com
 	band_helper_t *band_helper = gnb_manager_self()->band_helper;
 
 	cvector_reserve(out->freq_info_ul.freq_band_list, 1);
+	cvector_set_size(out->freq_info_ul.freq_band_list, 1);
 	out->freq_info_ul.freq_band_list[0].freq_band_ind_nr_present = true;
 	out->freq_info_ul.freq_band_list[0].freq_band_ind_nr         = cell_cfg->band;
 
@@ -1001,6 +1002,7 @@ void fill_ul_cfg_common_sib_inner(rrc_cell_cfg_nr_t *cell_cfg, struct ul_cfg_com
 	out->freq_info_ul.absolute_freq_point_a =  get_abs_freq_point_a_arfcn_2c(band_helper, cell_cfg->phy_cell.carrier.nof_prb, cell_cfg->ul_arfcn);
 
 	cvector_reserve(out->freq_info_ul.scs_specific_carrier_list, 1);
+	cvector_set_size(out->freq_info_ul.scs_specific_carrier_list, 1);
 	out->freq_info_ul.scs_specific_carrier_list[0].offset_to_carrier = cell_cfg->phy_cell.carrier.offset_to_carrier;
 	out->freq_info_ul.scs_specific_carrier_list[0].subcarrier_spacing = cell_cfg->phy_cell.carrier.scs;
 	out->freq_info_ul.scs_specific_carrier_list[0].carrier_bw = cell_cfg->phy_cell.carrier.nof_prb;
@@ -1020,6 +1022,7 @@ void fill_ul_cfg_common_sib_inner(rrc_cell_cfg_nr_t *cell_cfg, struct ul_cfg_com
 	struct pusch_cfg_common_s *pusch         = &out->init_ul_bwp.pusch_cfg_common.c;
 
 	cvector_reserve(pusch->pusch_time_domain_alloc_list, 1);
+	cvector_set_size(pusch->pusch_time_domain_alloc_list, 1);
 	pusch->pusch_time_domain_alloc_list[0].k2_present           = true
 	pusch->pusch_time_domain_alloc_list[0].k2                   = 4;
 	pusch->pusch_time_domain_alloc_list[0].map_type       	  = (enum map_type_e_)type_a;
@@ -1066,6 +1069,7 @@ void fill_pdcch_cfg_common_inner(rrc_cell_cfg_nr_t *cell_cfg, struct pdcch_cfg_c
 void fill_pdsch_cfg_common_inner(rrc_cell_cfg_nr_t *cell_cfg, struct pdsch_cfg_common_s *out)
 {
 	cvector_reserve(out->pdsch_time_domain_alloc_list, 1);
+	cvector_set_size(out->pdsch_time_domain_alloc_list, 1);
 	out->pdsch_time_domain_alloc_list[0].map_type = (enum map_type_e_)type_a;
 	out->pdsch_time_domain_alloc_list[0].start_symbol_and_len = 40;
 }
@@ -1098,6 +1102,7 @@ void fill_dl_cfg_common_sib_inner(rrc_cell_cfg_nr_t *cell_cfg, struct dl_cfg_com
 	uint32_t prb_bw = scs_hz * SRSRAN_NRE;
 
 	cvector_reserve(out->freq_info_dl.freq_band_list, 1);
+	cvector_set_size(out->freq_info_dl.freq_band_list, 1);
 	out->freq_info_dl.freq_band_list[0].freq_band_ind_nr_present = true;
 	out->freq_info_dl.freq_band_list[0].freq_band_ind_nr = cell_cfg->band;
 
@@ -1107,6 +1112,7 @@ void fill_dl_cfg_common_sib_inner(rrc_cell_cfg_nr_t *cell_cfg, struct dl_cfg_com
 	out->freq_info_dl.offset_to_point_a = offset_point_a_prbs;
 
 	cvector_reserve(out->freq_info_dl.scs_specific_carrier_list, 1);
+	cvector_set_size(out->freq_info_dl.scs_specific_carrier_list, 1);
 	out->freq_info_dl.scs_specific_carrier_list[0].offset_to_carrier = cell_cfg->phy_cell.carrier.offset_to_carrier;
 	out->freq_info_dl.scs_specific_carrier_list[0].subcarrier_spacing = cell_cfg->phy_cell.carrier.scs;
 	out->freq_info_dl.scs_specific_carrier_list[0].carrier_bw = cell_cfg->phy_cell.carrier.nof_prb;
@@ -1224,6 +1230,8 @@ void fill_csi_resource_cfg_to_add_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 {
 	if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
 		cvector_reserve(csi_meas_cfg->csi_res_cfg_to_add_mod_list, 3);
+		cvector_set_size(csi_meas_cfg->csi_res_cfg_to_add_mod_list, 3);
+
 		csi_meas_cfg->csi_res_cfg_to_add_mod_list[0].csi_res_cfg_id = 0;
 		csi_meas_cfg->csi_res_cfg_to_add_mod_list[0].csi_rs_res_set_list.type_ = 0;//nzp_csi_rs_ssb
 		cvector_push_back(csi_meas_cfg->csi_res_cfg_to_add_mod_list[0].csi_rs_res_set_list.c.nzp_csi_rs_ssb.nzp_csi_rs_res_set_list, 0);
@@ -1254,6 +1262,8 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 	if (cfg->is_standalone) {
 		if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
 			cvector_reserve(csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, 5);
+			cvector_set_size(csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, 5);
+
 			// item 0
 			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].nzp_csi_rs_res_id = 0;
 			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row2;//row2
@@ -1356,6 +1366,8 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[4].qcl_info_periodic_csi_rs         = 0;
 		} else {
 			cvector_reserve(csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, 5);
+			cvector_set_size(csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list, 5);
+
 			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].nzp_csi_rs_res_id = 0;
 			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row2;//row2
 			bitstring_from_number(&csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.c, 0b100000000000, 12);
@@ -1380,14 +1392,18 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 		// Fill NZP-CSI Resource Sets
 		if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
 			cvector_reserve(csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, 2);
+			cvector_set_size(csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, 2);
+
 			// item 0
 			csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[0].nzp_csi_res_set_id = 0;
 			cvector_reserve(csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[0].nzp_csi_rs_res, 1);
+			cvector_set_size(csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[0].nzp_csi_rs_res, 1);
 			csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[0].nzp_csi_rs_res[0] = 0
 
 			// item 1
 			csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[1].nzp_csi_res_set_id = 1;
 			cvector_reserve(csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[1].nzp_csi_rs_res, 4);
+			cvector_set_size(csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[1].nzp_csi_rs_res, 4);
 			csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[1].nzp_csi_rs_res[0] = 1;
 			csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[1].nzp_csi_rs_res[1] = 2;
 			csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[1].nzp_csi_rs_res[2] = 3;
@@ -1396,9 +1412,11 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 			  //    // Skip TRS info
 	} else {
 			cvector_reserve(csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, 1);
+			cvector_set_size(csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list, 1)
 			// item 0
 			csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[0].nzp_csi_res_set_id = 0;
 			cvector_reserve(csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[0].nzp_csi_rs_res, 1);
+			cvector_set_size(csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[0].nzp_csi_rs_res, 1);
 			csi_meas_cfg->nzp_csi_rs_res_set_to_add_mod_list[0].nzp_csi_rs_res[0] = 0;
 			// Skip TRS info
 		}
@@ -1410,6 +1428,8 @@ void fill_csi_im_resource_cfg_to_add_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t 
 	if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
 		// csi-IM-ResourceToAddModList
 		cvector_reserve(csi_meas_cfg->csi_im_res_to_add_mod_list, 1);
+		cvector_set_size(csi_meas_cfg->csi_im_res_to_add_mod_list, 1);
+
 		csi_meas_cfg->csi_im_res_to_add_mod_list[0].csi_im_res_id                   = 0;
 		csi_meas_cfg->csi_im_res_to_add_mod_list[0].csi_im_res_elem_pattern_present = true;
 		// csi-im-resource pattern1
@@ -1428,6 +1448,7 @@ void fill_csi_im_resource_cfg_to_add_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t 
 
 		// csi-IM-ResourceSetToAddModList
 		cvector_reserve(csi_meas_cfg->csi_im_res_set_to_add_mod_list, 1);
+		cvector_set_size(csi_meas_cfg->csi_im_res_set_to_add_mod_list, 1);
 		csi_meas_cfg->csi_im_res_set_to_add_mod_list[0].csi_im_res_set_id = 0;
 		cvector_push_back(csi_meas_cfg->csi_im_res_set_to_add_mod_list[0].csi_im_res, 0);
 	}
@@ -1440,6 +1461,7 @@ int fill_csi_report_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
 
 	if (cfg->is_standalone) {
 		cvector_reserve(csi_meas_cfg->csi_report_cfg_to_add_mod_list, 1);
+		cvector_set_size(csi_meas_cfg->csi_report_cfg_to_add_mod_list, 1);
 
 		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].report_cfg_id                       = 0;
 		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].res_for_ch_meas                     = 0;
@@ -1449,6 +1471,8 @@ int fill_csi_report_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
 		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].report_cfg_type.c.periodic.report_slot_cfg.type_ = (enum csi_report_periodicity_and_offset_e_)slots80;
 
 		cvector_reserve(csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].report_cfg_type.c.periodic.pucch_csi_res_list, 1);
+		cvector_set_size(csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].report_cfg_type.c.periodic.pucch_csi_res_list, 1);
+
 		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].report_cfg_type.c.periodic.pucch_csi_res_list[0].ul_bw_part_id = 0;
 		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].report_cfg_type.c.periodic.pucch_csi_res_list[0].pucch_res = 17; // was 17 in orig PCAP, but code for NSA it was set to 1
 		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].report_quant.type_ = (enum report_quant_e_)cri_ri_pmi_cqi;
@@ -1518,6 +1542,7 @@ void fill_pdsch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
   out->dmrs_dl_for_pdsch_map_type_a.c.dmrs_add_position         = (enum dmrs_add_position_e_)pos1;
 
   cvector_reserve(out->tci_states_to_add_mod_list, 1);
+  cvector_set_size(out->tci_states_to_add_mod_list, 1);
   out->tci_states_to_add_mod_list[0].tci_state_id = 0;
   out->tci_states_to_add_mod_list[0].qcl_type1.ref_sig.type_ = 1;//ssb
   out->tci_states_to_add_mod_list[0].qcl_type1.ref_sig.c = 0;
@@ -1536,6 +1561,7 @@ void fill_pdsch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
 
   // ZP-CSI
   cvector_reserve(out->zp_csi_rs_res_to_add_mod_list, 1);
+  cvector_set_size(out->zp_csi_rs_res_to_add_mod_list, 1);
   out->zp_csi_rs_res_to_add_mod_list[0].zp_csi_rs_res_id = 0;
   out->zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.type_ = 2;//row4
   bitstring_from_number(&out->zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.c, 0b100, 12);
@@ -1579,12 +1605,14 @@ void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
 {
   // Make 2 PUCCH resource sets
   cvector_reserve(out->res_set_to_add_mod_list, 2);
+  cvector_set_size(out->res_set_to_add_mod_list, 2);
 
   // Make PUCCH resource set for 1-2 bit
   for (uint32_t set_id = 0; set_id < cvector_size(out->res_set_to_add_mod_list); ++set_id) {
   	struct pucch_res_set_s *res_set   = &out->res_set_to_add_mod_list[set_id];
 	res_set->pucch_res_set_id = set_id;
 	cvector_reserve(res_set->res_list, 8);
+	cvector_set_size(res_set->res_list, 8);
     for (uint32_t i = 0; i < cvector_size(res_set->res_list); ++i) {
 		if (cfg->is_standalone) {
 			res_set->res_list[i] = i + set_id * 8;
@@ -1596,6 +1624,7 @@ void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
 
   // Make 3 possible resources
   cvector_reserve(out->res_to_add_mod_list, 18);
+  cvector_set_size(out->res_to_add_mod_list, 18);
   uint32_t j = 0, j2 = 0;
   for (uint32_t i = 0; i < cvector_size(out->res_to_add_mod_list); ++i) {
     out->res_to_add_mod_list[i].pucch_res_id                = i;
@@ -1644,6 +1673,7 @@ void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
 
   // SR resources
   cvector_reserve(out->sched_request_res_to_add_mod_list, 1);
+  cvector_set_size(out->sched_request_res_to_add_mod_list, 1);
   out->sched_request_res_to_add_mod_list[0].sched_request_res_id              = 1;
   out->sched_request_res_to_add_mod_list[0].sched_request_id                  = 0;
   out->sched_request_res_to_add_mod_list[0].periodicity_and_offset_present    = true;
@@ -1655,9 +1685,11 @@ void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
   // DL data
   if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
 	cvector_reserve(out->dl_data_to_ul_ack, 1);
+	cvector_set_size(out->dl_data_to_ul_ack, 1);
 	out->dl_data_to_ul_ack[0] = 4;
   } else {
 	cvector_reserve(out->dl_data_to_ul_ack, 6);
+	cvector_set_size(out->dl_data_to_ul_ack, 6);
 	out->dl_data_to_ul_ack[0] = 6;
 	out->dl_data_to_ul_ack[1] = 5;
 	out->dl_data_to_ul_ack[2] = 4;
@@ -1836,12 +1868,14 @@ int fill_master_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, stru
 	out->cell_group_id = 0;
 
 	cvector_reserve(out->rlc_bearer_to_add_mod_list, 1);
+	cvector_set_size(out->rlc_bearer_to_add_mod_list, 1);
 	fill_srb_inner(cfg, srb1, &out->rlc_bearer_to_add_mod_list[0]);
 
 	// mac-CellGroupConfig -- Need M
 	out->mac_cell_group_cfg_present                   = true;
 	out->mac_cell_group_cfg.sched_request_cfg_present = true;
 	cvector_reserve(out->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list, 1);
+	cvector_set_size(out->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list, 1);
 	out->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[0].sched_request_id = 0;
 	out->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[0].sr_trans_max = (enum sr_trans_max_e_)n64;
 
@@ -1851,6 +1885,7 @@ int fill_master_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, stru
 
 	out->mac_cell_group_cfg.tag_cfg_present                  = true;
 	cvector_reserve(out->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list, 1);
+	cvector_set_size(out->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list, 1);
 	out->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[0].tag_id           = 0;
 	out->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list[0].time_align_timer = (enum time_align_timer_e)infinity;
 
@@ -1928,7 +1963,9 @@ int fill_sib1_from_enb_cfg_inner(rrc_cell_cfg_nr_t *cell_cfg, struct sib1_s *sib
 	sib1->cell_sel_info.q_qual_min         = -20;
 
 	cvector_reserve(sib1->cell_access_related_info.plmn_id_list, 1);
+	cvector_set_size(sib1->cell_access_related_info.plmn_id_list, 1);
 	cvector_reserve(sib1->cell_access_related_info.plmn_id_list[0].plmn_id_list, 1);
+	cvector_set_size(sib1->cell_access_related_info.plmn_id_list[0].plmn_id_list, 1);
 	sib1->cell_access_related_info.plmn_id_list[0].plmn_id_list[0].mcc_present = true;
 	mcc_to_bytes(cfg->mcc ,sib1->cell_access_related_info.plmn_id_list[0].plmn_id_list[0].mcc);
 	mnc_to_bytes(cfg->mnc,\
@@ -1952,9 +1989,11 @@ int fill_sib1_from_enb_cfg_inner(rrc_cell_cfg_nr_t *cell_cfg, struct sib1_s *sib
 	sib1->si_sched_info.si_win_len = (enum si_win_len_e_)s160;
 
 	cvector_reserve(sib1->si_sched_info.sched_info_list, 1);
+	cvector_set_size(sib1->si_sched_info.sched_info_list, 1);
 	sib1->si_sched_info.sched_info_list[0].si_broadcast_status = (enum si_broadcast_status_e_)broadcasting;
 	sib1->si_sched_info.sched_info_list[0].si_periodicity = (enum si_periodicity_e_)rf16;
 	cvector_reserve(sib1->si_sched_info.sched_info_list[0].sib_map_info, 1);
+	cvector_set_size(sib1->si_sched_info.sched_info_list[0].sib_map_info, 1);
 	// scheduling of SI messages
 	sib1->si_sched_info.sched_info_list[0].sib_map_info[0].type              = (enum type_e_)sib_type2;
 	sib1->si_sched_info.sched_info_list[0].sib_map_info[0].value_tag_present = true;

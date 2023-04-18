@@ -59,10 +59,12 @@ static void free_rach_ue_cfg_helper(sched_nr_ue_cfg_t *uecfg)
 static sched_nr_ue_cfg_t* get_rach_ue_cfg_helper(uint32_t cc, sched_params_t *sched_params)
 {
 	sched_nr_ue_cfg_t *uecfg = oset_malloc(sizeof(sched_nr_ue_cfg_t));
-	cvector_reserve(uecfg->carriers, 1);
 	uecfg->maxharq_tx = 4;
-	uecfg->carriers[0].active = true;
-	uecfg->carriers[0].cc     = cc;
+	//cvector_reserve(uecfg->carriers, 1);
+	sched_nr_ue_cc_cfg_t carrier = {0};
+	carrier.active = true;
+	carrier.cc     = cc;
+	cvector_push_back(uecfg->carriers, carrier)
 	uecfg->phy_cfg            = sched_params->cells[cc].default_ue_phy_cfg;
 	return uecfg;
 }
@@ -77,14 +79,15 @@ static void sched_nr_ue_set_cfg(sched_nr_ue *u, sched_nr_ue_cfg_t *cfg)
 		  if (u->carriers[ue_cc_cfg->cc] == nullptr) {
 		  	u->carriers[ue_cc_cfg->cc] = ue_carrier_init(u, ue_cc_cfg->cc);
 		  } else {
-		    u->carriers[ue_cc_cfg->cc]->set_cfg(u->ue_cfg);
-			//rrc传递下来明确coreset和searchspace资源，非coreset0和searchspcae0
+			  //rrc传递下来明确coreset和searchspace资源，非coreset0和searchspcae0
+		    ue_carrier  *carrier = u->carriers[ue_cc_cfg->cc];
+			ue_carrier_params_init(&carrier->bwp_cfg, carrier->rnti, &carrier->cell_params->bwps[0], &u->ue_cfg);
 		  }
 		}
 	}
 
-	//没使用令牌桶，只是初始化相关信道信息
-	u->buffers.config_lcids(u->ue_cfg.ue_bearers);//void base_ue_buffer_manager<isNR>::config_lcids(srsran::const_span<mac_lc_ch_cfg_t> bearer_cfg_list)
+	//没使用令牌桶，只是初始化相关逻辑信道
+	base_ue_buffer_manager_config_lcids(&u->buffers.base_ue ,u->ue_cfg.ue_bearers);
 }
 
 void sched_nr_ue_remove(sched_nr_ue *u)
@@ -95,6 +98,8 @@ void sched_nr_ue_remove(sched_nr_ue *u)
 		ue_carrier_destory(u->carriers[ue_cc_cfg->cc]);
 	}
 	cvector_free(u->ue_cfg.carriers);
+
+	oset_pool_free(&mac_manager_self()->sched.ue_pool, u);
 }
 
 

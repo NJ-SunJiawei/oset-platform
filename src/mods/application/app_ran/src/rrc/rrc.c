@@ -113,15 +113,18 @@ static void get_default_cell_cfg(phy_cfg_nr_t *phy_cfg, sched_nr_cell_cfg_t *cel
 	cell_cfg->dl_center_frequency_hz = phy_cfg->carrier.dl_center_frequency_hz;
 	cell_cfg->ul_center_frequency_hz = phy_cfg->carrier.ul_center_frequency_hz;
 	cell_cfg->ssb_center_freq_hz     = phy_cfg->carrier.ssb_center_freq_hz;
+	
 	//cvector_reserve(cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, 1);
-	//struct scs_specific_carrier_s *ss_carrier = cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list[1];
-	//ss_carrier->subcarrier_spacing = (enum subcarrier_spacing_e)phy_cfg->carrier.scs;
-	//ss_carrier->offset_to_carrier = phy_cfg->carrier.offset_to_carrier;
+	//struct scs_specific_carrier_s ss_carrier = {0};
+	//ss_carrier.subcarrier_spacing = (enum subcarrier_spacing_e)phy_cfg->carrier.scs;
+	//ss_carrier.offset_to_carrier = phy_cfg->carrier.offset_to_carrier;
+	//cvector_push_back(cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, ss_carrier);
 
 	//cell_cfg->dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing = (enum subcarrier_spacing_e)phy_cfg->carrier.scs;
 	//cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common_present = true;
 	//cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common.type_ = setup;
 	//fill_rach_cfg_common_default_inner(&phy_cfg->prach, &cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common.c);//fill_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach_cfg_common_s& asn1_type)
+
 	cell_cfg->dl_cell_nof_prb    = phy_cfg->carrier.nof_prb;
 	cell_cfg->nof_layers         = phy_cfg->carrier.max_mimo_layers;
 	cell_cfg->ssb_periodicity_ms = phy_cfg->ssb.periodicity_ms;
@@ -135,13 +138,14 @@ static void get_default_cell_cfg(phy_cfg_nr_t *phy_cfg, sched_nr_cell_cfg_t *cel
 	cell_cfg->pdcch_cfg_sib1.search_space_zero = 0;
 
 	cvector_reserve(cell_cfg->bwps, 1);
-	//cell_cfg->bwps[4] = {0};
-	cell_cfg->bwps[0].pdcch    = phy_cfg->pdcch;
-	cell_cfg->bwps[0].pdsch    = phy_cfg->pdsch;
-	cell_cfg->bwps[0].pusch    = phy_cfg->pusch;
-	cell_cfg->bwps[0].pucch    = phy_cfg->pucch;
-	cell_cfg->bwps[0].harq_ack = phy_cfg->harq_ack;
-	cell_cfg->bwps[0].rb_width = phy_cfg->carrier.nof_prb;
+	sched_nr_bwp_cfg_t bwp = {0};
+	bwp.pdcch    = phy_cfg->pdcch;
+	bwp.pdsch    = phy_cfg->pdsch;
+	bwp.pusch    = phy_cfg->pusch;
+	bwp.pucch    = phy_cfg->pucch;
+	bwp.harq_ack = phy_cfg->harq_ack;
+	bwp.rb_width = phy_cfg->carrier.nof_prb;
+	cvector_push_back(cell_cfg->bwps, bwp);
 
 	if (phy_cfg->duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
 		cell_cfg->tdd_ul_dl_cfg_common = {0};
@@ -216,14 +220,16 @@ void rrc_config_mac(uint32_t cc)
 	uint16_t options_si_win_len[] = {5, 10, 20, 40, 80, 160, 320, 640, 1280};
 	cvector_reserve(cell.sibs, cvector_size(rrc_manager.cell_ctxt->sib_buffer));
 	for (uint32_t i = 0; i < cvector_size(rrc_manager.cell_ctxt->sib_buffer); i++) {
-		cell.sibs[i].len = rrc_manager.cell_ctxt->sib_buffer[i].len;
+		sched_nr_cell_cfg_sib_t sib = {0};
+		sib.len = rrc_manager.cell_ctxt->sib_buffer[i].len;
 		if (i == 0) {
-		  cell.sibs[i].period_rf       = 16; // SIB1 is always 16 rf
-		  cell.sibs[i].si_window_slots = 160;
+		  sib.period_rf       = 16; // SIB1 is always 16 rf
+		  sib.si_window_slots = 160;
 		} else {
-		  cell.sibs[i].period_rf = options_si_periodicity[du_cell->sib1.si_sched_info.sched_info_list[i-1].si_periodicity];
-		  cell.sibs[i].si_window_slots = options_si_win_len[du_cell->sib1.si_sched_info.si_win_len];
+		  sib.period_rf = options_si_periodicity[du_cell->sib1.si_sched_info.sched_info_list[i-1].si_periodicity];
+		  sib.si_window_slots = options_si_win_len[du_cell->sib1.si_sched_info.si_win_len];
 		}
+		cvector_push_back(cell.sibs, sib);
 	}
 
 	// Make default UE PHY config object

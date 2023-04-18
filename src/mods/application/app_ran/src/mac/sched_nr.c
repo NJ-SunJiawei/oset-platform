@@ -13,6 +13,27 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched"
 
+void dl_rach_info_callback(int argc, void **argv)
+{
+	oset_assert(2 == argc);
+	rar_info_t *rar_info = (rar_info_t *)argv[0];
+	sched_nr_ue *u = (sched_nr_ue *)argv[1];
+	oset_assert(rar_info);
+	oset_assert(u);
+
+	uint16_t rnti = rar_info->temp_crnti;
+	uint32_t cc = rar_info->cc;
+
+	if (sched_nr_add_ue_impl(rnti, u, cc) == OSET_OK) {
+	  oset_info("dl_rach_info(temp c-rnti=0x{:x})", rar_info->temp_crnti);
+	  // RACH is handled only once the UE object is created and inserted in the ue_db
+	  cc_workers[cc]->dl_rach_info(rar_info);//void cc_worker::dl_rach_info(const sched_nr_interface::rar_info_t& rar_info)
+	} else {
+	  oset_error("Failed to create UE object with rnti=0x%x", rar_info->temp_crnti);
+	}
+};
+
+
 void sched_nr_init(sched_nr *scheluder)
 {
 	oset_assert(scheluder);
@@ -20,6 +41,12 @@ void sched_nr_init(sched_nr *scheluder)
 	// Initiate sched_nr_ue memory pool//最大调度64个用户
 	oset_pool_init(scheluder->ue_pool, SRSENB_MAX_UES);
 	scheluder->ue_db = oset_hash_make();
+
+	//event
+	oset_stl_queue_init(&scheluder->pending_events.next_slot_events);
+	oset_stl_queue_init(&scheluder->pending_events.current_slot_events);
+	oset_stl_queue_init(&scheluder->pending_events.next_slot_ue_events);
+	oset_stl_queue_init(&scheluder->pending_events.current_slot_ue_events);
 
 	scheluder->metrics_handler.ues = scheluder->ue_db;
 }
@@ -49,10 +76,10 @@ void sched_nr_destory(sched_nr *scheluder)
 		oset_list_empty(&cc_e->current_slot_ue_events);
 	}
 	cvector_free(scheluder->pending_events.carriers);
-	oset_list_empty(&scheluder->pending_events.next_slot_events);
-	oset_list_empty(&scheluder->pending_events.current_slot_events);
-	oset_list_empty(&scheluder->pending_events.next_slot_ue_events);
-	oset_list_empty(&scheluder->pending_events.current_slot_ue_events);
+	oset_stl_queue_term(&scheluder->pending_events.next_slot_events);
+	oset_stl_queue_term(&scheluder->pending_events.current_slot_events);
+	oset_stl_queue_term(&scheluder->pending_events.next_slot_ue_events);
+	oset_stl_queue_term(&scheluder->pending_events.current_slot_ue_events);
 
 	//cc_worker
 	cc_worker *cc_w = NULL;
@@ -78,7 +105,7 @@ void sched_nr_destory(sched_nr *scheluder)
 				cvector_free(slot->ul.pucch);
 				cvector_free(slot->ul.pusch);
 				//ack
-				cvector_free(bwp->grid.slots[sl].pending_acks);
+				cvector_free(slot->pending_acks);
 				//pddchs
 				for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
 					cvector_free(slot->pdcchs.coresets[cs_idx].dci_list);
@@ -106,19 +133,21 @@ int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector
 
 	// Initiate Common Sched Configuration form rrc sched-config
 	cvector_reserve(scheluder->cfg.cells, cell_size);
-	for (cc = 0; cc < cvector_size(scheluder->cfg.cells); ++cc) {
-		cell_config_manager *cell_cof_manager = &scheluder->cfg.cells[cc];
-		cell_config_manager_init(cell_cof_manager, cc, &sched_cells[cc], sched_cfg);
+	for (cc = 0; cc < cell_size; ++cc) {
+		cell_config_manager cell_cof_manager = {0};
+		cell_config_manager_init(&cell_cof_manager, cc, &sched_cells[cc], sched_cfg);
+		cvector_push_back(scheluder->cfg.cells, cell_cof_manager);
 	}
 
 	//调度事件管理模块
 	oset_apr_mutex_init(&scheluder->pending_events.event_mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
 	cvector_reserve(scheluder->pending_events.carriers, cell_size);
-	for(cc = 0; cc < cvector_size(scheluder->cfg.cells); ++cc){
-		cc_events *cc_e = scheluder->pending_events.carriers[cc];
-		oset_apr_mutex_init(&cc_e->event_cc_mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
-		oset_list_init(&cc_e->next_slot_ue_events);
-		oset_list_init(&cc_e->current_slot_ue_events);
+	for(cc = 0; cc < cell_size; ++cc){
+		cc_events cc_e = {0};
+		oset_apr_mutex_init(&cc_e.event_cc_mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
+		oset_list_init(&cc_e.next_slot_ue_events);
+		oset_list_init(&cc_e.current_slot_ue_events);
+		cvector_push_back(scheluder->pending_events.carriers, cc_e);
 	}
 	oset_list_init(&scheluder->pending_events.next_slot_events);
 	oset_list_init(&scheluder->pending_events.current_slot_events);
@@ -127,37 +156,38 @@ int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector
 
 	// Initiate cell-specific schedulers
 	cvector_reserve(scheluder->cc_workers, cell_size);
-	for (cc = 0; cc < cvector_size(scheluder->cc_workers); ++cc) {
-		cc_worker *cc_w = &scheluder->cc_workers[cc];
-		cc_worker_init(cc_w, &scheluder->cfg.cells[cc]);
+	for (cc = 0; cc < cell_size; ++cc) {
+		cc_worker cc_w = {0};
+		cc_worker_init(&cc_w, &scheluder->cfg.cells[cc]);
+		cvector_push_back(scheluder->cc_workers, cc_w);
 	}
 
   return OSET_OK;
 }
 
+int sched_nr_add_ue_impl(uint16_t rnti, sched_nr_ue *u, uint32_t cc)
+{
+	oset_assert(u);
+	oset_info("SCHED: New user rnti=0x%x, cc=%d", rnti, cc);
+	oset_hash_set(&mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), NULL);
+	oset_hash_set(&mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), u);
+	return OSET_OK;
+}
 
 int sched_nr_dl_rach_info(sched_nr *scheluder, rar_info_t *rar_info)
 {
 	sched_nr_ue *u = sched_nr_ue_add(rar_info.temp_crnti, rar_info.cc, scheluder->cfg);
-
-
-	unique_ue_ptr u =
-	  srsran::make_pool_obj_with_fallback<ue>(*ue_pool, rar_info.temp_crnti, rar_info.temp_crnti, rar_info.cc, cfg);
+	oset_assert(u);
 
 	// enqueue UE creation event + RACH handling
-	auto add_ue = [this, rar_info, u = std::move(u)](event_manager::logger& ev_logger) mutable {
-		uint16_t rnti = rar_info.temp_crnti;
-		if (add_ue_impl(rnti, std::move(u)) == SRSRAN_SUCCESS) {
-		  ev_logger.push("dl_rach_info(temp c-rnti=0x{:x})", rar_info.temp_crnti);
-		  // RACH is handled only once the UE object is created and inserted in the ue_db
-		  uint32_t cc = rar_info.cc;
-		  cc_workers[cc]->dl_rach_info(rar_info);//void cc_worker::dl_rach_info(const sched_nr_interface::rar_info_t& rar_info)
-		} else {
-		  logger->warning("Failed to create UE object with rnti=0x%x", rar_info.temp_crnti);
-		}
-	};
-	pending_events->enqueue_event("dl_rach_info", std::move(add_ue));
-	return SRSRAN_SUCCESS;
+	event_t dl_rach_info = {0};
+	dl_rach_info.event_name = "dl_rach_info";
+	dl_rach_info.callback = dl_rach_info_callback;
+	dl_rach_info.argv[0] = rar_info;
+	dl_rach_info.argv[1] = u;
+	dl_rach_info.argc    = 2;
+	oset_stl_queue_add_last(&scheluder->pending_events.next_slot_events, dl_rach_info);
+	return OSET_OK;
 }
 
 

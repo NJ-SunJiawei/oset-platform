@@ -86,16 +86,17 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 	cvector_reserve(cell_bwp->pusch_ra_list, bwp_cfg->pusch.nof_common_time_ra);
 	srsran_sch_grant_nr_t grant = {0};
 	for (uint32_t m = 0; m < bwp_cfg->pusch.nof_common_time_ra; ++m) {
-		pusch_ra_time_cfg *pusch_ra_time = cell_bwp->pusch_ra_list[m];
+		pusch_ra_time_cfg pusch_ra_time = {0};
 		int ret =
 		    srsran_ra_ul_nr_time(&bwp_cfg->pusch, srsran_rnti_type_ra, srsran_search_space_type_rar, ra_coreset_id, m, &grant);
 		ASSERT_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to obtain");
-		pusch_ra_time->msg3_delay = grant.k;
+		pusch_ra_time.msg3_delay = grant.k;
 		ret = srsran_ra_ul_nr_time(&bwp_cfg->pusch, srsran_rnti_type_c, srsran_search_space_type_ue, ra_coreset_id, m, &grant);
-		pusch_ra_time->K = grant.k;
-		pusch_ra_time->S = grant.S;
-		pusch_ra_time->L = grant.L;
+		pusch_ra_time.K = grant.k;
+		pusch_ra_time.S = grant.S;
+		pusch_ra_time.L = grant.L;
 		ASSERT_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to obtain RA config");
+		cvector_push_back(cell_bwp->pusch_ra_list, pusch_ra_time)
 	}
 	ASSERT_IF_NOT(cvector_size(cell_bwp->pusch_ra_list) > 0, "Time-Domain Resource Allocation not valid");
 
@@ -173,10 +174,12 @@ void cell_config_manager_init(cell_config_manager *cell_cof_manager,
 	cvector_reserve(cell_cof_manager->bwps, cvector_size(cell->bwps));
 	// just idx0 for BWP-common
 	for (uint32_t i = 0; i < cvector_size(cell->bwps); ++i) {
-		cell_cof_manager->bwps[i].cell_cfg = cell_cof_manager;
-		cell_cof_manager->bwps[i].sched_cfg = sched_args_;
-		cell_cof_manager->bwps[i].cc = cell_cof_manager->cc;
-		bwp_params_init(&cell_cof_manager->bwps[i], i, cell->bwps[i]);
+		bwp_params_t bwp_params = {0};
+		bwp_params.cell_cfg = cell_cof_manager;
+		bwp_params.sched_cfg = sched_args_;
+		bwp_params.cc = cell_cof_manager->cc;
+		bwp_params_init(&bwp_params, i, cell->bwps[i]);
+		cvector_push_back(cell_cof_manager->bwps, bwp_params)
 	}
 	ASSERT_IF_NOT(!cvector_empty(cell_cof_manager->bwps), "No BWPs were configured");
 
