@@ -14,6 +14,15 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc"
 
+void du_config_manager_release_buf(du_cell_config *du_cell)
+{
+	//free du->packed_mib
+	oset_free(du_cell->packed_mib);
+	//free du->packed_sib1
+	oset_free(du_cell->packed_sib1);
+	//free du->sib1
+	free_sib1_dyn_arrary(du_cell->sib1);
+}
 
 int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node)
 {

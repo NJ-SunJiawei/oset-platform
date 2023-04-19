@@ -37,6 +37,7 @@ typedef struct {
   cvector_vector_t(si_msg_ctxt_t)  pending_sis; /// configured SIB1 and SI messages //bounded_vector<si_msg_ctxt_t, 10>
 }si_sched;
 
+void si_sched_destory(si_sched *si);
 void si_sched_init(si_sched *c,bwp_params_t *bwp_cfg_);
 #ifdef __cplusplus
 }

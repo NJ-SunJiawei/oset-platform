@@ -44,8 +44,11 @@ typedef struct {
   cvector_vector_t(bwp_slot_grid) slots;//bounded_vector<bwp_slot_grid, TTIMOD_SZ>;
 }bwp_res_grid;
 
-void bwp_slot_grid_reset(bwp_slot_grid *grid);
-void bwp_res_grid_init(bwp_res_grid *grid, bwp_params_t *bwp_cfg_);
+void bwp_slot_grid_destory(bwp_slot_grid *slot);
+void bwp_slot_grid_reset(bwp_slot_grid *slot);
+
+void bwp_res_grid_destory(bwp_res_grid *res);
+void bwp_res_grid_init(bwp_res_grid *res, bwp_params_t *bwp_cfg_);
 
 #ifdef __cplusplus
 }

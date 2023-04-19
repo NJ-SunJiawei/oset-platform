@@ -312,12 +312,7 @@ static int rrc_destory(void)
 	/*free du*/
 	du_cell_config *du_cell = NULL;
 	cvector_for_each_in(du_cell, rrc_manager.du_cfg.cells){
-		//free du->packed_mib
-		oset_free(du_cell->packed_mib);
-		//free du->packed_sib1
-		oset_free(du_cell->packed_sib1);
-		//free du->sib1
-		free_sib1_dyn_arrary(du_cell->sib1);
+		du_config_manager_release_buf(du_cell);
 	}
 	cvector_free(rrc_manager.du_cfg.cells);
 

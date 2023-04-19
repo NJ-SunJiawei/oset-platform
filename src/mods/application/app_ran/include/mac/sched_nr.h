@@ -99,6 +99,8 @@ void dl_rach_info_callback(int argc, void **argv);
 void sched_nr_init(sched_nr *scheluder);
 void sched_nr_destory(sched_nr *scheluder);
 int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector_t(sched_nr_cell_cfg_t) sched_cells);
+int sched_nr_add_ue_impl(uint16_t rnti, sched_nr_ue *u, uint32_t cc);
+sched_nr_ue *sched_ue_nr_find_by_rnti(uint16_t rnti);
 int sched_nr_dl_rach_info(sched_nr *scheluder, rar_info_t *rar_info);
 
 #ifdef __cplusplus

@@ -26,7 +26,10 @@ void get_dci_locs(srsran_coreset_t      coreset,
 	}
 }
 
-
+static void bwp_params_destory(bwp_params_t *cell_bwp)
+{
+	cvector_free(cell_bwp->pusch_ra_list);
+}
 
 //bwp_cfg from rrc configure
 static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_bwp_cfg_t *bwp_cfg)
@@ -137,6 +140,16 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 	}
 }
 
+void cell_config_manager_destory(cell_config_manager *cell_cof_manager)
+{	
+	cvector_free(cell_cof_manager->sibs);
+	// just idx0 for BWP-common
+	bwp_params_t *bwp = NULL;
+	cvector_for_each_in(bwp, cell_cof_manager->bwps){
+		bwp_params_destory(bwp);
+	}
+	cvector_free(cell_cof_manager->bwps);
+}
 
 void cell_config_manager_init(cell_config_manager *cell_cof_manager,
 										uint32_t cc_,

@@ -13,6 +13,11 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-si"
 
+void si_sched_destory(si_sched *si)
+{
+	cvector_free(si->pending_sis);
+}
+
 void si_sched_init(si_sched *si,bwp_params_t *bwp_cfg_)
 {
 	si->bwp_cfg = bwp_cfg_;

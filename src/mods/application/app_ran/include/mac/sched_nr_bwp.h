@@ -29,7 +29,7 @@ typedef struct {
 typedef struct {
   pending_rar_t  ra_sched;
   bwp_params_t   *bwp_cfg;
-  oset_stl_queue_def(pending_rar_t, pending_rar)   *pending_rars;//pending_rar_t
+  oset_stl_queue_def(pending_rar_t, pending_rar) pending_rars;//pending_rar_t
 }ra_sched;
 
 typedef struct {
@@ -42,7 +42,10 @@ typedef struct {
   bwp_res_grid grid;
 }bwp_manager;
 
-void bwp_manager_init(bwp_manager *bwp_m, bwp_params_t *bwp_cfg);
+int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info);
+
+void bwp_manager_destory(bwp_manager *bwp);
+void bwp_manager_init(bwp_manager *bwp, bwp_params_t *bwp_cfg);
 
 #ifdef __cplusplus
 }
