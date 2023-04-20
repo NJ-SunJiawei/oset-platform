@@ -12,7 +12,7 @@
 #include "gnb_timer.h"
 #include "rf/radio.h"
 #include "phy/phy.h"
-#include "phy/prach_work.h"
+#include "phy/prach_worker.h"
 #include "phy/txrx.h"
 #include "mac/mac.h"
 #include "rrc/rrc.h"

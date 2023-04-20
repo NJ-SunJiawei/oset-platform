@@ -10,13 +10,16 @@
 #include "rf/channel_2c.h"
 #include "rf/radio.h"
 #include "phy/txrx.h"
-#include "phy/prach_work.h"
+#include "phy/prach_worker.h"
 #include "phy/phy_util.h"
 #include "phy/phy.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-txrx"
 
+#define PRIORITY_LEVEL_LOW  1
+#define PRIORITY_LEVEL_MID  2
+#define PRIORITY_LEVEL_HIGH 3
 
 static void set_context(worker_context_t *w_ctx)
 {
@@ -193,6 +196,13 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		// Feed PRACH detection before start processing 
 		prach_new_tti(0, context.sf_idx, get_buffer_rx(0));
 
+		// Start actual worker
+		rv = oset_threadpool_push(phy_manager_self()->slot_worker.th_pools,
+									slot_worker_work_imp,
+									NULL,
+									PRIORITY_LEVEL_HIGH,
+									"phy_deal_tti");
+		oset_assert(OSET_OK == rv);
 
 	}
 }

@@ -25,9 +25,9 @@ typedef int (*ue_cc_event_callback)(int argc, void **argv);
 typedef struct {
   char            *event_name;
   event_callback  callback;
+  //void (*callback)(void *)
   int             argc;
   void            *argv[10];
-  //void (*callback)(void *)
 }event_t;
 
 typedef struct {

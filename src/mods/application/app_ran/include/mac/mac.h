@@ -59,7 +59,8 @@ typedef struct mac_manager_s{
 }mac_manager_t;
 mac_manager_t *mac_manager_self(void);
 int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells);
-
+void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv);
+int mac_slot_indication(srsran_slot_cfg_t *slot_cfg);
 void *gnb_mac_task(oset_threadplus_t *thread, void *data);
 
 #ifdef __cplusplus

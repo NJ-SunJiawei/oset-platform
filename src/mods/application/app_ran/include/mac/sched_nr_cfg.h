@@ -67,7 +67,7 @@ typedef struct bwp_params_s {
   uint32_t              P;
   uint32_t              N_rbg;
   uint32_t              nof_prb;
-  slot_cfg              slots[SRSRAN_NOF_SF_X_FRAME];//<slot_cfg, SRSRAN_NOF_SF_X_FRAME>
+  cvector_vector_t(slot_cfg)          slots;//<slot_cfg, SRSRAN_NOF_SF_X_FRAME>
   cvector_vector_t(pusch_ra_time_cfg) pusch_ra_list;//std::vector<pusch_ra_time_cfg>
 
   bwp_cce_pos_list                  rar_cce_list;//cvector_vector_type(uint32_t) rar_cce_list[SRSRAN_NOF_SF_X_FRAME][MAX_NOF_AGGR_LEVELS]

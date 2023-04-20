@@ -7,8 +7,8 @@
  *Date: 2022.12
 ************************************************************************/
 
-#ifndef PRACH_WORK_H_
-#define PRACH_WORK_H_
+#ifndef PRACH_WORKER_H_
+#define PRACH_WORKER_H_
 
 #include "oset-core.h"
 #include "lib/srsran/srsran.h"
@@ -41,7 +41,7 @@ typedef struct{
 	uint32_t		   sf_cnt;
 	uint32_t		   nof_workers;
 }prach_worker_manager_t;
-prach_worker_manager_t *prach_work_manager_self(uint32_t		   cc_idx);
+prach_worker_manager_t *prach_worker_manager_self(uint32_t		   cc_idx);
 
 int prach_worker_init(uint32_t		   cc_idx,
                              const srsran_cell_t *cell_,

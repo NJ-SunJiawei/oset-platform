@@ -9,7 +9,7 @@
 #include "gnb_common.h"
 #include "rf/channel_2c.h"
 #include "phy/phy.h"
-#include "phy/prach_work.h"
+#include "phy/prach_worker.h"
 #include "lib/srsran/phy/utils/phy_logger.h"
 
 #undef  OSET_LOG2_DOMAIN
@@ -255,7 +255,7 @@ static int set_common_cfg_from_rrc(common_cfg_t *common_cfg)
 
 	// Set the PRACH configuration
 	prach_worker_init(0, &cell, prach_cfg, phy_manager.worker_args.nof_prach_workers)
-	prach_work_manager_self(0)->max_prach_offset_us = 1000;
+	prach_worker_manager_self(0)->max_prach_offset_us = 1000;
 
 	// Setup SSB sampling rate and scaling
 	srsran_ssb_cfg_t *ssb_cfg = &common_cfg->ssb;

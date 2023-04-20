@@ -7,7 +7,7 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-#include "phy/prach_work.h"
+#include "phy/prach_worker.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-prach"
@@ -22,7 +22,7 @@ static prach_worker_manager_t prach_work_manager[SRSRAN_MAX_CARRIERS] = {
 
 static OSET_POOL(pool_buffer[SRSRAN_MAX_CARRIERS], sf_buffer);
 
-prach_worker_manager_t *prach_work_manager_self(uint32_t		   cc_idx)
+prach_worker_manager_t *prach_worker_manager_self(uint32_t		   cc_idx)
 {
     return &prach_work_manager[cc_idx];
 }
@@ -79,7 +79,7 @@ void prach_worker_stop(uint32_t cc_idx)
     oset_pool_final(&pool_buffer[cc_idx]);
 }
 
-static mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
+static void prach_worker_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
 {
 	rach_info_t rach_info = {0};
 	rach_info.enb_cc_idx	= enb_cc_idx;
@@ -127,7 +127,7 @@ int prach_worker_run_tti(uint32_t cc_idx, sf_buffer* b)
           // Convert time offset to Time Alignment command
           uint32_t n_ta = (uint32_t)(prach_work_manager[cc_idx].prach_offsets[i] / (16 * SRSRAN_LTE_TS));
 		  
-          mac_rach_detected(b->tti, cc_idx, prach_work_manager[cc_idx].prach_indices[i], n_ta); //mac access
+          prach_worker_rach_detected(b->tti, cc_idx, prach_work_manager[cc_idx].prach_indices[i], n_ta); //mac access
 
 #if defined(ENABLE_GUI) and ENABLE_PRACH_GUI
         //todo

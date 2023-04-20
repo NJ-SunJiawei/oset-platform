@@ -774,7 +774,7 @@ static void deal_om_main_listen_thread(om_event_t *e)
 
 			 tmp_e->sock = e->sock;
 			 tmp_e->pkbuf = e->pkbuf;
-				 tmp_e->from = e->from;
+			 tmp_e->from = e->from;
 
 			 rv = oset_ring_queue_put(self.pod_queue, (uint8_t *)tmp_e, sizeof(*tmp_e));
 			 if (rv != OSET_OK) {
@@ -788,7 +788,7 @@ static void deal_om_main_listen_thread(om_event_t *e)
 			 
 			 tmp_e->sock = e->sock;
 			 tmp_e->pkbuf = e->pkbuf;
-				 tmp_e->from = e->from;
+		     tmp_e->from = e->from;
 
 			 rv = oset_ring_queue_put(self.omc_queue, (uint8_t *)tmp_e, sizeof(*tmp_e));
 			 if (rv != OSET_OK) {

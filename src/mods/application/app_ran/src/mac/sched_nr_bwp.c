@@ -33,9 +33,10 @@ int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info)
 	          rar_info->msg3_size);
 
 	// find pending rar with same RA-RNTI
+	// 时频相同，RA-RNTI相同的ra
 	pending_rar_t *r = NULL;
 	oset_stl_queue_foreach(&ra->pending_rars, r){
-		if (r->prach_slot == rar_info->prach_slot && ra_rnti == r->ra_rnti) {
+		if (r->prach_slot == rar_info->prach_slot && r->ra_rnti == ra_rnti) {
 			if (MAX_GRANTS == cvector_size(r->msg3_grant)) {
 				//PRACH被忽略，因为已达到每个tti的最大RAR授权数
 				oset_error("PRACH ignored, as the the maximum number of RAR grants per tti has been reached");
@@ -51,15 +52,14 @@ int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info)
 	p.ra_rnti                            = ra_rnti;
 	p.prach_slot                         = rar_info->prach_slot;
 	const static uint32_t prach_duration = 1;
-	for (slot_point t = rar_info->prach_slot + prach_duration; t < rar_info->prach_slot + ra->bwp_cfg->slots.size(); ++t) {
-	if (ra->bwp_cfg->slots[slot_idx(t)].is_dl) {
-	  p.rar_win = {t, t + ra->bwp_cfg->cfg.rar_window_size};//窗口
-	  break;
+	for (slot_point t = rar_info->prach_slot + prach_duration; t < rar_info->prach_slot + cvector_size(ra->bwp_cfg->slots); ++t) {
+		if (ra->bwp_cfg->slots[slot_idx(t)].is_dl) {
+			slot_interval_init(p.rar_win, t, t + ra->bwp_cfg->cfg.rar_window_size);//rar windows
+			break;
+		}
 	}
-	}
-	p.msg3_grant.push_back(*rar_info);
-	ra->pending_rars.push_back(p);
-
+	cvector_push_back(p.msg3_grant, *rar_info);
+	oset_stl_queue_add_last(&ra->pending_rars, p);
 	return OSET_OK;
 }
 

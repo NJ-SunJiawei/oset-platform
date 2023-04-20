@@ -28,6 +28,7 @@ void get_dci_locs(srsran_coreset_t      coreset,
 
 static void bwp_params_destory(bwp_params_t *cell_bwp)
 {
+	cvector_free(cell_bwp->slots);
 	cvector_free(cell_bwp->pusch_ra_list);
 }
 
@@ -83,7 +84,7 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		slot_cfg sl_cfg = {0};
 		sl_cfg.is_dl = srsran_duplex_nr_is_dl(&cell_cfg->duplex, bwp_cfg->numerology_idx, sl);
 		sl_cfg.is_ul = srsran_duplex_nr_is_ul(&cell_cfg->duplex, bwp_cfg->numerology_idx, sl);
-		cell_bwp->slots[sl] = sl_cfg;
+		cvector_push_back(cell_bwp->slots, sl_cfg);
 	}
 
 	cvector_reserve(cell_bwp->pusch_ra_list, bwp_cfg->pusch.nof_common_time_ra);
