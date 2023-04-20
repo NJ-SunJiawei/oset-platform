@@ -16,7 +16,7 @@ void gnb_arg_default(all_args_t      *args)
 {
     //enb.conf
 	args->enb.enb_id = 0x0; //gnb_manager_self()->config.nr_stack.ngap.gnb_id=0x0;
-	args->enb.n_prb = 50;
+	args->enb.n_prb = 50;//set 4g  5g=52
 	args->enb.nof_ports = 1;
 	args->enb.transmission_mode = 1;
 	args->enb.p_a = 0;//Power allocation rho_a (-6, -4.77, -3, -1.77, 0, 1, 2, 3)
@@ -875,7 +875,7 @@ static int set_derived_args_nr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cf
 
 	cvector_for_each_in(cfg, rrc_nr_cfg_->cell_list){
 	   cfg->phy_cell.carrier.max_mimo_layers = args_->enb.nof_ports;
-	   // NR cells have the same bandwidth as EUTRA cells, adjust PRB sizes
+	   // NR cells have the same bandwidth as EUTRA cells, adjust PRB sizes  //4g prb change to 5g
 	   switch (args_->enb.n_prb) {
 		 case 25:
 		   cfg->phy_cell.carrier.nof_prb = 25;

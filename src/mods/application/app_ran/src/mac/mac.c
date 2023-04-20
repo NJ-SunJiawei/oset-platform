@@ -185,7 +185,7 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 	rar_info->ta_cmd		  = rach_info->time_adv;
 	slot_point_init(&rar_info->prach_slot, NUMEROLOGY_IDX, rach_info->slot_index);
 
-	sched_nr_dl_rach_info(&mac_manager.sched, rar_info); //int sched_nr::dl_rach_info(const rar_info_t& rar_info)//todo
+	sched_nr_dl_rach_info(&mac_manager.sched, rar_info);
 	rrc->add_user(rnti, rach_info->enb_cc_idx);//todo
 
 	oset_info("RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",

@@ -1150,7 +1150,7 @@ OSET_MODULE_LOAD_FUNCTION(mod_event_socket_load)
 		return OSET_STATUS_GENERR;
 	}
 
-	oset_log2_bind_logger(socket_logger, OSET_LOG2_DEBUG, OSET_FALSE);
+	oset_log2_bind_logger(socket_logger, OSET_LOG2_DEBUG, OSET_FALSE);//bind log
 
 	/* connect my internal structure to the blank pointer passed to me */
 	*module_interface = oset_loadable_module_create_module_interface(pool, modname);

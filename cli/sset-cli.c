@@ -101,8 +101,8 @@ static HistEvent ev;
 #endif
 
 static char hostname[256] = "";
-static char switchname[256] = "";
-static char switch_hostname[256] = "";
+static char osetname[256] = "";
+static char oset_hostname[256] = "";
 static esl_mutex_t *MUTEX = NULL;
 
 static void _sleep_ns(int secs, long nsecs) {
@@ -1387,16 +1387,16 @@ static void expand_prompt(char *s, size_t len, cli_profile_t *profile)
 			
 			switch(*p) {
 			case 's':
-				esl_copy_string(q, switchname, len - (q - &tmp[0]));
-				q += strlen(switchname);
+				esl_copy_string(q, osetname, len - (q - &tmp[0]));
+				q += strlen(osetname);
 				break;
 			case 'h':
 				esl_copy_string(q, hostname, len - (q - &tmp[0]));
 				q += strlen(hostname);
 				break;
 			case 'H':
-				esl_copy_string(q, switch_hostname, len - (q - &tmp[0]));
-				q += strlen(switch_hostname);
+				esl_copy_string(q, oset_hostname, len - (q - &tmp[0]));
+				q += strlen(oset_hostname);
 				break;
 			case 'p':
 				esl_copy_string(q, profile->name, len - (q - &tmp[0]));
@@ -1746,25 +1746,25 @@ int main(int argc, char *argv[])
 	snprintf(cmd_str, sizeof(cmd_str), "api osetname\n\n");
 	esl_send_recv(global_handle, cmd_str);
 	if (global_handle->last_sr_event && global_handle->last_sr_event->body) {
-		esl_set_string(switchname, global_handle->last_sr_event->body);
+		esl_set_string(osetname, global_handle->last_sr_event->body);
 	} else {
-		esl_set_string(switchname, profile->name);
+		esl_set_string(osetname, profile->name);
 	}
 
 
 	snprintf(cmd_str, sizeof(cmd_str), "api hostname\n\n");
 	esl_send_recv(global_handle, cmd_str);
 	if (global_handle->last_sr_event && global_handle->last_sr_event->body) {
-		esl_set_string(switch_hostname, global_handle->last_sr_event->body);
+		esl_set_string(oset_hostname, global_handle->last_sr_event->body);
 	} else {
-		esl_set_string(switch_hostname, profile->name);
+		esl_set_string(oset_hostname, profile->name);
 	}
 
 	if (!esl_strlen_zero(profile->prompt_string)) {
 		expand_prompt(profile->prompt_string, sizeof(profile->prompt_string), profile);
 		snprintf(bare_prompt_str, sizeof(bare_prompt_str), "%s> ", profile->prompt_string);
 	} else {
-		snprintf(bare_prompt_str, sizeof(bare_prompt_str), "OSET@%s> ", switchname);
+		snprintf(bare_prompt_str, sizeof(bare_prompt_str), "OSET@%s> ", osetname);
 	}
 
 	bare_prompt_str_len = (int)strlen(bare_prompt_str);
