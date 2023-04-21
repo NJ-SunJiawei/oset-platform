@@ -103,7 +103,7 @@ int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells)
 		sib_info_t sib  = {0};
 		sib.index       = i;
 		sib.periodicity = 160; // TODO: read period_rf from config
-		if (rrc_read_pdu_bcch_dlsch(sib.index, sib.payload) != OSET_OK) {
+		if (rrc_read_pdu_bcch_dlsch_callback(sib.index, sib.payload) != OSET_OK) {
 		  oset_error("Couldn't read SIB %d from RRC", sib.index);
 		}
 
@@ -186,7 +186,7 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 	slot_point_init(&rar_info->prach_slot, NUMEROLOGY_IDX, rach_info->slot_index);
 
 	sched_nr_dl_rach_info(&mac_manager.sched, rar_info);
-	rrc->add_user(rnti, rach_info->enb_cc_idx);//todo
+	rrc_add_user_callback(rnti, rach_info->enb_cc_idx);//todo
 
 	oset_info("RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
 			  rach_info->slot_index,
@@ -209,7 +209,8 @@ void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
 
 int mac_slot_indication(srsran_slot_cfg_t *slot_cfg)
 {
-  return 0;
+	//todo
+	return 0;
 }
 
 static void gnb_mac_task_handle(msg_def_t *msg_p, uint32_t msg_l)

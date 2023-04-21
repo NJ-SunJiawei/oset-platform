@@ -21,12 +21,11 @@
 #define PRIORITY_LEVEL_MID  2
 #define PRIORITY_LEVEL_HIGH 3
 
-static void set_context(worker_context_t *w_ctx)
+static void set_slot_worker_context(worker_context_t *w_ctx)
 {
-	phy_manager_self()->slot_worker.ul_slot_cfg.idx = w_ctx->sf_idx;
-	phy_manager_self()->slot_worker.dl_slot_cfg.idx = TTI_ADD(w_ctx->sf_idx, FDD_HARQ_DELAY_UL_MS);//phy process max delay
-    //???w_ctx->sf_idx change
-	phy_manager_self()->slot_worker.context = w_ctx;
+	slot_manager_self()->slot_worker.ul_slot_cfg.idx = w_ctx->sf_idx;
+	slot_manager_self()->slot_worker.dl_slot_cfg.idx = TTI_ADD(w_ctx->sf_idx, FDD_HARQ_DELAY_UL_MS);//phy process max delay
+	slot_manager_self()->slot_worker.context = *w_ctx;
 }
 
 
@@ -61,7 +60,8 @@ void txrx_stop(void)
 	oset_apr_mutex_lock(phy_manager_self()->mutex);
 	oset_apr_thread_cond_broadcast(phy_manager_self()->cond);
 	oset_apr_mutex_unlock(phy_manager_self()->mutex);
-	oset_threadplus_destroy(task_map_self(TASK_RXTX)->thread, 5);
+	oset_threadplus_destroy(task_map_self(TASK_RXTX)->thread, 1);
+	slot_worker_final();
 }
 
 void txrx_init(void)
@@ -73,6 +73,7 @@ void txrx_init(void)
     gnb_manager_self()->ul_channel = channel_create(worker_com->params.ul_channel_args));
   }
 
+  slot_worker_init();
   if (OSET_ERROR == task_thread_create(TASK_TXRX, NULL)) {
 	oset_error("Create task for gNB txrx failed");
 	return OSET_ERROR;
@@ -133,21 +134,21 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 	txrx_task_init();
 	oset_info("Starting RX/TX thread nof_prb=%d, sf_len=%d", get_nof_prb(0), sf_len);
 
-    phy_manager_self()->tti = TTI_SUB(0, FDD_HARQ_DELAY_UL_MS + 1);
+    slot_manager_self()->tti = TTI_SUB(0, FDD_HARQ_DELAY_UL_MS + 1);
 
 	// Main loop
     while(gnb_manager_self()->running){
 		////1ms调度一次 	  (系统帧号1024循环	    1帧=10子帧=10ms)      for 5G  SCS=15khz 1slot=1ms=14+1symbols
-		phy_manager_self()->tti = TTI_ADD(phy_manager_self()->tti, 1);
+		slot_manager_self()->tti = TTI_ADD(slot_manager_self()->tti, 1);
 	    
-		if ((NULL == phy_manager_self()->slot_worker.th_pools) || (get_nof_carriers_nr() <= 0)) {
-			oset_error("%s run error",OSET_FILE_LINE);
+		if ((NULL == slot_manager_self()->slot_worker.th_pools) || (get_nof_carriers_nr() <= 0)) {
+			oset_error("%s phy run error",OSET_FILE_LINE);
 			break;
 		}
 
-		oset_debug("%s:threadpool current task %d",__OSET_FUNC__, oset_threadpool_tasks_count(phy_manager_self()->slot_worker.th_pools));
-		if(oset_threadpool_tasks_count(phy_manager_self()->slot_worker.th_pools) > 10)
+		if(oset_threadpool_tasks_count(slot_manager_self()->slot_worker.th_pools) > FDD_HARQ_DELAY_UL_MS)
 		{
+			oset_debug("phy threadpool task %d > 10, blocking!!!", oset_threadpool_tasks_count(slot_manager_self()->slot_worker.th_pools));
 			oset_apr_mutex_lock(phy_manager_self()->mutex);
 			oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);
 			oset_apr_mutex_unlock(phy_manager_self()->mutex);
@@ -179,31 +180,31 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		timestamp_add(timestamp.timestamps, FDD_HARQ_DELAY_UL_MS * 1e-3);
 
 		oset_debug("Setting TTI=%d, tx_time=%ld:%f to slot worker pool %p",
-			  phy_manager_self()->tti,
+			  slot_manager_self()->tti,
 			  timestamp.timestamps[0].full_secs,
 			  timestamp.timestamps[0].frac_secs,
-			  phy_manager_self()->slot_worker.th_pools);
+			  slot_manager_self()->slot_worker.th_pools);
 
 			  
 	    // Set NR worker context and start
         memset(&context, 0,sizeof(worker_context_t));
-		context.sf_idx     = phy_manager_self()->tti;
-		context.worker_ptr = phy_manager_self()->slot_worker.th_pools;
+		context.sf_idx     = slot_manager_self()->tti;
+		context.worker_ptr = slot_manager_self()->slot_worker.th_pools;
 		context.last	   = true;
 		context.tx_time    = timestamp;
-		set_context(&context);
+		set_slot_worker_context(&context);
 		
 		// Feed PRACH detection before start processing 
 		prach_new_tti(0, context.sf_idx, get_buffer_rx(0));
 
 		// Start actual worker
-		rv = oset_threadpool_push(phy_manager_self()->slot_worker.th_pools,
-									slot_worker_work_imp,
-									NULL,
+		// Process one at a time and hang it on the linked list in sequence
+		rv = oset_threadpool_push(slot_manager_self()->slot_worker.th_pools,
+									slot_worker_process,
+									slot_worker_alloc(slot_manager_self()),
 									PRIORITY_LEVEL_HIGH,
-									"phy_deal_tti");
+									"slot_handle");
 		oset_assert(OSET_OK == rv);
-
 	}
 }
 

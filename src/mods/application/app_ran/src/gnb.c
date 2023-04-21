@@ -46,6 +46,9 @@ OSET_MODULE_LOAD_FUNCTION(app_gnb_load)
 OSET_MODULE_SHUTDOWN_FUNCTION(app_gnb_shutdown)
 {
 	gnb_manager_self()->running = false;
+	/* Starting holding timer */
+	oset_msleep(1000);
+
 	task_queue_termination();//stop queue
 	gnb_layer_tasks_destory();
 	task_queue_end(tasks_info);

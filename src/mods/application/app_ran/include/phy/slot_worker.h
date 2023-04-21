@@ -45,7 +45,7 @@ typedef struct slot_worker_s{
 	uint32_t			rf_port;
 	srsran_slot_cfg_t	dl_slot_cfg;
 	srsran_slot_cfg_t	ul_slot_cfg;
-	worker_context_t    *context;
+	worker_context_t    context;
 	srsran_pdcch_cfg_nr_t pdcch_cfg;
 	srsran_gnb_dl_t 	  gnb_dl;
 	srsran_gnb_ul_t 	  gnb_ul;
@@ -53,8 +53,17 @@ typedef struct slot_worker_s{
 	cf_t                  **rx_buffer; ///< Baseband receive buffers ~1 subframe len
 }slot_worker_t;
 
+typedef struct slot_manager_s{
+	uint32_t               tti;//txrx
+	slot_worker_t          slot_worker;//phy deal tti slot
+}slot_manager_t;
+slot_manager_t *slot_manager_self(void);
 
-void slot_worker_work_imp(void);
+void slot_worker_init(void);
+void slot_worker_final(void);
+slot_worker_t* slot_worker_alloc(slot_manager_t *slot_manager);
+void slot_worker_free(slot_worker_t *slot_wk);
+void slot_worker_process(oset_threadplus_t *thread, void *data);
 
 #ifdef __cplusplus
 }

@@ -248,6 +248,8 @@ static int rrc_init(void)
 
 	rrc_manager_init();
 	//todo
+	rrc_manager.users = oset_hash_make();
+	
 	rrc_manager.cfg = &gnb_manager_self()->rrc_nr_cfg;
 
 	rrc_cell_cfg_nr_t *cell = NULL;
@@ -309,6 +311,8 @@ static int rrc_destory(void)
 {	
 	int i = 0;
 
+	rrc_manager.running = false;
+
 	/*free du*/
 	du_cell_config *du_cell = NULL;
 	cvector_for_each_in(du_cell, rrc_manager.du_cfg.cells){
@@ -334,10 +338,41 @@ static int rrc_destory(void)
 	cvector_free(sched_cells_cfg);
 
 	//todo
+    oset_hash_destroy(rrc_manager.users);
+
 	return OSET_OK;
 }
 
-int rrc_read_pdu_bcch_dlsch(uint32_t sib_index, oset_pkbuf_t *buffer)
+/* @brief PRIVATE function, gets called by sgnb_addition_request
+ *
+ * This function WILL NOT TRIGGER the RX MSG3 activity timer
+ */
+int rrc_add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer)
+{
+  if (rrc_manager.users.contains(rnti) == 0) {
+    // If in the ue ctor, "start_msg3_timer" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
+    rrc_manager.users.insert(rnti, std::make_unique<ue>(this, rnti, pcell_cc_idx, start_msg3_timer));
+    rlc->add_user(rnti);
+    pdcp->add_user(rnti);
+    oset_info("Added new user rnti=0x%x", rnti);
+    return OSET_OK;
+  }
+  oset_error("Adding user rnti=0x%x (already exists)", rnti);
+  return OSET_ERROR;
+}
+
+/* @brief PUBLIC function, gets called by mac_nr::rach_detected
+ *
+ * This function is called from PRACH worker (can wait) and WILL TRIGGER the RX MSG3 activity timer
+ */
+int rrc_add_user_callback(uint16_t rnti, uint32_t pcell_cc_idx)
+{
+  // Set "triggered_by_rach" to true to start the MSG3 RX TIMEOUT
+  return rrc_add_user(rnti, pcell_cc_idx, true);
+}
+
+
+int rrc_read_pdu_bcch_dlsch_callback(uint32_t sib_index, oset_pkbuf_t *buffer)
 {
 	if (sib_index >= cvector_size(rrc_manager.cell_ctxt->sib_buffer)) {
 		oset_error("SI%s%d is not a configured SIB.", sib_index == 0 ? "B" : "", sib_index + 1);

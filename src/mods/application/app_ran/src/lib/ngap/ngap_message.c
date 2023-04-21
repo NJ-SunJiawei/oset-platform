@@ -8,6 +8,9 @@
 ************************************************************************/
 #include "lib/ngap/ngap_message_list.h"
 
+#undef  OSET_LOG2_DOMAIN
+#define OSET_LOG2_DOMAIN   "app-gnb-libngap-msg"
+
 oset_pkbuf_t *oset_ngap_encode(oset_ngap_message_t *message)
 {
     oset_pkbuf_t *pkbuf = NULL;

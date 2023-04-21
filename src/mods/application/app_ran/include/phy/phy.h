@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
 typedef struct {
-  uint32_t				 nof_phy_threads;
+  uint32_t				 nof_phy_threads;//Ensure tti sequence just alloc 1
   uint32_t				 nof_prach_workers;
 }phy_work_args_t;
 
@@ -37,25 +37,20 @@ typedef struct {
 
 typedef struct phy_manager_s{
 	oset_apr_memory_pool_t *app_pool;
+	oset_apr_mutex_t	   *mutex;
+	oset_apr_thread_cond_t *cond;
 
 	//txrx				   tx_rx;
 	//srsran_prach_cfg_t     prach_cfg; //???4G
 	common_cfg_t	       common_cfg;  //from rrc layer config
 	phy_common			   workers_common;
 	phy_work_args_t        worker_args;
-
 	slot_worker_args_t     slot_args;
-	slot_worker_t          slot_worker;
-
-	oset_apr_mutex_t	   *mutex;
-	oset_apr_thread_cond_t *cond;
-	uint32_t               tti;//txrx
 }phy_manager_t;
 phy_manager_t *phy_manager_self(void);
 
 int phy_init(void);
 int phy_destory(void);
-
 uint32_t get_buffer_len();
 cf_t* get_buffer_rx(uint32_t antenna_idx);
 cf_t* get_buffer_tx(uint32_t antenna_idx);

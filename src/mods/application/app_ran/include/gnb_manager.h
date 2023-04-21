@@ -24,7 +24,7 @@ typedef struct band_helper_t band_helper_t;
 typedef struct gnb_manager_s{
 	bool                   running;
 	oset_apr_memory_pool_t *app_pool;
-	oset_timer_mgr_t       *app_timer;
+	oset_timer_mgr_t       *app_timer;//real time
 
 	band_helper_t          *band_helper;
 

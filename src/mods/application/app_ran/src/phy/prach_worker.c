@@ -73,7 +73,7 @@ void prach_worker_stop(uint32_t cc_idx)
 {
     //????todo
 	if (if (prach_work_manager[cc_idx].nof_workers > 0)) {
-		oset_threadplus_destroy(task_map_self(TASK_PRACH)->thread, 5);
+		oset_threadplus_destroy(task_map_self(TASK_PRACH)->thread, 1);
 	}
 
     oset_pool_final(&pool_buffer[cc_idx]);

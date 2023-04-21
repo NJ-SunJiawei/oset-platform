@@ -217,7 +217,7 @@ uint32_t mac_pcap_open(mac_pcap *pcap, char *filename_, uint32_t ue_id_)
 
 uint32_t mac_pcap_close(mac_pcap *pcap)
 {
-	if (pcap->running == false || pcap->pcap_file == NULL) {
+	if (pcap->base.running == false || pcap->pcap_file == NULL) {
 		return OSET_ERROR;
 	}
 
@@ -229,7 +229,7 @@ uint32_t mac_pcap_close(mac_pcap *pcap)
 		oset_apr_mutex_unlock(pcap->base.mutex);
 	}
 
-	oset_threadplus_destroy(pcap->base.thread, 5);
+	oset_threadplus_destroy(pcap->base.thread, 1);
 
 	// close file handle
 	{
