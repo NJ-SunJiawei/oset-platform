@@ -12,7 +12,7 @@
 
 #include "lib/common/phy_cfg_nr.h"
 #include "lib/common/bearer_manager.h"
-#include "rrc/rrc_nr_du_manager.h"
+#include "rrc/rrc_du_manager.h"
 #include "rrc/rrc_nr_ue.h"
 
 #ifdef __cplusplus
@@ -46,7 +46,12 @@ typedef struct rrc_manager_s{
 	du_config_manager         du_cfg;
 
 	cell_ctxt_t	              *cell_ctxt;
+
+	// UE Database
+	OSET_POOL(ue_pool, rrc_nr_ue);
+	oset_list_t 			  rrc_ue_list;
 	oset_hash_t               *users;//<uint16_t, rrc_nr_ue, SRSENB_MAX_UES>
+
 	bool					  running;
 }rrc_manager_t;
 
@@ -58,6 +63,8 @@ int rrc_read_pdu_bcch_dlsch_callback(uint32_t sib_index, oset_pkbuf_t *buffer);
 /*********************************************************************/
 
 int rrc_add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer);
+void rrc_rem_user(uint16_t rnti);
+void rrc_remove_user_all(void);
 void *gnb_rrc_task(oset_threadplus_t *thread, void *data);
 
 #ifdef __cplusplus

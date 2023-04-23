@@ -205,6 +205,14 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 									PRIORITY_LEVEL_HIGH,
 									"slot_handle");
 		oset_assert(OSET_OK == rv);
+
+		if (slot_manager_self()->tti % SRSRAN_NSLOTS_PER_SF_NR(1) == 0)
+		{
+			uint32_t f_idx    = SRSRAN_SLOT_NR_DIV(1, slot_manager_self()->tti);
+			uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(1, slot_manager_self()->tti);//15khz, slot_id==sf_id
+			uint32_t sf_idx   = slot_idx / SRSRAN_NSLOTS_PER_SF_NR(1);
+			gnb_time_tick(f_idx, sf_idx);
+		}
 	}
 }
 

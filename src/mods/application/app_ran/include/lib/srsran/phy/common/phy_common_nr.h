@@ -72,6 +72,13 @@ extern "C" {
  */
 #define SRSRAN_SLOT_NR_MOD(NUM, N) ((N) % SRSRAN_NSLOTS_PER_FRAME_NR(NUM))
 
+
+/**
+ * @brief Bounds frame index
+ */
+#define SRSRAN_SLOT_NR_DIV(NUM, N) ((N) / SRSRAN_NSLOTS_PER_FRAME_NR(NUM))
+
+
 /**
  * @brief Maximum Carrier identification value. Defined by TS 38.331 v15.10.0 as PhysCellId from 0 to 1007.
  */

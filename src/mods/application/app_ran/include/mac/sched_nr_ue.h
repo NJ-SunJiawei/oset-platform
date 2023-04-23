@@ -60,7 +60,8 @@ typedef struct {
 
 
 typedef struct {
-	ue_carrier  *carriers[SCHED_NR_MAX_CARRIERS];//对应每个ue的小区配置
+    oset_lnode_t lnode;
+	ue_carrier   *carriers[SCHED_NR_MAX_CARRIERS];//对应每个ue的小区配置
 	uint16_t     rnti;
 
 	sched_params_t    *sched_cfg;
@@ -73,7 +74,12 @@ typedef struct {
 
 
 void sched_nr_ue_remove(sched_nr_ue *u);
+void sched_nr_ue_remove_all(void);
+sched_nr_ue *sched_ue_nr_find_by_rnti(uint16_t rnti);
+void sched_ue_nr_set_by_rnti(uint16_t rnti, sched_nr_ue *ue);
+void sched_nr_add_ue_impl(uint16_t rnti, sched_nr_ue *u, uint32_t cc);
 sched_nr_ue *sched_nr_ue_add(uint16_t rnti_, uint32_t cc, sched_params_t *sched_cfg_);
+sched_nr_ue *sched_nr_ue_add_inner(uint16_t rnti_, sched_nr_ue_cfg_t *uecfg, sched_params_t *sched_cfg_);
 
 
 #ifdef __cplusplus

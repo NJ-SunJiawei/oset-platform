@@ -17,6 +17,7 @@
 #include "lib/common/slot_interval.h"
 #include "lib/common/asn_interface.h"
 #include "lib/common/buffer_interface.h"
+#include "lib/common/time.h"
 
 
 #ifdef __cplusplus

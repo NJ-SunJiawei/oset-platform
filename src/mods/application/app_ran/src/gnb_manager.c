@@ -8,7 +8,6 @@
 ************************************************************************/
 
 #include "gnb_common.h"
-
 #include "gnb_timer.h"
 #include "rf/radio.h"
 #include "phy/phy.h"
@@ -29,7 +28,7 @@ gnb_manager_t *gnb_manager_self(void)
 void gnb_manager_init(void)
 {
 	gnb_manager.running = true;
-	gnb_manager.app_timer = oset_timer_mgr_create(SRSENB_MAX_UES * NUM_OF_APP_TIMER);
+	gnb_manager.app_timer = gnb_timer_mgr_create(SRSENB_MAX_UES * NUM_OF_APP_TIMER);
 	oset_assert(gnb_manager.app_timer);
 	gnb_manager.band_helper = band_helper_create();
 	gnb_arg_default(&gnb_manager.args);
@@ -56,7 +55,7 @@ void gnb_manager_destory(void)
 
 	cvector_free(gnb_manager.phy_cfg->phy_cell_cfg_nr);
 
-	oset_timer_mgr_destroy(gnb_manager.app_timer);
+	gnb_timer_mgr_destroy(gnb_manager.app_timer);
 
 	if (gnb_manager.args.phy.dl_channel_args.enable) {
 		channel_destory(gnb_manager.dl_channel);
@@ -110,9 +109,9 @@ void gnb_layer_tasks_destory(void)
 {
 	phy_destory();
 	rf_destory();
+	oset_threadplus_destroy(task_map_self(TASK_TIMER)->thread, 1);
 	oset_threadplus_destroy(task_map_self(TASK_MAC)->thread, 1);
 	oset_threadplus_destroy(task_map_self(TASK_RRC)->thread, 1);
-	oset_threadplus_destroy(task_map_self(TASK_TIMER)->thread, 1);
 
 }
 

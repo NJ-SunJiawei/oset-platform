@@ -58,7 +58,8 @@ static int mac_init(void)
 		mac_pcap_open(&mac_manager.pcap, mac_manager.args->pcap.filename, 0);
 	}
 
-	oset_pool_init(&mac_manager.ue_nr_mac_pool, SRSENB_MAX_UES);
+	oset_pool_init(&mac_manager.ue_pool, SRSENB_MAX_UES);
+	oset_list_init(&mac_manager.mac_ue_list);
 	mac_manager.ue_db = oset_hash_make();
 
 	//todo
@@ -72,8 +73,11 @@ static int mac_destory(void)
 	mac_manager.cell_config = NULL;
 
 	//todo
+
+	mac_remove_ue_all();
+	oset_list_empty(&mac_manager.mac_ue_list);
 	oset_hash_destroy(mac_manager.ue_db);
-	oset_pool_final(&mac_manager.ue_nr_mac_pool);
+	oset_pool_final(&mac_manager.ue_pool);
 	if (mac_manager.args->pcap.enable) {
 	  	mac_pcap_close(&mac_manager.pcap);
 		oset_ring_buf_destroy(mac_manager.pcap.base.buf);
@@ -118,13 +122,19 @@ int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells)
 	return OSET_OK;
 }
 
+int mac_ue_cfg(uint16_t rnti, sched_nr_ue_cfg_t ue_cfg)
+{
+	sched_nr_ue_cfg(&mac_manager.sched,rnti, ue_cfg);
+	return OSET_OK;
+}
+
 static bool is_rnti_valid(uint16_t rnti)
 {
 	if (!mac_manager.started) {
 		oset_error("RACH ignored as eNB is being shutdown");
 		return false;
 	}
-	if (oset_hash_count(&mac_manager.ue_db) > SRSENB_MAX_UES) {
+	if (oset_list_count(&mac_manager.mac_ue_list) > SRSENB_MAX_UES) {
 		oset_error("Maximum number of connected UEs %zd connected to the eNB. Ignoring PRACH", SRSENB_MAX_UES);
 		return false;
 	}
@@ -165,6 +175,24 @@ static uint16_t mac_alloc_ue(uint32_t enb_cc_idx)
 	return rnti;
 }
 
+void mac_remove_ue(uint16_t rnti)
+{
+	//srsran::rwlock_write_guard lock(rwmutex);
+	if (is_rnti_valid(rnti)) {
+	  sched_nr_ue_rem(rnti);
+	  ue_nr_remove(ue_nr_find_by_rnti(rnti));
+	} else {
+	  oset_error("User rnti=0x%x not found", rnti);
+	}
+}
+
+void mac_remove_ue_all(void)
+{
+	ue_nr *ue = NULL, *next_ue = NULL;
+	oset_list_for_each_safe(&mac_manager.mac_ue_list, next_ue, ue)
+		mac_remove_ue(ue);
+}
+
 static void mac_handle_rach_info(rach_info_t *rach_info)
 {
 	uint16_t rnti = FIRST_RNTI;
@@ -177,15 +205,15 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 		//oset_apr_mutex_unlock(mac_manager.mutex);
 	}
 	// Trigger scheduler RACH
-	rar_info_t *rar_info = oset_malloc(sizeof(rar_info_t));
-	rar_info->msg3_size    = 7;//???
-	rar_info->cc			  = rach_info->enb_cc_idx;
-	rar_info->preamble_idx = rach_info->preamble;
-	rar_info->temp_crnti	  = rnti;
-	rar_info->ta_cmd		  = rach_info->time_adv;
-	slot_point_init(&rar_info->prach_slot, NUMEROLOGY_IDX, rach_info->slot_index);
+	rar_info_t rar_info = {0};
+	rar_info.msg3_size    = 7;//???
+	rar_info.cc			  = rach_info->enb_cc_idx;
+	rar_info.preamble_idx = rach_info->preamble;
+	rar_info.temp_crnti	  = rnti;
+	rar_info.ta_cmd		  = rach_info->time_adv;
+	slot_point_init(&rar_info.prach_slot, NUMEROLOGY_IDX, rach_info->slot_index);
 
-	sched_nr_dl_rach_info(&mac_manager.sched, rar_info);
+	sched_nr_dl_rach_info(&mac_manager.sched, &rar_info);
 	rrc_add_user_callback(rnti, rach_info->enb_cc_idx);//todo
 
 	oset_info("RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",

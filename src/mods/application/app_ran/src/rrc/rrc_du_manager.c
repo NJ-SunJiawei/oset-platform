@@ -8,7 +8,7 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "rrc/rrc.h"
-#include "rrc/rrc_nr_du_manager.h"
+#include "rrc/rrc_du_manager.h"
 #include "rrc/rrc_cell_asn_fill.h"
 
 #undef  OSET_LOG2_DOMAIN

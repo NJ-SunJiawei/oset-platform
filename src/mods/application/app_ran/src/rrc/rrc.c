@@ -248,6 +248,8 @@ static int rrc_init(void)
 
 	rrc_manager_init();
 	//todo
+	oset_pool_init(rrc_manager.ue_pool, SRSENB_MAX_UES);
+	oset_list_init(&rrc_manager.rrc_ue_list);
 	rrc_manager.users = oset_hash_make();
 	
 	rrc_manager.cfg = &gnb_manager_self()->rrc_nr_cfg;
@@ -338,9 +340,35 @@ static int rrc_destory(void)
 	cvector_free(sched_cells_cfg);
 
 	//todo
+	rrc_remove_user_all();
+	oset_list_empty(&rrc_manager.rrc_ue_list);
     oset_hash_destroy(rrc_manager.users);
-
+	oset_pool_final(&rrc_manager.ue_pool);
 	return OSET_OK;
+}
+
+void rrc_rem_user(uint16_t rnti)
+{
+  rrc_nr_ue *ue = rrc_nr_ue_find_by_rnti(rnti);
+  if (ue) {
+    // First remove MAC and GTPU to stop processing DL/UL traffic for this user
+    mac_remove_ue(rnti); // MAC handles PHY
+    rlc->rem_user(rnti);
+    pdcp->rem_user(rnti);
+	rrc_nr_ue_remove(ue);
+
+    oset_warn("Disconnecting rnti=0x%x.\n", rnti);
+    oset_info("Removed user rnti=0x%x", rnti);
+  } else {
+    oset_info("Removing user rnti=0x%x (does not exist)", rnti);
+  }
+}
+
+void rrc_remove_user_all(void)
+{
+	rrc_nr_ue *ue = NULL, *next_ue = NULL;
+	oset_list_for_each_safe(rrc_manager.rrc_ue_list, next_ue, ue)
+		rrc_rem_user(ue->rnti);
 }
 
 /* @brief PRIVATE function, gets called by sgnb_addition_request
@@ -349,9 +377,9 @@ static int rrc_destory(void)
  */
 int rrc_add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer)
 {
-  if (rrc_manager.users.contains(rnti) == 0) {
+  if (NULL == rrc_nr_ue_find_by_rnti(rnti)) {
     // If in the ue ctor, "start_msg3_timer" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
-    rrc_manager.users.insert(rnti, std::make_unique<ue>(this, rnti, pcell_cc_idx, start_msg3_timer));
+	rrc_nr_ue_add(rnti, pcell_cc_idx, start_msg3_timer);
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     oset_info("Added new user rnti=0x%x", rnti);

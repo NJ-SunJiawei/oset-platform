@@ -92,37 +92,81 @@ static void sched_nr_ue_set_cfg(sched_nr_ue *u, sched_nr_ue_cfg_t *cfg)
 
 void sched_nr_ue_remove(sched_nr_ue *u)
 {
+	oset_assert(u);
+
 	//todo
+    oset_list_remove(&mac_manager_self()->sched.sched_ue_list, u);
+    oset_hash_set(&mac_manager_self()->sched.ue_db, &u->rnti, sizeof(u->rnti), NULL);
+
+	oset_info("SCHED: Removed sched user rnti=0x%x", u->rnti);
+
 	sched_nr_ue_cc_cfg_t *ue_cc_cfg = NULL;
 	cvector_for_each_in(ue_cc_cfg, u->ue_cfg.carriers){
 		ue_carrier_destory(u->carriers[ue_cc_cfg->cc]);
 	}
 	cvector_free(u->ue_cfg.carriers);
 
-	oset_pool_free(&mac_manager_self()->sched.ue_pool, u);
+	oset_pool_free(&mac_manager_self()->sched.sched_ue_list, u);
+    oset_info("[Removed] Number of SCHED-UEs is now %d", oset_list_count(&mac_manager_self()->sched.sched_ue_list));
+}
+
+void sched_nr_ue_remove_all(void)
+{
+	sched_nr_ue *ue = NULL, *next_ue = NULL;
+	oset_list_for_each_safe(&&mac_manager_self()->sched.sched_ue_list, next_ue, ue)
+		sched_nr_ue_remove(ue);
+}
+
+sched_nr_ue *sched_ue_nr_find_by_rnti(uint16_t rnti)
+{
+    return (sched_nr_ue *)oset_hash_get(
+            &mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti));
+}
+
+void sched_nr_add_ue_impl(uint16_t rnti, sched_nr_ue *u, uint32_t cc)
+{
+	oset_assert(u);
+	oset_info("SCHED: New sched user rnti=0x%x, cc=%d", rnti, cc);
+	oset_hash_set(&mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), NULL);
+	oset_hash_set(&mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), u);
+}
+
+void sched_ue_nr_set_by_rnti(uint16_t rnti, sched_nr_ue *u)
+{
+	oset_assert(u);
+    oset_hash_set(&mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), NULL);
+    oset_hash_set(&mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), u);
 }
 
 
 sched_nr_ue *sched_nr_ue_add(uint16_t rnti_, uint32_t cc, sched_params_t *sched_cfg_)
 {
-	sched_nr_ue *u = NULL; 
-
-	// create user object outside of sched main thread
-	oset_pool_alloc(&mac_manager_self()->sched.ue_pool, &u);
-    if (u == NULL) {
-        oset_error("Could not allocate sched_nr_ue context from pool");
-        return NULL;
-    }
-
+	//首次主要为了获得phy配置，rrc层会通过mac_ue_cfg二次更新高层信息。
 	sched_nr_ue_cfg_t *uecfg = get_rach_ue_cfg_helper(cc, sched_cfg_);
 
-	u->rnti = rnti_;
-	u->sched_cfg = sched_cfg_;
-	base_ue_buffer_manager_init(&u->buffers.base_ue, rnti_);
-	ue_cfg_manager_init(&u->ue_cfg, cc);
-	sched_nr_ue_set_cfg(u, uecfg);//create carriers[cc]
+	sched_nr_ue *u = sched_nr_ue_add_inner(rnti_, uecfg, sched_cfg_);
 
 	free_rach_ue_cfg_helper(uecfg);
 	return u;
 }
+
+sched_nr_ue *sched_nr_ue_add_inner(uint16_t rnti_, sched_nr_ue_cfg_t *uecfg, sched_params_t *sched_cfg_)
+{
+	sched_nr_ue *u = NULL; 
+
+	// create user object outside of sched main thread
+	oset_pool_alloc(&mac_manager_self()->sched.ue_pool, &u);
+	ASSERT_IF_NOT(u, "Could not allocate sched ue %d context from pool", rnti_);
+
+	u->rnti = rnti_;
+	u->sched_cfg = sched_cfg_;
+	base_ue_buffer_manager_init(&u->buffers.base_ue, rnti_);
+	ue_cfg_manager_init(&u->ue_cfg, uecfg->carriers[0].cc);//todo cc
+	sched_nr_ue_set_cfg(u, uecfg);//create carriers[cc]
+
+    oset_list_add(&mac_manager_self()->sched.sched_ue_list, u);
+    oset_info("[Added] Number of SCHED-UEs is now %d", oset_list_count(&mac_manager_self()->sched.sched_ue_list));
+	return u;
+}
+
 

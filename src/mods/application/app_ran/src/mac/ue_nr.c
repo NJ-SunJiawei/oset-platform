@@ -15,41 +15,40 @@
 
 ue_nr *ue_nr_add(uint16_t rnti)
 {
-    ue_nr *ue_nr_cxt = NULL;
-    oset_pool_alloc(&mac_manager_self()->ue_nr_mac_pool, &ue_nr_cxt);
-    if (ue_nr_cxt == NULL) {
-        oset_error("Could not allocate ue_nr context from pool");
-        return NULL;
-    }
+    ue_nr *ue = NULL;
+    oset_pool_alloc(&mac_manager_self()->ue_pool, &ue);
+	ASSERT_IF_NOT(ue, "Could not allocate sched ue %d context from pool", rnti);
 
-    memset(ue_nr_cxt, 0, sizeof(ue_nr));
-	ue_nr_cxt->ue_rlc_buffer = oset_malloc(sizeof(byte_buffer_t));
+    memset(ue, 0, sizeof(ue_nr));
+	ue->ue_rlc_buffer = oset_malloc(sizeof(byte_buffer_t));
 
-	ue_nr_set_rnti(ue_nr_cxt, rnti);
+	ue_nr_set_rnti(rnti, ue);
+    oset_list_add(&mac_manager_self()->mac_ue_list, ue);
 
-    oset_info("[Added] Number of MAC-UEs is now %d", oset_hash_count(&mac_manager_self()->ue_db));
+    oset_info("[Added] Number of MAC-UEs is now %d", oset_list_count(&mac_manager_self()->mac_ue_list));
 
-	return ue_nr_cxt;
+	return ue;
 }
 
-void ue_nr_remove(ue_nr *ue_nr_cxt)
+void ue_nr_remove(ue_nr *ue)
 {
-    oset_assert(ue_nr_cxt);
+    oset_assert(ue);
 
-    oset_free(ue_nr_cxt->ue_rlc_buffer);
-    oset_hash_set(&mac_manager_self()->ue_db, &ue_nr_cxt->rnti, sizeof(ue_nr_cxt->rnti), NULL);
-    oset_pool_free(&mac_manager_self()->ue_nr_mac_pool, ue_nr_cxt);
+    oset_free(ue->ue_rlc_buffer);
 
-    oset_info("[Removed] Number of MAC-UEs is now %d", oset_hash_count(&mac_manager_self()->ue_db));
+    oset_list_remove(&mac_manager_self()->mac_ue_list, ue);
+    oset_hash_set(&mac_manager_self()->ue_db, &ue->rnti, sizeof(ue->rnti), NULL);
+    oset_pool_free(&mac_manager_self()->ue_pool, ue);
+
+    oset_info("[Removed] Number of MAC-UEs is now %d", oset_list_count(&mac_manager_self()->mac_ue_list));
 }
 
-int ue_nr_set_rnti(ue_nr *ue_nr_cxt, uint16_t rnti)
+void ue_nr_set_rnti(uint16_t rnti, ue_nr *ue)
 {
-    oset_assert(ue_nr_cxt);
-	ue_nr_cxt->rnti = rnti;
+    oset_assert(ue);
+	ue->rnti = rnti;
     oset_hash_set(&mac_manager_self()->ue_db, &rnti, sizeof(rnti), NULL);
-    oset_hash_set(&mac_manager_self()->ue_db, &rnti, sizeof(rnti), ue_nr_cxt);
-    return OSET_OK;
+    oset_hash_set(&mac_manager_self()->ue_db, &rnti, sizeof(rnti), ue);
 }
 
 ue_nr *ue_nr_find_by_rnti(uint16_t rnti)

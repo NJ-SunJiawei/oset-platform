@@ -20,9 +20,9 @@ typedef void* context_t;
 /*L1/L2/L3 message types*/
 //#include "def/phy_messages_types.h"
 #include "def/mac_messages_types.h"
-#include "def/rlc_messages_types.h"
+//#include "def/rlc_messages_types.h"
 //#include "def/pdcp_messages_types.h"
-//#include "def/rrc_messages_types.h"
+#include "def/rrc_messages_types.h"
 //#include "def/ngap_messages_types.h"
 //#include "def/nas_messages_types.h"
 

@@ -38,8 +38,9 @@
 #define FDD_HARQ_DELAY_UL_MS 4
 #define MSG3_DELAY_MS 2 // Delay added to FDD_HARQ_DELAY_DL_MS
 
-#define TTI_SUB(a, b) ((((a) + 10240) - (b)) % 10240)
-#define TTI_ADD(a, b) (((a) + (b)) % 10240)
+#define TTI_LOOP(scs) (1024 * ((1U << (NUM)) * 10))
+#define TTI_SUB(a, b) ((((a) + TTI_LOOP(1)) - (b)) % TTI_LOOP(1))
+#define TTI_ADD(a, b) (((a) + (b)) % TTI_LOOP(1))
 
 #define TTI_TX(tti) TTI_ADD(tti, FDD_HARQ_DELAY_DL_MS)
 

@@ -98,7 +98,7 @@ int task_send_msg(task_id_t destination_task_id, msg_def_t *message)
 	    oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "task send msg[%s] to %s failed",get_message_name(message->msg_header.message_id), get_task_name(destination_task_id));
 	    oset_free(message);
     }
-	oset_log_hexdump(OSET_LOG2_DEBUG, (unsigned char *)cp_order, sizeof(om_transfer_order_c_t));
+	oset_log_hexdump(OSET_LOG2_DEBUG, (unsigned char *)message, message->msg_header.size);
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_DEBUG, "task send msg[%s] to %s success",get_message_name(message->msg_header.message_id), get_task_name(destination_task_id));
     return ret;
 }

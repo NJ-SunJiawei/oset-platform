@@ -18,16 +18,38 @@
 extern "C" {
 #endif
 
-typedef int (*event_callback)(int argc, void **argv);
-typedef int (*ue_event_callback)(int argc, void **argv);
-typedef int (*ue_cc_event_callback)(int argc, void **argv);
+typedef int (*event_callback)(void *argv);
+typedef int (*ue_event_callback)(void *argv);
+typedef int (*ue_cc_event_callback)(void *argv);
+
+enum struct {
+	DL_RACH_INFO,
+	UE_CFG,
+	UE_REM,
+}event_e;
+
+typedef struct{
+	rar_info_t  rar_info;
+	sched_nr_ue *u;
+}dl_rach_info_argv_t;
+
+typedef struct{
+	uint16_t rnti;
+	sched_nr_ue_cfg_t *uecfg;
+}ue_cfg_argv_t;
+
+typedef struct{
+	sched_nr_ue *u;
+}ue_rem_argv_t;
 
 typedef struct {
-  char            *event_name;
+  event_e         event_name;
   event_callback  callback;
-  //void (*callback)(void *)
-  int             argc;
-  void            *argv[10];
+  union{
+	  dl_rach_info_argv_t dl_rach_info_argv; 
+	  ue_cfg_argv_t       ue_cfg_argv;
+	  ue_rem_argv_t       ue_rem_argv;
+  }u;
 }event_t;
 
 typedef struct {
@@ -37,7 +59,7 @@ typedef struct {
   oset_lnode_t       current_slot_ue_events_node;
 
   uint16_t			 rnti;
-  char               *event_name;
+  event_e            event_name;
   ue_event_callback  callback;
 }ue_event_t;
 
@@ -46,23 +68,23 @@ struct ue_cc_event_t {
 	oset_lnode_t	     current_slot_ue_events_node;
 	uint16_t             rnti;
 	uint32_t			 cc;
-	char                 *event_name;
+	event_e              event_name;
 	ue_cc_event_callback callback;
 }ue_cc_event_t;
 
 typedef struct {
-  oset_apr_mutex_t	                   *event_cc_mutex;
+  oset_apr_mutex_t	                               *event_cc_mutex;
   oset_stl_queue_def(ue_cc_event_t, ue_cc_event)    next_slot_ue_events;
   oset_stl_queue_def(ue_cc_event_t, ue_cc_event)    current_slot_ue_events;//srsran::deque<ue_cc_event_t>
 }cc_events;
 
 typedef struct {
-  oset_apr_mutex_t          *event_mutex;
+  oset_apr_mutex_t                         *event_mutex;
   oset_stl_queue_def(event_t, event)       next_slot_events;
   oset_stl_queue_def(event_t, event)       current_slot_events;//srsran::deque<event_t>
   oset_stl_queue_def(ue_event_t, ue_event) next_slot_ue_events;
   oset_stl_queue_def(ue_event_t, ue_event) current_slot_ue_events;//srsran::deque<ue_event_t>
-  cvector_vector_t(cc_events) carriers;//std::vector<cc_events>
+  cvector_vector_t(cc_events)              carriers;//std::vector<cc_events>
 }event_manager;
 /*****************************************************/
 
@@ -83,9 +105,10 @@ typedef struct {
   // slot-specific
   slot_point                  current_slot_tx;
   int                         worker_count;
-  cvector_vector_t(cc_worker)   cc_workers; //std::vector<std::unique_ptr<sched_nr_impl::cc_worker> >
+  cvector_vector_t(cc_worker) cc_workers; //std::vector<std::unique_ptr<sched_nr_impl::cc_worker> >
   // UE Database
   OSET_POOL(ue_pool, sched_nr_ue);//sched rnti context 
+  oset_list_t	              sched_ue_list;
   oset_hash_t			      *ue_db;//static_circular_map<uint16_t, std::unique_ptr<sched_nr_ue>, SRSENB_MAX_UES>
     // Feedback management
   event_manager               pending_events;
@@ -93,15 +116,19 @@ typedef struct {
   ue_metrics_manager          metrics_handler;
 }sched_nr;
 
-void dl_rach_info_callback(int argc, void **argv);
-
-
 void sched_nr_init(sched_nr *scheluder);
 void sched_nr_destory(sched_nr *scheluder);
 int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector_t(sched_nr_cell_cfg_t) sched_cells);
-int sched_nr_add_ue_impl(uint16_t rnti, sched_nr_ue *u, uint32_t cc);
-sched_nr_ue *sched_ue_nr_find_by_rnti(uint16_t rnti);
+
+//////////////////////////////////////////////////////////////////////
+void dl_rach_info_callback(void *argv);
+void sched_nr_ue_remove_callback(void *argv);
+void sched_nr_ue_cfg_impl_callback(void *argv);
+
+
 int sched_nr_dl_rach_info(sched_nr *scheluder, rar_info_t *rar_info);
+void sched_nr_ue_rem(sched_nr *scheluder, uint16_t rnti);
+void sched_nr_ue_cfg(sched_nr *scheluder, uint16_t rnti, sched_nr_ue_cfg_t *uecfg);
 
 #ifdef __cplusplus
 }

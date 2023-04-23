@@ -11,8 +11,9 @@
 #define RRC_NR_UE_H_
 
 #include "lib/common/buffer_interface.h"
+#include "lib/common/time.h"
 #include "lib/mac/sched_nr_interface.h"
-#include "rrc/rrc_nr_security_context.h"
+#include "rrc/rrc_security_context.h"
 #include "rrc/rrc_nr_config.h"
 
 
@@ -37,21 +38,25 @@ typedef struct {
 const uint32_t drb1_lcid = 4;
 
 typedef struct {
-  uint16_t              rnti;// = SRSRAN_INVALID_RNTI
+  oset_lnode_t          lnode;
+  uint16_t              rnti; // = SRSRAN_INVALID_RNTI
   // state
-  rrc_nr_state_t        state;//          = (rrc_nr_state_t)RRC_IDLE
+  rrc_nr_state_t        state; //= (rrc_nr_state_t)RRC_IDLE
   uint8_t               transaction_id;
-  oset_time_t           activity_timer; /// for basic DL/UL activity timeout//srsran::unique_timer
+  gnb_timer_t	        *activity_timer; // for basic DL/UL activity timeout//srsran::unique_timer
 
   // RRC configs for UEs
-  struct cell_group_cfg_s              cell_group_cfg, next_cell_group_cfg;
-  struct radio_bearer_cfg_s            radio_bearer_cfg, next_radio_bearer_cfg;
+  struct cell_group_cfg_s              cell_group_cfg;
+  struct cell_group_cfg_s              next_cell_group_cfg;
+  struct radio_bearer_cfg_s            radio_bearer_cfg;
+  struct radio_bearer_cfg_s            next_radio_bearer_cfg;
+
   cvector_vector_t(byte_buffer_t)      nas_pdu_queue;//std::vector<srsran::unique_byte_buffer_t>
 
   // MAC controller
-  sched_nr_ue_cfg_t uecfg;
+  sched_nr_ue_cfg_t  uecfg;//mac_ue_cfg()
 
-  uint32_t       drb1_five_qi; /// selected by 5GC
+  uint32_t           drb1_five_qi; /// selected by 5GC
 
   // Security helper
   nr_security_context sec_ctx;
@@ -62,8 +67,11 @@ typedef struct {
   // NSA specific variables
   bool     endc;//       = false
   uint16_t eutra_rnti;// = SRSRAN_INVALID_RNTI
+  activity_timeout_type_t type;
 }rrc_nr_ue;
 
+void activity_timer_handle(rrc_nr_ue *ue);
+void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer);
 
 #ifdef __cplusplus
 }

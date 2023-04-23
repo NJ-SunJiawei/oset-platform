@@ -4,19 +4,28 @@
  *
  *Current Version:
  *Author: create by sunjiawei
- *Date: 2022.12
+ *Date: 2023.04
 ************************************************************************/
 
-#ifndef GNB_TIMER_H_
-#define GNB_TIMER_H_
-
-#include "lib/common/time.h"
+#ifndef RRC_TIMER_H_
+#define RRC_TIMER_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void *gnb_timer_task(oset_threadplus_t *thread, void *data);
+/* forward declaration */
+typedef enum {
+    RRC_TIMER_BASE = 100,
+
+    RRC_TIMER_ACTIVITY,
+
+    MAX_NUM_OF_RRC_TIMER,
+
+} rrc_timer_e;
+
+
+void activity_timer_expired(void *data);
 
 #ifdef __cplusplus
 }
