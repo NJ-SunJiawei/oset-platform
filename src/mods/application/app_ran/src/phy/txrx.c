@@ -68,18 +68,17 @@ void txrx_init(void)
 {
 	phy_common* worker_com = &phy_manager_self()->workers_common;
 
-  // Instantiate UL channel emulator
-  if (worker_com->params.ul_channel_args.enable) {
-    gnb_manager_self()->ul_channel = channel_create(worker_com->params.ul_channel_args));
-  }
+	// Instantiate UL channel emulator
+	if (worker_com->params.ul_channel_args.enable) {
+		gnb_manager_self()->ul_channel = channel_create(worker_com->params.ul_channel_args));
+	}
 
-  slot_worker_init();
-  if (OSET_ERROR == task_thread_create(TASK_TXRX, NULL)) {
-	oset_error("Create task for gNB txrx failed");
-	return OSET_ERROR;
-  }
+	if (OSET_ERROR == task_thread_create(TASK_TXRX, NULL)) {
+		oset_error("Create task for gNB txrx failed");
+		return OSET_ERROR;
+	}
 
-  return OSET_OK;
+	return OSET_OK;
 }
 
 
@@ -141,14 +140,15 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		////1ms调度一次 	  (系统帧号1024循环	    1帧=10子帧=10ms)      for 5G  SCS=15khz 1slot=1ms=14+1symbols
 		slot_manager_self()->tti = TTI_ADD(slot_manager_self()->tti, 1);
 	    
-		if ((NULL == slot_manager_self()->slot_worker.th_pools) || (get_nof_carriers_nr() <= 0)) {
+		if ((NULL == phy_manager_self()->th_pools) || (get_nof_carriers_nr() <= 0)) {
 			oset_error("%s phy run error",OSET_FILE_LINE);
 			break;
 		}
 
-		if(oset_threadpool_tasks_count(slot_manager_self()->slot_worker.th_pools) > FDD_HARQ_DELAY_UL_MS)
+		size_t task = oset_threadpool_tasks_count(phy_manager_self()->th_pools);
+		if(task > FDD_HARQ_DELAY_UL_MS)
 		{
-			oset_debug("phy threadpool task %d > 10, blocking!!!", oset_threadpool_tasks_count(slot_manager_self()->slot_worker.th_pools));
+			oset_debug("phy threadpool task %d > 10, blocking!!!", task);
 			oset_apr_mutex_lock(phy_manager_self()->mutex);
 			oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);
 			oset_apr_mutex_unlock(phy_manager_self()->mutex);
@@ -158,13 +158,14 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		{
 		  for (uint32_t cc_nr = 0; cc_nr < get_nof_carriers_nr(); cc_nr++) {
 			uint32_t rf_port = get_rf_port(cc_nr);
-		
+
 			for (uint32_t p = 0; p < get_nof_ports(cc_nr); p++) {
 			    // WARNING:
 			    // - The number of ports for all cells must be the same
 			    // - Only one NR cell is currently supported
 			    //channel_idx = logical_ch * nof_antennas + port_idx
-				buffer.sample_buffer[rf_port * get_nof_ports(0) + p] = get_buffer_rx(p);//Logical Port=Physical Port Mapping
+			    //phys_antenna_idx = i * rf_manager.nof_antennas + j;
+				buffer.sample_buffer[rf_port * get_nof_ports(cc_nr) + p] = get_buffer_rx(p);//Logical Port=Physical Port Mapping
 			}
 		  }
 		}
@@ -183,13 +184,13 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 			  slot_manager_self()->tti,
 			  timestamp.timestamps[0].full_secs,
 			  timestamp.timestamps[0].frac_secs,
-			  slot_manager_self()->slot_worker.th_pools);
+			  phy_manager_self()->th_pools);
 
 			  
 	    // Set NR worker context and start
         memset(&context, 0,sizeof(worker_context_t));
 		context.sf_idx     = slot_manager_self()->tti;
-		context.worker_ptr = slot_manager_self()->slot_worker.th_pools;
+		context.worker_ptr = phy_manager_self()->th_pools;
 		context.last	   = true;
 		context.tx_time    = timestamp;
 		set_slot_worker_context(&context);
@@ -199,7 +200,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 
 		// Start actual worker
 		// Process one at a time and hang it on the linked list in sequence
-		rv = oset_threadpool_push(slot_manager_self()->slot_worker.th_pools,
+		rv = oset_threadpool_push(phy_manager_self()->th_pools,
 									slot_worker_process,
 									slot_worker_alloc(slot_manager_self()),
 									PRIORITY_LEVEL_HIGH,

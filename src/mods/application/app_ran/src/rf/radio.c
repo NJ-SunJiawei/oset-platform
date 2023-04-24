@@ -528,6 +528,7 @@ int rf_init(void)
 	  return OSET_ERROR;
 	}
 
+	//信道数量=天线端口*小区
 	rf_manager.nof_channels = args->nof_antennas * args->nof_carriers;
 	rf_manager.nof_antennas = args->nof_antennas;
 	rf_manager.nof_carriers = args->nof_carriers;

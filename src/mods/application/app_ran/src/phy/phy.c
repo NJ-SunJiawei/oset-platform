@@ -34,7 +34,6 @@ static phy_manager_t phy_manager = {
 	.slot_args.pusch_max_its = 10,
 	.slot_args.pusch_min_snr_dB = -10.0f,
 	.slot_args.srate_hz = 0.0,
-	.tti = 0,
 };
 	
 phy_manager_t *phy_manager_self(void)
@@ -91,75 +90,6 @@ static void phy_parse_common_config(const phy_cfg_t *cfg)
 	//phy_manager.workers_common.dmrs_pusch_cfg.sequence_hopping_en = cfg->pusch_cnfg.ul_ref_sigs_pusch.seq_hop_enabled;
 }
 
-static bool init_slot_worker(const slot_worker_args_t *args)
-{
-	// Calculate subframe length
-	slot_manager.slot_worker.sf_len = (uint32_t)(args->srate_hz / 1000.0);//1/(15000*2048)~~~15symbol*2048FFT
-
-	// Copy common configurations
-	slot_manager.slot_worker.cell_index = args->cell_index;
-	slot_manager.slot_worker.rf_port    = args->rf_port;
-
-	// Allocate Tx buffers
-	slot_manager.slot_worker.tx_buffer = (cf_t **)oset_malloc(args->nof_tx_ports*sizeof(cf_t *));
-	for (uint32_t i = 0; i < args->nof_tx_ports; i++) {
-	  slot_manager.slot_worker.tx_buffer[i] = srsran_vec_cf_malloc(slot_manager.slot_worker.sf_len);
-	  if (slot_manager.slot_worker.tx_buffer[i] == NULL) {
-		oset_error("Error allocating Tx buffer");
-		return false;
-	  }
-	}
-
-	// Allocate Rx buffers
-	slot_manager.slot_worker.rx_buffer = (cf_t **)oset_malloc(args->nof_rx_ports*sizeof(cf_t *));
-	for (uint32_t i = 0; i < args->nof_rx_ports; i++) {
-	  slot_manager.slot_worker.rx_buffer[i] = srsran_vec_cf_malloc(slot_manager.slot_worker.sf_len);
-	  if (slot_manager.slot_worker.rx_buffer[i] == NULL) {
-		oset_error("Error allocating Rx buffer");
-		return false;
-	  }
-	}
-
-	// Prepare DL arguments
-	srsran_gnb_dl_args_t dl_args = {0};
-	dl_args.pdsch.measure_time   = true;
-	dl_args.pdsch.max_layers	 = args->nof_tx_ports;
-	dl_args.pdsch.max_prb 	     = args->nof_max_prb;
-	dl_args.nof_tx_antennas	     = args->nof_tx_ports;
-	dl_args.nof_max_prb		     = args->nof_max_prb;
-	dl_args.srate_hz			 = args->srate_hz;
-
-	// Initialise DL
-	if (srsran_gnb_dl_init(&slot_manager.slot_worker.gnb_dl, slot_manager.slot_worker.tx_buffer, &dl_args) < SRSRAN_SUCCESS) {
-	  oset_error("Error gNb DL init");
-	  return false;
-	}
-
-	// Prepare UL arguments
-	srsran_gnb_ul_args_t ul_args	 = {0};
-	ul_args.pusch.measure_time	 = true;
-	ul_args.pusch.measure_evm 	 = true;
-	ul_args.pusch.max_layers		 = args->nof_rx_ports;
-	ul_args.pusch.sch.max_nof_iter   = args->pusch_max_its;
-	ul_args.pusch.max_prb 		     = args->nof_max_prb;
-	ul_args.nof_max_prb			     = args->nof_max_prb;
-	ul_args.pusch_min_snr_dB		 = args->pusch_min_snr_dB;
-
-	// Initialise UL
-	if (srsran_gnb_ul_init(&slot_manager.slot_worker.gnb_ul, slot_manager.slot_worker.rx_buffer[0], &ul_args) < SRSRAN_SUCCESS) {
-	  oset_error("Error gNb DL init");
-	  return false;
-	}
-
-#ifdef DEBUG_WRITE_FILE
-	const char* filename = "nr_baseband.dat";
-	oset_debug("Opening %s to dump baseband\n", filename);
-	f = fopen(filename, "w");
-#endif
-
-	return true;
-}
-
 
 static int init_nr(const phy_args_t& args, const phy_cfg_t& cfg)
 {
@@ -169,11 +99,12 @@ static int init_nr(const phy_args_t& args, const phy_cfg_t& cfg)
 		return OSET_ERROR;
 	}
 	struct phy_cell_cfg_nr_t *cell_nr = cfg->phy_cell_cfg_nr[0];
+	//todo one cell
 
 	phy_manager.worker_args.nof_prach_workers = args->nof_prach_threads;//0 or 1 allow
 	phy_manager.worker_args.nof_phy_threads = args->nof_phy_threads;
 
-	rv = oset_threadpool_create(&slot_manager.slot_worker.th_pools, phy_manager.worker_args.nof_phy_threads, phy_manager.worker_args.nof_phy_threads);
+	rv = oset_threadpool_create(&phy_manager.th_pools, phy_manager.worker_args.nof_phy_threads, phy_manager.worker_args.nof_phy_threads);
 	oset_assert(OSET_OK == rv);
 
 	phy_manager.slot_args.cell_index = 0;
@@ -187,7 +118,7 @@ static int init_nr(const phy_args_t& args, const phy_cfg_t& cfg)
 	 phy_manager.slot_args.srate_hz = SRSRAN_SUBC_SPACING_NR(cell_nr->carrier.scs) * srsran_min_symbol_sz_rb(cell_nr->carrier.nof_prb);//15k*2048=30.72MHz
 	}
 
-	if(!init_slot_worker(&phy_manager.slot_args)) return OSET_ERROR;
+	if(!slot_worker_init(&phy_manager.slot_args)) return OSET_ERROR;
 
 	/*phy_manager.common_cfg receive from rrc config  rrc_config_phy()*/
 	if (set_common_cfg_from_rrc(&phy_manager.common_cfg)) {
@@ -273,32 +204,6 @@ static int set_common_cfg_from_rrc(common_cfg_t *common_cfg)
 	return OSET_OK;
 }
 
-
-cf_t* get_buffer_rx(uint32_t antenna_idx)
-{
-	//std::lock_guard<std::mutex> lock(mutex);
-	if (antenna_idx >= (uint32_t)phy_manager.slot_args.nof_rx_ports) {
-	return NULL;
-	}
-
-	return slot_manager.slot_worker.rx_buffer[antenna_idx];
-}
-
-cf_t* get_buffer_tx(uint32_t antenna_idx)
-{
-	//std::lock_guard<std::mutex> lock(mutex);
-	if (antenna_idx >= (uint32_t)phy_manager.slot_args.nof_tx_ports) {
-	return NULL;
-	}
-
-	return slot_manager.slot_worker.tx_buffer[antenna_idx];
-}
-
-uint32_t get_buffer_len()
-{
-	return slot_manager.slot_worker.sf_len;
-}
-
 int phy_init(void)
 {
 	phy_manager_init();
@@ -332,29 +237,13 @@ int phy_init(void)
 
 int phy_destory(void)
 {
-	int i = -1;
-
-	for (i = 0; i < get_nof_carriers(); i++) {
+	for (int i = 0; i < get_nof_carriers(); i++) {
 		prach_worker_stop(i);
 	}
 
 	txrx_stop();
-
 	//slot_worker
-	oset_threadpool_destory(slot_manager.slot_worker.th_pools);
-	for (i = 0; i < (phy_manager.slot_args.nof_rx_ports; i++){
-	    free(slot_manager.slot_worker.rx_buffer[i]);
-	}
-	oset_free(slot_manager.slot_worker.rx_buffer);
-
-	for (i = 0; i < (phy_manager.slot_args.nof_tx_ports; i++){
-	    free(slot_manager.slot_worker.tx_buffer[i]);
-	}
-	oset_free(slot_manager.slot_worker.tx_buffer);
-
-
-	srsran_gnb_dl_free(&slot_manager.slot_worker.gnb_dl);
-	srsran_gnb_ul_free(&slot_manager.slot_worker.gnb_ul);
+	slot_worker_destory();
 
 	phy_manager_destory();
 	return OSET_OK;

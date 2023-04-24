@@ -46,14 +46,12 @@ typedef struct phy_manager_s{
 	phy_common			   workers_common;
 	phy_work_args_t        worker_args;
 	slot_worker_args_t     slot_args;
+	oset_thread_pool_t     *th_pools;
 }phy_manager_t;
 phy_manager_t *phy_manager_self(void);
 
 int phy_init(void);
 int phy_destory(void);
-uint32_t get_buffer_len();
-cf_t* get_buffer_rx(uint32_t antenna_idx);
-cf_t* get_buffer_tx(uint32_t antenna_idx);
 
 
 #ifdef __cplusplus

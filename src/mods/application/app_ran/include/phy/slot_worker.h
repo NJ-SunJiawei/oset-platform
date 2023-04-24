@@ -39,18 +39,17 @@ typedef struct {
 }slot_worker_args_t;
 
 typedef struct slot_worker_s{
-	oset_thread_pool_t   *th_pools;
-	uint32_t			sf_len;
-	uint32_t			cell_index;
-	uint32_t			rf_port;
-	srsran_slot_cfg_t	dl_slot_cfg;
-	srsran_slot_cfg_t	ul_slot_cfg;
-	worker_context_t    context;
+	uint32_t			  sf_len;
+	uint32_t			  cell_index;
+	uint32_t			  rf_port;
+	srsran_slot_cfg_t	  dl_slot_cfg;
+	srsran_slot_cfg_t	  ul_slot_cfg;
+	worker_context_t      context;
 	srsran_pdcch_cfg_nr_t pdcch_cfg;
 	srsran_gnb_dl_t 	  gnb_dl;
 	srsran_gnb_ul_t 	  gnb_ul;
-	cf_t                  **tx_buffer; ///< Baseband transmit buffers ~1 subframe len
-	cf_t                  **rx_buffer; ///< Baseband receive buffers ~1 subframe len
+	cf_t                  **tx_buffer; ///< Baseband transmit buffers ~1 subframe len //[args->nof_tx_ports]
+	cf_t                  **rx_buffer; ///< Baseband receive buffers ~1 subframe len //[args->nof_rx_ports]
 }slot_worker_t;
 
 typedef struct slot_manager_s{
@@ -59,10 +58,16 @@ typedef struct slot_manager_s{
 }slot_manager_t;
 slot_manager_t *slot_manager_self(void);
 
-void slot_worker_init(void);
-void slot_worker_final(void);
 slot_worker_t* slot_worker_alloc(slot_manager_t *slot_manager);
-void slot_worker_free(slot_worker_t *slot_wk);
+void slot_worker_free(slot_worker_t *slot_w);
+
+void slot_worker_init(slot_worker_args_t *args);
+void slot_worker_destory(void);
+
+uint32_t get_buffer_len(void);
+cf_t* get_buffer_rx(uint32_t antenna_idx);
+cf_t* get_buffer_tx(uint32_t antenna_idx);
+
 void slot_worker_process(oset_threadplus_t *thread, void *data);
 
 #ifdef __cplusplus
