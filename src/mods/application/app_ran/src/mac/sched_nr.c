@@ -13,6 +13,47 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched"
 
+static void process_events(sched_nr *scheluder)
+{
+	event_manager *pending_events = &scheluder->pending_events;
+
+    // Extract pending feedback events
+    {
+		cvector_clear(pending_events->current_slot_ue_events);
+		cvector_clear(pending_events->current_slot_events);
+
+		cvector_copy(pending_events->next_slot_ue_events, pending_events->current_slot_ue_events);
+		cvector_copy(pending_events->next_slot_events, pending_events->current_slot_events);
+
+		cvector_clear(pending_events->next_slot_ue_events);
+		cvector_clear(pending_events->next_slot_events);
+    }
+
+	// non-UE specific events
+	event_t *ev = NULL;
+	//oset_apr_thread_rwlock_rdlock(pending_events->event_mutex);
+	cvector_for_each_in(ev, pending_events->current_slot_events){
+		if(DL_RACH_INFO == ev->event_name) ev->callback(&ev->u.dl_rach_info_argv);
+		if(UE_CFG == ev->event_name) ev->callback(&ev->u.ue_cfg_argv);
+		if(UE_REM == ev->event_name) ev->callback(&ev->u.ue_rem_argv);
+	}
+	//oset_apr_thread_rwlock_unlock(pending_events->event_mutex);
+
+	ue_event_t *u_ev = NULL;
+	cvector_for_each_in(u_ev, pending_events->current_slot_ue_events){
+		sched_nr_ue *ue_it = sched_ue_nr_find_by_rnti(u_ev->rnti);
+		if (NULL == ue_it) {
+		  oset_warn("SCHED: \"%s\" called for unknown rnti=0x%x.", u_ev->event_name, u_ev->rnti);
+		  u_ev->rnti = SRSRAN_INVALID_RNTI;
+		} else if (sched_nr_ue_has_ca(ue_it)) {
+		  // events specific to existing UEs with CA
+		  u_ev->callback(&ev->u);//todo
+		  u_ev->rnti = SRSRAN_INVALID_RNTI;
+		}
+	}
+}
+
+
 void sched_nr_init(sched_nr *scheluder)
 {
 	oset_assert(scheluder);
@@ -37,18 +78,18 @@ void sched_nr_destory(sched_nr *scheluder)
 	cvector_free(scheluder->cfg.cells);
 
 	//callback event
-	oset_apr_mutex_destroy(scheluder->pending_events.event_mutex);
+	oset_apr_thread_rwlock_destroy(scheluder->pending_events.event_mutex);
 	cc_events *cc_e = NULL;
 	cvector_for_each_in(cc_e, scheluder->pending_events.carriers){
-		oset_apr_mutex_destroy(cc_e->event_cc_mutex);
-		oset_stl_queue_term(&cc_e->next_slot_ue_events);
-		oset_stl_queue_term(&cc_e->current_slot_ue_events);
+		oset_apr_thread_rwlock_destroy(cc_e->event_cc_mutex);
+		cvector_free(cc_e->next_slot_ue_events);
+		cvector_free(cc_e->current_slot_ue_events);
 	}
 	cvector_free(scheluder->pending_events.carriers);
-	oset_stl_queue_term(&scheluder->pending_events.next_slot_events);
-	oset_stl_queue_term(&scheluder->pending_events.current_slot_events);
-	oset_stl_queue_term(&scheluder->pending_events.next_slot_ue_events);
-	oset_stl_queue_term(&scheluder->pending_events.current_slot_ue_events);
+	cvector_free(scheluder->pending_events.next_slot_events);
+	cvector_free(scheluder->pending_events.current_slot_events);
+	cvector_free(scheluder->pending_events.next_slot_ue_events);
+	cvector_free(scheluder->pending_events.current_slot_ue_events);
 
 	//cc_worker
 	cc_worker *cc_w = NULL;
@@ -80,19 +121,13 @@ int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector
 	}
 
 	//callback event
-	oset_apr_mutex_init(&scheluder->pending_events.event_mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
+	oset_apr_thread_rwlock_create(&scheluder->pending_events.event_mutex, mac_manager_self()->app_pool);
 	cvector_reserve(scheluder->pending_events.carriers, cell_size);
 	for(cc = 0; cc < cell_size; ++cc){
 		cc_events cc_e = {0};
-		oset_apr_mutex_init(&cc_e.event_cc_mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
-		oset_stl_queue_init(&cc_e.next_slot_ue_events);
-		oset_stl_queue_init(&cc_e.current_slot_ue_events);
+		oset_apr_thread_rwlock_create(&cc_e.event_cc_mutex, mac_manager_self()->app_pool);
 		cvector_push_back(scheluder->pending_events.carriers, cc_e);
 	}
-	oset_stl_queue_init(&scheluder->pending_events.next_slot_events);
-	oset_stl_queue_init(&scheluder->pending_events.current_slot_events);
-	oset_stl_queue_init(&scheluder->pending_events.next_slot_ue_events);
-	oset_stl_queue_init(&scheluder->pending_events.current_slot_ue_events);
 
 	//cc_worker
 	cvector_reserve(scheluder->cc_workers, cell_size);
@@ -104,6 +139,37 @@ int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector
 
   return OSET_OK;
 }
+
+// NOTE: there is no parallelism in these operations
+// 这些操作没有并行性
+void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx)
+{
+  ASSERT_IF_NOT(0 == scheluder->worker_count,
+                "Call of sched slot_indication when previous TTI has not been completed");
+  // mark the start of slot.
+  scheluder->current_slot_tx = slot_tx;
+  scheluder->worker_count = cvector_size(scheluder->cfg.cells);
+
+  // process non-cc specific feedback if pending (e.g. SRs, buffer state updates, UE config) for CA-enabled UEs
+  // Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
+  process_events(scheluder);
+
+  // prepare CA-enabled UEs internal state for new slot
+  // Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
+ //为新时隙准备启用CA的UE的内部状态
+ //注意：稍后在get_dl_sched中更新非CA UE，以利用并行性
+  // Find first available channel that supports this frequency and allocated it
+	sched_nr_ue *ue = NULL, *next_ue = NULL;
+	oset_list_for_each_safe(&scheluder->sched_ue_list, next_ue, ue){
+		if (sched_nr_ue_has_ca(ue)) {
+			sched_nr_ue_new_slot(ue, slot_tx);
+		}
+	}
+
+	// If UE metrics were externally requested, store the current UE state
+	metrics_handler->save_metrics();//  void save_metrics()
+}
+
 
 ////////////////////////////////////sched callback/////////////////////////////////////////
 static int sched_nr_ue_cfg_impl(sched_nr *scheluder, uint16_t rnti, sched_nr_ue_cfg_t *uecfg)
@@ -153,10 +219,12 @@ void sched_nr_ue_cfg(sched_nr *scheluder, uint16_t rnti, sched_nr_ue_cfg_t *uecf
 	ue_cfg.callback = sched_nr_ue_cfg_impl_callback;
 	ue_cfg.u.ue_cfg_argv.rnti = rnti;
 	ue_cfg.u.ue_cfg_argv.uecfg = uecfg;
-	oset_stl_queue_add_last(&scheluder->pending_events.next_slot_events, ue_cfg);
+	//oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
+	cvector_push_back(scheluder->pending_events.next_slot_events, ue_cfg);
+	//oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
 }
 
-void sched_nr_ue_remove_callback(int argc, void **argv)
+void sched_nr_ue_remove_callback(void *argv)
 {
 	ue_rem_argv_t *ue_rem_argv = (ue_rem_argv_t *)argv;
 	oset_assert(ue_rem_argv);
@@ -176,7 +244,10 @@ void sched_nr_ue_rem(sched_nr *scheluder, uint16_t rnti)
   ue_rem.event_name = UE_REM;
   ue_rem.callback = sched_nr_ue_remove_callback;
   ue_rem.u.ue_rem_argv.u = u;
-  oset_stl_queue_add_last(&scheluder->pending_events.next_slot_events, ue_rem);
+
+  //oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
+  cvector_push_back(scheluder->pending_events.next_slot_events, ue_rem);
+  //oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
 }
 
 void dl_rach_info_callback(void *argv)
@@ -185,12 +256,13 @@ void dl_rach_info_callback(void *argv)
 	oset_assert(dl_rach_info_argv);
 
 	rar_info_t *rar_info = dl_rach_info_argv->rar_info;
-	sched_nr_ue *u = dl_rach_info_argv->u;
 	oset_assert(rar_info);
-	oset_assert(u);
-
 	uint16_t rnti = rar_info->temp_crnti;
 	uint32_t cc = rar_info->cc;
+
+	sched_nr_ue *u = sched_nr_ue_add(rnti, cc, &mac_manager_self()->sched.cfg);
+	oset_assert(u);
+
 	sched_nr_add_ue_impl(rnti, u, cc);
 
 	if (sched_ue_nr_find_by_rnti(rnti)) {
@@ -204,16 +276,14 @@ void dl_rach_info_callback(void *argv)
 
 int sched_nr_dl_rach_info(sched_nr *scheluder, rar_info_t *rar_info)
 {
-	sched_nr_ue *u = sched_nr_ue_add(rar_info->temp_crnti, rar_info->cc, scheluder->cfg);
-	oset_assert(u);
-
 	// enqueue UE creation event + RACH handling
 	event_t dl_rach_info = {0};
 	dl_rach_info.event_name = DL_RACH_INFO;
 	dl_rach_info.callback = dl_rach_info_callback;
 	dl_rach_info.u.dl_rach_info_argv.rar_info = *rar_info;//need free
-	dl_rach_info.u.dl_rach_info_argv.u = u;
-	oset_stl_queue_add_last(&scheluder->pending_events.next_slot_events, dl_rach_info);
+	//oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
+	cvector_push_back(scheluder->pending_events.next_slot_events, dl_rach_info);
+	//oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
 	return OSET_OK;
 }
 

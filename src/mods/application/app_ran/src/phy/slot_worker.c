@@ -175,8 +175,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	if (NULL == gnb_dl) return false;
 
 	// Retrieve Scheduling for the current processing DL slot
-	dl_sched_t* dl_sched_ptr = get_dl_sched(&slot_w->dl_slot_cfg);
-
+	dl_sched_t* dl_sched_ptr = mac_get_dl_sched(&slot_w->dl_slot_cfg);
 
 	// Abort DL processing if the scheduling returned an invalid pointer
 	if (NULL == dl_sched_ptr) return false;
@@ -296,7 +295,7 @@ void slot_worker_process(oset_threadplus_t *thread, void *data)
 	if(NULL == slot_w) return;
 
 	// Inform Scheduler about new slot
-	//mac_slot_indication(&slot_wk->dl_slot_cfg);//do nothing
+	//mac_slot_indication(&slot_w->dl_slot_cfg);//do nothing
 
 	// Get Transmission buffer
 	uint32_t  nof_ant = phy_manager_self()->slot_args.nof_tx_ports;//get_nof_ports()
@@ -321,7 +320,7 @@ void slot_worker_process(oset_threadplus_t *thread, void *data)
 	}
 
 	// Process downlink
-	if (! slot_worker_work_dl(slot_w)) {
+	if (!slot_worker_work_dl(slot_w)) {
 		worker_end(context, false, tx_rf_buffer);
 		return;
 	}

@@ -25,6 +25,7 @@ static void pdu_builder_init(pdu_builder        *pdu_builders, uint32_t cc_, ue_
 static void ue_carrier_destory(ue_carrier *carrier)
 {
 	cvector_free(carrier->bwp_cfg.cce_positions_list);
+	harq_entity_destory(&carrier->harq_ent);
 	oset_free(carrier);
 }
 
@@ -43,6 +44,7 @@ static ue_carrier* ue_carrier_init(sched_nr_ue       *u, uint32_t cc)
 	carrier->cell_params = &u->sched_cfg->cells[cc];
 	pdu_builder_init(&carrier->pdu_builders, cc, &u->buffers);
 	carrier->common_ctxt = &u->common_ctxt;
+	harq_entity_init(&carrier->harq_ent, u->rnti, &u->sched_cfg->cells[cc].carrier.nof_prb, SCHED_NR_MAX_HARQ);
 	return carrier;
 }
 
@@ -65,10 +67,11 @@ static sched_nr_ue_cfg_t* get_rach_ue_cfg_helper(uint32_t cc, sched_params_t *sc
 	carrier.active = true;
 	carrier.cc     = cc;
 	cvector_push_back(uecfg->carriers, carrier)
-	uecfg->phy_cfg            = sched_params->cells[cc].default_ue_phy_cfg;
+	uecfg->phy_cfg = sched_params->cells[cc].default_ue_phy_cfg;
 	return uecfg;
 }
 
+/////////////////////////////sched_nr_ue//////////////////////////////////////////////////////////////
 static void sched_nr_ue_set_cfg(sched_nr_ue *u, sched_nr_ue_cfg_t *cfg)
 {
 	ue_cfg_manager_apply_config_request(&u->ue_cfg, cfg);
@@ -79,7 +82,7 @@ static void sched_nr_ue_set_cfg(sched_nr_ue *u, sched_nr_ue_cfg_t *cfg)
 		  if (u->carriers[ue_cc_cfg->cc] == nullptr) {
 		  	u->carriers[ue_cc_cfg->cc] = ue_carrier_init(u, ue_cc_cfg->cc);
 		  } else {
-			  //rrc传递下来明确coreset和searchspace资源，非coreset0和searchspcae0
+			  //rrc传递下来明确uss coreset和searchspace资源，非coreset0和searchspcae0
 		    ue_carrier  *carrier = u->carriers[ue_cc_cfg->cc];
 			ue_carrier_params_init(&carrier->bwp_cfg, carrier->rnti, &carrier->cell_params->bwps[0], &u->ue_cfg);
 		  }
@@ -113,7 +116,7 @@ void sched_nr_ue_remove(sched_nr_ue *u)
 void sched_nr_ue_remove_all(void)
 {
 	sched_nr_ue *ue = NULL, *next_ue = NULL;
-	oset_list_for_each_safe(&&mac_manager_self()->sched.sched_ue_list, next_ue, ue)
+	oset_list_for_each_safe(&mac_manager_self()->sched.sched_ue_list, next_ue, ue)
 		sched_nr_ue_remove(ue);
 }
 
@@ -169,4 +172,59 @@ sched_nr_ue *sched_nr_ue_add_inner(uint16_t rnti_, sched_nr_ue_cfg_t *uecfg, sch
 	return u;
 }
 
+bool sched_nr_ue_has_ca(sched_nr_ue *u)
+{
+	int active = 0;
+	sched_nr_ue_cc_cfg_t *cc = NULL;
+	cvector_for_each_in(cc, u->ue_cfg.carriers){
+		if (cc->active) active++;
+	}
+	//有两个以上小区激活态
+	return ((cvector_size(u->ue_cfg.carriers) > 1) && (active > 1));
+}
+
+void sched_nr_ue_new_slot(sched_nr_ue *ue, slot_point pdcch_slot)
+{
+	ue->last_tx_slot = pdcch_slot;
+
+	for(int i = 0; i < SCHED_NR_MAX_CARRIERS; ++i){
+		if (NULL != ue->carriers[i]) {
+			harq_entity_new_slot(&ue->carriers[i].harq_ent ,pdcch_slot - TX_ENB_DELAY);
+		}
+	}
+
+	for (std::unique_ptr<ue_carrier>& cc : ue->carriers) {
+		if (cc != nullptr) {
+		  cc->harq_ent.new_slot(pdcch_slot - TX_ENB_DELAY); //void harq_entity::new_slot(slot_point slot_rx_)
+		  //清除重传失败达最大上限的harq
+		}
+	}
+
+	// Compute pending DL/UL bytes for {rnti, pdcch_slot}
+	if (sched_cfg.sched_cfg.auto_refill_buffer) {
+	common_ctxt.pending_dl_bytes = 1000000;
+	common_ctxt.pending_ul_bytes = 1000000;
+	} else {
+	common_ctxt.pending_dl_bytes = buffers.get_dl_tx_total();//获取当前等待下行的数据总大小
+	common_ctxt.pending_ul_bytes = buffers.get_bsr();//终端上报bsr缓存状态报告int base_ue_buffer_manager<isNR>::get_bsr() const
+	for (auto& ue_cc_cfg : ue_cfg.carriers) {
+	  auto& cc = carriers[ue_cc_cfg.cc];
+	  if (cc != nullptr) {
+	    // Discount UL HARQ pending bytes to BSR   将UL HARQ挂起字节折扣到BSR
+	    for (uint32_t pid = 0; pid < cc->harq_ent.nof_ul_harqs(); ++pid) {
+	      if (not cc->harq_ent.ul_harq(pid).empty()) {//tb.active
+	        common_ctxt.pending_ul_bytes -= std::min(cc->harq_ent.ul_harq(pid).tbs() / 8, common_ctxt.pending_ul_bytes);
+	        if (last_sr_slot.valid() and cc->harq_ent.ul_harq(pid).harq_slot_tx() > last_sr_slot) {//若上行harq已经处理完毕，就清空该sr
+	          last_sr_slot.clear();
+	        }
+	      }
+	    }
+	  }
+	}
+	if (common_ctxt.pending_ul_bytes == 0 and last_sr_slot.valid()) {
+	  // If unanswered SR is pending如果未应答SR待定
+	  common_ctxt.pending_ul_bytes = 512;//sr之后尚未bsr，先预设512
+	}
+	}
+}
 

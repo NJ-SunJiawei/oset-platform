@@ -30,7 +30,6 @@ enum struct {
 
 typedef struct{
 	rar_info_t  rar_info;
-	sched_nr_ue *u;
 }dl_rach_info_argv_t;
 
 typedef struct{
@@ -53,38 +52,38 @@ typedef struct {
 }event_t;
 
 typedef struct {
-  oset_lnode_t       next_slot_events_node;
-  oset_lnode_t       current_slot_events_node;
-  oset_lnode_t       next_slot_ue_events_node;
-  oset_lnode_t       current_slot_ue_events_node;
+	uint16_t		   rnti;
+	event_e            event_name;
+	ue_event_callback  callback;
+	union{
 
-  uint16_t			 rnti;
-  event_e            event_name;
-  ue_event_callback  callback;
+	}u;
 }ue_event_t;
 
 struct ue_cc_event_t {
-	oset_lnode_t	     next_slot_ue_events_node;
-	oset_lnode_t	     current_slot_ue_events_node;
 	uint16_t             rnti;
 	uint32_t			 cc;
 	event_e              event_name;
 	ue_cc_event_callback callback;
+	union{
+
+	}u;
 }ue_cc_event_t;
 
 typedef struct {
-  oset_apr_mutex_t	                               *event_cc_mutex;
-  oset_stl_queue_def(ue_cc_event_t, ue_cc_event)    next_slot_ue_events;
-  oset_stl_queue_def(ue_cc_event_t, ue_cc_event)    current_slot_ue_events;//srsran::deque<ue_cc_event_t>
+	oset_apr_thread_rwlock_t	       *event_cc_mutex;
+	cvector_vector_t(ue_cc_event_t)    next_slot_ue_events;
+	cvector_vector_t(ue_cc_event_t)    current_slot_ue_events;//srsran::deque<ue_cc_event_t>
 }cc_events;
 
 typedef struct {
-  oset_apr_mutex_t                         *event_mutex;
-  oset_stl_queue_def(event_t, event)       next_slot_events;
-  oset_stl_queue_def(event_t, event)       current_slot_events;//srsran::deque<event_t>
-  oset_stl_queue_def(ue_event_t, ue_event) next_slot_ue_events;
-  oset_stl_queue_def(ue_event_t, ue_event) current_slot_ue_events;//srsran::deque<ue_event_t>
-  cvector_vector_t(cc_events)              carriers;//std::vector<cc_events>
+	oset_apr_thread_rwlock_t     *event_mutex;
+	cvector_vector_t(event_t)    next_slot_events;
+	cvector_vector_t(event_t)    current_slot_events;//srsran::deque<event_t>
+	cvector_vector_t(ue_event_t) next_slot_ue_events;
+	cvector_vector_t(ue_event_t) current_slot_ue_events;//srsran::deque<ue_event_t>
+
+	cvector_vector_t(cc_events)  carriers;//std::vector<cc_events>
 }event_manager;
 /*****************************************************/
 
@@ -100,11 +99,13 @@ typedef struct {
 
 
 typedef struct {
-  // args
-  sched_params_t              cfg;
-  // slot-specific
+  // slot-specific todo atomic
   slot_point                  current_slot_tx;
   int                         worker_count;
+
+  // args
+  sched_params_t              cfg;
+
   cvector_vector_t(cc_worker) cc_workers; //std::vector<std::unique_ptr<sched_nr_impl::cc_worker> >
   // UE Database
   OSET_POOL(ue_pool, sched_nr_ue);//sched rnti context 
@@ -119,7 +120,7 @@ typedef struct {
 void sched_nr_init(sched_nr *scheluder);
 void sched_nr_destory(sched_nr *scheluder);
 int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector_t(sched_nr_cell_cfg_t) sched_cells);
-
+void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx);
 //////////////////////////////////////////////////////////////////////
 void dl_rach_info_callback(void *argv);
 void sched_nr_ue_remove_callback(void *argv);

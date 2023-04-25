@@ -99,8 +99,8 @@ int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells)
 	sched_nr_config(&mac_manager.sched, &mac_manager.args->sched_cfg, sched_cells);
 	cvector_reserve(mac_manager.detected_rachs, cvector_size(mac_manager.cell_config));
 
-    //cell 0
-    sched_nr_cell_cfg_t *sched_nr_cell_cfg = &mac_manager.cell_config[0];
+	//cell 0
+	sched_nr_cell_cfg_t *sched_nr_cell_cfg = &mac_manager.cell_config[0];
 	oset_assert(sched_nr_cell_cfg);
 	// read SIBs from RRC (SIB1 for now only)
 	for (uint32_t i = 0; i < cvector_size(sched_nr_cell_cfg->sibs); i++) {
@@ -240,6 +240,71 @@ int mac_slot_indication(srsran_slot_cfg_t *slot_cfg)
 	//todo
 	return 0;
 }
+
+dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
+{
+  slot_point pdsch_slot = {0};
+  slot_point_init(&pdsch_slot, NUMEROLOGY_IDX, slot_cfg->idx);
+
+  oset_apr_mutex_lock(mac_manager.mutex);
+  // Initiate new slot and sync UE internal states
+  sched_nr_slot_indication(&mac_manager.sched, pdsch_slot);
+
+  // Run DL Scheduler for CC
+  sched_nr::dl_res_t* dl_res = sched->get_dl_sched(pdsch_slot, 0);//sched_nr::dl_res_t* sched_nr::get_dl_sched(slot_point pdsch_tti, uint32_t cc)
+  if (NULL == dl_res) {
+	oset_apr_mutex_unlock(mac_manager.mutex);
+    return NULL;
+  }
+  oset_apr_mutex_unlock(mac_manager.mutex);
+
+  // Generate MAC DL PDUs //生成MAC DL PDU
+  uint32_t                  rar_count = 0, si_count = 0, data_count = 0;
+  srsran::rwlock_read_guard rw_lock(rwmutex);
+  for (pdsch_t& pdsch : dl_res->phy.pdsch) {//mac调度得到的pdsch资源
+    if (pdsch.sch.grant.rnti_type == srsran_rnti_type_c) {
+      uint16_t rnti = pdsch.sch.grant.rnti;
+      if (not is_rnti_active_nolock(rnti)) {
+        continue;
+      }
+      for (auto& tb_data : pdsch.data) {//RLC PDU //pdsch.data[0] = ue.h_dl->get_tx_pdu()->get();
+        if (tb_data != nullptr and tb_data->N_bytes == 0) {
+          // TODO: exclude retx from packing //从包装中排除retx
+          const sched_nr_interface::dl_pdu_t& pdu = dl_res->data[data_count++];//lcid sdu
+          ue_db[rnti]->generate_pdu(tb_data, pdsch.sch.grant.tb->tbs / 8, pdu.subpdus);//int ue_nr::generate_pdu(srsran::byte_buffer_t* pdu, uint32_t grant_size, srsran::const_span<uint32_t> subpdu_lcids)
+          //tb_data为出参
+          if (pcap != nullptr) {
+            uint32_t pid = 0; // TODO: get PID from PDCCH struct?
+            pcap->write_dl_crnti_nr(tb_data->msg, tb_data->N_bytes, rnti, pid, slot_cfg->idx);//写mac报文
+          }
+          ue_db[rnti]->metrics_dl_mcs(pdsch.sch.grant.tb->mcs);//void ue_nr::metrics_dl_mcs(uint32_t mcs)
+        }
+      }
+    } else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_ra) {
+      sched_nr_interface::rar_t& rar = dl_res->rar[rar_count++];
+      // for RARs we could actually move the byte_buffer to the PHY, as there are no retx
+      pdsch.data[0] = assemble_rar(rar.grants);
+    } else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_si) {
+      uint32_t sib_idx = dl_res->sib_idxs[si_count++];
+      pdsch.data[0]    = bcch_dlsch_payload[sib_idx].payload.get();//bcch_dlsch_payload.push_back(std::move(sib))
+#ifdef WRITE_SIB_PCAP
+      if (pcap != nullptr) {
+        pcap->write_dl_si_rnti_nr(bcch_dlsch_payload[sib_idx].payload->msg,
+                                  bcch_dlsch_payload[sib_idx].payload->N_bytes,
+                                  SI_RNTI,
+                                  0,
+                                  slot_cfg->idx);
+      }
+#endif
+    }
+  }
+  for (auto& u : ue_db) {
+    u.second->metrics_cnt();//void ue_nr::metrics_cnt() 统计tti++
+  }
+
+  return &dl_res->phy;
+}
+
 
 static void gnb_mac_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 {

@@ -73,6 +73,7 @@ void ue_carrier_params_init(ue_carrier_params_t *param, uint16_t rnti_, bwp_para
 			              ss_id,
 			              coreset_idx);
 			bwp_cce_pos_list bwp_cce_pos_lt = {0};
+			//根据rnti、ss等信息计算终端candidates的first CCE位置？？？每个ue所处的cce位置不同
 			get_dci_locs(pdcch->coreset[coreset_idx], pdcch->search_space[i], rnti_, bwp_cce_pos_lt);
 			cvector_push_back(param->cce_positions_list, bwp_cce_pos_lt);
 			param->ss_id_to_cce_idx[ss_id] = cvector_size(param->cce_positions_list) - 1;				

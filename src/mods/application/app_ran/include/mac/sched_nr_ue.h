@@ -80,7 +80,8 @@ void sched_ue_nr_set_by_rnti(uint16_t rnti, sched_nr_ue *ue);
 void sched_nr_add_ue_impl(uint16_t rnti, sched_nr_ue *u, uint32_t cc);
 sched_nr_ue *sched_nr_ue_add(uint16_t rnti_, uint32_t cc, sched_params_t *sched_cfg_);
 sched_nr_ue *sched_nr_ue_add_inner(uint16_t rnti_, sched_nr_ue_cfg_t *uecfg, sched_params_t *sched_cfg_);
-
+bool sched_nr_ue_has_ca(sched_nr_ue *u);
+void sched_nr_ue_new_slot(sched_nr_ue *ue, slot_point pdcch_slot);
 
 #ifdef __cplusplus
 }

@@ -128,7 +128,7 @@ int prach_worker_run_tti(uint32_t cc_idx, sf_buffer* b)
           uint32_t n_ta = (uint32_t)(prach_work_manager[cc_idx].prach_offsets[i] / (16 * SRSRAN_LTE_TS));
 		  
           prach_worker_rach_detected(b->tti, cc_idx, prach_work_manager[cc_idx].prach_indices[i], n_ta); //mac access
-
+          //mac_rach_detected(b->tti, cc_idx, prach_work_manager[cc_idx].prach_indices[i], n_ta);
 #if defined(ENABLE_GUI) and ENABLE_PRACH_GUI
         //todo
 #endif // defined(ENABLE_GUI) and ENABLE_PRACH_GUI
