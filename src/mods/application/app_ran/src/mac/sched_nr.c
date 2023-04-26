@@ -64,11 +64,18 @@ void sched_nr_init(sched_nr *scheluder)
 	scheluder->ue_db = oset_hash_make();
 
 	scheluder->metrics_handler.ues = scheluder->ue_db;
+	oset_apr_thread_cond_create(&scheluder->metrics_handler.cvar, mac_manager_self()->app_pool);
+	oset_apr_mutex_init(&scheluder->metrics_handler.mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
 }
 
 void sched_nr_destory(sched_nr *scheluder)
 {
 	oset_assert(scheluder);
+
+	cvector_free(scheluder->metrics_handler.pending_metrics.cc_info);
+	cvector_free(scheluder->metrics_handler.pending_metrics.ues);
+	oset_apr_mutex_destroy(scheluder->metrics_handler.mutex);
+	oset_apr_thread_cond_destroy(scheluder->metrics_handler.cvar);
 
 	//cell_config_manager
 	cell_config_manager *cell_cof_manager = NULL;
@@ -156,8 +163,8 @@ void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx)
 
   // prepare CA-enabled UEs internal state for new slot
   // Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
- //为新时隙准备启用CA的UE的内部状态
- //注意：稍后在get_dl_sched中更新非CA UE，以利用并行性
+  // 为新时隙准备启用CA的UE的内部状态
+  // 注意：稍后在get_dl_sched中更新非CA UE，以利用并行性
   // Find first available channel that supports this frequency and allocated it
 	sched_nr_ue *ue = NULL, *next_ue = NULL;
 	oset_list_for_each_safe(&scheluder->sched_ue_list, next_ue, ue){
@@ -167,7 +174,7 @@ void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx)
 	}
 
 	// If UE metrics were externally requested, store the current UE state
-	metrics_handler->save_metrics();//  void save_metrics()
+	scheluder->metrics_handler->save_metrics();//  void save_metrics()
 }
 
 

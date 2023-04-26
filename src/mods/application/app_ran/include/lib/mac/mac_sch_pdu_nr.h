@@ -92,6 +92,7 @@ typedef struct {
   uint32_t              remaining_len;
 }mac_sch_pdu_nr;
 
+uint32_t mac_sch_subpdu_nr_sizeof_ce(uint32_t lcid, bool is_ul);
 
 #ifdef __cplusplus
 }

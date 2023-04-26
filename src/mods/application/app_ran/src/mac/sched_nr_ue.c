@@ -8,12 +8,36 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "mac/sched_nr_ue.h"
-	
+#include "lib/mac/mac_sch_pdu_nr.h"
+
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-ue"
 
-//////////////////////////////////////////pdu_builder////////////////////////////////////////////
+#define MIN(a, b) (a < b ? a : b)
 
+//////////////////////////////////////////ue_buffer_manager////////////////////////////////////////////
+
+static int get_dl_tx_total(ue_buffer_manager *buffers)
+{
+	//RLC消息
+	int total_bytes = base_ue_buffer_manager_get_dl_tx_total(&buffers->base_ue);
+
+	//MAC Control Element消息
+	ce_t *ce = NULL;
+	oset_stl_queue_foreach(&buffers->pending_ces, ce){
+		total_bytes += mac_sch_subpdu_nr_sizeof_ce(ce->lcid, false);
+	}
+	return total_bytes;
+}
+
+static int get_ul_bsr_total(ue_buffer_manager *buffers)
+{
+	int total_bytes = base_ue_buffer_manager_get_bsr(&buffers->base_ue);
+	return total_bytes;
+}
+
+
+//////////////////////////////////////////pdu_builder////////////////////////////////////////////
 static void pdu_builder_init(pdu_builder        *pdu_builders, uint32_t cc_, ue_buffer_manager *parent_)
 {
 	pdu_builders->cc = cc_;
@@ -189,42 +213,42 @@ void sched_nr_ue_new_slot(sched_nr_ue *ue, slot_point pdcch_slot)
 
 	for(int i = 0; i < SCHED_NR_MAX_CARRIERS; ++i){
 		if (NULL != ue->carriers[i]) {
+			//清除(rx_slot=已接受slot)重传失败达最大上限的harq
 			harq_entity_new_slot(&ue->carriers[i].harq_ent ,pdcch_slot - TX_ENB_DELAY);
 		}
 	}
 
-	for (std::unique_ptr<ue_carrier>& cc : ue->carriers) {
-		if (cc != nullptr) {
-		  cc->harq_ent.new_slot(pdcch_slot - TX_ENB_DELAY); //void harq_entity::new_slot(slot_point slot_rx_)
-		  //清除重传失败达最大上限的harq
-		}
-	}
-
 	// Compute pending DL/UL bytes for {rnti, pdcch_slot}
-	if (sched_cfg.sched_cfg.auto_refill_buffer) {
-	common_ctxt.pending_dl_bytes = 1000000;
-	common_ctxt.pending_ul_bytes = 1000000;
+	if (ue->sched_cfg->sched_cfg->auto_refill_buffer) {
+		ue->common_ctxt.pending_dl_bytes = 1000000;
+		ue->common_ctxt.pending_ul_bytes = 1000000;
 	} else {
-	common_ctxt.pending_dl_bytes = buffers.get_dl_tx_total();//获取当前等待下行的数据总大小
-	common_ctxt.pending_ul_bytes = buffers.get_bsr();//终端上报bsr缓存状态报告int base_ue_buffer_manager<isNR>::get_bsr() const
-	for (auto& ue_cc_cfg : ue_cfg.carriers) {
-	  auto& cc = carriers[ue_cc_cfg.cc];
-	  if (cc != nullptr) {
-	    // Discount UL HARQ pending bytes to BSR   将UL HARQ挂起字节折扣到BSR
-	    for (uint32_t pid = 0; pid < cc->harq_ent.nof_ul_harqs(); ++pid) {
-	      if (not cc->harq_ent.ul_harq(pid).empty()) {//tb.active
-	        common_ctxt.pending_ul_bytes -= std::min(cc->harq_ent.ul_harq(pid).tbs() / 8, common_ctxt.pending_ul_bytes);
-	        if (last_sr_slot.valid() and cc->harq_ent.ul_harq(pid).harq_slot_tx() > last_sr_slot) {//若上行harq已经处理完毕，就清空该sr
-	          last_sr_slot.clear();
-	        }
-	      }
-	    }
-	  }
-	}
-	if (common_ctxt.pending_ul_bytes == 0 and last_sr_slot.valid()) {
-	  // If unanswered SR is pending如果未应答SR待定
-	  common_ctxt.pending_ul_bytes = 512;//sr之后尚未bsr，先预设512
-	}
+		ue->common_ctxt.pending_dl_bytes = get_dl_tx_total(&ue->buffers);// 获取当前等待下行的数据总大小
+		ue->common_ctxt.pending_ul_bytes = get_ul_bsr_total(&ue->buffers);// 终端上报bsr缓存状态报告
+
+		sched_nr_ue_cc_cfg_t *ue_cc_cfg = NULL;
+		cvector_for_each_in(ue_cc_cfg, ue->ue_cfg.carriers){	
+		  ue_carrier *cc = ue->carriers[ue_cc_cfg.cc];
+		  if (NULL != cc) {
+		    // Discount UL HARQ pending bytes to BSR
+		    // 获得bsr后需要将ul harq重传的资源扣除，剩余的才能用来给ue其他上行数据
+		    for (uint32_t pid = 0; pid < nof_ul_harqs(&cc->harq_ent); ++pid) {
+			  //tb.active harq处于激活态
+		      if (!empty(cc->harq_ent.ul_harqs[pid].proc.tb)) {
+		        ue->common_ctxt.pending_ul_bytes -= MIN(tbs(cc->harq_ent.ul_harqs[pid].proc.tb) / 8, ue->common_ctxt.pending_ul_bytes);
+				// 若上行harq slot>last_sr_slot，且该slot已处理，就清空该sr
+				if (slot_valid(&ue->last_sr_slot) && harq_slot_tx(&cc->harq_ent.ul_harqs[pid].proc)> ue->last_sr_slot) {
+					slot_clear(&ue->last_sr_slot);
+		        }
+		      }
+		    }
+		  }
+		}
+		if (ue->common_ctxt.pending_ul_bytes == 0 && slot_valid(&ue->last_sr_slot)) {
+		  // If unanswered SR is pending
+		  // sr之后尚未收到bsr，先预设512
+		  ue->common_ctxt.pending_ul_bytes = 512;
+		}
 	}
 }
 

@@ -35,7 +35,7 @@ typedef struct ue_carrier_params_s{
   bwp_params_t     *bwp_cfg;
 
   // derived
-  cvector_vector_t(bwp_cce_pos_list)  cce_positions_list;//std::vector<bwp_cce_pos_list>
+  cvector_vector_t(bwp_cce_pos_list)  cce_positions_list;//pdcch candidates list
   uint32_t                            ss_id_to_cce_idx[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
   srsran_dci_cfg_nr_t                 cached_dci_cfg;
 }ue_carrier_params_t;

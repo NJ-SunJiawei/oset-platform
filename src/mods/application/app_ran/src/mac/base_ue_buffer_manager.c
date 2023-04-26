@@ -15,6 +15,12 @@
 static bool is_lcid_valid(uint32_t lcid) { return lcid <= MAX_LC_ID;}
 static bool is_lcg_valid(uint32_t lcg) { return lcg <= MAX_LCG_ID;}
 
+// Configuration getters
+static uint16_t get_rnti(base_ue_buffer_manager *base_ue){ return base_ue->rnti; }
+static bool is_bearer_active(base_ue_buffer_manager *base_ue, uint32_t lcid) { return base_ue->channels[lcid].cfg.direction != IDLE; }
+static bool is_bearer_ul(base_ue_buffer_manager *base_ue, uint32_t lcid) { return base_ue->channels[lcid].cfg.direction == UL || base_ue->channels[lcid].cfg.direction == BOTH; }
+static bool is_bearer_dl(base_ue_buffer_manager *base_ue, uint32_t lcid) { return base_ue->channels[lcid].cfg.direction == DL || base_ue->channels[lcid].cfg.direction == BOTH; }
+
 static const char* dir_to_string(direction_t dir)
 {
   switch (dir) {
@@ -30,7 +36,6 @@ static const char* dir_to_string(direction_t dir)
       return "unrecognized direction";
   }
 }
-
 
 static bool config_lcid_internal(base_ue_buffer_manager *base_ue, uint32_t lcid, mac_lc_ch_cfg_t bearer_cfg)
 {
@@ -98,5 +103,60 @@ void base_ue_buffer_manager_config_lcids(base_ue_buffer_manager *base_ue, mac_lc
 		oset_info("SCHED: rnti=0x%x, new lcid configuration: [%s]", base_ue->rnti, p);
 	}
 }
+
+/// DL newtx buffer status for given LCID (no RLC overhead included)
+static int get_dl_tx_inner(base_ue_buffer_manager *base_ue, uint32_t lcid)
+{
+	return is_bearer_dl(lcid) ? base_ue->channels[lcid].buf_tx : 0;
+}
+
+/// DL high prio tx buffer status for given LCID (no RLC overhead included)
+///给定LCID的DL高优先级tx缓冲器状态（不包括RLC开销）
+static int get_dl_prio_tx_inner(base_ue_buffer_manager *base_ue, uint32_t lcid)
+{
+	return is_bearer_dl(lcid) ? base_ue->channels[lcid].buf_prio_tx : 0;
+}
+
+/// Sum of DL RLC newtx and high prio tx buffer status for given LCID (no RLC overhead included)
+///给定LCID的DL RLC newtx和高优先级tx缓冲器状态之和（不包括RLC开销）
+static int get_dl_tx_total_inner(base_ue_buffer_manager *base_ue, uint32_t lcid)
+{
+	return get_dl_tx_inner(base_ue, lcid) + get_dl_prio_tx_inner(base_ue, lcid);
+}
+
+int base_ue_buffer_manager_get_dl_tx_total(base_ue_buffer_manager *base_ue)
+{
+	int sum = 0;
+	for (size_t lcid = 0; is_lcid_valid(lcid); ++lcid) {
+		sum += get_dl_tx_total_inner(base_ue, lcid);
+	}
+	return sum;
+}
+
+static bool is_lcg_active(base_ue_buffer_manager *base_ue, uint32_t lcg)
+{
+	if (lcg == 0) {
+		return true;
+	}
+	for (uint32_t lcid = 0; is_lcid_valid(lcid); ++lcid) {
+		if (is_bearer_ul(base_ue, lcid) && base_ue->channels[lcid].cfg.group == (int)lcg) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
+int base_ue_buffer_manager_get_bsr(base_ue_buffer_manager *base_ue)
+{
+	uint32_t count = 0;
+	for (uint32_t lcg = 0; is_lcg_valid(lcg); ++lcg) {
+		if (is_lcg_active(lcg)) {
+		  count += base_ue->lcg_bsr[lcg];
+		}
+	}
+	return count;
+}
+
 
 

@@ -24,7 +24,7 @@
 static void set_slot_worker_context(worker_context_t *w_ctx)
 {
 	slot_manager_self()->slot_worker.ul_slot_cfg.idx = w_ctx->sf_idx;
-	slot_manager_self()->slot_worker.dl_slot_cfg.idx = TTI_ADD(w_ctx->sf_idx, FDD_HARQ_DELAY_UL_MS);//phy process max delay
+	slot_manager_self()->slot_worker.dl_slot_cfg.idx = TTI_ADD(w_ctx->sf_idx, TX_ENB_DELAY);//phy process max delay
 	slot_manager_self()->slot_worker.context = *w_ctx;
 }
 
@@ -146,7 +146,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		}
 
 		size_t task = oset_threadpool_tasks_count(phy_manager_self()->th_pools);
-		if(task > FDD_HARQ_DELAY_UL_MS)
+		if(task > TX_ENB_DELAY)
 		{
 			oset_debug("phy threadpool task %d > 10, blocking!!!", task);
 			oset_apr_mutex_lock(phy_manager_self()->mutex);
@@ -178,7 +178,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		}
 
 		// Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time
-		timestamp_add(timestamp.timestamps, FDD_HARQ_DELAY_UL_MS * 1e-3);
+		timestamp_add(timestamp.timestamps, TX_ENB_DELAY * 1e-3);
 
 		oset_debug("Setting TTI=%d, tx_time=%ld:%f to slot worker pool %p",
 			  slot_manager_self()->tti,

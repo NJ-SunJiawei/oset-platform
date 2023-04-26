@@ -12,14 +12,6 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-harq"
 
-static bool empty(tb_t tb[SCHED_NR_MAX_TB])
-{
-	for(int i = 0; i < SCHED_NR_MAX_TB; ++i){
-		if(tb[i].active) return !tb[i].active;
-	}
-	return true;
-}
-
 static bool has_pending_retx(harq_proc *proc,slot_point slot_rx)
 {
 	bool condition1 = !empty(proc->tb);
@@ -28,10 +20,32 @@ static bool has_pending_retx(harq_proc *proc,slot_point slot_rx)
 	return condition1 && condition2 && condition3; 
 }
 
+static uint32_t nof_retx(harq_proc *proc)  { return proc->tb[0].n_rtx; }
+static uint32_t max_nof_retx(harq_proc *proc)  { return proc->max_retx; }
+
 /////////////////////////////////////////////////////////////////////////////////////
+uint32_t nof_dl_harqs(harq_entity *harq_ent) { return cvector_size(harq_ent->dl_harqs); }
+uint32_t nof_ul_harqs(harq_entity *harq_ent) { return cvector_size(harq_ent->ul_harqs); }
+
+uint32_t tbs(tb_t tb[SCHED_NR_MAX_TB]) { return tb[0].tbs; }
+uint32_t ndi(tb_t tb[SCHED_NR_MAX_TB]) { return tb[0].ndi; }
+uint32_t mcs(tb_t tb[SCHED_NR_MAX_TB]) { return tb[0].mcs; }
+
+bool empty(tb_t tb[SCHED_NR_MAX_TB])
+{
+	for(int i = 0; i < SCHED_NR_MAX_TB; ++i){
+		if(tb[i].active) return !tb[i].active;
+	}
+	return true;
+}
+
+slot_point	harq_slot_tx(harq_proc *harq)      { return harq->slot_tx; }
+slot_point	harq_slot_ack(harq_proc *harq)      { return harq->slot_ack; }
+
+
 bool harq_proc_clear_if_maxretx(harq_proc *proc, slot_point slot_rx)
 {
-	if (has_pending_retx(slot_rx) && nof_retx() + 1 > max_nof_retx()) {
+	if (has_pending_retx(proc, slot_rx) && nof_retx(proc) + 1 > max_nof_retx(proc)) {
 		proc->tb[0].active = false;
 		return true;
 	}
@@ -76,18 +90,20 @@ void harq_entity_new_slot(harq_entity *harq_ent, slot_point slot_rx_)
 		if (harq_proc_clear_if_maxretx(&dl_h->proc ,slot_rx_)) {
 			oset_info("SCHED: discarding rnti=0x%x, DL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
 						harq_ent->rnti,
-						dl_h.proc.pid,
-						dl_h.max_nof_retx());
+						dl_h->proc.pid,
+						max_nof_retx(&dl_h->proc));
 		}
 	}
 
-  for (harq_proc& ul_h : ul_harqs) {
-    if (ul_h.clear_if_maxretx(slot_rx)) {
-      logger.info("SCHED: discarding rnti=0x%x, UL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
-                  rnti,
-                  ul_h.pid,
-                  ul_h.max_nof_retx());
-    }
+	ul_harq_proc *ul_h = NULL;
+	cvector_for_each_in(ul_h, harq_ent->ul_harqs){
+		if (harq_proc_clear_if_maxretx(&ul_h->proc ,slot_rx_)) {
+			oset_info("SCHED: discarding rnti=0x%x, UL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
+						harq_ent->rnti,
+						ul_h->proc.pid,
+						max_nof_retx(&ul_h->proc));
+		}
   }
 }
+
 

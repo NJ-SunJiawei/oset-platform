@@ -34,11 +34,13 @@ typedef struct {
 typedef struct {
   uint16_t         rnti;
   logical_channel  channels[MAX_NOF_LCIDS];
-  int              lcg_bsr[MAX_NOF_LCGS];
+  int              lcg_bsr[MAX_NOF_LCGS];//上行ue请求bsr缓存
 }base_ue_buffer_manager;
 
 void base_ue_buffer_manager_init(base_ue_buffer_manager *base_ue, uint16_t rnti_);
 void base_ue_buffer_manager_config_lcids(base_ue_buffer_manager *base_ue, mac_lc_ch_cfg_t bearer_cfg_list[SCHED_NR_MAX_LCID]);
+int base_ue_buffer_manager_get_dl_tx_total(base_ue_buffer_manager *base_ue);
+int base_ue_buffer_manager_get_bsr(base_ue_buffer_manager *base_ue);
 
 #ifdef __cplusplus
 }

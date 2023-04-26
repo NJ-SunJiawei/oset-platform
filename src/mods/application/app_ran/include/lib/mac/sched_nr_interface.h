@@ -31,7 +31,7 @@ typedef struct mac_lc_ch_cfg_s {
   int         priority;// channel priority (1 is highest) = 1
   uint32_t    bsd; // msec = 1000
   uint32_t    pbr;// prioritised bit rate = -1   
-  int         group;// logical channel group = 0
+  int         group;// logical channel group = 0//lcid分组
 }mac_lc_ch_cfg_t;
 
 

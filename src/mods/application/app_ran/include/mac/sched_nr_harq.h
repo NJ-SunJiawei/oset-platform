@@ -18,17 +18,17 @@ extern "C" {
 #endif
 
 typedef struct {
-  bool	   active;
+  bool	   active;//harq 重传是否激活
   bool	   ack_state;
-  bool	   ndi;
+  bool	   ndi;//通过NDI（翻转为初传，否则为重传）字段
   uint32_t n_rtx;
   uint32_t mcs;
-  uint32_t tbs;
+  uint32_t tbs; //bit
 }tb_t;
 
 typedef struct {
   uint32_t             pid;
-  uint32_t             max_retx;
+  uint32_t             max_retx;//default 4
   slot_point           slot_tx;
   slot_point           slot_ack;
   prb_grant            prbs_;
@@ -54,9 +54,16 @@ typedef struct{
   cvector_vector_t(ul_harq_proc) ul_harqs;//std::vector<ul_harq_proc>
 }harq_entity;
 
+uint32_t nof_dl_harqs(harq_entity *harq_ent);
+uint32_t nof_ul_harqs(harq_entity *harq_ent);
+bool empty(tb_t tb[SCHED_NR_MAX_TB]);
+uint32_t tbs(tb_t tb[SCHED_NR_MAX_TB]);
+uint32_t ndi(tb_t tb[SCHED_NR_MAX_TB]);
+uint32_t mcs(tb_t tb[SCHED_NR_MAX_TB]);
+slot_point	harq_slot_ack(harq_proc *harq);
+slot_point	harq_slot_tx(harq_proc *harq);
+
 bool harq_proc_clear_if_maxretx(harq_proc *proc, slot_point slot_rx);
-
-
 void harq_entity_init(harq_entity *harq_ent, uint16_t rnti_, uint32_t nprb, uint32_t nof_harq_procs);
 void harq_entity_destory(harq_entity *harq_ent);
 void harq_entity_new_slot(harq_entity *harq_ent, slot_point slot_rx_);
