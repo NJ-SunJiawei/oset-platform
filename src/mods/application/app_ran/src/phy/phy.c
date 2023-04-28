@@ -57,7 +57,7 @@ static void phy_manager_destory(void)
 	phy_manager.app_pool = NULL; /*app_pool release by openset process*/
 }
 
-bool dl_channel_emulator(const phy_args_t *params, const phy_cfg_t *cfg)
+static bool dl_channel_emulator(const phy_args_t *params, const phy_cfg_t *cfg)
 {
 	phy_manager.workers_common.cell_list_nr = cfg->phy_cell_cfg_nr;
 	struct phy_cell_cfg_nr_t *cell_nr = &cfg->phy_cell_cfg_nr[0];
@@ -129,7 +129,7 @@ static int init_nr(const phy_args_t& args, const phy_cfg_t& cfg)
 	return OSET_OK;
 }
 
-bool slot_worker_set_common_cfg(const srsran_carrier_nr_t *carrier,
+static bool slot_worker_set_common_cfg(const srsran_carrier_nr_t *carrier,
                                  const srsran_pdcch_cfg_nr_t *pdcch_cfg_,
                                  const srsran_ssb_cfg_t      *ssb_cfg_)
 {
@@ -208,7 +208,7 @@ int phy_init(void)
 {
 	phy_manager_init();
 
-	srsran_phy_log_register_handler(true);
+	srsran_phy_log_register_handler(true);//log install
 
 	phy_args_t *args = &gnb_manager_self()->args.phy;
 	phy_cfg_t *cfg = &gnb_manager_self()->phy_cfg;
@@ -247,6 +247,11 @@ int phy_destory(void)
 
 	phy_manager_destory();
 	return OSET_OK;
+}
+
+void phy_get_metrics(cvector_vector_t(phy_metrics_t) metrics)
+{
+	//todo
 }
 
 

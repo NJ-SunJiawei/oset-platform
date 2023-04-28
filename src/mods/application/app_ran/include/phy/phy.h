@@ -52,6 +52,7 @@ phy_manager_t *phy_manager_self(void);
 
 int phy_init(void);
 int phy_destory(void);
+void phy_get_metrics(cvector_vector_t(phy_metrics_t) metrics);
 
 
 #ifdef __cplusplus

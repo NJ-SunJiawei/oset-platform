@@ -50,12 +50,12 @@ typedef struct {
   uint32_t            ul_cqi;//0
   harq_entity         harq_ent;
   pdu_builder         pdu_builders;
-  // metrics
-  mac_ue_metrics_t metrics;
   // common context
-  ue_context_common *common_ctxt;
+  ue_context_common   *common_ctxt;
 
-  ue_carrier_params_t   bwp_cfg;
+  ue_carrier_params_t  bwp_cfg;
+  // metrics
+  mac_ue_metrics_t     metrics;
 } ue_carrier;
 
 

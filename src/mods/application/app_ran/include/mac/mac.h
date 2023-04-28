@@ -71,6 +71,7 @@ void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
 int mac_slot_indication(srsran_slot_cfg_t *slot_cfg);
 dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg);
 ///////////////////////////////////////////////////////////////////////////////////////
+void mac_get_metrics(mac_metrics_t *metrics);
 void mac_remove_ue_all(void);
 void *gnb_mac_task(oset_threadplus_t *thread, void *data);
 

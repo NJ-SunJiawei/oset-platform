@@ -89,10 +89,10 @@ typedef struct {
 
 
 typedef struct {
-  oset_hash_t			   *ues;//ue_map_t
+  //oset_hash_t			   *ues;//ue_map_t
   oset_apr_mutex_t		   *mutex;
   oset_apr_thread_cond_t   *cvar;
-  mac_metrics_t            pending_metrics;
+  mac_metrics_t            *pending_metrics;
   bool                     stopped;
 }ue_metrics_manager;
 /*****************************************************/
@@ -117,6 +117,8 @@ typedef struct {
   ue_metrics_manager          metrics_handler;
 }sched_nr;
 
+void sched_nr_get_metrics(ue_metrics_manager *manager, mac_metrics_t *metrics);
+//////////////////////////////////////////////////////////////////////
 void sched_nr_init(sched_nr *scheluder);
 void sched_nr_destory(sched_nr *scheluder);
 int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector_t(sched_nr_cell_cfg_t) sched_cells);
@@ -125,7 +127,6 @@ void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx);
 void dl_rach_info_callback(void *argv);
 void sched_nr_ue_remove_callback(void *argv);
 void sched_nr_ue_cfg_impl_callback(void *argv);
-
 
 int sched_nr_dl_rach_info(sched_nr *scheluder, rar_info_t *rar_info);
 void sched_nr_ue_rem(sched_nr *scheluder, uint16_t rnti);

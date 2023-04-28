@@ -165,6 +165,7 @@ static uint16_t mac_alloc_ue(uint32_t enb_cc_idx)
 		}
 
 		// Allocate and initialize UE object
+		//srsran::rwlock_write_guard rw_lock(rwmutex);
 		inserted_ue = ue_nr_add(rnti);
 		if(NULL == inserted_ue){
 		    oset_error("Failed to allocate rnti=0x%x. Attempting a different rnti.", rnti);
@@ -239,6 +240,36 @@ int mac_slot_indication(srsran_slot_cfg_t *slot_cfg)
 {
 	//todo
 	return 0;
+}
+
+static void get_metrics_nolock(mac_metrics_t *metrics)
+{
+	//srsran::rwlock_read_guard lock(rwmutex);
+	ue_nr *u = NULL, *next_u = NULL;
+	oset_list_for_each_safe(&mac_manager.mac_ue_list, next_u, u){
+		mac_ue_metrics_t u_metric = {0};
+		ue_nr_metrics_read(&u_metric);
+		cvector_push_back(metrics->ues, u_metric)
+	}
+
+	for (uint8_t cc = 0; cc < cvector_size(mac_manager.cell_config); ++cc) {
+		mac_cc_info_t cc_info = {0};
+		cc_info.cc_rach_counter = mac_manager.detected_rachs[cc];
+		cc_info.pci             = mac_manager.cell_config[cc].pci;
+		cvector_push_back(metrics->cc_info, cc_info)
+	}
+}
+
+
+/// Called from metrics thread.
+/// Note: This can contend for the same mutexes as the ones used by L1/L2 workers.
+///       However, get_metrics is called infrequently enough to cause major halts in the L1/L2
+void mac_get_metrics(mac_metrics_t *metrics)
+{
+  // TODO: We should comment on the logic we follow to get the metrics. Some of them are retrieved from MAC, some
+  // others from the scheduler.
+  get_metrics_nolock(metrics);
+  sched_nr_get_metrics(&mac_manager.sched.metrics_handler, metrics);
 }
 
 dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)

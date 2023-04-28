@@ -23,12 +23,7 @@ extern "C" {
 
 #define  MAX_DEVICE_NUM 10
 
-typedef struct {
-  uint32_t rf_o;
-  uint32_t rf_u;
-  uint32_t rf_l;
-  bool     rf_error;
-}rf_metrics_t;
+typedef struct rf_metrics_s rf_metrics_t
 
 typedef struct rf_manager_s{
 	oset_apr_memory_pool_t *app_pool;
@@ -100,6 +95,7 @@ bool rx_now(rf_buffer_t *buffer, rf_timestamp_t *rxd_time);
 void tx_end();
 void tx_end_nolock();
 bool tx(rf_buffer_t *buffer, rf_timestamp_t *tx_time);
+bool rf_get_metrics(rf_metrics_t* metrics);
 
 #ifdef __cplusplus
 }

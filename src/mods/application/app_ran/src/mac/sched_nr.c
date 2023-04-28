@@ -13,6 +13,72 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched"
 
+//////////////////////////////metrics/////////////////////////////////////
+static void save_metrics_nolock(ue_metrics_manager *manager)
+{
+    if (NULL == manager->pending_metrics) {
+		return;
+    }
+
+	mac_ue_metrics_t *ue_metric = NULL;
+	cvector_for_each_in(ue_metric, manager->pending_metrics->ues){
+		sched_nr_ue * ue = sched_ue_nr_find_by_rnti(ue_metric->rnti);
+		if (NULL != ue ) {
+			sched_nr_ue_cc_cfg_t *cell= NULL;
+			cvector_for_each_in(cell, ue->ue_cfg.carriers){
+				ue_carrier *ue_cc	  = ue->carriers[cell->cc];//now cell->cc = 0
+				if(NULL != ue_cc){
+					ue_metric->tx_brate  = ue_cc->metrics.tx_brate;
+					ue_metric->tx_errors = ue_cc->metrics.tx_errors;
+					ue_metric->tx_pkts   = ue_cc->metrics.tx_pkts;
+					ue_cc->metrics 	     = {0};
+				}
+			}
+		}
+	}
+
+    manager->pending_metrics = NULL;
+}
+
+static void stop_metrics(ue_metrics_manager *manager)
+{
+  if (!manager->stopped) {
+	manager->stopped = true;
+	// requests during sched::stop may not be fulfilled by sched main thread
+	save_metrics_nolock(manager);
+	oset_apr_mutex_lock(manager->mutex);
+	oset_apr_thread_cond_broadcast(manager->cvar, manager->mutex);
+	oset_apr_mutex_unlock(manager->mutex);
+  }
+}
+
+/// called from within the scheduler main thread to save metrics
+static void save_metrics(ue_metrics_manager *manager)
+{
+	save_metrics_nolock(manager);
+	if (!manager->stopped){
+		oset_apr_mutex_lock(manager->mutex);
+		oset_apr_thread_cond_signal(manager->cvar);
+		oset_apr_mutex_unlock(manager->mutex);
+	}
+}
+
+/// Blocking call that waits for the metrics to be filled
+static void get_metrics(ue_metrics_manager *manager, mac_metrics_t *requested_metrics)
+{
+	manager->pending_metrics = requested_metrics;
+	if (!manager->stopped) {
+		if(NULL != manager->pending_metrics){
+			oset_apr_mutex_lock(manager->mutex);
+			oset_apr_thread_cond_wait(manager->cvar, manager->mutex);
+			oset_apr_mutex_unlock(manager->mutex);
+		}
+	} else {
+		save_metrics_nolock(manager);
+	}
+}
+
+//////////////////////////sched_nr////////////////////////////////////////
 static void process_events(sched_nr *scheluder)
 {
 	event_manager *pending_events = &scheluder->pending_events;
@@ -63,7 +129,7 @@ void sched_nr_init(sched_nr *scheluder)
 	oset_list_init(&scheluder->sched_ue_list);
 	scheluder->ue_db = oset_hash_make();
 
-	scheluder->metrics_handler.ues = scheluder->ue_db;
+	//scheluder->metrics_handler.ues = scheluder->ue_db;
 	oset_apr_thread_cond_create(&scheluder->metrics_handler.cvar, mac_manager_self()->app_pool);
 	oset_apr_mutex_init(&scheluder->metrics_handler.mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
 }
@@ -71,9 +137,10 @@ void sched_nr_init(sched_nr *scheluder)
 void sched_nr_destory(sched_nr *scheluder)
 {
 	oset_assert(scheluder);
+	stop_metrics();
 
-	cvector_free(scheluder->metrics_handler.pending_metrics.cc_info);
-	cvector_free(scheluder->metrics_handler.pending_metrics.ues);
+	//cvector_free(scheluder->metrics_handler.pending_metrics.cc_info);
+	//cvector_free(scheluder->metrics_handler.pending_metrics.ues);
 	oset_apr_mutex_destroy(scheluder->metrics_handler.mutex);
 	oset_apr_thread_cond_destroy(scheluder->metrics_handler.cvar);
 
@@ -147,6 +214,12 @@ int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector
   return OSET_OK;
 }
 
+void sched_nr_get_metrics(ue_metrics_manager *manager, mac_metrics_t *metrics)
+{
+	get_metrics(manager, metrics);
+}
+
+
 // NOTE: there is no parallelism in these operations
 // 这些操作没有并行性
 void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx)
@@ -174,7 +247,7 @@ void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx)
 	}
 
 	// If UE metrics were externally requested, store the current UE state
-	scheluder->metrics_handler->save_metrics();//  void save_metrics()
+	save_metrics(&scheluder->metrics_handler);
 }
 
 

@@ -20,6 +20,7 @@
 #include "lib/common/band_helper_2c.h"
 
 #include "gnb_manager.h"
+#include "gnb_metrics.h"
 #include "gnb_task_interface.h"
 
 

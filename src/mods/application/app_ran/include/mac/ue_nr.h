@@ -10,7 +10,7 @@
 #ifndef UE_NR_H_
 #define UE_NR_H_
 
-#include "mac/mac_metrics.h"
+#include "lib/mac/mac_metrics.h"
 #include "lib/mac/mac_sch_pdu_nr.h"
 
 #ifdef __cplusplus
@@ -50,6 +50,16 @@ ue_nr *ue_nr_add(uint16_t rnti);
 void ue_nr_remove(ue_nr *ue);
 void ue_nr_set_rnti(uint16_t rnti, ue_nr *ue);
 ue_nr *ue_nr_find_by_rnti(uint16_t rnti);
+/******* METRICS interface ***************/
+void ue_nr_metrics_read(ue_nr *ue, mac_ue_metrics_t* metrics_);
+void ue_nr_metrics_dl_cqi(ue_nr *ue, srsran_uci_cfg_nr_t *cfg_, uint32_t dl_cqi);
+void ue_nr_metrics_rx(ue_nr *ue, bool crc, uint32_t tbs);
+void ue_nr_metrics_tx(ue_nr *ue, bool crc, uint32_t tbs);
+void ue_nr_metrics_dl_mcs(ue_nr *ue, uint32_t mcs);
+void ue_nr_metrics_ul_mcs(ue_nr *ue, uint32_t mcs);
+void ue_nr_metrics_cnt(ue_nr *ue);
+void ue_nr_metrics_pucch_sinr(ue_nr *ue, float sinr);
+void ue_nr_metrics_pusch_sinr(ue_nr *ue, float sinr);
 
 #ifdef __cplusplus
 }

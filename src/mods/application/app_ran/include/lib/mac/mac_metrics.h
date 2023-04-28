@@ -34,7 +34,7 @@ typedef struct mac_ue_metrics_s {
   float    dl_cqi;
   float    dl_ri;
   float    dl_pmi;
-  float    phr;//Power Headroom
+  float    phr;
   float    dl_cqi_offset;
   float    ul_snr_offset;
 

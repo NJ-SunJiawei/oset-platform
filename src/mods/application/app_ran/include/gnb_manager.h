@@ -37,6 +37,8 @@ typedef struct gnb_manager_s{
 	/*UL/DL channel emulator*/
 	channel_t              *dl_channel;
 	channel_t              *ul_channel;
+
+	bool                   metrics_running;
 }gnb_manager_t;
 
 void gnb_manager_init(void);

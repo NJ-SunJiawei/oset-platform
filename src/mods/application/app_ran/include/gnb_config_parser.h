@@ -34,7 +34,7 @@ typedef struct enb_files_s{
 }enb_files_t;
 
 typedef struct general_args_s {
-  uint32_t	  rrc_inactivity_timer;
+  uint32_t	  rrc_inactivity_timer;//rrc去激活时间
   float 	  metrics_period_secs;
   bool		  metrics_csv_enable;
   char* 	  metrics_csv_filename;

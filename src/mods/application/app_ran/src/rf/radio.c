@@ -12,6 +12,8 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-radio"
 
+uint32_t num_overflows = 0;
+uint32_t num_failures  = 0;
 
 static rf_manager_t rf_manager = {
 	.max_resamp_buf_sz_ms = 5,
@@ -128,6 +130,46 @@ bool config_rf_channels(const rf_args_t* args)
   return true;
 }
 
+static void rf_msg_callback(void* arg, srsran_rf_error_t error)
+{
+  rf_manager_t* h = (rf_manager_t*)arg;
+  if (arg != nullptr) {
+	  if (!h->is_initialized) {
+		return;
+	  }
+	  if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_OVERFLOW) {
+		oset_apr_mutex_lock(h->metrics_mutex);
+		h->rf_metrics.rf_o++;
+		h->rf_metrics.rf_error = true;
+		oset_apr_mutex_unlock(h->metrics_mutex);
+		oset_info("Overflow");
+
+		// inform PHY about overflow
+		num_overflows++;
+
+	  } else if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_UNDERFLOW) {
+		oset_info("Underflow");
+		oset_apr_mutex_lock(h->metrics_mutex);
+		h->rf_metrics.rf_u++;
+		h->rf_metrics.rf_error = true;
+		oset_apr_mutex_unlock(h->metrics_mutex);
+	  } else if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_LATE) {
+		oset_info("Late (detected in %s)", error.opt ? "rx call" : "asynchronous thread");
+		oset_apr_mutex_lock(h->metrics_mutex);
+		h->rf_metrics.rf_l++;
+		h->rf_metrics.rf_error = true;
+		oset_apr_mutex_unlock(h->metrics_mutex);
+	  } else if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_RX) {
+		oset_info("Fatal radio error occured.");
+		num_failures++;
+	  } else if (error.type == srsran_rf_error_t::SRSRAN_RF_ERROR_OTHER) {
+		oset_info("%s", error.msg);
+	  }
+
+  }
+}
+
+
 static bool open_file_dev(const uint32_t device_idx, FILE** rx_files, FILE** tx_files, uint32_t nof_channels, uint32_t base_srate)
 {
   srsran_rf_t* rf_device = &rf_manager.rf_devices[device_idx];
@@ -143,7 +185,7 @@ static bool open_file_dev(const uint32_t device_idx, FILE** rx_files, FILE** tx_
   srsran_rf_suppress_stdout(rf_device);
 
   // Register handler for processing O/U/L
-  srsran_rf_register_error_handler(rf_device, rf_msg_callback, this);
+  srsran_rf_register_error_handler(rf_device, rf_msg_callback, &rf_manager);
 
   // Get device info
   rf_manager.rf_info[device_idx] = *srsran_rf_get_info(rf_device);
@@ -180,7 +222,7 @@ static bool open_dev(const uint32_t device_idx, const char *device_name, const c
   srsran_rf_suppress_stdout(rf_device);//do nothings
 
   // Register handler for processing O/U/L
-  srsran_rf_register_error_handler(rf_device, rf_msg_callback, this);
+  srsran_rf_register_error_handler(rf_device, rf_msg_callback, &rf_manager);
 
   // Get device info
   rf_manager.rf_info[device_idx] = *srsran_rf_get_info(rf_device);
@@ -1060,6 +1102,15 @@ bool tx(rf_buffer_t *buffer, rf_timestamp_t *tx_time)
   rf_manager.is_start_of_burst = false;
 
   return ret;
+}
+
+bool rf_get_metrics(rf_metrics_t* metrics)
+{
+  *metrics   = rf_manager.rf_metrics;
+  oset_apr_mutex_lock(rf_manager.metrics_mutex);
+  rf_manager.rf_metrics = {0};
+  oset_apr_mutex_unlock(rf_manager.metrics_mutex);
+  return true;
 }
 
 

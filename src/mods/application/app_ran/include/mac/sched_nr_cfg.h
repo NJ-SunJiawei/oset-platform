@@ -12,9 +12,9 @@
 
 #include "gnb_config_parser.h"
 #include "lib/mac/sched_nr_interface.h"
+#include "lib/mac/mac_metrics.h"
 #include "mac/sched_nr_rb.h"
 #include "mac/harq_softbuffer.h"
-#include "mac/mac_metrics.h"
 
 #define MAX_NOF_AGGR_LEVELS  5
 
