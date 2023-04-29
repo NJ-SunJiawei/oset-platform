@@ -84,7 +84,8 @@ static void process_events(sched_nr *scheluder)
 	event_manager *pending_events = &scheluder->pending_events;
 
     // Extract pending feedback events
-    {
+    {	
+    	oset_apr_thread_rwlock_rdlock(pending_events->event_mutex);
 		cvector_clear(pending_events->current_slot_ue_events);
 		cvector_clear(pending_events->current_slot_events);
 
@@ -93,17 +94,16 @@ static void process_events(sched_nr *scheluder)
 
 		cvector_clear(pending_events->next_slot_ue_events);
 		cvector_clear(pending_events->next_slot_events);
+		oset_apr_thread_rwlock_unlock(pending_events->event_mutex);
     }
 
 	// non-UE specific events
 	event_t *ev = NULL;
-	//oset_apr_thread_rwlock_rdlock(pending_events->event_mutex);
 	cvector_for_each_in(ev, pending_events->current_slot_events){
 		if(DL_RACH_INFO == ev->event_name) ev->callback(&ev->u.dl_rach_info_argv);
 		if(UE_CFG == ev->event_name) ev->callback(&ev->u.ue_cfg_argv);
 		if(UE_REM == ev->event_name) ev->callback(&ev->u.ue_rem_argv);
 	}
-	//oset_apr_thread_rwlock_unlock(pending_events->event_mutex);
 
 	ue_event_t *u_ev = NULL;
 	cvector_for_each_in(u_ev, pending_events->current_slot_ue_events){
@@ -224,19 +224,13 @@ void sched_nr_get_metrics(ue_metrics_manager *manager, mac_metrics_t *metrics)
 // 这些操作没有并行性
 void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx)
 {
-  ASSERT_IF_NOT(0 == scheluder->worker_count,
-                "Call of sched slot_indication when previous TTI has not been completed");
-  // mark the start of slot.
-  scheluder->current_slot_tx = slot_tx;
-  scheluder->worker_count = cvector_size(scheluder->cfg.cells);
+	// process non-cc specific feedback if pending (e.g. SRs, buffer state updates, UE config) for CA-enabled UEs
+	// Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
+	process_events(scheluder);
 
-  // process non-cc specific feedback if pending (e.g. SRs, buffer state updates, UE config) for CA-enabled UEs
-  // Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
-  process_events(scheluder);
-
-  // prepare CA-enabled UEs internal state for new slot
-  // Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
-  // Find first available channel that supports this frequency and allocated it
+	// prepare CA-enabled UEs internal state for new slot
+	// Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
+	// Find first available channel that supports this frequency and allocated it
 	sched_nr_ue *ue = NULL, *next_ue = NULL;
 	oset_list_for_each_safe(&scheluder->sched_ue_list, next_ue, ue){
 		if (sched_nr_ue_has_ca(ue)) {
@@ -251,7 +245,6 @@ void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx)
 /// Generate {pdcch_slot,cc} scheduling decision
 dl_res_t* sched_nr_get_dl_sched(sched_nr *scheluder, slot_point pdsch_tti, uint32_t cc)
 {
- 	 ASSERT_IF_NOT(pdsch_tti == scheluder->current_slot_tx, "Unexpected pdsch_tti slot received");
 
 	// process non-cc specific feedback if pending (e.g. SRs, buffer state updates, UE config) for non-CA UEs
 	pending_events->process_cc_events(ue_db, cc);//处理接收到的上行消息
@@ -266,14 +259,6 @@ dl_res_t* sched_nr_get_dl_sched(sched_nr *scheluder, slot_point pdsch_tti, uint3
 
 	// Process pending CC-specific feedback, generate {slot_idx,cc} scheduling decision
 	sched_nr::dl_res_t* ret = cc_workers[cc]->run_slot(pdsch_tti, ue_db);//dl_sched_res_t* cc_worker::run_slot(slot_point tx_sl, ue_map_t& ue_db)
-
-	// decrement the number of active workers减少active worker的数量
-	int rem_workers = worker_count.fetch_sub(1, std::memory_order_release) - 1;
-	srsran_assert(rem_workers >= 0, "invalid number of calls to get_dl_sched(slot, cc)");
-	if (rem_workers == 0) {
-	// Last Worker to finish slot
-	// TODO: Sync sched results with ue_db state
-	}
 
   return ret;
 }
@@ -326,9 +311,9 @@ void sched_nr_ue_cfg(sched_nr *scheluder, uint16_t rnti, sched_nr_ue_cfg_t *uecf
 	ue_cfg.callback = sched_nr_ue_cfg_impl_callback;
 	ue_cfg.u.ue_cfg_argv.rnti = rnti;
 	ue_cfg.u.ue_cfg_argv.uecfg = uecfg;
-	//oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
+	oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
 	cvector_push_back(scheluder->pending_events.next_slot_events, ue_cfg);
-	//oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
+	oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
 }
 
 void sched_nr_ue_remove_callback(void *argv)
@@ -352,9 +337,9 @@ void sched_nr_ue_rem(sched_nr *scheluder, uint16_t rnti)
   ue_rem.callback = sched_nr_ue_remove_callback;
   ue_rem.u.ue_rem_argv.u = u;
 
-  //oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
+  oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
   cvector_push_back(scheluder->pending_events.next_slot_events, ue_rem);
-  //oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
+  oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
 }
 
 void dl_rach_info_callback(void *argv)
@@ -388,9 +373,9 @@ int sched_nr_dl_rach_info(sched_nr *scheluder, rar_info_t *rar_info)
 	dl_rach_info.event_name = DL_RACH_INFO;
 	dl_rach_info.callback = dl_rach_info_callback;
 	dl_rach_info.u.dl_rach_info_argv.rar_info = *rar_info;//need free
-	//oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
+	oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
 	cvector_push_back(scheluder->pending_events.next_slot_events, dl_rach_info);
-	//oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
+	oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
 	return OSET_OK;
 }
 

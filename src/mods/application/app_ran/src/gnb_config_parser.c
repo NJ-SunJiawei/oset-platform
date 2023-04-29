@@ -90,7 +90,7 @@ void gnb_arg_default(all_args_t      *args)
 	args->phy.pusch_8bit_decoder = false;
 	args->phy.pusch_meas_evm = false;
 	args->phy.tx_amplitude = 1;
-	args->phy.nof_phy_threads = 1;
+	args->phy.nof_phy_threads = 3;//1
 	args->phy.nof_prach_threads = 1;
 	args->phy.max_prach_offset_us = 30;
 	args->phy.equalizer_mode = "mmse";

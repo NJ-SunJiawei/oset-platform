@@ -50,7 +50,7 @@ int prach_worker_init(uint32_t		   cc_idx,
 
 	srsran_prach_set_detect_factor(&prach_work_manager[cc_idx].prach, 60);
 
-	//(Tcp+Tseq)*Ts~subframe number
+	//(Tcp+Tseq)*Ts~subframe number prach占用子帧的数量
 	prach_work_manager[cc_idx].nof_sf = (uint32_t)ceilf(prach_work_manager[cc_idx].prach.T_tot * 1000);//s->ms->sf
 
 	if (prach_work_manager[cc_idx].nof_workers > 0) {

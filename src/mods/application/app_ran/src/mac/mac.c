@@ -51,6 +51,8 @@ static int mac_init(void)
 	mac_manager.started = true;
 	mac_manager.args = &gnb_manager_self()->args.nr_stack.mac_nr;
 
+	oset_apr_mutex_init(&mac_manager.sched.mutex, OSET_MUTEX_NESTED, mac_manager.app_pool);
+
 	if (mac_manager.args->pcap.enable) {
 		oset_apr_mutex_init(&mac_manager.pcap.base.mutex, OSET_MUTEX_NESTED, mac_manager.app_pool);
 		mac_manager.pcap.base.queue = oset_ring_queue_create(MAX_MAC_PCAP_QUE_SIZE);
@@ -78,6 +80,9 @@ static int mac_destory(void)
 	oset_list_empty(&mac_manager.mac_ue_list);
 	oset_hash_destroy(mac_manager.ue_db);
 	oset_pool_final(&mac_manager.ue_pool);
+
+	oset_apr_mutex_destroy(mac_manager.sched.mutex);
+
 	if (mac_manager.args->pcap.enable) {
 	  	mac_pcap_close(&mac_manager.pcap);
 		oset_ring_buf_destroy(mac_manager.pcap.base.buf);
@@ -277,21 +282,18 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
   slot_point pdsch_slot = {0};
   slot_point_init(&pdsch_slot, NUMEROLOGY_IDX, slot_cfg->idx);
 
-  oset_apr_mutex_lock(mac_manager.mutex);
   // Initiate new slot and sync UE internal states
   sched_nr_slot_indication(&mac_manager.sched, pdsch_slot);
 
   // Run DL Scheduler for CC
   dl_res_t* dl_res = sched_nr_get_dl_sched(&mac_manager.sched, pdsch_slot, 0);
   if (NULL == dl_res) {
-	oset_apr_mutex_unlock(mac_manager.mutex);
     return NULL;
   }
-  oset_apr_mutex_unlock(mac_manager.mutex);
 
   // Generate MAC DL PDUs //生成MAC DL PDU
   uint32_t                  rar_count = 0, si_count = 0, data_count = 0;
-  srsran::rwlock_read_guard rw_lock(rwmutex);
+  //srsran::rwlock_read_guard rw_lock(rwmutex);
   for (pdsch_t& pdsch : dl_res->phy.pdsch) {//mac调度得到的pdsch资源
     if (pdsch.sch.grant.rnti_type == srsran_rnti_type_c) {
       uint16_t rnti = pdsch.sch.grant.rnti;

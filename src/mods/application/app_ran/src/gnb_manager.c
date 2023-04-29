@@ -315,10 +315,11 @@ void gnb_layer_tasks_args_init(void)
 {
 	task_map_self(TASK_TIMER)->info.func = gnb_timer_task;
 	task_map_self(TASK_METRICS)->info.func = gnb_metrics_task;
-	task_map_self(TASK_PRACH)->info.func = gnb_prach_task;
 	task_map_self(TASK_TXRX)->info.func = gnb_txrx_task;
-	task_map_self(TASK_RRC)->info.func = gnb_rrc_task;
+	task_map_self(TASK_PRACH)->info.func = gnb_prach_task;
+	task_map_self(TASK_SLOT)->info.func = gnb_slot_task;
 	task_map_self(TASK_MAC)->info.func = gnb_mac_task;
+	task_map_self(TASK_RRC)->info.func = gnb_rrc_task;
 }
 
 int gnb_layer_tasks_create(void)
@@ -344,6 +345,11 @@ int gnb_layer_tasks_create(void)
 
 	if (OSET_ERROR == task_thread_create(TASK_MAC, NULL)) {
 	  oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "Create task for gNB MAC failed");
+	  return OSET_ERROR;
+	}
+
+	if (OSET_ERROR == task_thread_create(TASK_SLOT, NULL)) {
+	  oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "Create task for gNB SLOT failed");
 	  return OSET_ERROR;
 	}
 

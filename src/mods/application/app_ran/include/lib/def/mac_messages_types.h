@@ -10,14 +10,8 @@
 #ifndef MAC_MESSAGES_TYPES_H_
 #define MAC_MESSAGES_TYPES_H_
 
-#include "gnb_interface.h"
-
 /*prach<=======>mac*/
 #define RACH_MAC_DETECTED_INFO(msgPtr)             (msgPtr)->msg_body.rach_mac_detected_info
-
-
-
-
 
 
 #endif /* MAC_MESSAGES_TYPES_H_ */

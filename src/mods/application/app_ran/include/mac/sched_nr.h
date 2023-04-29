@@ -100,8 +100,9 @@ typedef struct {
 
 typedef struct {
   // slot-specific todo atomic
-  slot_point                  current_slot_tx;
-  int                         worker_count;
+  //slot_point                  current_slot_tx;
+  //int                         worker_count;
+  oset_apr_mutex_t		     *mutex;
 
   // args
   sched_params_t              cfg;

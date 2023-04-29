@@ -16,9 +16,14 @@ typedef struct msg_empty_s msg_empty_t;
 typedef struct timer_expired_s timer_expired_t;
 typedef void* context_t;
 
+#include "gnb_interface.h"
+#include "phy/phy.h"
+#include "mac/mac.h"
+#include "rrc/rrc.h"
+
 
 /*L1/L2/L3 message types*/
-//#include "def/phy_messages_types.h"
+#include "def/phy_messages_types.h"
 #include "def/mac_messages_types.h"
 //#include "def/rlc_messages_types.h"
 //#include "def/pdcp_messages_types.h"
@@ -55,6 +60,7 @@ typedef struct {
   TASK_DEF(TASK_TIMER,    TASK_PRIORITY_MED_PLUS,  200, NULL)  \
   TASK_DEF(TASK_PRACH,	  TASK_PRIORITY_MED,       200, NULL)  \
   TASK_DEF(TASK_TXRX,     TASK_PRIORITY_MAX_LEAST, 200, NULL)  \
+  TASK_DEF(TASK_SLOT, 	  TASK_PRIORITY_MAX_LEAST, SLOT_WORK_POOL_SIZE, NULL)  \
   TASK_DEF(TASK_MAC, 	  TASK_PRIORITY_MED,       200, NULL)  \
   TASK_DEF(TASK_RRC,      TASK_PRIORITY_MED,       200, NULL)  \
   TASK_DEF(TASK_NGAP,     TASK_PRIORITY_MED,       200, NULL)  \

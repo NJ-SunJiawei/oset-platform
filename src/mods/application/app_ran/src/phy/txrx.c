@@ -22,7 +22,7 @@
 #define PRIORITY_LEVEL_HIGH 3
 
 // Main system TTI counter
-static uint32_t tti = 0;
+static uint32_t realtime_tti = 0;
 
 static void set_slot_worker_context(slot_worker_t *slot_w, worker_context_t *w_ctx)
 {
@@ -31,6 +31,14 @@ static void set_slot_worker_context(slot_worker_t *slot_w, worker_context_t *w_c
 	slot_w->context = *w_ctx;
 }
 
+static void txrx_send_slot_worker(slot_worker_t *slot_w)
+{
+	msg_def_t *msg_ptr = NULL;
+	msg_ptr = task_alloc_msg (TASK_TXRX, PHY_RX_SLOT_INFO);
+	RQUE_MSG_TTI(msg_ptr) = realtime_tti;
+	PHY_RX_SLOT_INFO(msg_ptr) = slot_w;
+	task_send_msg(TASK_SLOT, msg_ptr);
+}
 
 /*************time util*****************/
 
@@ -64,7 +72,6 @@ void txrx_stop(void)
 	oset_apr_thread_cond_broadcast(phy_manager_self()->cond);
 	oset_apr_mutex_unlock(phy_manager_self()->mutex);
 	oset_threadplus_destroy(task_map_self(TASK_RXTX)->thread, 1);
-	slot_worker_final();
 }
 
 void txrx_init(void)
@@ -137,26 +144,26 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 	txrx_task_init();
 	oset_info("Starting RX/TX thread nof_prb=%d, sf_len=%d", get_nof_prb(0), sf_len);
 
-    tti = TTI_SUB(0, FDD_HARQ_DELAY_UL_MS + 1);
+    realtime_tti = TTI_SUB(0, FDD_HARQ_DELAY_UL_MS + 1);
 
 	// Main loop
     while(gnb_manager_self()->running){
 		////1ms调度一次 	  (系统帧号1024循环	    1帧=10子帧=10ms)      for 5G  SCS=15khz 1slot=1ms=14+1symbols
-		tti = TTI_ADD(tti, 1);
+		realtime_tti = TTI_ADD(realtime_tti, 1);
 	    
 		if ((NULL == phy_manager_self()->th_pools) || (get_nof_carriers_nr() <= 0)) {
 			oset_error("%s phy run error",OSET_FILE_LINE);
 			break;
 		}
 
-		size_t task = oset_threadpool_tasks_count(phy_manager_self()->th_pools);
-		if(task > TX_ENB_DELAY)
-		{
-			oset_debug("phy threadpool task %d > TX_ENB_DELAY, blocking!!!", task);
-			oset_apr_mutex_lock(phy_manager_self()->mutex);
-			oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);
-			oset_apr_mutex_unlock(phy_manager_self()->mutex);
-		}
+		//size_t task = oset_threadpool_tasks_count(phy_manager_self()->th_pools);
+		//if(task > 0)
+		//{
+		//	oset_debug("phy threadpool task %lu > 0, blocking!!!", task);
+		//	oset_apr_mutex_lock(phy_manager_self()->mutex);
+		//	oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);
+		//	oset_apr_mutex_unlock(phy_manager_self()->mutex);
+		//}
 
 		slot_w = slot_worker_alloc();
 		oset_assert(slot_w);
@@ -188,7 +195,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		timestamp_add(timestamp.timestamps, TX_ENB_DELAY * 1e-3);
 
 		oset_debug("Setting TTI=%d, tx_time=%ld:%f to slot worker pool %p",
-			  tti,
+			  realtime_tti,
 			  timestamp.timestamps[0].full_secs,
 			  timestamp.timestamps[0].frac_secs,
 			  phy_manager_self()->th_pools);
@@ -196,28 +203,30 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 			  
 	    // Set NR worker context and start
         memset(&context, 0,sizeof(worker_context_t));
-		context.sf_idx     = tti;
+		context.sf_idx     = realtime_tti;
 		context.worker_ptr = phy_manager_self()->th_pools;
 		context.last	   = true;
 		context.tx_time    = timestamp;
 		set_slot_worker_context(slot_w, &context);
 		
 		// Feed PRACH detection before start processing 
-		//prach_new_tti(0, context.sf_idx, get_buffer_rx(0));
+		prach_new_tti(0, slot_w->context.sf_idx, get_buffer_rx(slot_w, 0));
 
 		// Start actual worker
 		// Process one at a time and hang it on the linked list in sequence
-		rv = oset_threadpool_push(phy_manager_self()->th_pools,
+		/*rv = oset_threadpool_push(phy_manager_self()->th_pools,
 									slot_worker_process,
 									slot_w,
 									PRIORITY_LEVEL_HIGH,
 									"slot_handle");
-		oset_assert(OSET_OK == rv);
+		oset_assert(OSET_OK == rv);*/
 
-		if (tti % SRSRAN_NSLOTS_PER_SF_NR(1) == 0)
+		txrx_send_slot_worker(slot_w);
+
+		if (realtime_tti % SRSRAN_NSLOTS_PER_SF_NR(1) == 0)
 		{
-			uint32_t f_idx    = SRSRAN_SLOT_NR_DIV(1, tti);
-			uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(1, tti);//15khz, slot_id==sf_id
+			uint32_t f_idx    = SRSRAN_SLOT_NR_DIV(1, realtime_tti);
+			uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(1, realtime_tti);//15khz, slot_id==sf_id
 			uint32_t sf_idx   = slot_idx / SRSRAN_NSLOTS_PER_SF_NR(1);
 			gnb_time_tick(f_idx, sf_idx);
 		}
