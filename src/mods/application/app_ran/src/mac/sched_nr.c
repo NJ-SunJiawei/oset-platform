@@ -236,8 +236,6 @@ void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx)
 
   // prepare CA-enabled UEs internal state for new slot
   // Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
-  // 为新时隙准备启用CA的UE的内部状态
-  // 注意：稍后在get_dl_sched中更新非CA UE，以利用并行性
   // Find first available channel that supports this frequency and allocated it
 	sched_nr_ue *ue = NULL, *next_ue = NULL;
 	oset_list_for_each_safe(&scheluder->sched_ue_list, next_ue, ue){
@@ -250,6 +248,35 @@ void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx)
 	save_metrics(&scheluder->metrics_handler);
 }
 
+/// Generate {pdcch_slot,cc} scheduling decision
+dl_res_t* sched_nr_get_dl_sched(sched_nr *scheluder, slot_point pdsch_tti, uint32_t cc)
+{
+ 	 ASSERT_IF_NOT(pdsch_tti == scheluder->current_slot_tx, "Unexpected pdsch_tti slot received");
+
+	// process non-cc specific feedback if pending (e.g. SRs, buffer state updates, UE config) for non-CA UEs
+	pending_events->process_cc_events(ue_db, cc);//处理接收到的上行消息
+
+	// prepare non-CA UEs internal state for new slot为新时隙准备非CA UE的内部状态
+	for (auto& u : ue_db) {
+	if (not u.second->has_ca() and u.second->carriers[cc] != nullptr) {//？？？不确定  在随机接入完成前不会进入 u.second->carriers[cc]
+	  u.second->new_slot(current_slot_tx);//void ue::new_slot(slot_point pdcch_slot)
+	  //计算每个用户slot时间上下行需要bytes
+	}
+	}
+
+	// Process pending CC-specific feedback, generate {slot_idx,cc} scheduling decision
+	sched_nr::dl_res_t* ret = cc_workers[cc]->run_slot(pdsch_tti, ue_db);//dl_sched_res_t* cc_worker::run_slot(slot_point tx_sl, ue_map_t& ue_db)
+
+	// decrement the number of active workers减少active worker的数量
+	int rem_workers = worker_count.fetch_sub(1, std::memory_order_release) - 1;
+	srsran_assert(rem_workers >= 0, "invalid number of calls to get_dl_sched(slot, cc)");
+	if (rem_workers == 0) {
+	// Last Worker to finish slot
+	// TODO: Sync sched results with ue_db state
+	}
+
+  return ret;
+}
 
 ////////////////////////////////////sched callback/////////////////////////////////////////
 static int sched_nr_ue_cfg_impl(sched_nr *scheluder, uint16_t rnti, sched_nr_ue_cfg_t *uecfg)

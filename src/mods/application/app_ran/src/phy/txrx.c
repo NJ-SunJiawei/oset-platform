@@ -21,11 +21,14 @@
 #define PRIORITY_LEVEL_MID  2
 #define PRIORITY_LEVEL_HIGH 3
 
-static void set_slot_worker_context(worker_context_t *w_ctx)
+// Main system TTI counter
+static uint32_t tti = 0;
+
+static void set_slot_worker_context(slot_worker_t *slot_w, worker_context_t *w_ctx)
 {
-	slot_manager_self()->slot_worker.ul_slot_cfg.idx = w_ctx->sf_idx;
-	slot_manager_self()->slot_worker.dl_slot_cfg.idx = TTI_ADD(w_ctx->sf_idx, TX_ENB_DELAY);//phy process max delay
-	slot_manager_self()->slot_worker.context = *w_ctx;
+	slot_w->ul_slot_cfg.idx = w_ctx->sf_idx;
+	slot_w->dl_slot_cfg.idx = TTI_ADD(w_ctx->sf_idx, TX_ENB_DELAY);//phy process max delay
+	slot_w->context = *w_ctx;
 }
 
 
@@ -116,7 +119,7 @@ void txrx_task_init(void)
 	}
 }
 
-
+//default one cell  index = 0
 void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 {
     msg_def_t *received_msg = NULL;
@@ -127,18 +130,19 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 	rf_timestamp_t timestamp = {0};
 	uint32_t	   sf_len	 = SRSRAN_SF_LEN_PRB(get_nof_prb(0));//15khz   5G 1slot
 	worker_context_t context = {0};
+	slot_worker_t  *slot_w   = NULL;
 
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "Starting PHY txrx thread");
 
 	txrx_task_init();
 	oset_info("Starting RX/TX thread nof_prb=%d, sf_len=%d", get_nof_prb(0), sf_len);
 
-    slot_manager_self()->tti = TTI_SUB(0, FDD_HARQ_DELAY_UL_MS + 1);
+    tti = TTI_SUB(0, FDD_HARQ_DELAY_UL_MS + 1);
 
 	// Main loop
     while(gnb_manager_self()->running){
 		////1ms调度一次 	  (系统帧号1024循环	    1帧=10子帧=10ms)      for 5G  SCS=15khz 1slot=1ms=14+1symbols
-		slot_manager_self()->tti = TTI_ADD(slot_manager_self()->tti, 1);
+		tti = TTI_ADD(tti, 1);
 	    
 		if ((NULL == phy_manager_self()->th_pools) || (get_nof_carriers_nr() <= 0)) {
 			oset_error("%s phy run error",OSET_FILE_LINE);
@@ -148,11 +152,14 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		size_t task = oset_threadpool_tasks_count(phy_manager_self()->th_pools);
 		if(task > TX_ENB_DELAY)
 		{
-			oset_debug("phy threadpool task %d > 10, blocking!!!", task);
+			oset_debug("phy threadpool task %d > TX_ENB_DELAY, blocking!!!", task);
 			oset_apr_mutex_lock(phy_manager_self()->mutex);
 			oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);
 			oset_apr_mutex_unlock(phy_manager_self()->mutex);
 		}
+
+		slot_w = slot_worker_alloc();
+		oset_assert(slot_w);
 
 		// Multiple cell buffer mapping
 		{
@@ -165,7 +172,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 			    // - Only one NR cell is currently supported
 			    //channel_idx = logical_ch * nof_antennas + port_idx
 			    //phys_antenna_idx = i * rf_manager.nof_antennas + j;
-				buffer.sample_buffer[rf_port * get_nof_ports(cc_nr) + p] = get_buffer_rx(p);//Logical Port=Physical Port Mapping
+				buffer.sample_buffer[rf_port * get_nof_ports(cc_nr) + p] = get_buffer_rx(slot_w, p);//Logical Port=Physical Port Mapping
 			}
 		  }
 		}
@@ -181,7 +188,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		timestamp_add(timestamp.timestamps, TX_ENB_DELAY * 1e-3);
 
 		oset_debug("Setting TTI=%d, tx_time=%ld:%f to slot worker pool %p",
-			  slot_manager_self()->tti,
+			  tti,
 			  timestamp.timestamps[0].full_secs,
 			  timestamp.timestamps[0].frac_secs,
 			  phy_manager_self()->th_pools);
@@ -189,28 +196,28 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 			  
 	    // Set NR worker context and start
         memset(&context, 0,sizeof(worker_context_t));
-		context.sf_idx     = slot_manager_self()->tti;
+		context.sf_idx     = tti;
 		context.worker_ptr = phy_manager_self()->th_pools;
 		context.last	   = true;
 		context.tx_time    = timestamp;
-		set_slot_worker_context(&context);
+		set_slot_worker_context(slot_w, &context);
 		
 		// Feed PRACH detection before start processing 
-		prach_new_tti(0, context.sf_idx, get_buffer_rx(0));
+		//prach_new_tti(0, context.sf_idx, get_buffer_rx(0));
 
 		// Start actual worker
 		// Process one at a time and hang it on the linked list in sequence
 		rv = oset_threadpool_push(phy_manager_self()->th_pools,
 									slot_worker_process,
-									slot_worker_alloc(slot_manager_self()),
+									slot_w,
 									PRIORITY_LEVEL_HIGH,
 									"slot_handle");
 		oset_assert(OSET_OK == rv);
 
-		if (slot_manager_self()->tti % SRSRAN_NSLOTS_PER_SF_NR(1) == 0)
+		if (tti % SRSRAN_NSLOTS_PER_SF_NR(1) == 0)
 		{
-			uint32_t f_idx    = SRSRAN_SLOT_NR_DIV(1, slot_manager_self()->tti);
-			uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(1, slot_manager_self()->tti);//15khz, slot_id==sf_id
+			uint32_t f_idx    = SRSRAN_SLOT_NR_DIV(1, tti);
+			uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(1, tti);//15khz, slot_id==sf_id
 			uint32_t sf_idx   = slot_idx / SRSRAN_NSLOTS_PER_SF_NR(1);
 			gnb_time_tick(f_idx, sf_idx);
 		}

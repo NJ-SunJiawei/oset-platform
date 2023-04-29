@@ -282,7 +282,7 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
   sched_nr_slot_indication(&mac_manager.sched, pdsch_slot);
 
   // Run DL Scheduler for CC
-  sched_nr::dl_res_t* dl_res = sched->get_dl_sched(pdsch_slot, 0);//sched_nr::dl_res_t* sched_nr::get_dl_sched(slot_point pdsch_tti, uint32_t cc)
+  dl_res_t* dl_res = sched_nr_get_dl_sched(&mac_manager.sched, pdsch_slot, 0);
   if (NULL == dl_res) {
 	oset_apr_mutex_unlock(mac_manager.mutex);
     return NULL;

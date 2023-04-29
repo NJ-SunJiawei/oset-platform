@@ -33,13 +33,13 @@ typedef struct {
 }ra_sched;
 
 typedef struct {
-  bwp_params_t                   *cfg;
+  bwp_params_t       *cfg;
   // channel-specific schedulers
-  si_sched                       si;
-  ra_sched                       ra;
+  si_sched           si;
+  ra_sched           ra;
   //void                           *data_sched;//sched_nr_base
   // Stores pending allocations and PRB bitmaps
-  bwp_res_grid grid;
+  bwp_res_grid       grid;
 }bwp_manager;
 
 int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info);

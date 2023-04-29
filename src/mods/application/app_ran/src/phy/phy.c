@@ -59,7 +59,7 @@ static void phy_manager_destory(void)
 
 static bool dl_channel_emulator(const phy_args_t *params, const phy_cfg_t *cfg)
 {
-	phy_manager.workers_common.cell_list_nr = cfg->phy_cell_cfg_nr;
+	cvector_copy(cfg->phy_cell_cfg_nr, phy_manager.workers_common.cell_list_nr);
 	struct phy_cell_cfg_nr_t *cell_nr = &cfg->phy_cell_cfg_nr[0];
 
 	// Instantiate DL channel emulator
@@ -240,11 +240,11 @@ int phy_destory(void)
 	for (int i = 0; i < get_nof_carriers(); i++) {
 		prach_worker_stop(i);
 	}
-
 	txrx_stop();
 	//slot_worker
 	slot_worker_destory();
 
+	cvector_free(phy_manager.workers_common.cell_list_nr);
 	phy_manager_destory();
 	return OSET_OK;
 }

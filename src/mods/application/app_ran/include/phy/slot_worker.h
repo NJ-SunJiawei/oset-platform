@@ -39,6 +39,7 @@ typedef struct {
 }slot_worker_args_t;
 
 typedef struct slot_worker_s{
+	bool                  initial;
 	uint32_t			  sf_len;
 	uint32_t			  cell_index;
 	uint32_t			  rf_port;
@@ -53,20 +54,19 @@ typedef struct slot_worker_s{
 }slot_worker_t;
 
 typedef struct slot_manager_s{
-	uint32_t               tti;//txrx
+	//uint32_t               tti;//txrx
 	slot_worker_t          slot_worker;//phy deal tti slot
 }slot_manager_t;
-slot_manager_t *slot_manager_self(void);
 
-slot_worker_t* slot_worker_alloc(slot_manager_t *slot_manager);
+slot_worker_t* slot_worker_alloc(void);
 void slot_worker_free(slot_worker_t *slot_w);
 
 void slot_worker_init(slot_worker_args_t *args);
 void slot_worker_destory(void);
 
-uint32_t get_buffer_len(void);
-cf_t* get_buffer_rx(uint32_t antenna_idx);
-cf_t* get_buffer_tx(uint32_t antenna_idx);
+uint32_t get_buffer_len(slot_worker_t *slot_w);
+cf_t* get_buffer_rx(slot_worker_t *slot_w, uint32_t antenna_idx);
+cf_t* get_buffer_tx(slot_worker_t *slot_w, uint32_t antenna_idx);
 
 void slot_worker_process(oset_threadplus_t *thread, void *data);
 

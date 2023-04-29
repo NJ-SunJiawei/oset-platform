@@ -14,106 +14,98 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-slot-worker"
 
-static OSET_POOL(slot_worker_pool, slot_worker_t);
+#define SLOT_WORK_POOL_SIZE (TX_ENB_DELAY*2)
+oset_stl_queue_def(slot_worker_t, slot_worker) slot_work_list = NULL;
 
-//Process one at a time, in sequence
-static slot_manager_t slot_manager = {0};
-
-slot_manager_t *slot_manager_self(void)
+slot_worker_t* slot_worker_alloc(void)
 {
-	return &slot_manager;
-}
-
-
-static void slot_worker_pool_init(void)
-{
-    oset_pool_init(&slot_worker_pool, FDD_HARQ_DELAY_UL_MS);
-}
-
-static void slot_worker_pool_final(void)
-{
-    oset_pool_final(&slot_worker_pool);
-}
-
-slot_worker_t* slot_worker_alloc(slot_manager_t *slot_manager)
-{
-    slot_worker_t *slot_w = NULL;
-    oset_pool_alloc(&slot_worker_pool, &slot_w);
-	memcpy(slot_w, &slot_manager->slot_worker, sizeof(*slot_w));
-	return slot_w;
+	slot_worker_t *slot_w = oset_stl_queue_del_first(&slot_work_list);
 }
 
 void slot_worker_free(slot_worker_t *slot_w)
 {
-    oset_pool_free(&slot_worker_pool, slot_w);
+	int i = 0;
+	for (i = 0; i < phy_manager_self()->slot_args.nof_rx_ports; i++) {
+	  srsran_vec_cf_zero(slot_w->rx_buffer[i], slot_w->sf_len);
+	}
+	for (i = 0; i < phy_manager_self()->slot_args.nof_tx_ports; i++) {
+	  srsran_vec_cf_zero(slot_w->tx_buffer[i], slot_w->sf_len);
+	}
+	oset_stl_queue_add_last(&slot_work_list, slot_w);
 }
 
 bool slot_worker_init(slot_worker_args_t *args)
 {
-	slot_worker_pool_init();
+	oset_stl_queue_init(&slot_work_list);
 
-	// Calculate subframe length
-	slot_manager.slot_worker.sf_len = (uint32_t)(args->srate_hz / 1000.0);//1/(15000*2048)~~~15symbol*2048FFT
+	for(int i = 0; i < SLOT_WORK_POOL_SIZE; i++){
+		slot_worker_t slot_work = {0};
 
-	// Copy common configurations
-	slot_manager.slot_worker.cell_index = args->cell_index;
-	slot_manager.slot_worker.rf_port    = args->rf_port;
-
-	// Allocate Tx buffers
-	slot_manager.slot_worker.tx_buffer = (cf_t **)oset_malloc(args->nof_tx_ports*sizeof(cf_t *));
-	for (uint32_t i = 0; i < args->nof_tx_ports; i++) {
-	  slot_manager.slot_worker.tx_buffer[i] = srsran_vec_cf_malloc(slot_manager.slot_worker.sf_len);
-	  if (slot_manager.slot_worker.tx_buffer[i] == NULL) {
-		oset_error("Error allocating Tx buffer");
-		return false;
-	  }
-	}
-
-	// Allocate Rx buffers
-	slot_manager.slot_worker.rx_buffer = (cf_t **)oset_malloc(args->nof_rx_ports*sizeof(cf_t *));
-	for (uint32_t i = 0; i < args->nof_rx_ports; i++) {
-	  slot_manager.slot_worker.rx_buffer[i] = srsran_vec_cf_malloc(slot_manager.slot_worker.sf_len);
-	  if (slot_manager.slot_worker.rx_buffer[i] == NULL) {
-		oset_error("Error allocating Rx buffer");
-		return false;
-	  }
-	}
-
-	// Prepare DL arguments
-	srsran_gnb_dl_args_t dl_args = {0};
-	dl_args.pdsch.measure_time   = true;
-	dl_args.pdsch.max_layers	 = args->nof_tx_ports;
-	dl_args.pdsch.max_prb 	     = args->nof_max_prb;
-	dl_args.nof_tx_antennas	     = args->nof_tx_ports;
-	dl_args.nof_max_prb		     = args->nof_max_prb;
-	dl_args.srate_hz			 = args->srate_hz;
-
-	// Initialise DL
-	if (srsran_gnb_dl_init(&slot_manager.slot_worker.gnb_dl, slot_manager.slot_worker.tx_buffer, &dl_args) < SRSRAN_SUCCESS) {
-		oset_error("Error gNb DL init");
-		return false;
-	}
-
-	// Prepare UL arguments
-	srsran_gnb_ul_args_t ul_args	 = {0};
-	ul_args.pusch.measure_time	 = true;
-	ul_args.pusch.measure_evm 	 = true;
-	ul_args.pusch.max_layers		 = args->nof_rx_ports;
-	ul_args.pusch.sch.max_nof_iter   = args->pusch_max_its;
-	ul_args.pusch.max_prb 		     = args->nof_max_prb;
-	ul_args.nof_max_prb			     = args->nof_max_prb;
-	ul_args.pusch_min_snr_dB		 = args->pusch_min_snr_dB;
-
-	// Initialise UL
-	if (srsran_gnb_ul_init(&slot_manager.slot_worker.gnb_ul, slot_manager.slot_worker.rx_buffer[0], &ul_args) < SRSRAN_SUCCESS) {
-		oset_error("Error gNb DL init");
-		return false;
+		slot_work.initial = true;
+		// Calculate subframe length
+		slot_work.sf_len = (uint32_t)(args->srate_hz / 1000.0);//1/(15000*2048)~~~15symbol*2048FFT
+		
+		// Copy common configurations
+		slot_work.cell_index = args->cell_index;
+		slot_work.rf_port    = args->rf_port;
+		
+		// Allocate Tx buffers
+		slot_work.tx_buffer = (cf_t **)oset_malloc(args->nof_tx_ports*sizeof(cf_t *));
+		for (uint32_t i = 0; i < args->nof_tx_ports; i++) {
+		  slot_work.tx_buffer[i] = srsran_vec_cf_malloc(slot_work.sf_len);
+		  if (slot_work.tx_buffer[i] == NULL) {
+			oset_error("Error allocating Tx buffer");
+			return false;
+		  }
+		}
+		
+		// Allocate Rx buffers
+		slot_work.rx_buffer = (cf_t **)oset_malloc(args->nof_rx_ports*sizeof(cf_t *));
+		for (uint32_t i = 0; i < args->nof_rx_ports; i++) {
+		 slot_work.rx_buffer[i] = srsran_vec_cf_malloc(slot_work.sf_len);
+		  if (slot_work.rx_buffer[i] == NULL) {
+			oset_error("Error allocating Rx buffer");
+			return false;
+		  }
+		}
+		
+		// Prepare DL arguments
+		srsran_gnb_dl_args_t dl_args = {0};
+		dl_args.pdsch.measure_time	 = true;
+		dl_args.pdsch.max_layers	 = args->nof_tx_ports;
+		dl_args.pdsch.max_prb		 = args->nof_max_prb;
+		dl_args.nof_tx_antennas 	 = args->nof_tx_ports;
+		dl_args.nof_max_prb 		 = args->nof_max_prb;
+		dl_args.srate_hz			 = args->srate_hz;
+		
+		// Initialise DL
+		if (srsran_gnb_dl_init(&slot_work.gnb_dl, slot_work.tx_buffer, &dl_args) < SRSRAN_SUCCESS) {
+			oset_error("Error gNb DL init");
+			return false;
+		}
+		
+		// Prepare UL arguments
+		srsran_gnb_ul_args_t ul_args	 = {0};
+		ul_args.pusch.measure_time	 = true;
+		ul_args.pusch.measure_evm	 = true;
+		ul_args.pusch.max_layers		 = args->nof_rx_ports;
+		ul_args.pusch.sch.max_nof_iter	 = args->pusch_max_its;
+		ul_args.pusch.max_prb			 = args->nof_max_prb;
+		ul_args.nof_max_prb 			 = args->nof_max_prb;
+		ul_args.pusch_min_snr_dB		 = args->pusch_min_snr_dB;
+		
+		// Initialise UL
+		if (srsran_gnb_ul_init(&slot_work.gnb_ul, slot_work.rx_buffer[0], &ul_args) < SRSRAN_SUCCESS) {
+			oset_error("Error gNb DL init");
+			return false;
+		}
+		oset_stl_queue_add_last(&slot_work_list, slot_work);
 	}
 
 #ifdef DEBUG_WRITE_FILE
-	const char* filename = "nr_baseband.dat";
-	oset_debug("Opening %s to dump baseband\n", filename);
-	f = fopen(filename, "w");
+	//const char* filename = "nr_baseband.dat";
+	//oset_debug("Opening %s to dump baseband\n", filename);
+	//f = fopen(filename, "w");
 #endif
 
 	return true;
@@ -122,47 +114,48 @@ bool slot_worker_init(slot_worker_args_t *args)
 void slot_worker_destory(void)
 {
 	int i = 0;
+	slot_worker_t *slot_w = NULL;
+
 	oset_threadpool_destory(phy_manager_self()->th_pools);
-	for (i = 0; i < (phy_manager_self()->slot_args.nof_rx_ports; i++){
-	    free(slot_manager.slot_worker.rx_buffer[i]);
+	oset_stl_queue_foreach(&slot_work_list, slot_w){
+		for (i = 0; i < (phy_manager_self()->slot_args.nof_rx_ports; i++){
+			free(slot_w->rx_buffer[i]);
+		}
+		oset_free(slot_w->rx_buffer);
+		
+		for (i = 0; i < (phy_manager_self()->slot_args.nof_tx_ports; i++){
+			free(slot_w->tx_buffer[i]);
+		}
+		oset_free(slot_w->tx_buffer);
+		
+		srsran_gnb_dl_free(&slot_w->gnb_dl);
+		srsran_gnb_ul_free(&slot_w->gnb_ul);
 	}
-	oset_free(slot_manager.slot_worker.rx_buffer);
-
-	for (i = 0; i < (phy_manager_self()->slot_args.nof_tx_ports; i++){
-	    free(slot_manager.slot_worker.tx_buffer[i]);
-	}
-	oset_free(slot_manager.slot_worker.tx_buffer);
-
-	srsran_gnb_dl_free(&slot_manager.slot_worker.gnb_dl);
-	srsran_gnb_ul_free(&slot_manager.slot_worker.gnb_ul);
-
-    oset_pool_final(&slot_worker_pool);
+    oset_stl_queue_term(&slot_work_list);
 }
 
 
-cf_t* get_buffer_rx(uint32_t antenna_idx)
+cf_t* get_buffer_rx(slot_worker_t *slot_w, uint32_t antenna_idx)
 {
 	//std::lock_guard<std::mutex> lock(mutex);
 	if (antenna_idx >= (uint32_t)phy_manager_self()->slot_args.nof_rx_ports) {
 		return NULL;
 	}
-
-	return slot_manager.slot_worker.rx_buffer[antenna_idx];
+	return slot_w->rx_buffer[antenna_idx];
 }
 
-cf_t* get_buffer_tx(uint32_t antenna_idx)
+cf_t* get_buffer_tx(slot_worker_t *slot_w, uint32_t antenna_idx)
 {
-//std::lock_guard<std::mutex> lock(mutex);
-if (antenna_idx >= (uint32_t)phy_manager_self()->slot_args.nof_tx_ports) {
-	return NULL;
+	//std::lock_guard<std::mutex> lock(mutex);
+	if (antenna_idx >= (uint32_t)phy_manager_self()->slot_args.nof_tx_ports) {
+		return NULL;
+	}
+	return slot_w->tx_buffer[antenna_idx];
 }
 
-return slot_manager.slot_worker.tx_buffer[antenna_idx];
-}
-
-uint32_t get_buffer_len(void)
+uint32_t get_buffer_len(slot_worker_t *slot_w)
 {
-return slot_manager.slot_worker.sf_len;
+return slot_w->sf_len;
 }
 
 static bool slot_worker_work_dl(slot_worker_t *slot_w)
@@ -294,8 +287,11 @@ void slot_worker_process(oset_threadplus_t *thread, void *data)
 	slot_worker_t *slot_w = (slot_worker_t *)data;
 	if(NULL == slot_w) return;
 
+	// Feed PRACH detection before start processing 
+	prach_new_tti(0, slot_w->context.sf_idx, get_buffer_rx(slot_w, 0));
+
 	// Inform Scheduler about new slot
-	//mac_slot_indication(&slot_w->dl_slot_cfg);//do nothing
+	// mac_slot_indication(&slot_w->dl_slot_cfg);//do nothing
 
 	// Get Transmission buffer
 	uint32_t  nof_ant = phy_manager_self()->slot_args.nof_tx_ports;//get_nof_ports()
