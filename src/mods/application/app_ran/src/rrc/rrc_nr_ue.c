@@ -23,7 +23,7 @@ void activity_timer_handle(rrc_nr_ue *ue)
 		case UE_INACTIVITY_TIMEOUT: {
 		  state = RRC_INACTIVE;
 		  // Start NGAP Release UE context
-		  parent->ngap->user_release_request(rnti, asn1::ngap::cause_radio_network_opts::user_inactivity);
+		  parent->ngap->user_release_request(ue->rnti, asn1::ngap::cause_radio_network_opts::user_inactivity);
 
 		  break;
 		}
@@ -68,7 +68,8 @@ static void set_activity_timeout(rrc_nr_ue *ue)
 	static const char* options[] = {"Msg3 reception", "UE inactivity", "Msg5 reception"};
 	oset_debug("Setting timer for %s for rnti=0x%x to %dms", options[ue->type]), ue->rnti, deadline_ms);
 
-	ue->activity_timer = gnb_timer_add(gnb_manager_self()->app_timer, activity_timer_expired, ue);
+	//ue->activity_timer = gnb_timer_add(gnb_manager_self()->app_timer, activity_timer_expired, ue);
+	ue->activity_timer = gnb_timer_add(gnb_manager_self()->app_timer, activity_timer_handle, ue);
 	gnb_timer_start(ue->activity_timer, deadline_ms);
 	oset_debug("Activity registered for rnti=0x%x (timeout_value=%dms)", ue->rnti, deadline_ms);
 }
@@ -138,4 +139,8 @@ void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer)
     oset_info("[Added] Number of RRC-UEs is now %d", oset_list_count(&rrc_manager_self()->rrc_ue_list));
 }
 
+void rrc_nr_ue_get_metrics(rrc_ue_metrics_t *metrics)
+{
+	/*TODO fill RRC metrics*/
+}
 

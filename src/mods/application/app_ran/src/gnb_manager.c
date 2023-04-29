@@ -196,25 +196,10 @@ static bool stack_get_metrics(stack_metrics_t *metrics)
 {
   bool metrics_ready = false;
 
-  // use stack thread to query RRC metrics
-  /*auto ret = metrics_task_queue.try_push([this, metrics, &metrics_ready]() {
-    rrc_get_metrics(metrics->rrc);
-    {
-      std::lock_guard<std::mutex> lock(metrics_mutex);
-      metrics_ready = true;
-    }
-    metrics_cvar.notify_one();
-  });
-  if (not ret.has_value()) {
-    return false;
-  }*/
-
-  // obtain MAC metrics (do not use stack thread)
+  rrc_get_metrics(metrics->rrc);
+  // obtain MAC metrics 
   mac_get_metrics(&metrics->mac);
 
-  // wait for RRC result
-  /*std::unique_lock<std::mutex> lock(metrics_mutex);
-  metrics_cvar.wait(lock, [&metrics_ready]() { return metrics_ready; });*/
   return true;
 }
 

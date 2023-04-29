@@ -411,6 +411,20 @@ int rrc_read_pdu_bcch_dlsch_callback(uint32_t sib_index, oset_pkbuf_t *buffer)
 	return OSET_OK;
 }
 
+void rrc_get_metrics(rrc_metrics_t *m)
+{
+  if (rrc_manager.running) {
+	  rrc_nr_ue *ue = NULL, *next_ue = NULL;
+	  oset_list_for_each_safe(&rrc_manager.rrc_ue_list, next_ue, ue){
+	      rrc_ue_metrics_t ue_metrics = {0};
+	      rrc_nr_ue_get_metrics(&ue_metrics);
+		  cvector_push_back(m->ues, ue_metrics);
+
+    }
+  }
+}
+
+
 static void gnb_rrc_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 {
 	oset_assert(msg_p);

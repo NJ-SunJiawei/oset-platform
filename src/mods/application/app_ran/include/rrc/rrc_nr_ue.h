@@ -72,6 +72,7 @@ typedef struct {
 
 void activity_timer_handle(rrc_nr_ue *ue);
 void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer);
+void rrc_nr_ue_get_metrics(rrc_ue_metrics_t *metrics);
 
 #ifdef __cplusplus
 }
