@@ -14,6 +14,7 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-slot-worker"
 
+#define SLOT_WORK_POOL_SIZE  (TX_ENB_DELAY*2)
 oset_stl_queue_def(slot_worker_t, slot_worker) slot_work_list = NULL;
 
 slot_worker_t* slot_worker_alloc(void)
@@ -165,6 +166,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	srsran_gnb_dl_t *gnb_dl = &slot_w->gnb_dl;
 	if (NULL == gnb_dl) return false;
 
+	//todo need lock?
 	oset_apr_mutex_lock(mac_manager_self()->sched.mutex);
 	// Retrieve Scheduling for the current processing DL slot
 	dl_sched_t* dl_sched_ptr = mac_get_dl_sched(&slot_w->dl_slot_cfg);
@@ -283,7 +285,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 }
 
 
-/*void* slot_worker_process(oset_threadplus_t *thread, void *data)
+void* slot_worker_process(oset_threadplus_t *thread, void *data)
 {
 	slot_worker_t *slot_w = (slot_worker_t *)data;
 	if(NULL == slot_w) return NULL;
@@ -337,100 +339,5 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	oset_apr_mutex_unlock(phy_manager_self()->mutex);
 
 	return NULL;
-}*/
-
-static void slot_worker_handle(slot_worker_t *slot_w)
-{
-	if(NULL == slot_w) return;
-
-	// Inform Scheduler about new slot
-	// mac_slot_indication(&slot_w->dl_slot_cfg);//do nothing
-
-	// Get Transmission buffer
-	uint32_t  nof_ant = phy_manager_self()->slot_args.nof_tx_ports;//get_nof_ports()
-
-	rf_buffer_t tx_rf_buffer = {0};
-	set_nof_samples(&tx_rf_buffer, slot_w->sf_len);//1slot(15khz)
-
-	//bind tx_buffer and tx_rf_buffer
-	uint32_t rf_port = get_rf_port(slot_w->cell_index);
-	//uint32_t rf_port = slot_w->rf_port;//one cell
-	for (uint32_t a = 0; a < nof_ant; a++) {
-		tx_rf_buffer.sample_buffer[rf_port * nof_ant + a] = get_buffer_tx(a);
-	}
-
-	// Ensure sequence
-	// Process uplink
-	if (! work_ul()) {//phy up
-	// Wait and release synchronization
-		worker_end(context, false, tx_rf_buffer);
-		return;
-	}
-
-	// Process downlink
-	if (!slot_worker_work_dl(slot_w)) {
-		worker_end(context, false, tx_rf_buffer);
-		return;
-	}
-
-	worker_end(context, true, tx_rf_buffer);
-
-#ifdef DEBUG_WRITE_FILE
-	if (num_slots++ < slots_to_dump) {
-	printf("Writing slot %d\n", dl_slot_cfg.idx);
-	fwrite(tx_rf_buffer.get(0), tx_rf_buffer.get_nof_samples() * sizeof(cf_t), 1, f);
-	} else if (num_slots == slots_to_dump) {
-	printf("Baseband signaled dump finished. Please close app.\n");
-	fclose(f);
-	}
-#endif
-
-	slot_worker_free(slot_w);
-
-	return;
-}
-
-static void gnb_slot_task_handle(msg_def_t *msg_p, uint32_t msg_l)
-{
-	oset_assert(msg_p);
-	oset_assert(msg_l > 0);
-	switch (RQUE_MSG_ID(msg_p))
-	{	
-		case PHY_RX_SLOT_INFO:
-			/*rach info handle*/
-			slot_worker_handle(&PHY_RX_SLOT_INFO(msg_p));
-			break;
-		
-		default:
-			oset_error("Received unknown message: %d:%s",  RQUE_MSG_ID(msg_p), RQUE_MSG_NAME(msg_p));
-			break;
-	}
-}
-
-void *gnb_slot_task(oset_threadplus_t *thread, void *data)
-{
-	msg_def_t *received_msg = NULL;
-	uint32_t length = 0;
-	task_map_t *task = task_map_self(TASK_SLOT);
-	int rv = 0;
-
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "Starting RX SLOT thread");
-
-	 for ( ;; ){
-		 rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
-		 if(rv != OSET_OK)
-		 {
-			if (rv == OSET_DONE)
-				break;
-		 
-			if (rv == OSET_RETRY){
-				continue;
-			}
-		 }
-		 gnb_slot_task_handle(received_msg, length);
-		 task_free_msg(RQUE_MSG_ORIGIN_ID(received_msg), received_msg);
-		 received_msg = NULL;
-		 length = 0;
-	}
 }
 

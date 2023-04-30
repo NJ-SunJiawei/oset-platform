@@ -85,7 +85,8 @@ static void process_events(sched_nr *scheluder)
 
     // Extract pending feedback events
     {	
-    	oset_apr_thread_rwlock_rdlock(pending_events->event_mutex);
+    	//todo need lock?
+    	//oset_apr_thread_rwlock_rdlock(pending_events->event_mutex);
 		cvector_clear(pending_events->current_slot_ue_events);
 		cvector_clear(pending_events->current_slot_events);
 
@@ -94,7 +95,7 @@ static void process_events(sched_nr *scheluder)
 
 		cvector_clear(pending_events->next_slot_ue_events);
 		cvector_clear(pending_events->next_slot_events);
-		oset_apr_thread_rwlock_unlock(pending_events->event_mutex);
+		//oset_apr_thread_rwlock_unlock(pending_events->event_mutex);
     }
 
 	// non-UE specific events
@@ -311,9 +312,9 @@ void sched_nr_ue_cfg(sched_nr *scheluder, uint16_t rnti, sched_nr_ue_cfg_t *uecf
 	ue_cfg.callback = sched_nr_ue_cfg_impl_callback;
 	ue_cfg.u.ue_cfg_argv.rnti = rnti;
 	ue_cfg.u.ue_cfg_argv.uecfg = uecfg;
-	oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
+	//oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
 	cvector_push_back(scheluder->pending_events.next_slot_events, ue_cfg);
-	oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
+	//oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
 }
 
 void sched_nr_ue_remove_callback(void *argv)
@@ -337,9 +338,9 @@ void sched_nr_ue_rem(sched_nr *scheluder, uint16_t rnti)
   ue_rem.callback = sched_nr_ue_remove_callback;
   ue_rem.u.ue_rem_argv.u = u;
 
-  oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
+  //oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
   cvector_push_back(scheluder->pending_events.next_slot_events, ue_rem);
-  oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
+  //oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
 }
 
 void dl_rach_info_callback(void *argv)
@@ -373,9 +374,9 @@ int sched_nr_dl_rach_info(sched_nr *scheluder, rar_info_t *rar_info)
 	dl_rach_info.event_name = DL_RACH_INFO;
 	dl_rach_info.callback = dl_rach_info_callback;
 	dl_rach_info.u.dl_rach_info_argv.rar_info = *rar_info;//need free
-	oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
+	//oset_apr_thread_rwlock_wrlock(scheluder->pending_events.event_mutex);
 	cvector_push_back(scheluder->pending_events.next_slot_events, dl_rach_info);
-	oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
+	//oset_apr_thread_rwlock_unlock(scheluder->pending_events.event_mutex);
 	return OSET_OK;
 }
 

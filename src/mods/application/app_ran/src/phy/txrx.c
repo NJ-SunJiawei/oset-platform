@@ -31,15 +31,6 @@ static void set_slot_worker_context(slot_worker_t *slot_w, worker_context_t *w_c
 	slot_w->context = *w_ctx;
 }
 
-static void txrx_send_slot_worker(slot_worker_t *slot_w)
-{
-	msg_def_t *msg_ptr = NULL;
-	msg_ptr = task_alloc_msg (TASK_TXRX, PHY_RX_SLOT_INFO);
-	RQUE_MSG_TTI(msg_ptr) = realtime_tti;
-	PHY_RX_SLOT_INFO(msg_ptr) = slot_w;
-	task_send_msg(TASK_SLOT, msg_ptr);
-}
-
 /*************time util*****************/
 
 /**
@@ -156,14 +147,14 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 			break;
 		}
 
-		//size_t task = oset_threadpool_tasks_count(phy_manager_self()->th_pools);
-		//if(task > 0)
-		//{
-		//	oset_debug("phy threadpool task %lu > 0, blocking!!!", task);
-		//	oset_apr_mutex_lock(phy_manager_self()->mutex);
-		//	oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);
-		//	oset_apr_mutex_unlock(phy_manager_self()->mutex);
-		//}
+		size_t task = oset_threadpool_tasks_count(phy_manager_self()->th_pools);
+		if(task > TX_ENB_DELAY)
+		{
+			oset_debug("phy threadpool task %lu > TX_ENB_DELAY, blocking!!!", task);
+			oset_apr_mutex_lock(phy_manager_self()->mutex);
+			oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);
+			oset_apr_mutex_unlock(phy_manager_self()->mutex);
+		}
 
 		slot_w = slot_worker_alloc();
 		oset_assert(slot_w);
@@ -214,14 +205,12 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 
 		// Start actual worker
 		// Process one at a time and hang it on the linked list in sequence
-		/*rv = oset_threadpool_push(phy_manager_self()->th_pools,
+		rv = oset_threadpool_push(phy_manager_self()->th_pools,
 									slot_worker_process,
 									slot_w,
 									PRIORITY_LEVEL_HIGH,
 									"slot_handle");
-		oset_assert(OSET_OK == rv);*/
-
-		txrx_send_slot_worker(slot_w);
+		oset_assert(OSET_OK == rv);
 
 		if (realtime_tti % SRSRAN_NSLOTS_PER_SF_NR(1) == 0)
 		{

@@ -18,8 +18,6 @@
 extern "C" {
 #endif
 
-#define SLOT_WORK_POOL_SIZE  200
-
 typedef struct worker_context_s {
   uint32_t		 sf_idx;	   ///< Subframe index
   void* 		 worker_ptr; ///< Worker pointer for wait/release semaphore
@@ -69,9 +67,7 @@ uint32_t get_buffer_len(slot_worker_t *slot_w);
 cf_t* get_buffer_rx(slot_worker_t *slot_w, uint32_t antenna_idx);
 cf_t* get_buffer_tx(slot_worker_t *slot_w, uint32_t antenna_idx);
 
-//void* slot_worker_process(oset_threadplus_t *thread, void *data);
-
-void *gnb_slot_task(oset_threadplus_t *thread, void *data);
+void* slot_worker_process(oset_threadplus_t *thread, void *data);
 
 #ifdef __cplusplus
 }
