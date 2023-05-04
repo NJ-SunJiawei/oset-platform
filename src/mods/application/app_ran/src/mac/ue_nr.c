@@ -142,8 +142,9 @@ void ue_nr_metrics_ul_mcs(ue_nr *ue, uint32_t mcs)
 
 void ue_nr_metrics_cnt(ue_nr *ue)
 {
-  //std::lock_guard<std::mutex> lock(metrics_mutex);
-  ue->ue_metrics.nof_tti++;
+	oset_apr_mutex_lock(ue->metrics_mutex);
+	ue->ue_metrics.nof_tti++;
+	oset_apr_mutex_unlock(ue->metrics_mutex);
 }
 
 void ue_nr_metrics_pucch_sinr(ue_nr *ue, float sinr)

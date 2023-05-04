@@ -72,6 +72,32 @@ static ue_carrier* ue_carrier_init(sched_nr_ue       *u, uint32_t cc)
 	return carrier;
 }
 
+int ue_carrier_dl_ack_info(ue_carrier *carrier, uint32_t pid, uint32_t tb_idx, bool ack)
+{
+	int tbs = dl_ack_info(&carrier->harq_ent, pid, tb_idx, ack);
+	if (tbs < 0) {
+		oset_warn("SCHED: rnti=0x%x,cc=%d received DL HARQ-ACK for empty pid=%d", carrier->rnti, carrier->cc, pid);
+		return tbs;
+	}
+
+	//和save_metrics同处一个线程，无需加锁
+	if (ack) {
+		carrier->metrics.tx_brate += tbs;
+	} else {
+		carrier->metrics.tx_errors++;
+	}
+	carrier->metrics.tx_pkts++;
+	return tbs;
+}
+
+int ue_carrier_ul_crc_info(ue_carrier *carrier, uint32_t pid, bool crc)
+{
+	int ret = ul_crc_info(&carrier->harq_ent, pid, crc);
+	if (ret < 0) {
+		oset_warn("SCHED: rnti=0x%x,cc=%d received CRC for empty pid=%d", carrier->rnti, carrier->cc, pid);
+	}
+	return ret;
+}
 
 //////////////////////////////////////////sched_nr_ue////////////////////////////////////////////
 static void free_rach_ue_cfg_helper(sched_nr_ue_cfg_t *uecfg)
@@ -158,7 +184,7 @@ void sched_nr_add_ue_impl(uint16_t rnti, sched_nr_ue *u, uint32_t cc)
 	oset_hash_set(&mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), u);
 }
 
-void sched_ue_nr_set_by_rnti(uint16_t rnti, sched_nr_ue *u)
+void sched_nr_ue_set_by_rnti(uint16_t rnti, sched_nr_ue *u)
 {
 	oset_assert(u);
     oset_hash_set(&mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), NULL);
@@ -251,4 +277,33 @@ void sched_nr_ue_new_slot(sched_nr_ue *ue, slot_point pdcch_slot)
 		}
 	}
 }
+
+void sched_nr_ue_ul_sr_info(sched_nr_ue *ue)
+{
+	ue->last_sr_slot = ue->last_tx_slot - TX_ENB_DELAY;
+}
+
+void sched_nr_ue_add_dl_mac_ce(sched_nr_ue *ue, uint32_t ce_lcid, uint32_t nof_cmds)
+{
+	for (uint32_t i = 0; i < nof_cmds; ++i) {
+		// If not specified otherwise, the CE is transmitted in PCell
+		ce_t ce = {0};
+		ce.lcid = ce_lcid;
+		//todo
+		ce.cc = ue->ue_cfg.carriers[0].cc;
+		oset_stl_queue_add_last(&ue->buffers.pending_ces, ce)
+	}
+}
+
+void sched_nr_ue_ul_bsr(sched_nr_ue *ue, uint32_t lcg, uint32_t bsr_val)
+{
+	base_ue_buffer_manager_ul_bsr(&ue->buffers.base_ue, lcg, bsr_val);
+}
+
+
+void sched_nr_ue_rlc_buffer_state(sched_nr_ue *ue, uint32_t lcid, uint32_t newtx, uint32_t priotx)
+{
+	base_ue_buffer_manager_dl_buffer_state(&ue->buffers.base_ue, lcid, newtx, priotx);
+}
+
 

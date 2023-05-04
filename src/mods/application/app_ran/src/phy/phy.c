@@ -107,6 +107,7 @@ static int init_nr(const phy_args_t& args, const phy_cfg_t& cfg)
 	rv = oset_threadpool_create(&phy_manager.th_pools, phy_manager.worker_args.nof_phy_threads, phy_manager.worker_args.nof_phy_threads);
 	oset_assert(OSET_OK == rv);
 
+    //todo one cell
 	phy_manager.slot_args.cell_index = 0;
 	phy_manager.slot_args.nof_max_prb	= cell_nr->carrier.nof_prb;
 	phy_manager.slot_args.nof_tx_ports = cell_nr->carrier.max_mimo_layers;

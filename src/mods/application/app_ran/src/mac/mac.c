@@ -127,7 +127,7 @@ int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells)
 	return OSET_OK;
 }
 
-int mac_ue_cfg(uint16_t rnti, sched_nr_ue_cfg_t ue_cfg)
+int mac_ue_cfg(uint16_t rnti, sched_nr_ue_cfg_t *ue_cfg)
 {
 	sched_nr_ue_cfg(&mac_manager.sched,rnti, ue_cfg);
 	return OSET_OK;
@@ -222,12 +222,13 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 	sched_nr_dl_rach_info(&mac_manager.sched, &rar_info);
 	rrc_add_user_callback(rnti, rach_info->enb_cc_idx);//todo
 
-	oset_info("RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
-			  rach_info->slot_index,
-			  rach_info->enb_cc_idx,
-			  rach_info->preamble,
-			  rach_info->time_adv,
-			  rnti);
+	oset_info("[%5lu] RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
+				rach_info->slot_index,
+				rach_info->slot_index,
+				rach_info->enb_cc_idx,
+				rach_info->preamble,
+				rach_info->time_adv,
+				rnti);
 }
 
 //????prach_worker_rach_detected()
@@ -331,8 +332,10 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 #endif
     }
   }
-  for (auto& u : ue_db) {
-    u.second->metrics_cnt();//void ue_nr::metrics_cnt() 统计tti++
+
+  ue_nr *ue = NULL, *next_ue = NULL;
+  oset_list_for_each_safe(&mac_manager.mac_ue_list, next_ue, ue){
+	  ue_nr_metrics_cnt(ue);
   }
 
   return &dl_res->phy;

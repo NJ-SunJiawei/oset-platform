@@ -143,7 +143,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		realtime_tti = TTI_ADD(realtime_tti, 1);
 	    
 		if ((NULL == phy_manager_self()->th_pools) || (get_nof_carriers_nr() <= 0)) {
-			oset_error("%s phy run error",OSET_FILE_LINE);
+			oset_error("[%5lu] phy run error", realtime_tti);
 			break;
 		}
 
@@ -152,7 +152,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		{
 			//当进入该分支，当队列任务>TX_ENB_DELAY时,阻塞接收，可以控制任务队列<TX_ENB_DELAY ,这样会导致处理时间变长。
 			//若不进入该分支，若上层处理过慢，会导致任务队列很长。
-			oset_debug("phy threadpool task %lu > TX_ENB_DELAY, blocking!!!", task);
+			oset_debug("[%5lu] phy threadpool task %lu > TX_ENB_DELAY, blocking!!!", realtime_tti, task);
 			oset_apr_mutex_lock(phy_manager_self()->mutex);
 			oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);
 			oset_apr_mutex_unlock(phy_manager_self()->mutex);
@@ -187,7 +187,8 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		// Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time
 		timestamp_add(timestamp.timestamps, TX_ENB_DELAY * 1e-3);
 
-		oset_debug("Setting TTI=%d, tx_time=%ld:%f to slot worker pool %p",
+		oset_debug("[%5lu] Setting TTI=%d, tx_time=%ld:%f to slot worker pool %p",
+			  realtime_tti,
 			  realtime_tti,
 			  timestamp.timestamps[0].full_secs,
 			  timestamp.timestamps[0].frac_secs,

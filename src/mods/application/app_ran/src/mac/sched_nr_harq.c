@@ -23,10 +23,6 @@ static bool has_pending_retx(harq_proc *proc,slot_point slot_rx)
 static uint32_t nof_retx(harq_proc *proc)  { return proc->tb[0].n_rtx; }
 static uint32_t max_nof_retx(harq_proc *proc)  { return proc->max_retx; }
 
-/////////////////////////////////////////////////////////////////////////////////////
-uint32_t nof_dl_harqs(harq_entity *harq_ent) { return cvector_size(harq_ent->dl_harqs); }
-uint32_t nof_ul_harqs(harq_entity *harq_ent) { return cvector_size(harq_ent->ul_harqs); }
-
 uint32_t tbs(tb_t tb[SCHED_NR_MAX_TB]) { return tb[0].tbs; }
 uint32_t ndi(tb_t tb[SCHED_NR_MAX_TB]) { return tb[0].ndi; }
 uint32_t mcs(tb_t tb[SCHED_NR_MAX_TB]) { return tb[0].mcs; }
@@ -37,6 +33,11 @@ bool empty(tb_t tb[SCHED_NR_MAX_TB])
 		if(tb[i].active) return !tb[i].active;
 	}
 	return true;
+}
+
+bool empty(harq_proc *proc, uint32_t tb_idx)
+{
+	return !proc->tb[tb_idx].active;
 }
 
 slot_point	harq_slot_tx(harq_proc *harq)      { return harq->slot_tx; }
@@ -52,6 +53,19 @@ bool harq_proc_clear_if_maxretx(harq_proc *proc, slot_point slot_rx)
 	return false;
 }
 
+int harq_proc_ack_info(harq_proc *proc, uint32_t tb_idx, bool ack)
+{
+	if (empty(proc, tb_idx)) {
+		return OSET_ERROR;
+	}
+	proc->tb[tb_idx].ack_state = ack;
+	if (ack) {
+		proc->tb[tb_idx].active = false;
+	}
+	return ack ? proc->tb[tb_idx].tbs : 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void harq_entity_init(harq_entity *harq_ent, uint16_t rnti_, uint32_t nprb, uint32_t nof_harq_procs)
 {
 	//每个ue都有一个harq实体，一个harq实体8个harq process
@@ -106,4 +120,16 @@ void harq_entity_new_slot(harq_entity *harq_ent, slot_point slot_rx_)
   }
 }
 
+uint32_t nof_dl_harqs(harq_entity *harq_ent) { return cvector_size(harq_ent->dl_harqs); }
+uint32_t nof_ul_harqs(harq_entity *harq_ent) { return cvector_size(harq_ent->ul_harqs); }
+
+int dl_ack_info(harq_entity *harq_ent, uint32_t pid, uint32_t tb_idx, bool ack)
+{ 
+	return harq_proc_ack_info(&harq_ent->dl_harqs[pid], tb_idx, ack);
+}
+
+int ul_crc_info(harq_entity *harq_ent, uint32_t pid, bool ack)
+{
+	return harq_proc_ack_info(&harq_ent->ul_harqs[pid], 0, ack);
+}
 

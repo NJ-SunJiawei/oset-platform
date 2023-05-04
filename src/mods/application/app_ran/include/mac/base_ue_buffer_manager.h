@@ -41,6 +41,8 @@ void base_ue_buffer_manager_init(base_ue_buffer_manager *base_ue, uint16_t rnti_
 void base_ue_buffer_manager_config_lcids(base_ue_buffer_manager *base_ue, mac_lc_ch_cfg_t bearer_cfg_list[SCHED_NR_MAX_LCID]);
 int base_ue_buffer_manager_get_dl_tx_total(base_ue_buffer_manager *base_ue);
 int base_ue_buffer_manager_get_bsr(base_ue_buffer_manager *base_ue);
+int base_ue_buffer_manager_ul_bsr(base_ue_buffer_manager *base_ue, uint32_t lcg_id, uint32_t val);
+int base_ue_buffer_manager_dl_buffer_state(base_ue_buffer_manager *base_ue, uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue);
 
 #ifdef __cplusplus
 }

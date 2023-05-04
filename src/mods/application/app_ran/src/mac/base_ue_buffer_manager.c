@@ -159,4 +159,24 @@ int base_ue_buffer_manager_get_bsr(base_ue_buffer_manager *base_ue)
 }
 
 
+int base_ue_buffer_manager_ul_bsr(base_ue_buffer_manager *base_ue, uint32_t lcg_id, uint32_t val)
+{
+	if (!is_lcg_valid(lcg_id)) {
+		oset_error("SCHED: The provided lcg_id=%d for rnti=0x%x is not valid", lcg_id, base_ue->rnti);
+		return OSET_ERROR;
+	}
+	base_ue->lcg_bsr[lcg_id] = val;
+	return OSET_OK;
+}
+
+int base_ue_buffer_manager_dl_buffer_state(base_ue_buffer_manager *base_ue, uint8_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue)
+{
+  if (! is_lcid_valid(lcid)) {
+    oset_error("The provided lcid=%d is not valid", lcid);
+    return OSET_ERROR;
+  }
+  base_ue->channels[lcid].buf_prio_tx = prio_tx_queue;
+  base_ue->channels[lcid].buf_tx      = tx_queue;
+  return OSET_OK;
+}
 

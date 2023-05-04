@@ -63,7 +63,7 @@ mac_manager_t *mac_manager_self(void);
 ///////////////////////////////////rrc/////////////////////////////////////////////////
 int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells);
 void mac_remove_ue(uint16_t rnti);
-int mac_ue_cfg(uint16_t rnti, sched_nr_ue_cfg_t ue_cfg);//rrc_nr::ue::update_mac
+int mac_ue_cfg(uint16_t rnti, sched_nr_ue_cfg_t *ue_cfg);//rrc_nr::ue::update_mac
 /////////////////////////////////prach phy/////////////////////////////////////////////
 void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv);
 
