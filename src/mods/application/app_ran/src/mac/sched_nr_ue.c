@@ -239,7 +239,7 @@ void sched_nr_ue_new_slot(sched_nr_ue *ue, slot_point pdcch_slot)
 
 	for(int i = 0; i < SCHED_NR_MAX_CARRIERS; ++i){
 		if (NULL != ue->carriers[i]) {
-			//清除(rx_slot=已接受slot)重传失败达最大上限的harq
+			//清除(rx_slot=已接收到的slot)重传失败达最大上限的harq
 			harq_entity_new_slot(&ue->carriers[i].harq_ent ,pdcch_slot - TX_ENB_DELAY);
 		}
 	}

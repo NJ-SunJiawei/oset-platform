@@ -34,7 +34,6 @@ rf_manager_t *rf_manager_self(void)
 static void rf_manager_init(void)
 {
 	rf_manager.app_pool = gnb_manager_self()->app_pool;
-
 }
 
 static void rf_manager_destory(void)

@@ -34,7 +34,6 @@ static void rrc_manager_init(void)
 	rrc_manager.app_pool = gnb_manager_self()->app_pool;
 	oset_apr_mutex_init(&rrc_manager.mutex, OSET_MUTEX_NESTED, rrc_manager.app_pool);
 	oset_apr_thread_cond_create(&rrc_manager.cond, rrc_manager.app_pool);
-
 }
 
 static void rrc_manager_destory(void)
@@ -344,6 +343,7 @@ static int rrc_destory(void)
 	oset_list_empty(&rrc_manager.rrc_ue_list);
     oset_hash_destroy(rrc_manager.users);
 	oset_pool_final(&rrc_manager.ue_pool);
+	rrc_manager_destory();
 	return OSET_OK;
 }
 

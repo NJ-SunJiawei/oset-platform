@@ -282,9 +282,7 @@ void gnb_manager_init(void)
 
 void gnb_manager_destory(void)
 {
-
 	gnb_manager.running = false;
-	gnb_metrics_destory();
 	rrc_cell_cfg_nr_t *cell = NULL;
 	cvector_for_each_in(cell, gnb_manager.rrc_nr_cfg.cell_list){
 		cvector_free(cell->pdcch_cfg_common.common_search_space_list);
