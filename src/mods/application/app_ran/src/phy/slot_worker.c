@@ -167,11 +167,11 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	if (NULL == gnb_dl) return false;
 
 	//todo need lock?
-	oset_apr_mutex_lock(mac_manager_self()->sched.mutex);
+	//oset_apr_mutex_lock(mac_manager_self()->sched.mutex);
 	// Retrieve Scheduling for the current processing DL slot
 	dl_sched_t* dl_sched_ptr = mac_get_dl_sched(&slot_w->dl_slot_cfg);
 
-	oset_apr_mutex_unlock(mac_manager_self()->sched.mutex);
+	//oset_apr_mutex_unlock(mac_manager_self()->sched.mutex);
 
 	// Abort DL processing if the scheduling returned an invalid pointer
 	if (NULL == dl_sched_ptr) return false;
@@ -180,8 +180,8 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	if (NULL == dl_slot_cfg) return false;
 
 	if (srsran_gnb_dl_base_zero(gnb_dl) < SRSRAN_SUCCESS) {
-	oset_error("Error zeroing RE grid");
-	return false;
+		oset_error("Error zeroing RE grid");
+		return false;
 	}
 
 	// Encode PDCCH for DL transmissions

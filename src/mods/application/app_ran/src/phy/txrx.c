@@ -150,6 +150,8 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		size_t task = oset_threadpool_tasks_count(phy_manager_self()->th_pools);
 		if(task > TX_ENB_DELAY)
 		{
+			//当进入该分支，当队列任务>TX_ENB_DELAY时,阻塞接收，可以控制任务队列<TX_ENB_DELAY ,这样会导致处理时间变长。
+			//若不进入该分支，若上层处理过慢，会导致任务队列很长。
 			oset_debug("phy threadpool task %lu > TX_ENB_DELAY, blocking!!!", task);
 			oset_apr_mutex_lock(phy_manager_self()->mutex);
 			oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);
@@ -205,6 +207,8 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 
 		// Start actual worker
 		// Process one at a time and hang it on the linked list in sequence
+		//当前线程池为单线程，可以保证处理slot顺序。
+		//若线程池为多线程，加锁会导致乱序，但是不加锁并发是否会导致数据混乱？？？
 		rv = oset_threadpool_push(phy_manager_self()->th_pools,
 									slot_worker_process,
 									slot_w,
