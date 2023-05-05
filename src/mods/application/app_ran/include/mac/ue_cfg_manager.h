@@ -43,8 +43,9 @@ typedef struct ue_carrier_params_s{
 
 void ue_cfg_manager_init(ue_cfg_manager *ue_cfg, uint32_t enb_cc_idx);
 int ue_cfg_manager_apply_config_request(ue_cfg_manager *ue_cfg, sched_nr_ue_cfg_t *cfg_req);
-
+///////////////////////////////////////////////////////////////////////////////
 void ue_carrier_params_init(ue_carrier_params_t *bwp_cfg, uint16_t rnti_, bwp_params_t *bwp_cfg_, ue_cfg_manager *uecfg_);
+uint32_t get_k1(ue_carrier_params_t *param, slot_point pdsch_slot);
 
 #ifdef __cplusplus
 }

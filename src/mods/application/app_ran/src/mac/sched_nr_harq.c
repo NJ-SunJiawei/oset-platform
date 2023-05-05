@@ -12,7 +12,7 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-harq"
 
-static bool has_pending_retx(harq_proc *proc,slot_point slot_rx)
+static bool has_pending_retx(harq_proc *proc, slot_point slot_rx)
 {
 	bool condition1 = !empty(proc->tb);
 	bool condition2 = !proc->tb[0].ack_state;
@@ -102,7 +102,8 @@ void harq_entity_new_slot(harq_entity *harq_ent, slot_point slot_rx_)
 	dl_harq_proc *dl_h = NULL;
 	cvector_for_each_in(dl_h, harq_ent->dl_harqs){
 		if (harq_proc_clear_if_maxretx(&dl_h->proc ,slot_rx_)) {
-			oset_info("SCHED: discarding rnti=0x%x, DL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
+			oset_info("[%5lu] SCHED: discarding rnti=0x%x, DL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
+						count_idx(&slot_rx_),
 						harq_ent->rnti,
 						dl_h->proc.pid,
 						max_nof_retx(&dl_h->proc));
@@ -112,7 +113,8 @@ void harq_entity_new_slot(harq_entity *harq_ent, slot_point slot_rx_)
 	ul_harq_proc *ul_h = NULL;
 	cvector_for_each_in(ul_h, harq_ent->ul_harqs){
 		if (harq_proc_clear_if_maxretx(&ul_h->proc ,slot_rx_)) {
-			oset_info("SCHED: discarding rnti=0x%x, UL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
+			oset_info("[%5lu] SCHED: discarding rnti=0x%x, UL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
+						count_idx(&slot_rx_),
 						harq_ent->rnti,
 						ul_h->proc.pid,
 						max_nof_retx(&ul_h->proc));
@@ -131,5 +133,41 @@ int dl_ack_info(harq_entity *harq_ent, uint32_t pid, uint32_t tb_idx, bool ack)
 int ul_crc_info(harq_entity *harq_ent, uint32_t pid, bool ack)
 {
 	return harq_proc_ack_info(&harq_ent->ul_harqs[pid], 0, ack);
+}
+
+dl_harq_proc* find_pending_dl_retx(harq_entity *harq_ent)
+{
+	dl_harq_proc *dl_harq = NULL;
+	cvector_for_each_in(dl_harq, harq_ent->dl_harqs){
+		if(has_pending_retx(&dl_harq->proc, harq_ent->slot_rx)) return dl_harq;
+	}
+	return NULL;
+}
+
+ul_harq_proc* find_pending_ul_retx(harq_entity *harq_ent)
+{
+	ul_harq_proc *ul_harq = NULL;
+	cvector_for_each_in(ul_harq, harq_ent->ul_harqs){
+		if(has_pending_retx(&ul_harq->proc, harq_ent->slot_rx)) return ul_harq;
+	}
+	return NULL;
+}
+
+dl_harq_proc* find_empty_dl_harq(harq_entity *harq_ent)
+{
+	dl_harq_proc *dl_harq = NULL;
+	cvector_for_each_in(dl_harq, harq_ent->dl_harqs){
+		if(empty(dl_harq->proc.tb)) return dl_harq;
+	}
+	return NULL;
+}
+
+ul_harq_proc* find_empty_ul_harq(harq_entity *harq_ent)
+{
+	ul_harq_proc *ul_harq = NULL;
+	cvector_for_each_in(ul_harq, harq_ent->ul_harqs){
+		if(empty(ul_harq->proc.tb)) return ul_harq;
+	}
+	return NULL;
 }
 

@@ -81,4 +81,13 @@ void ue_carrier_params_init(ue_carrier_params_t *param, uint16_t rnti_, bwp_para
 	}
 }
 
+uint32_t get_k1(ue_carrier_params_t *param, slot_point pdsch_slot)
+{
+  if (param->cfg_.phy_cfg.duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
+	return param->cfg_.phy_cfg.harq_ack.dl_data_to_ul_ack[count_idx(&pdsch_slot) % param->cfg_.phy_cfg.duplex.tdd.pattern1.period_ms];
+  }
+  return param->cfg_.phy_cfg.harq_ack.dl_data_to_ul_ack[count_idx(&pdsch_slot) % param->cfg_.phy_cfg.harq_ack.nof_dl_data_to_ul_ack];
+}
+
+
 

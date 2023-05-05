@@ -20,6 +20,7 @@ ue_nr *ue_nr_add(uint16_t rnti)
 	ASSERT_IF_NOT(ue, "Could not allocate sched ue %d context from pool", rnti);
 
     memset(ue, 0, sizeof(ue_nr));
+
 	ue->ue_rlc_buffer = oset_malloc(sizeof(byte_buffer_t));
 
 	ue_nr_set_rnti(rnti, ue);
@@ -38,7 +39,7 @@ void ue_nr_remove(ue_nr *ue)
     oset_free(ue->ue_rlc_buffer);
 
     oset_list_remove(&mac_manager_self()->mac_ue_list, ue);
-    oset_hash_set(&mac_manager_self()->ue_db, &ue->rnti, sizeof(ue->rnti), NULL);
+    oset_hash_set(mac_manager_self()->ue_db, &ue->rnti, sizeof(ue->rnti), NULL);
     oset_pool_free(&mac_manager_self()->ue_pool, ue);
 	oset_apr_mutex_destroy(ue->metrics_mutex);
 
@@ -49,14 +50,14 @@ void ue_nr_set_rnti(uint16_t rnti, ue_nr *ue)
 {
     oset_assert(ue);
 	ue->rnti = rnti;
-    oset_hash_set(&mac_manager_self()->ue_db, &rnti, sizeof(rnti), NULL);
-    oset_hash_set(&mac_manager_self()->ue_db, &rnti, sizeof(rnti), ue);
+    oset_hash_set(mac_manager_self()->ue_db, &rnti, sizeof(rnti), NULL);
+    oset_hash_set(mac_manager_self()->ue_db, &rnti, sizeof(rnti), ue);
 }
 
 ue_nr *ue_nr_find_by_rnti(uint16_t rnti)
 {
     return (ue_nr *)oset_hash_get(
-            &mac_manager_self()->ue_db, &rnti, sizeof(rnti));
+            mac_manager_self()->ue_db, &rnti, sizeof(rnti));
 }
 
 /******* METRICS interface ***************/
@@ -65,7 +66,7 @@ void ue_nr_metrics_read(ue_nr *ue, mac_ue_metrics_t* metrics_)
 	uint32_t ul_buffer = 0;
 	uint32_t dl_buffer = 0;
 
-	sched_nr_ue *sched_ue = sched_ue_nr_find_by_rnti(ue->rnti);
+	sched_nr_ue *sched_ue = sched_nr_ue_find_by_rnti(ue->rnti);
 	if(sched_ue != NULL){
 		dl_buffer = get_dl_tx_total(&sched_ue->buffers)
 		ul_buffer = get_ul_bsr_total(&sched_ue->buffers)

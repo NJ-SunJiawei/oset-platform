@@ -149,7 +149,7 @@ void sched_nr_ue_remove(sched_nr_ue *u)
 
 	//todo
     oset_list_remove(&mac_manager_self()->sched.sched_ue_list, u);
-    oset_hash_set(&mac_manager_self()->sched.ue_db, &u->rnti, sizeof(u->rnti), NULL);
+    oset_hash_set(mac_manager_self()->sched.ue_db, &u->rnti, sizeof(u->rnti), NULL);
 
 	oset_info("SCHED: Removed sched user rnti=0x%x", u->rnti);
 
@@ -170,27 +170,26 @@ void sched_nr_ue_remove_all(void)
 		sched_nr_ue_remove(ue);
 }
 
-sched_nr_ue *sched_ue_nr_find_by_rnti(uint16_t rnti)
+sched_nr_ue *sched_nr_ue_find_by_rnti(uint16_t rnti)
 {
     return (sched_nr_ue *)oset_hash_get(
-            &mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti));
+            mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti));
 }
 
 void sched_nr_add_ue_impl(uint16_t rnti, sched_nr_ue *u, uint32_t cc)
 {
 	oset_assert(u);
 	oset_info("SCHED: New sched user rnti=0x%x, cc=%d", rnti, cc);
-	oset_hash_set(&mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), NULL);
-	oset_hash_set(&mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), u);
+	oset_hash_set(mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), NULL);
+	oset_hash_set(mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), u);
 }
 
 void sched_nr_ue_set_by_rnti(uint16_t rnti, sched_nr_ue *u)
 {
 	oset_assert(u);
-    oset_hash_set(&mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), NULL);
-    oset_hash_set(&mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), u);
+    oset_hash_set(mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), NULL);
+    oset_hash_set(mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), u);
 }
-
 
 sched_nr_ue *sched_nr_ue_add(uint16_t rnti_, uint32_t cc, sched_params_t *sched_cfg_)
 {
@@ -210,6 +209,8 @@ sched_nr_ue *sched_nr_ue_add_inner(uint16_t rnti_, sched_nr_ue_cfg_t *uecfg, sch
 	// create user object outside of sched main thread
 	oset_pool_alloc(&mac_manager_self()->sched.ue_pool, &u);
 	ASSERT_IF_NOT(u, "Could not allocate sched ue %d context from pool", rnti_);
+
+	memset(u, 0, sizeof(sched_nr_ue));
 
 	u->rnti = rnti_;
 	u->sched_cfg = sched_cfg_;
@@ -240,7 +241,7 @@ void sched_nr_ue_new_slot(sched_nr_ue *ue, slot_point pdcch_slot)
 	for(int i = 0; i < SCHED_NR_MAX_CARRIERS; ++i){
 		if (NULL != ue->carriers[i]) {
 			//清除(rx_slot=已接收到的slot)重传失败达最大上限的harq
-			harq_entity_new_slot(&ue->carriers[i].harq_ent ,pdcch_slot - TX_ENB_DELAY);
+			harq_entity_new_slot(&ue->carriers[i].harq_ent, pdcch_slot - TX_ENB_DELAY);
 		}
 	}
 
@@ -306,4 +307,64 @@ void sched_nr_ue_rlc_buffer_state(sched_nr_ue *ue, uint32_t lcid, uint32_t newtx
 	base_ue_buffer_manager_dl_buffer_state(&ue->buffers.base_ue, lcid, newtx, priotx);
 }
 
+static slot_ue* slot_ue_init(ue_carrier *ue_, slot_point slot_tx_, uint32_t cc)
+{
+	slot_ue *slot_u = NULL; 
+	oset_pool_alloc(&mac_manager_self()->sched.cc_workers[cc].slot_ue_pool, &slot_u);
+	oset_assert(slot_u);
+
+	memset(slot_u, 0, sizeof(slot_ue));
+
+	slot_u->ue = ue_;
+	slot_u->pdcch_slot = slot_tx_;
+
+	const uint32_t k0 = 0;
+	slot_u->pdsch_slot  = slot_u->pdcch_slot + k0;                            //dci 1_X  dci0_X
+	uint32_t k1         = get_k1(&ue_->bwp_cfg, slot_u->pdsch_slot);
+	slot_u->uci_slot    = slot_u->pdsch_slot + k1;                            //dl ack/sr/csi
+	uint32_t k2         = ue_->bwp_cfg.bwp_cfg->pusch_ra_list[0].K;
+	slot_u->pusch_slot  = slot_u->pdcch_slot + k2;                            //dci0_1触发得到的msg4/bsr/ul data
+
+	slot_u->dl_active = ue_->cell_params.bwps[0].slots[slot_idx(&slot_u->pdsch_slot)].is_dl;
+	if (slot_u->dl_active) {
+		slot_u->dl_bytes = ue_->common_ctxt.pending_dl_bytes;
+		slot_u->h_dl     = find_pending_dl_retx(&ue_->harq_ent);//重传优先
+		if (NULL == slot_u->h_dl) {
+			slot_u->h_dl = find_empty_dl_harq(&ue_->harq_ent);
+		}
+	}
+
+	slot_u->ul_active = ue_->cell_params.bwps[0].slots[slot_idx(&slot_u->pusch_slot)].is_ul;
+	if (slot_u->ul_active) {
+		slot_u->ul_bytes = ue_->common_ctxt.pending_ul_bytes;
+		slot_u->h_ul     = find_pending_ul_retx(&ue_->harq_ent);
+		if (NULL == slot_u->h_ul) {
+			slot_u->h_ul = find_empty_ul_harq(&ue_->harq_ent);
+		}
+	}
+
+    oset_list_add(&mac_manager_self()->sched.cc_workers[cc].slot_ue_list, slot_u);
+
+	return slot_u;
+}
+
+static void slot_ue_set_by_rnti(uint16_t rnti, slot_ue *u, uint32_t cc)
+{
+	oset_assert(u);
+    oset_hash_set(mac_manager_self()->sched.cc_workers[cc].slot_ues, &rnti, sizeof(rnti), NULL);
+    oset_hash_set(mac_manager_self()->sched.cc_workers[cc].slot_ues, &rnti, sizeof(rnti), u);
+}
+
+void slot_ue_alloc(sched_nr_ue *ue, slot_point pdcch_slot, uint32_t cc)
+{
+  ASSERT_IF_NOT(ue->carriers[cc] != NULL, "make_slot_ue() called for unknown rnti=0x%x,cc=%d", ue->rnti, cc);
+  slot_ue* slot_u = slot_ue_init(ue->carriers[cc], pdcch_slot, cc);
+  slot_ue_set_by_rnti(ue->rnti, slot_u, cc);
+}
+
+slot_ue *sched_nr_ue_find_by_rnti(uint16_t rnti, uint32_t cc)
+{
+    return (slot_ue *)oset_hash_get(
+            mac_manager_self()->sched.cc_workers[cc].slot_ues, &rnti, sizeof(rnti));
+}
 

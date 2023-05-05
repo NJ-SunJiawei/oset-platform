@@ -77,7 +77,7 @@ gnb_timer_t *gnb_timer_add(
 	oset_pool_alloc(&manager->pool, &timer);
 	oset_assert(timer);
 
-	memset(timer, 0, sizeof *timer);
+	memset(timer, 0, sizeof(*timer));
 	timer->cb = cb;
 	timer->data = data;
 

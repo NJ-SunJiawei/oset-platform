@@ -181,7 +181,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	// Abort DL processing if the scheduling returned an invalid pointer
 	if (NULL == dl_sched_ptr) return false;
 
-	srsran_slot_cfg_t dl_slot_cfg = &slot_w->dl_slot_cfg;
+	srsran_slot_cfg_t *dl_slot_cfg = &slot_w->dl_slot_cfg;
 	if (NULL == dl_slot_cfg) return false;
 
 	if (srsran_gnb_dl_base_zero(gnb_dl) < SRSRAN_SUCCESS) {
@@ -198,7 +198,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 		}
 
 		// Put PDCCH message
-		if (srsran_gnb_dl_pdcch_put_dl(gnb_dl, &dl_slot_cfg, &pdcch.dci) < SRSRAN_SUCCESS) {//编码dci
+		if (srsran_gnb_dl_pdcch_put_dl(gnb_dl, dl_slot_cfg, &pdcch.dci) < SRSRAN_SUCCESS) {//编码dci
 			oset_error("[%5lu] PDCCH: Error putting DL message", slot_w->context.sf_idx);
 			return false;
 		}
@@ -207,7 +207,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 		if (oset_runtime()->hard_log_level >= OSET_LOG2_INFO) {
 			char str[512] = {0};
 			srsran_gnb_dl_pdcch_dl_info(gnb_dl, &pdcch.dci, str, 512);
-			oset_info("[%5lu] PDCCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg.idx);
+			oset_info("[%5lu] PDCCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg->idx);
 		}
 	}
 
@@ -220,7 +220,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 		}
 
 		// Put PDCCH message
-		if (srsran_gnb_dl_pdcch_put_ul(gnb_dl, &dl_slot_cfg, &pdcch.dci) < SRSRAN_SUCCESS) {
+		if (srsran_gnb_dl_pdcch_put_ul(gnb_dl, dl_slot_cfg, &pdcch.dci) < SRSRAN_SUCCESS) {
 			oset_error("[%5lu] PDCCH: Error putting DL message", slot_w->context.sf_idx);
 			return false;
 		}
@@ -229,7 +229,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 		if (oset_runtime()->hard_log_level >= OSET_LOG2_INFO) {
 			char str[512] = {0};
 			srsran_gnb_dl_pdcch_ul_info(gnb_dl, &pdcch.dci, str, 512);
-			oset_info("[%5lu] PDCCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg.idx);
+			oset_info("[%5lu] PDCCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg->idx);
 		}
 	}
 
@@ -247,7 +247,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 		}
 
 		// Put PDSCH message//重传也在该模块
-		if (srsran_gnb_dl_pdsch_put(gnb_dl, &dl_slot_cfg, &pdsch.sch, data) < SRSRAN_SUCCESS) {
+		if (srsran_gnb_dl_pdsch_put(gnb_dl, dl_slot_cfg, &pdsch.sch, data) < SRSRAN_SUCCESS) {
 			oset_error("[%5lu] PDSCH: Error putting DL message", slot_w->context.sf_idx);
 			return false;
 		}
@@ -260,16 +260,16 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 			if (oset_runtime()->hard_log_level >= OSET_LOG2_DEBUG) {
 				std::array<char, 1024> str_extra = {};
 				srsran_sch_cfg_nr_info(&pdsch.sch, str_extra.data(), (uint32_t)str_extra.size());
-				oset_info("[%5lu] PDSCH: cc=%d %s tti_tx=%d\n%s", slot_w->context.sf_idx, slot_w->cell_index, str.data(), dl_slot_cfg.idx, str_extra.data());
+				oset_info("[%5lu] PDSCH: cc=%d %s tti_tx=%d\n%s", slot_w->context.sf_idx, slot_w->cell_index, str.data(), dl_slot_cfg->idx, str_extra.data());
 			} else {
-				oset_info("[%5lu] PDSCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str.data(), dl_slot_cfg.idx);
+				oset_info("[%5lu] PDSCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str.data(), dl_slot_cfg->idx);
 			}
 		}
 	}
 
 	// Put NZP-CSI-RS
 	for (const srsran_csi_rs_nzp_resource_t& nzp_csi_rs : dl_sched_ptr->nzp_csi_rs) {
-		if (srsran_gnb_dl_nzp_csi_rs_put(gnb_dl, &dl_slot_cfg, &nzp_csi_rs) < SRSRAN_SUCCESS) {
+		if (srsran_gnb_dl_nzp_csi_rs_put(gnb_dl, dl_slot_cfg, &nzp_csi_rs) < SRSRAN_SUCCESS) {
 			oset_error("[%5lu] NZP-CSI-RS: Error putting signal", slot_w->context.sf_idx);
 			return false;
 		}
@@ -280,7 +280,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 
 	// Add SSB to the baseband signal
 	for (ssb_t& ssb : dl_sched_ptr->ssb) {
-		if (srsran_gnb_dl_add_ssb(gnb_dl, &ssb.pbch_msg, dl_slot_cfg.idx) < SRSRAN_SUCCESS) {
+		if (srsran_gnb_dl_add_ssb(gnb_dl, &ssb.pbch_msg, dl_slot_cfg->idx) < SRSRAN_SUCCESS) {
 			oset_error("[%5lu] SSB: Error putting signal", slot_w->context.sf_idx);
 			return false;
 		}

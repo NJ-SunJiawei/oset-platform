@@ -71,12 +71,28 @@ typedef struct {
 	ue_buffer_manager buffers;
 }sched_nr_ue;
 
+typedef struct{
+  // UE parameters common to all sectors
+  uint32_t      dl_bytes;
+  uint32_t      ul_bytes;
+  // UE parameters that are sector specific
+  bool          dl_active;
+  bool          ul_active;
+  slot_point    pdcch_slot;
+  slot_point    pdsch_slot;
+  slot_point    pusch_slot;
+  slot_point    uci_slot;
+  dl_harq_proc  *h_dl;
+  ul_harq_proc  *h_ul;
+  ue_carrier    *ue;
+}slot_ue;
+
 int ue_carrier_dl_ack_info(ue_carrier *carrier, uint32_t pid, uint32_t tb_idx, bool ack);
 int ue_carrier_ul_crc_info(ue_carrier *carrier, uint32_t pid, bool crc);
 //////////////////////////////////////////////////////////////
 void sched_nr_ue_remove(sched_nr_ue *u);
 void sched_nr_ue_remove_all(void);
-sched_nr_ue *sched_ue_nr_find_by_rnti(uint16_t rnti);
+sched_nr_ue *sched_nr_ue_find_by_rnti(uint16_t rnti);
 void sched_nr_ue_set_by_rnti(uint16_t rnti, sched_nr_ue *ue);
 void sched_nr_add_ue_impl(uint16_t rnti, sched_nr_ue *u, uint32_t cc);
 sched_nr_ue *sched_nr_ue_add(uint16_t rnti_, uint32_t cc, sched_params_t *sched_cfg_);
@@ -87,6 +103,9 @@ void sched_nr_ue_ul_sr_info(sched_nr_ue *ue);
 void sched_nr_ue_add_dl_mac_ce(sched_nr_ue *ue, uint32_t ce_lcid, uint32_t nof_cmds);
 void sched_nr_ue_rlc_buffer_state(sched_nr_ue *ue, uint32_t lcid, uint32_t newtx, uint32_t priotx);
 void sched_nr_ue_ul_bsr(sched_nr_ue *ue, uint32_t lcg, uint32_t bsr_val);
+////////////////////////////////////////////////////////////////////////////////////////////
+void slot_ue_alloc(sched_nr_ue *ue, slot_point pdcch_slot, uint32_t cc);
+slot_ue* sched_nr_ue_find_by_rnti(uint16_t rnti, uint32_t cc);
 
 #ifdef __cplusplus
 }

@@ -73,6 +73,10 @@ uint32_t nof_dl_harqs(harq_entity *harq_ent);
 uint32_t nof_ul_harqs(harq_entity *harq_ent);
 int dl_ack_info(harq_entity *harq_ent, uint32_t pid, uint32_t tb_idx, bool ack);
 int ul_crc_info(harq_entity *harq_ent, uint32_t pid, bool ack);
+dl_harq_proc* find_pending_dl_retx(harq_entity *harq_ent);
+ul_harq_proc* find_pending_ul_retx(harq_entity *harq_ent);
+dl_harq_proc* find_empty_dl_harq(harq_entity *harq_ent);
+ul_harq_proc* find_empty_ul_harq(harq_entity *harq_ent);
 
 #ifdef __cplusplus
 }

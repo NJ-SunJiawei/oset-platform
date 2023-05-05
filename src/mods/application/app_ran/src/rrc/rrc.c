@@ -247,7 +247,7 @@ static int rrc_init(void)
 
 	rrc_manager_init();
 	//todo
-	oset_pool_init(rrc_manager.ue_pool, SRSENB_MAX_UES);
+	oset_pool_init(&rrc_manager.ue_pool, SRSENB_MAX_UES);
 	oset_list_init(&rrc_manager.rrc_ue_list);
 	rrc_manager.users = oset_hash_make();
 	

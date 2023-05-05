@@ -25,7 +25,12 @@ void cc_worker_destoy(cc_worker *cc_w)
 	bwp_manager *bwp = NULL;
 	cvector_for_each_in(bwp, cc_w->bwps){
 		bwp_manager_destory(bwp);
-	}		
+	}
+
+	oset_hash_destroy(cc_w->slot_ues);
+	oset_list_empty(&cc_w->slot_ue_list);
+	oset_pool_final(&cc_w->slot_ue_pool);
+
 	//release harqbuffer
 	harq_softbuffer_pool_destory(harq_buffer_pool_self(cc_w->cfg->cc), cc_w->cfg->carrier.nof_prb, 4 * MAX_HARQ, 0);
 
@@ -46,6 +51,10 @@ void cc_worker_init(cc_worker *cc_w, cell_config_manager *params)
 		bwp_manager_init(&bwp, &params->bwps[bwp_id]);
 		cvector_push_back(cc_w->bwps[bwp_id], bwp)
 	}
+
+	oset_pool_init(&cc_w->slot_ue_pool, SRSENB_MAX_UES);
+	oset_list_init(&cc_w->slot_ue_list);
+	cc_w->slot_ues = oset_hash_make();	
 }
 
 void cc_worker_dl_rach_info(cc_worker *cc_w, rar_info_t *rar_info)
@@ -55,5 +64,82 @@ void cc_worker_dl_rach_info(cc_worker *cc_w, rar_info_t *rar_info)
 	cvector_for_each_in(bwp, cc_w->bwps){
 		ra_sched_dl_rach_info(&bwp->ra, rar_info);
 	}
+}
+
+dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
+{
+	// Reset old sched outputs
+	// 正常不会进入
+	if (!slot_valid(&cc_w->last_tx_sl)) {
+		cc_w->last_tx_sl = tx_sl;
+	}
+
+	while (cc_w->last_tx_sl != tx_sl) {
+		cc_w->last_tx_sl++;
+		//(slot_rx - 1) 将已经收到的slot上一个状态全部重置
+		slot_point old_slot = cc_w->last_tx_sl - TX_ENB_DELAY - 1;
+		bwp_manager *bwp = NULL;
+		cvector_for_each_in(bwp, cc_w->bwps){
+			bwp_slot_grid_reset(bwp->grid.slots[SLOTS_IDX(old_slot)]);//slot clear
+		}
+	}
+
+    /*oset_hash_index_t *hi = NULL;
+    for (hi = oset_hash_first(mac_manager_self()->sched.ue_db); hi; hi = oset_hash_next(hi)) {
+        uint16_t rnti = *(uint16_t *)oset_hash_this_key(hi);
+        int len = oset_hash_this_key_len(hi);
+        sched_nr_ue *u = oset_hash_this_val(hi);
+    }*/
+
+	// Reserve UEs for this worker slot (select candidate UEs)
+	sched_nr_ue *u = NULL, *next_u = NULL;
+	oset_list_for_each_safe(&mac_manager_self()->sched.sched_ue_list, next_u, u){
+		if (NULL == u->carriers[cc_w->cfg.cc]) {
+			continue;
+		}
+
+		// info for a given UE on a slot to be process
+		slot_ue_alloc(u, tx_sl, cc_w->cfg.cc);
+	}
+
+	// Create an BWP allocator object that will passed along to RA, SI, Data schedulers
+	bwp_slot_allocator bwp_alloc{bwps[0].grid, tx_sl, slot_ues};//bwps[0].grid用于将slotix转为一帧内slotix
+
+	// Log UEs state for slot
+	log_sched_slot_ues(logger, tx_sl, cfg.cc, slot_ues);
+
+	const uint32_t ss_id    = 0;//用于接收调度SIB1的PDCCH
+	slot_point     sl_pdcch = bwp_alloc.get_pdcch_tti();//tx_sl
+
+	prb_bitmap prbs_before = bwp_alloc.res_grid()[sl_pdcch].pdschs.occupied_prbs(ss_id, srsran_dci_format_nr_1_0);//获取可用prb位
+	// Allocate cell DL signalling
+	sched_dl_signalling(bwp_alloc);//生成下行信号ssb
+
+	prb_bitmap prbs_after = bwp_alloc.res_grid()[sl_pdcch].pdschs.occupied_prbs(ss_id, srsran_dci_format_nr_1_0);//获取可用prb位
+
+	// Allocate pending SIBs//一次集中处理多个si
+	bwps[0].si.run_slot(bwp_alloc);//void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)申请sib prb
+
+	// Allocate pending RARs//一次集中处理多个rar
+	bwps[0].ra.run_slot(bwp_alloc);//void ra_sched::run_slot(bwp_slot_allocator& slot_alloc)
+
+
+	//函数一次轮询处理一个ue
+	// TODO: Prioritize PDCCH scheduling for DL and UL data in a Round-Robin fashion
+	//以轮询方式对DL和UL数据的PDCCH调度进行优先级排序
+	alloc_dl_ues(bwp_alloc);//void sched_nr_time_rr::sched_dl_users
+	alloc_ul_ues(bwp_alloc);//void sched_nr_time_rr::sched_ul_users //为DCI0-X的pucch和pusch申请资源（msg3/bsr/ul_data）
+
+	// Post-processing of scheduling decisions
+	//调度决策的后处理
+	postprocess_decisions(bwp_alloc);//为UCI的pusch和pucch申请资源（sr/ack/csi）
+
+	// Log CC scheduler result
+	log_sched_bwp_result(logger, bwp_alloc.get_pdcch_tti(), bwps[0].grid, slot_ues);
+
+	// releases UE resources
+	slot_ues.clear();
+
+	return &bwp_alloc.tx_slot_grid().dl;
 }
 

@@ -83,7 +83,7 @@ void rrc_nr_ue_remove(rrc_nr_ue *ue)
 	cvector_free(ue->uecfg.carriers);
 
     oset_list_remove(&rrc_manager_self()->rrc_ue_list, ue);
-    oset_hash_set(&rrc_manager_self()->users, &ue->rnti, sizeof(ue->rnti), NULL);
+    oset_hash_set(rrc_manager_self()->users, &ue->rnti, sizeof(ue->rnti), NULL);
     oset_pool_free(&rrc_manager_self()->ue_pool, ue);
 
     oset_info("[Removed] Number of RRC-UEs is now %d", oset_list_count(&rrc_manager_self()->rrc_ue_list));
@@ -93,14 +93,14 @@ void rrc_nr_ue_set_rnti(uint16_t rnti, rrc_nr_ue *ue)
 {
     oset_assert(ue);
 	ue->rnti = rnti;
-    oset_hash_set(&rrc_manager_self()->users, &rnti, sizeof(rnti), NULL);
-    oset_hash_set(&rrc_manager_self()->users, &rnti, sizeof(rnti), ue);
+    oset_hash_set(rrc_manager_self()->users, &rnti, sizeof(rnti), NULL);
+    oset_hash_set(rrc_manager_self()->users, &rnti, sizeof(rnti), ue);
 }
 
 rrc_nr_ue *rrc_nr_ue_find_by_rnti(uint16_t rnti)
 {
     return (rrc_nr_ue *)oset_hash_get(
-            &rrc_manager_self()->users, &rnti, sizeof(rnti));
+            rrc_manager_self()->users, &rnti, sizeof(rnti));
 }
 
 
@@ -109,6 +109,7 @@ void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer)
 	rrc_nr_ue *ue = NULL;
 	oset_pool_alloc(&rrc_manager_self()->ue_pool, &ue);
 	ASSERT_IF_NOT(ue, "Could not allocate sched ue %d context from pool", rnti_);
+	memset(ue, 0, sizeof(rrc_nr_ue));
 
 	ue->rnti = rnti_;
 

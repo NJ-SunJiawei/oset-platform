@@ -850,7 +850,6 @@ static int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t *cell)
 
 static int set_derived_nr_rrc_params(rrc_nr_cfg_t* rrc_cfg)
 {
-	oset_lnode2_t *lnode = NULL;
 	rrc_cell_cfg_nr_t *cell = NULL;
 	cvector_for_each_in(cell, rrc_cfg->cell_list){
 		HANDLE_ERROR(set_derived_nr_cell_params(rrc_cfg.is_standalone, cell));
@@ -862,7 +861,6 @@ static int set_derived_nr_rrc_params(rrc_nr_cfg_t* rrc_cfg)
 
 static int set_derived_args_nr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t* phy_cfg_)
 {
-    oset_lnode2_t *lnode = NULL;
 	rrc_cell_cfg_nr_t *cfg = NULL;
 
 	// we only support one NR cell

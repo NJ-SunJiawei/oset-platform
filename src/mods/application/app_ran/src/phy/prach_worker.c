@@ -147,6 +147,7 @@ int prach_new_tti(uint32_t cc_idx, uint32_t tti_rx, cf_t* buffer_rx)
 	 if (srsran_prach_tti_opportunity(&prach_work_manager[cc_idx].prach, tti_rx, -1) || prach_work_manager[cc_idx].sf_cnt) {
 	   if (prach_work_manager[cc_idx].sf_cnt == 0) {
 		 oset_pool_alloc(&pool_buffer, &prach_work_manager[cc_idx].current_buffer);
+		 memset(prach_work_manager[cc_idx].current_buffer, 0, sizeof(sf_buffer));
 		 if (!prach_work_manager[cc_idx].current_buffer) {
 		   oset_warn("[%5lu] PRACH skipping tti=%d due to lack of available buffers", tti_rx, tti_rx);
 		   return 0;

@@ -25,7 +25,7 @@ int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info)
 	uint16_t ra_rnti = 1 + rar_info->ofdm_symbol_idx + 14 * slot_idx(rar_info->prach_slot) + 14 * 80 * rar_info->freq_idx;
 
 	oset_info("SCHED: New PRACH slot=%d, preamble=%d, ra-rnti=0x%x, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d",
-	          count_idx(rar_info->prach_slot),
+	          count_idx(&rar_info->prach_slot),
 	          rar_info->preamble_idx,
 	          ra_rnti,
 	          rar_info->temp_crnti,
