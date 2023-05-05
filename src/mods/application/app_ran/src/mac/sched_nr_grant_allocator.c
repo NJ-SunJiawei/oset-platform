@@ -75,6 +75,7 @@ void bwp_slot_grid_reset(bwp_slot_grid *slot)
 	cvector_clear(slot->pending_acks);
 }
 
+///////////////////////////////////////////////////////////////////////////
 void bwp_res_grid_destory(bwp_res_grid *res)
 {
 	cvector_free(res->slots);
@@ -92,6 +93,18 @@ void bwp_res_grid_init(bwp_res_grid *res, bwp_params_t *bwp_cfg_)
 		bwp_slot_grid_init(&slot_grid, bwp_cfg_, sl % ((uint32_t)SRSRAN_NSLOTS_PER_FRAME_NR(bwp_cfg_->cell_cfg.carrier.scs)));
 		cvector_push_back(res->slots, slot_grid);
 	}
+}
+/////////////////////////////////////////////////////////////////////////
+bwp_slot_allocator* bwp_slot_allocator_init(bwp_res_grid *bwp_grid_, slot_point pdcch_slot_)
+{
+	bwp_slot_allocator *bwp_alloc = oset_malloc(sizeof(bwp_slot_allocator));
+	oset_assert(bwp_alloc);
+
+	bwp_alloc->cfg = bwp_grid_->cfg;
+	bwp_alloc->bwp_grid = bwp_grid_;
+	bwp_alloc->pdcch_slot = pdcch_slot_;
+
+	return bwp_alloc;
 }
 
 

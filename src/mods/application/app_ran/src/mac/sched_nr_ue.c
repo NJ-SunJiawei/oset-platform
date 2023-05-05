@@ -343,8 +343,6 @@ static slot_ue* slot_ue_init(ue_carrier *ue_, slot_point slot_tx_, uint32_t cc)
 		}
 	}
 
-    oset_list_add(&mac_manager_self()->sched.cc_workers[cc].slot_ue_list, slot_u);
-
 	return slot_u;
 }
 
@@ -361,6 +359,18 @@ void slot_ue_alloc(sched_nr_ue *ue, slot_point pdcch_slot, uint32_t cc)
   slot_ue* slot_u = slot_ue_init(ue->carriers[cc], pdcch_slot, cc);
   slot_ue_set_by_rnti(ue->rnti, slot_u, cc);
 }
+
+void slot_ue_clear(uint32_t cc)
+{
+    oset_hash_index_t *hi;
+
+    for (hi = oset_hash_first(mac_manager_self()->sched.cc_workers[cc].slot_ues); hi; hi = oset_hash_next(hi)) {
+        slot_ue *slot_u = oset_hash_this_val(hi);
+		oset_pool_free(&mac_manager_self()->sched.cc_workers[cc].slot_ue_pool, slot_u);
+	}
+	oset_hash_clear(mac_manager_self()->sched.cc_workers[cc].slot_ues);
+}
+
 
 slot_ue *sched_nr_ue_find_by_rnti(uint16_t rnti, uint32_t cc)
 {

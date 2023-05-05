@@ -242,7 +242,6 @@ void rrc_config_mac(uint32_t cc)
 
 static int rrc_init(void)
 {
-    oset_lnode2_t *lnode = NULL;
 	int ret = OSET_ERROR;
 
 	rrc_manager_init();

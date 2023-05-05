@@ -72,7 +72,7 @@ static int mac_destory(void)
 {
 	cvector_free(mac_manager.bcch_dlsch_payload);
 	cvector_free(mac_manager.detected_rachs);
-	mac_manager.cell_config = NULL;
+	cvector_free(mac_manager.cell_config);
 
 	//todo
 
@@ -100,8 +100,8 @@ static int mac_destory(void)
 
 int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells)
 {
-	mac_manager.cell_config = sched_cells;
-	sched_nr_config(&mac_manager.sched, &mac_manager.args->sched_cfg, sched_cells);
+	cvector_copy(sched_cells, mac_manager.cell_config);
+	sched_nr_config(&mac_manager.sched, &mac_manager.args->sched_cfg, mac_manager.cell_config);
 	cvector_reserve(mac_manager.detected_rachs, cvector_size(mac_manager.cell_config));
 
 	//cell 0

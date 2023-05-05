@@ -105,6 +105,7 @@ void sched_nr_ue_rlc_buffer_state(sched_nr_ue *ue, uint32_t lcid, uint32_t newtx
 void sched_nr_ue_ul_bsr(sched_nr_ue *ue, uint32_t lcg, uint32_t bsr_val);
 ////////////////////////////////////////////////////////////////////////////////////////////
 void slot_ue_alloc(sched_nr_ue *ue, slot_point pdcch_slot, uint32_t cc);
+void slot_ue_clear(uint32_t cc);
 slot_ue* sched_nr_ue_find_by_rnti(uint16_t rnti, uint32_t cc);
 
 #ifdef __cplusplus

@@ -46,11 +46,25 @@ typedef struct {
 
 #define SLOTS_IDX(tti) (count_idx(&tti)%TTIMOD_SZ)
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Class responsible for jointly filling the DL/UL sched result fields and allocate RB/PDCCH resources in the RB grid
+ * to avoid potential RB/PDCCH collisions
+ */
+typedef struct{
+	bwp_params_t  *cfg;
+	bwp_res_grid  *bwp_grid;
+	slot_point    pdcch_slot;
+}bwp_slot_allocator;
+
 void bwp_slot_grid_destory(bwp_slot_grid *slot);
 void bwp_slot_grid_reset(bwp_slot_grid *slot);
 
 void bwp_res_grid_destory(bwp_res_grid *res);
 void bwp_res_grid_init(bwp_res_grid *res, bwp_params_t *bwp_cfg_);
+
+bwp_slot_allocator* bwp_slot_allocator_init(bwp_res_grid *bwp_grid_, slot_point pdcch_slot_);
 
 #ifdef __cplusplus
 }
