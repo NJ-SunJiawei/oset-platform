@@ -39,6 +39,7 @@ typedef struct {
 
 void si_sched_destory(si_sched *si);
 void si_sched_init(si_sched *c,bwp_params_t *bwp_cfg_);
+void sched_dl_signalling(bwp_slot_allocator *bwp_alloc);
 #ifdef __cplusplus
 }
 #endif

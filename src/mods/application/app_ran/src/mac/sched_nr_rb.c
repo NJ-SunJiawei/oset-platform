@@ -55,7 +55,15 @@ static void add_rbgs_to_prbs(bwp_rb_bitmap *prb_map, rbg_bitmap *grant)
   } while (idx != (int)bit_size(prb_map->prbs_));
 }
 
+prb_bitmap get_prbs(bwp_rb_bitmap *prb_map)
+{ 
+	return prb_map->prbs_;
+}
 
+rbg_bitmap get_rbgs(bwp_rb_bitmap *prb_map)
+{
+	return prb_map->rbgs_;
+}
 
 /// TS 38.214, Table 6.1.2.2.1-1 - Nominal RBG size P
 uint32_t get_P(uint32_t bwp_nof_prb, bool config_1_or_2)
@@ -95,10 +103,16 @@ uint32_t get_rbg_size(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_
   return P;
 }
 
-void bwp_rb_bitmap_add(bwp_rb_bitmap *prb_map, prb_interval *prbs)
+void bwp_rb_bitmap_add_by_interval(bwp_rb_bitmap *prb_map, prb_interval *grant)
 {
-	bit_fill(&prb_map->prbs_, prbs->start_, prbs->stop_, true);
-	add_prbs_to_rbgs_by_interval(prb_map, prbs);
+	bit_fill(&prb_map->prbs_, grant->start_, grant->stop_, true);
+	add_prbs_to_rbgs_by_interval(prb_map, grant);
+}
+
+void bwp_rb_bitmap_add_by_bitmap(bwp_rb_bitmap *prb_map, prb_bitmap *grant)
+{
+	bit_or(prb_map->prbs_, grant);
+	add_prbs_to_rbgs_by_bitmap(prb_map, grant);
 }
 
 

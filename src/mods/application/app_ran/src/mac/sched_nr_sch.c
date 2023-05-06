@@ -13,6 +13,19 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-sch"
 
+/// Get available PRBs for allocation
+prb_bitmap pdsch_allocator_occupied_prbs(pdsch_allocator *pdsch_alloc, uint32_t ss_id, srsran_dci_format_nr_t dci_fmt)
+{
+  if (dci_fmt == srsran_dci_format_nr_1_0) {
+	const srsran_search_space_t *ss = get_ss(pdsch_alloc->bwp_cfg, ss_id);
+	if (ss != NULL && SRSRAN_SEARCH_SPACE_IS_COMMON(ss->type)) {
+		//剔除coreset dci 不可用区域
+		bwp_rb_bitmap_add_by_bitmap(&pdsch_alloc->dl_prbs, get_prbs(dci_fmt_1_0_excluded_prbs(pdsch_alloc->bwp_cfg, ss->coreset_id)));
+	}
+  }
+  return get_prbs(&pdsch_alloc->dl_prbs);
+}
+
 void pdsch_allocator_reset(pdsch_allocator *pdsch)
 {
 	cvector_clear(pdsch->pdschs);

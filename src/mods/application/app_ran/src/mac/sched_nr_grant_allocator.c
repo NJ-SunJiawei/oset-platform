@@ -11,6 +11,7 @@
 		
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-grant"
+#define SLOT_IDX(tti) (count_idx(&tti)%TTIMOD_SZ)
 
 static void bwp_slot_grid_init(bwp_slot_grid *slot, bwp_params_t *bwp_cfg_, uint32_t slot_idx_)
 {
@@ -76,6 +77,21 @@ void bwp_slot_grid_reset(bwp_slot_grid *slot)
 }
 
 ///////////////////////////////////////////////////////////////////////////
+
+pdsch_allocator* bwp_res_grid_get_pdschs(bwp_res_grid *res, slot_point tti)
+{
+	pdsch_allocator *psdch_alloc = &res->slots[SLOT_IDX(tti)].pdschs;
+
+	return psdch_alloc;
+}
+
+bwp_slot_grid* bwp_res_grid_get_slot(bwp_res_grid *res, slot_point tti)
+{
+	bwp_slot_grid *slot = &res->slots[SLOT_IDX(tti)];
+
+	return slot;
+}
+
 void bwp_res_grid_destory(bwp_res_grid *res)
 {
 	cvector_free(res->slots);
@@ -107,4 +123,7 @@ bwp_slot_allocator* bwp_slot_allocator_init(bwp_res_grid *bwp_grid_, slot_point 
 	return bwp_alloc;
 }
 
+slot_point get_pdcch_tti(bwp_slot_allocator *bwp_alloc){ return bwp_alloc->pdcch_slot; }
+slot_point get_tti_rx(bwp_slot_allocator *bwp_alloc) { return bwp_alloc->pdcch_slot - TX_ENB_DELAY; }
+bwp_slot_grid *tx_slot_grid(bwp_slot_allocator *bwp_alloc) { return &bwp_alloc->bwp_grid->slots[SLOT_IDX(bwp_alloc->pdcch_slot)]; }
 

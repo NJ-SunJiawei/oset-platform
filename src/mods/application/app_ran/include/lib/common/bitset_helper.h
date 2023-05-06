@@ -25,8 +25,8 @@ typedef uint64_t word_t;
 #define bits_buffer_len(N) ((N - 1) / bits_per_word + 1)
 
 typedef struct {
-	bool     reversed;//true:msb   false:lsb (default)
-	size_t   N;
+	bool    reversed;//true:msb   false:lsb (default)
+	size_t  N;
 	word_t  *buffer;
 	size_t  cur_size;
 }bounded_bitset;//= asn1c BIT_STRING_t
@@ -50,6 +50,7 @@ bool bit_any_range(bounded_bitset *bit, size_t start, size_t stop);
 bool bit_none(bounded_bitset *bit);
 size_t bit_count(bounded_bitset *bit);
 char* bit_to_string(bounded_bitset *bit);
+bounded_bitset* bit_or(bounded_bitset *bit, bounded_bitset *other);
 
 #ifdef __cplusplus
 }

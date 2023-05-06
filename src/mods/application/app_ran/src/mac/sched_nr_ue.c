@@ -362,8 +362,7 @@ void slot_ue_alloc(sched_nr_ue *ue, slot_point pdcch_slot, uint32_t cc)
 
 void slot_ue_clear(uint32_t cc)
 {
-    oset_hash_index_t *hi;
-
+    oset_hash_index_t *hi = NULL;
     for (hi = oset_hash_first(mac_manager_self()->sched.cc_workers[cc].slot_ues); hi; hi = oset_hash_next(hi)) {
         slot_ue *slot_u = oset_hash_this_val(hi);
 		oset_pool_free(&mac_manager_self()->sched.cc_workers[cc].slot_ue_pool, slot_u);

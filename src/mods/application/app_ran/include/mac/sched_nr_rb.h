@@ -43,12 +43,15 @@ typedef struct {
   } alloc;
 }prb_grant;
 
-
+prb_bitmap get_prbs(bwp_rb_bitmap *prb_map);
+rbg_bitmap get_rbgs(bwp_rb_bitmap *prb_map);
 uint32_t get_P(uint32_t bwp_nof_prb, bool config_1_or_2);
 uint32_t get_nof_rbgs(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_2);
 uint32_t get_rbg_size(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_2, uint32_t rbg_idx);
 void bwp_rb_bitmap_init(bwp_rb_bitmap *prb_map, uint32_t bwp_nof_prbs, uint32_t bwp_prb_start_, bool config1_or_2);
 void prb_interval_init(prb_interval *prb_interval, uint32_t start_point, uint32_t stop_point);
+void bwp_rb_bitmap_add_by_interval(bwp_rb_bitmap *prb_map, prb_interval *grant);
+void bwp_rb_bitmap_add_by_bitmap(bwp_rb_bitmap *prb_map, prb_bitmap *grant);
 
 
 #ifdef __cplusplus

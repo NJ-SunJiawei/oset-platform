@@ -266,7 +266,6 @@ static void get_metrics_nolock(mac_metrics_t *metrics)
 	}
 }
 
-
 /// Called from metrics thread.
 /// Note: This can contend for the same mutexes as the ones used by L1/L2 workers.
 ///       However, get_metrics is called infrequently enough to cause major halts in the L1/L2

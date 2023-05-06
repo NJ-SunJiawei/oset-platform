@@ -468,4 +468,15 @@ uint8_t* bit_to_hex(bounded_bitset *bit)
 	return out_buffer;
 }
 
+bounded_bitset* bit_or(bounded_bitset *bit, bounded_bitset *other)
+{
+	ASSERT_IF_NOT(bit_size(other) == bit_size(bit),
+			"ERROR: operator|= called for bitsets of different sizes (%zd!=%zd)",
+			bit_size(bit),
+			bit_size(other));
+	for (size_t i = 0; i < nof_words_(bit); ++i) {
+		bit->buffer[i] |= other->buffer[i];
+	}
+	return bit;
+}
 

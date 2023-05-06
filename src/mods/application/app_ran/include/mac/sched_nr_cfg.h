@@ -100,12 +100,14 @@ typedef struct sched_params_s {
   cvector_vector_t(cell_config_manager)  cells; //std::vector<cell_config_manager> 
 }sched_params_t;
 
+srsran_search_space_t* get_ss(bwp_params_t *param, uint32_t ss_id);
 
 void get_dci_locs(srsran_coreset_t      coreset,
                       srsran_search_space_t search_space,
                       uint16_t             rnti,
                       pdcch_cce_pos_list  (*cce_locs)[MAX_NOF_AGGR_LEVELS]);
 
+bwp_rb_bitmap* dci_fmt_1_0_excluded_prbs(bwp_params_t *param, uint32_t cs_id);
 void cell_config_manager_init(cell_config_manager *cell_cof_manager,
 										uint32_t cc_,
 										sched_nr_cell_cfg_t *cell,

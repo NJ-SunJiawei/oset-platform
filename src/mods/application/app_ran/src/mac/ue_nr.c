@@ -68,8 +68,8 @@ void ue_nr_metrics_read(ue_nr *ue, mac_ue_metrics_t* metrics_)
 
 	sched_nr_ue *sched_ue = sched_nr_ue_find_by_rnti(ue->rnti);
 	if(sched_ue != NULL){
-		dl_buffer = get_dl_tx_total(&sched_ue->buffers)
-		ul_buffer = get_ul_bsr_total(&sched_ue->buffers)
+		dl_buffer = sched_ue->common_ctxt.pending_dl_bytes;//get_dl_tx_total(&sched_ue->buffers)
+		ul_buffer = sched_ue->common_ctxt.pending_ul_bytes;//get_ul_bsr_total(&sched_ue->buffers)
 	}
 
 	metrics_->rnti      = ue->rnti;

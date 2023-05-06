@@ -14,6 +14,41 @@
 
 static harq_softbuffer_pool    g_harq_buffer_pool[SCHED_NR_MAX_CARRIERS];
 
+void log_sched_slot_ues(slot_point pdcch_slot, uint32_t cc)
+{
+	char dumpstr[1024] = {0};
+	char *p = NULL, *last = NULL;
+	char *use_comma = "";
+	oset_hash_index_t *hi = NULL;
+
+	if (0 == oset_hash_count(mac_manager_self()->sched.cc_workers[cc].slot_ues)) {
+		return;
+	}
+
+	last = dumpstr + 1024;
+	p = dumpstr;
+	
+	slot_point rx_slot = pdcch_slot - TX_ENB_DELAY;
+  	p = oset_slprintf(p, last, "[%5lu] SCHED: UE candidates, pdcch_tti=%lu, cc=%lu: [", count_idx(&rx_slot), pdcch_slot, cc);
+
+
+	for (hi = oset_hash_first(mac_manager_self()->sched.cc_workers[cc].slot_ues); hi; hi = oset_hash_next(hi)) {
+		uint16_t rnti = *(uint16_t *)oset_hash_this_key(hi);
+		slot_ue  *ue = oset_hash_this_val(hi);
+
+		p = oset_slprintf(p, last, "%s{rnti=0x%x", use_comma, rnti);
+		if (ue->dl_active) {
+			p = oset_slprintf(p, last, ", dl_bs=%lu", ue->dl_bytes);
+		}
+		if (ue->ul_active) {
+			p = oset_slprintf(p, last, ", ul_bs=%lu", ue->ul_bytes);
+		}
+		p = oset_slprintf(p, last, "}");
+		use_comma = ", ";
+	}
+	oset_log_print(OSET_LOG2_DEBUG, "%s]", dumpstr);
+}
+
 harq_softbuffer_pool *harq_buffer_pool_self(uint32_t cc)
 {
 	return &g_harq_buffer_pool[cc];
@@ -74,12 +109,12 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 
 	while (cc_w->last_tx_sl != tx_sl) {
 		cc_w->last_tx_sl++;
-		//(slot_rx - 1) 将已经收到的slot上一个状态全部重置
+		//(slot_rx - 1) 将已经收到的slot前一个状态全部重置
 		slot_point old_slot = cc_w->last_tx_sl - TX_ENB_DELAY - 1;
 		bwp_manager *bwp = NULL;
 		cvector_for_each_in(bwp, cc_w->bwps){
 			//cc_w->bwps[0].grid.slots[SLOTS_IDX(old_slot)]
-			bwp_slot_grid_reset(bwp->grid.slots[SLOTS_IDX(old_slot)]);//slot clear
+			bwp_slot_grid_reset(bwp_res_grid_get_slot(&bwp->grid, old_slot)]);//slot clear
 		}
 	}
 
@@ -97,19 +132,21 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 
 	// Create an BWP allocator object that will passed along to RA, SI, Data schedulers
 	// todo bwp=0
-	bwp_slot_allocator* bwp_alloc = bwp_slot_allocator_init(cc_w->bwps[0].grid, tx_sl);
+	bwp_slot_allocator *bwp_alloc = bwp_slot_allocator_init(cc_w->bwps[0].grid, tx_sl);
 
 	// Log UEs state for slot
-	log_sched_slot_ues(logger, tx_sl, cfg.cc, slot_ues);
+	log_sched_slot_ues(tx_sl, cc_w->cfg.cc);
 
-	const uint32_t ss_id    = 0;//用于接收调度SIB1的PDCCH
-	slot_point     sl_pdcch = bwp_alloc.get_pdcch_tti();//tx_sl
+	const uint32_t ss_id    = 0;//si info searchspace_id
+	slot_point     sl_pdcch = get_pdcch_tti(bwp_alloc);
 
-	prb_bitmap prbs_before = bwp_alloc.res_grid()[sl_pdcch].pdschs.occupied_prbs(ss_id, srsran_dci_format_nr_1_0);//获取可用prb位
-	// Allocate cell DL signalling
-	sched_dl_signalling(bwp_alloc);//生成下行信号ssb
+	//计算可用prb位
+	prb_bitmap prbs_before = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
 
-	prb_bitmap prbs_after = bwp_alloc.res_grid()[sl_pdcch].pdschs.occupied_prbs(ss_id, srsran_dci_format_nr_1_0);//获取可用prb位
+	//scheduler ssb
+	sched_dl_signalling(bwp_alloc);
+
+	prb_bitmap prbs_after = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
 
 	// Allocate pending SIBs//一次集中处理多个si
 	cc_w->bwps[0].si.run_slot(bwp_alloc);//void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)申请sib prb

@@ -13,6 +13,12 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-cfg"
 
+srsran_search_space_t* get_ss(bwp_params_t *param, uint32_t ss_id)
+{
+  return param->cfg.pdcch.search_space_present[ss_id] ? &param->cfg.pdcch.search_space[ss_id] : NULL;
+}
+
+
 void get_dci_locs(srsran_coreset_t      coreset,
                       srsran_search_space_t search_space,
                       uint16_t             rnti,
@@ -24,6 +30,11 @@ void get_dci_locs(srsran_coreset_t      coreset,
 		  cce_locs[sl][agg_idx].array_index = n;
 		}
 	}
+}
+
+bwp_rb_bitmap* dci_fmt_1_0_excluded_prbs(bwp_params_t *param, uint32_t cs_id)
+{
+	return &param->coresets[cs_id].usable_common_ss_prb_mask;
 }
 
 static void bwp_params_destory(bwp_params_t *cell_bwp)
@@ -64,7 +75,7 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		// TS 38.214, 5.1.2.2 - For DCI format 1_0 and common search space, lowest RB of the CORESET is the RB index = 0
 		//对于DCI格式1_0和公共搜索空间，CORESET的最低RB是RB索引=0
 		prb_interval interval = {0, rb_start};
-		bwp_rb_bitmap_add(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);
+		bwp_rb_bitmap_add_by_interval(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);
 		prb_interval_init(&cell_bwp->coresets[cs->id].dci_1_0_prb_limits, rb_start, bwp_cfg->rb_width);//???todo
 
 		// TS 38.214, 5.1.2.2.2 - when DCI format 1_0, common search space and CORESET#0 is configured for the cell,
@@ -74,7 +85,7 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		if (bwp_cfg->pdcch.coreset_present[0]) {
 		  cell_bwp->coresets[cs->id].dci_1_0_prb_limits =  cell_bwp->coresets[cs->id].prb_limits;
 		  prb_interval interval = {cell_bwp->coresets[cs.id].prb_limits.stop_, bwp_cfg->rb_width};
-		  bwp_rb_bitmap_add(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);////???todo
+		  bwp_rb_bitmap_add_by_interval(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);////???todo
 		}
 	}
 

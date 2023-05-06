@@ -36,3 +36,33 @@ void si_sched_init(si_sched *si,bwp_params_t *bwp_cfg_)
 	}
 }
 
+//PBCH ssb
+void sched_dl_signalling(bwp_slot_allocator *bwp_alloc)
+{
+  bwp_params_t      *bwp_params = bwp_alloc->cfg;
+  slot_point        sl_pdcch    = get_pdcch_tti(bwp_alloc);
+  bwp_slot_grid     *sl_grid    = tx_slot_grid(bwp_alloc);
+
+  srsran_slot_cfg_t cfg = {0};
+  cfg.idx = count_idx(&sl_pdcch);
+
+  // Schedule SSB
+  sched_ssb_basic(sl_pdcch, bwp_params.cell_cfg.ssb.periodicity_ms, bwp_params.cell_cfg.mib, sl_grid.dl.phy.ssb);
+
+  // Mark SSB region as occupied将SSB区域标记为已占用
+  if (!sl_grid.dl.phy.ssb.empty()) {
+    float ssb_offset_hz =
+        bwp_params.cell_cfg.carrier.ssb_center_freq_hz - bwp_params.cell_cfg.carrier.dl_center_frequency_hz;
+    int      ssb_offset_rb = ceil(ssb_offset_hz / (15000.0f * 12));
+    int      ssb_start_rb  = bwp_params.cell_cfg.carrier.nof_prb / 2 + ssb_offset_rb - 10;
+    uint32_t ssb_len_rb    = 20;  //(240scs)20RB
+    oset_assert(ssb_start_rb >= 0 && ssb_start_rb + ssb_len_rb < bwp_params.cell_cfg.carrier.nof_prb);
+    sl_grid.reserve_pdsch(prb_grant({(uint32_t)ssb_start_rb, ssb_start_rb + ssb_len_rb}));//void add(const prb_interval& prbs)
+  }
+
+  // Schedule NZP-CSI-RS
+  sched_nzp_csi_rs(bwp_params.cfg.pdsch.nzp_csi_rs_sets, cfg, sl_grid.dl.phy.nzp_csi_rs);
+}
+
+
+

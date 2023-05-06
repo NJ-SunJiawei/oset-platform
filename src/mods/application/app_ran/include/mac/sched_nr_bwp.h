@@ -39,7 +39,7 @@ typedef struct {
   ra_sched           ra;
   //void                           *data_sched;//sched_nr_base
   // Stores pending allocations and PRB bitmaps
-  bwp_res_grid       grid;
+  bwp_res_grid       grid;//可用slot资源合集
 }bwp_manager;
 
 int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info);

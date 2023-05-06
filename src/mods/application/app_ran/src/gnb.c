@@ -54,7 +54,6 @@ OSET_MODULE_SHUTDOWN_FUNCTION(app_gnb_shutdown)
 	task_queue_end(tasks_info);
 	gnb_manager_destory();
 	asn_buffer_pool_final();
-
 	return OSET_STATUS_SUCCESS;
 }
 
