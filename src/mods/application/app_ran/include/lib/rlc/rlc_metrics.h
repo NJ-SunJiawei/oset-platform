@@ -11,7 +11,7 @@
 #define RLC_METRICS_H_
 
 #include "oset-core.h"
-#include "lib/srsran/common/common.h"
+#include "lib/common/common.h"
 
 #ifdef __cplusplus
 extern "C" {

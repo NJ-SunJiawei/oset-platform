@@ -34,6 +34,7 @@ void cc_worker_init(cc_worker *cc_w, cell_config_manager *params);
 void cc_worker_dl_rach_info(cc_worker *cc_w, rar_info_t *rar_info);
 dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl);
 
+
 #ifdef __cplusplus
 }
 #endif

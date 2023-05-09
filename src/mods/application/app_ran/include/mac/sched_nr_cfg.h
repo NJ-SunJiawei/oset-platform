@@ -13,6 +13,7 @@
 #include "gnb_config_parser.h"
 #include "lib/mac/sched_nr_interface.h"
 #include "lib/mac/mac_metrics.h"
+#include "lib/common/common.h"
 #include "mac/sched_nr_rb.h"
 #include "mac/harq_softbuffer.h"
 

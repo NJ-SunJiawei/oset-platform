@@ -217,11 +217,11 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 									"slot_handle");
 		oset_assert(OSET_OK == rv);
 
-		if (realtime_tti % SRSRAN_NSLOTS_PER_SF_NR(1) == 0)
+		if (realtime_tti % SRSRAN_NSLOTS_PER_SF_NR(srsran_subcarrier_spacing_15kHz) == 0)
 		{
-			uint32_t f_idx    = SRSRAN_SLOT_NR_DIV(1, realtime_tti);
-			uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(1, realtime_tti);//15khz, slot_id==sf_id
-			uint32_t sf_idx   = slot_idx / SRSRAN_NSLOTS_PER_SF_NR(1);
+			uint32_t f_idx    = SRSRAN_SLOT_NR_DIV(srsran_subcarrier_spacing_15kHz, realtime_tti);
+			uint32_t slot_idx = SRSRAN_SLOT_NR_MOD(srsran_subcarrier_spacing_15kHz, realtime_tti);//15khz, slot_id==sf_id
+			uint32_t sf_idx   = slot_idx / SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz);
 			gnb_time_tick(f_idx, sf_idx);
 		}
 	}

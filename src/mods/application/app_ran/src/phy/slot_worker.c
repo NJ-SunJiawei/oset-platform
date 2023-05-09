@@ -181,7 +181,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	// Abort DL processing if the scheduling returned an invalid pointer
 	if (NULL == dl_sched_ptr) return false;
 
-	srsran_slot_cfg_t *dl_slot_cfg = &slot_w->dl_slot_cfg;
+	const srsran_slot_cfg_t *dl_slot_cfg = &slot_w->dl_slot_cfg;
 	if (NULL == dl_slot_cfg) return false;
 
 	if (srsran_gnb_dl_base_zero(gnb_dl) < SRSRAN_SUCCESS) {
@@ -285,6 +285,12 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 			return false;
 		}
 	}
+
+	cvector_clear(dl_sched_ptr->ssb);
+	cvector_clear(dl_sched_ptr->pdcch_dl);
+	cvector_clear(dl_sched_ptr->pdcch_ul);
+	cvector_clear(dl_sched_ptr->pdsch);
+	cvector_clear(dl_sched_ptr->nzp_csi_rs);
 
 	return true;
 }

@@ -712,12 +712,16 @@ int srsran_coreset_zero(uint32_t                    n_cell_id,
   uint32_t ssb_half_bw_Hz = SRSRAN_SUBC_SPACING_NR(ssb_scs) * (SRSRAN_SSB_BW_SUBC / 2U);
   if (ssb_pointA_freq_offset_Hz > ssb_half_bw_Hz) {
     // Move SSB center to lowest SSB subcarrier
+    // 移至ssb首个子载波中心频率位置
     ssb_pointA_freq_offset_Hz -= ssb_half_bw_Hz;
   } else {
     ssb_pointA_freq_offset_Hz = 0;
   }
+
+  // ssb首个子载波和pointA之间的rb偏移
   uint32_t ssb_pointA_freq_offset_rb =
       SRSRAN_FLOOR(ssb_pointA_freq_offset_Hz, SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(pdcch_scs));
+  // coreset0首个子载波中心和pointA的rb偏移量，kssb不满一个rb可以不用计入
   uint32_t offset_rb =
       (ssb_pointA_freq_offset_rb > entry->offset_rb) ? (ssb_pointA_freq_offset_rb - entry->offset_rb) : 0;
 

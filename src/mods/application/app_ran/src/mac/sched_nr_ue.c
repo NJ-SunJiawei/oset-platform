@@ -377,3 +377,5 @@ slot_ue *sched_nr_ue_find_by_rnti(uint16_t rnti, uint32_t cc)
             mac_manager_self()->sched.cc_workers[cc].slot_ues, &rnti, sizeof(rnti));
 }
 
+
+

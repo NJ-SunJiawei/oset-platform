@@ -28,8 +28,7 @@ void log_sched_slot_ues(slot_point pdcch_slot, uint32_t cc)
 	last = dumpstr + 1024;
 	p = dumpstr;
 	
-	slot_point rx_slot = pdcch_slot - TX_ENB_DELAY;
-  	p = oset_slprintf(p, last, "[%5lu] SCHED: UE candidates, pdcch_tti=%lu, cc=%lu: [", count_idx(&rx_slot), pdcch_slot, cc);
+  	p = oset_slprintf(p, last, "[%5lu] SCHED: UE candidates, pdcch_tti=%lu, cc=%lu: [", get_rx_slot_idx(pdcch_slot), pdcch_slot, cc);
 
 
 	for (hi = oset_hash_first(mac_manager_self()->sched.cc_workers[cc].slot_ues); hi; hi = oset_hash_next(hi)) {
@@ -122,12 +121,12 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 	// Reserve UEs for this worker slot (select candidate UEs)
 	sched_nr_ue *u = NULL, *next_u = NULL;
 	oset_list_for_each_safe(&mac_manager_self()->sched.sched_ue_list, next_u, u){
-		if (NULL == u->carriers[cc_w->cfg.cc]) {
+		if (NULL == u->carriers[cc_w->cfg->cc]) {
 			continue;
 		}
 
 		// info for a given UE on a slot to be process
-		slot_ue_alloc(u, tx_sl, cc_w->cfg.cc);
+		slot_ue_alloc(u, tx_sl, cc_w->cfg->cc);
 	}
 
 	// Create an BWP allocator object that will passed along to RA, SI, Data schedulers
@@ -135,7 +134,7 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 	bwp_slot_allocator *bwp_alloc = bwp_slot_allocator_init(cc_w->bwps[0].grid, tx_sl);
 
 	// Log UEs state for slot
-	log_sched_slot_ues(tx_sl, cc_w->cfg.cc);
+	log_sched_slot_ues(tx_sl, cc_w->cfg->cc);
 
 	const uint32_t ss_id    = 0;//si info searchspace_id
 	slot_point     sl_pdcch = get_pdcch_tti(bwp_alloc);
@@ -143,7 +142,7 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 	//计算可用prb位
 	prb_bitmap prbs_before = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
 
-	//scheduler ssb
+	// Allocate cell DL signalling(PBCH)
 	sched_dl_signalling(bwp_alloc);
 
 	prb_bitmap prbs_after = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
@@ -169,7 +168,7 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 	log_sched_bwp_result(logger, bwp_alloc.get_pdcch_tti(), bwps[0].grid, slot_ues);
 
 	// releases UE resources
-	slot_ue_clear(cc_w->cfg.cc);
+	slot_ue_clear(cc_w->cfg->cc);
 
 	return &bwp_alloc.tx_slot_grid().dl;
 }

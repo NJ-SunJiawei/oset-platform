@@ -146,15 +146,18 @@ uint32_t srsran_band_helper::find_lower_bound_abs_freq_ssb(uint16_t             
                                                            srsran_subcarrier_spacing_t scs,
                                                            uint32_t                    min_center_freq_hz)
 {
+  // 获取同步栅格合集
   sync_raster_t sync_raster = get_sync_raster(band, scs);
   if (!sync_raster.valid()) {
     return 0;
   }
 
+  // ssb 20rb(240scs)计算ssb带宽
   double ssb_bw_hz = SRSRAN_SSB_BW_SUBC * SRSRAN_SUBC_SPACING_NR(scs);
   while (!sync_raster.end()) {
+  	// 同步栅格转为全局栅格
     double abs_freq_ssb_hz = sync_raster.get_frequency();
-
+    // min_center_freq_hz ssb首个子载波中心频率最小值
     if ((abs_freq_ssb_hz > min_center_freq_hz + ssb_bw_hz / 2) and
         ((uint32_t)std::round(abs_freq_ssb_hz - min_center_freq_hz) % SRSRAN_SUBC_SPACING_NR(scs) == 0)) {
       return freq_to_nr_arfcn(abs_freq_ssb_hz);

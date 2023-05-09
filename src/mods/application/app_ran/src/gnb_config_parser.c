@@ -699,11 +699,14 @@ static int derive_ssb_params(bool                        is_sa,
   ERROR_IF_NOT(nof_prb > 0, "Invalid DL number of PRBS=%d", nof_prb);
 
   band_helper_t *band_helper = gnb_manager_self()->band_helper;
-  
+
+  // 下行中心频率
   double   dl_freq_hz               = nr_arfcn_to_freq_2c(band_helper, dl_arfcn);
+  // 下行pointA
   uint32_t dl_absolute_freq_point_a = get_abs_freq_point_a_arfcn_2c(band_helper, nof_prb, dl_arfcn);
 
   // derive SSB pattern and scs
+  // 根据band和scs查表获取ssb参数 nr_band_ss_raster_table
   cell->ssb_pattern = get_ssb_pattern_2c(band_helper, band, srsran_subcarrier_spacing_15kHz);
   if (cell->ssb_pattern == SRSRAN_SSB_PATTERN_A) {
     // 15kHz SSB SCS
@@ -724,11 +727,14 @@ static int derive_ssb_params(bool                        is_sa,
   int coreset0_rb_offset = 0;
   if (is_sa) {
     // Get offset in RBs between CORESET#0 and SSB
+    // 根据coreset_id 查表coreset_zero_15_15获取 offset (ssb和coreset偏移量 = kssb+offset)
     coreset0_rb_offset = srsran_coreset0_ssb_offset(coreset0_idx, cell->ssb_scs, pdcch_scs);
     ERROR_IF_NOT(coreset0_rb_offset >= 0, "Failed to compute RB offset between CORESET#0 and SSB");
   } else {
     // TODO: Verify if specified SSB frequency is valid
   }
+
+  // 根据offset和pointA和scs和同步栅格，可以推算出ssb中心频点(全局栅格)
   uint32_t ssb_abs_freq_point = get_abs_freq_ssb_arfcn_2c(band_helper, band, cell->ssb_scs, dl_absolute_freq_point_a, coreset0_rb_offset);
   ERROR_IF_NOT(ssb_abs_freq_point > 0,
                "Can't derive SSB freq point for dl_arfcn=%d and band %d",
@@ -736,13 +742,20 @@ static int derive_ssb_params(bool                        is_sa,
                band);
 
   // Convert to frequency for PHY
+  // ssb中心频点
   cell->ssb_absolute_freq_point = ssb_abs_freq_point;
+  // ssb中心频率
   cell->ssb_freq_hz             = nr_arfcn_to_freq_2c(band_helper, ssb_abs_freq_point);
 
+  
+  // pointA频率
   double   pointA_abs_freq_Hz = dl_freq_hz - nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(pdcch_scs) / 2;
+
+  //ssb中心频率和ponitA之间的频率偏移量
   uint32_t ssb_pointA_freq_offset_Hz =
       (cell->ssb_freq_hz > pointA_abs_freq_Hz) ? (uint32_t)(cell->ssb_freq_hz - pointA_abs_freq_Hz) : 0;
 
+  // 通过频率偏移量取余(ssb_pointA_freq_offset_Hz)可以算出子载波的偏移量  =Kssb
   cell->ssb_offset = (uint32_t)(ssb_pointA_freq_offset_Hz / SRSRAN_SUBC_SPACING_NR(pdcch_scs)) % SRSRAN_NRE;
 
   // Validate Coreset0 has space
@@ -788,6 +801,7 @@ static int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t *cell)
 
   if (cell->ul_arfcn == 0) {
     // derive UL ARFCN from given DL ARFCN
+    // 中心频点
     cell->ul_arfcn = get_ul_arfcn_from_dl_arfcn_2c(band_helper, cell.dl_arfcn);
     ERROR_IF_NOT(cell->ul_arfcn > 0, "Can't derive UL ARFCN from DL ARFCN %d", cell.dl_arfcn);
   }
@@ -796,20 +810,22 @@ static int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t *cell)
   cell->duplex_mode = get_duplex_mode_2c(band_helper, cell->band);
 
   // PointA
+  // 根据中心频点推算pointA = (中心频点-prb/2/15khz*12)
   cell->dl_absolute_freq_point_a = get_abs_freq_point_a_arfcn_2c(band_helper, cell->phy_cell.carrier.nof_prb, cell->dl_arfcn);
   cell->ul_absolute_freq_point_a = get_abs_freq_point_a_arfcn_2c(band_helper, cell->phy_cell.carrier.nof_prb, cell->ul_arfcn);
 
   // Derive phy_cell parameters that depend on ARFCNs
-  derive_phy_cell_freq_params(cell->dl_arfcn, cell->ul_arfcn, cell->phy_cell);
+  derive_phy_cell_freq_params(band_helper, cell->dl_arfcn, cell->ul_arfcn, cell->phy_cell);
 
   // Derive SSB params
+  // 计算ssb和coreset时频位置
   oset_expect_or_return_val(derive_ssb_params(is_sa,
                                  cell->dl_arfcn,
                                  cell->band,
                                  cell->phy_cell.carrier.scs,
                                  cell->coreset0_idx,
                                  cell->phy_cell.carrier.nof_prb,
-                                 cell) == 0,OSET_ERROR);
+                                 cell) == 0, OSET_ERROR);
 
   cell->phy_cell.carrier.ssb_center_freq_hz = cell->ssb_freq_hz;
 

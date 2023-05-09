@@ -38,9 +38,11 @@
 #define FDD_HARQ_DELAY_UL_MS 4
 #define MSG3_DELAY_MS 2 // Delay added to FDD_HARQ_DELAY_DL_MS
 
+#define subcarrier_spacing_15kHz  0
+
 #define TTI_LOOP(scs) (1024 * ((1U << (NUM)) * 10))
-#define TTI_SUB(a, b) ((((a) + TTI_LOOP(1)) - (b)) % TTI_LOOP(1))
-#define TTI_ADD(a, b) (((a) + (b)) % TTI_LOOP(1))
+#define TTI_SUB(a, b) ((((a) + TTI_LOOP(1)) - (b)) % TTI_LOOP(subcarrier_spacing_15kHz))
+#define TTI_ADD(a, b) (((a) + (b)) % TTI_LOOP(subcarrier_spacing_15kHz))
 
 #define TTI_TX(tti) TTI_ADD(tti, FDD_HARQ_DELAY_DL_MS)
 
