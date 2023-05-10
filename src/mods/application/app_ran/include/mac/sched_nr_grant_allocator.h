@@ -24,7 +24,7 @@ typedef struct harq_ack {
 /// This only contains information about a given slot
 
 typedef struct {
-  uint32_t            slot_idx;
+  uint32_t            slot_idx;//转换后的slotid
   bwp_params_t        *cfg;
 
   dl_res_t                    dl;
@@ -59,16 +59,23 @@ typedef struct{
 
 void bwp_slot_grid_destory(bwp_slot_grid *slot);
 void bwp_slot_grid_reset(bwp_slot_grid *slot);
+void bwp_slot_grid_reserve_pdsch(bwp_slot_grid *slot, prb_grant *grant);
 
 pdsch_allocator* bwp_res_grid_get_pdschs(bwp_res_grid *res, slot_point tti);
 bwp_slot_grid* bwp_res_grid_get_slot(bwp_res_grid *res, slot_point tti);
 void bwp_res_grid_destory(bwp_res_grid *res);
 void bwp_res_grid_init(bwp_res_grid *res, bwp_params_t *bwp_cfg_);
 
-bwp_slot_allocator* bwp_slot_allocator_init(bwp_res_grid *bwp_grid_, slot_point pdcch_slot_);
 slot_point get_pdcch_tti(bwp_slot_allocator *bwp_alloc);
 slot_point get_tti_rx(bwp_slot_allocator *bwp_alloc);
 bwp_slot_grid *tx_slot_grid(bwp_slot_allocator *bwp_alloc);
+bwp_slot_allocator* bwp_slot_allocator_init(bwp_res_grid *bwp_grid_, slot_point pdcch_slot_);
+alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
+													uint32_t            aggr_idx,
+													uint32_t            si_idx,
+													uint32_t            si_ntx,
+													prb_interval        *prbs,
+													tx_harq_softbuffer  *softbuffer);
 
 #ifdef __cplusplus
 }

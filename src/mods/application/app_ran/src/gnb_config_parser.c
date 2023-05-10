@@ -920,10 +920,9 @@ static int set_derived_args_nr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cf
 	}
 	
 	// Update PHY with RRC cell configs
-	//cvector_for_each_in(cfg, rrc_nr_cfg_->cell_list){
-	//	cvector_push_back(phy_cfg_->phy_cell_cfg_nr, *cfg);
-	//}
-	cvector_copy(rrc_nr_cfg_->cell_list, phy_cfg_->phy_cell_cfg_nr);
+	cvector_for_each_in(cfg, rrc_nr_cfg_->cell_list){
+		cvector_push_back(phy_cfg_->phy_cell_cfg_nr, cfg->phy_cell);
+	}
 
 	cvector_for_each_in(cfg, rrc_nr_cfg_->cell_list){
 		if (cfg->phy_cell.carrier.nof_prb != 52) {

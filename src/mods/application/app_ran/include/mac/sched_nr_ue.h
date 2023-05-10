@@ -87,10 +87,9 @@ typedef struct{
   ue_carrier    *ue;
 }slot_ue;
 
-inline uint32_t get_rx_slot_idx(slot_point tx_slot)
+inline uint32_t GET_RSLOT_ID(slot_point tx_slot)
 {
-	slot_point rx_slot = tx_slot - TX_ENB_DELAY;
-	return count_idx(&rx_slot);
+	return count_idx(&tx_slot) - TX_ENB_DELAY;
 }
 
 //////////////////////////////////////////////////////////////

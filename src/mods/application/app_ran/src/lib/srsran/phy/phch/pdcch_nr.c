@@ -113,7 +113,7 @@ int srsran_pdcch_nr_locations_coreset(const srsran_coreset_t*      coreset,
   if (coreset == NULL || search_space == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
-
+  
   uint32_t nof_candidates = search_space->nof_candidates[aggregation_level];
 
   nof_candidates = SRSRAN_MIN(nof_candidates, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);

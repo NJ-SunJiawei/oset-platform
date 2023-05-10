@@ -74,8 +74,8 @@ static word_t lsb_count(word_t value)
 	  return numeric_limits(word_t);
 	}
 	word_t ret = 0;
-	//word_t mask = 0;//???
-	for (word_t shift = numeric_limits(word_t) >> 1, mask = UINT64_MAX >> shift;
+	word_t mask = UINT64_MAX;//???
+	for (word_t shift = numeric_limits(word_t) >> 1, mask >> shift;
 	     shift != 0;
 	     shift >>= 1, mask >>= shift) {
 	  if ((value & mask) == 0) {
@@ -161,6 +161,7 @@ static int find_last_(bounded_bitset *bit, size_t startpos, size_t endpos, bool 
   return -1;
 }
 
+//查找首个满足条件的bit位置
 int find_first_(bounded_bitset *bit, size_t startpos, size_t endpos, bool value)
 {
   size_t startword = startpos / bits_per_word;
@@ -245,7 +246,7 @@ static void sanitize_(bounded_bitset *bit)
 }
 
 /**********************public**********************************/
-void bit_init(bounded_bitset *bit, size_t N, size_t cur_size, bool reversed = false)
+void bit_init(bounded_bitset *bit, size_t N, size_t cur_size, bool reversed)
 {
    oset_assert(bit);
    bit->N = N;
@@ -324,7 +325,7 @@ bounded_bitset* bit_flip(bounded_bitset *bit)
   return bit;
 }
 
-bounded_bitset* bit_fill(bounded_bitset *bit, size_t startpos, size_t endpos, bool value = true)
+bounded_bitset* bit_fill(bounded_bitset *bit, size_t startpos, size_t endpos, bool value)
 {
   assert_range_bounds_(bit, startpos, endpos);
   // NOTE: can be optimized
@@ -340,7 +341,7 @@ bounded_bitset* bit_fill(bounded_bitset *bit, size_t startpos, size_t endpos, bo
   return bit;
 }
 
-int bit_find_lowest(bounded_bitset *bit, size_t startpos, size_t endpos, bool value = true)
+int bit_find_lowest(bounded_bitset *bit, size_t startpos, size_t endpos, bool value)
 {
   assert_range_bounds_(bit, startpos, endpos);
   if (startpos == endpos) {
@@ -368,6 +369,7 @@ bool bit_all(bounded_bitset *bit)
   return bit->buffer[nw - 1] == (allset >> (nw * bits_per_word - bit_size(bit)));
 }
 
+//交集
 bool bit_any(bounded_bitset *bit)
 {
   for (size_t i = 0; i < nof_words_(bit); ++i) {
@@ -468,7 +470,7 @@ uint8_t* bit_to_hex(bounded_bitset *bit)
 	return out_buffer;
 }
 
-bounded_bitset* bit_or(bounded_bitset *bit, bounded_bitset *other)
+bounded_bitset* bit_or_eq(bounded_bitset *bit, bounded_bitset *other)
 {
 	ASSERT_IF_NOT(bit_size(other) == bit_size(bit),
 			"ERROR: operator|= called for bitsets of different sizes (%zd!=%zd)",
@@ -478,5 +480,29 @@ bounded_bitset* bit_or(bounded_bitset *bit, bounded_bitset *other)
 		bit->buffer[i] |= other->buffer[i];
 	}
 	return bit;
+}
+
+bounded_bitset* bit_and_eq(bounded_bitset *bit, bounded_bitset *other)
+{
+	ASSERT_IF_NOT(bit_size(other) == bit_size(bit),
+			"ERROR: operator&= called for bitsets of different sizes (%zd!=%zd)",
+			bit_size(bit),
+			bit_size(other));
+
+	for (size_t i = 0; i < nof_words_(bit); ++i) {
+		bit->buffer[i] &= other->buffer[i];
+	}
+	return bit;
+}
+
+
+bounded_bitset* bit_and(bounded_bitset *lhs, bounded_bitset *rhs)
+{
+	return 	bit_and_eq(lhs, rhs);
+}
+
+bounded_bitset* bit_or(bounded_bitset *lhs, bounded_bitset *rhs)
+{
+	return 	bit_or_eq(lhs, rhs);
 }
 

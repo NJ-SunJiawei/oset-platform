@@ -15,7 +15,7 @@ extern "C" {
 #endif
 
 /// Error code of alloc attempt
-typedef enum alloc_result {
+typedef enum {
   success,
   sch_collision,
   no_cch_space,

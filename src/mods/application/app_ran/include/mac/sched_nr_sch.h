@@ -20,7 +20,7 @@ extern "C" {
 
 typedef struct {
   bwp_params_t  *bwp_cfg;
-  uint32_t      slot_idx;
+  uint32_t      slot_idx;//转换后的slotid
   cvector_vector_t(pdsch_t) pdschs;//bounded_vector<pdsch_t, MAX_GRANTS>;
   bwp_rb_bitmap dl_prbs;
 }pdsch_allocator;
@@ -34,6 +34,8 @@ typedef struct {
   bwp_rb_bitmap ul_prbs;
 }pusch_allocator;
 
+alloc_result pdsch_allocator_is_si_grant_valid(pdsch_allocator *pdsch_alloc, uint32_t ss_id, prb_grant *grant);
+void pdsch_allocator_reserve_prbs(pdsch_allocator *pdsch_alloc, prb_grant *grant);
 prb_bitmap pdsch_allocator_occupied_prbs(pdsch_allocator *pdsch_alloc, uint32_t ss_id, srsran_dci_format_nr_t dci_fmt);
 void pdsch_allocator_reset(pdsch_allocator *pdsch);
 void pdsch_allocator_init(pdsch_allocator *pdsch, bwp_params_t *cfg_, uint32_t slot_index, cvector_vector_t(pdsch_t) pdsch_lst);

@@ -13,8 +13,6 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-ue"
 
-#define MIN(a, b) (a < b ? a : b)
-
 //////////////////////////////////////////ue_buffer_manager////////////////////////////////////////////
 
 static int get_dl_tx_total(ue_buffer_manager *buffers)
@@ -218,6 +216,8 @@ sched_nr_ue *sched_nr_ue_add_inner(uint16_t rnti_, sched_nr_ue_cfg_t *uecfg, sch
 	ue_cfg_manager_init(&u->ue_cfg, uecfg->carriers[0].cc);//todo cc
 	sched_nr_ue_set_cfg(u, uecfg);//create carriers[cc]
 
+	slot_point_init(&u->last_sr_slot);
+	slot_point_init(&u->last_tx_slot);
     oset_list_add(&mac_manager_self()->sched.sched_ue_list, u);
     oset_info("[Added] Number of SCHED-UEs is now %d", oset_list_count(&mac_manager_self()->sched.sched_ue_list));
 	return u;
@@ -342,6 +342,11 @@ static slot_ue* slot_ue_init(ue_carrier *ue_, slot_point slot_tx_, uint32_t cc)
 			slot_u->h_ul = find_empty_ul_harq(&ue_->harq_ent);
 		}
 	}
+
+	slot_point_init(&slot_u->pdcch_slot);
+	slot_point_init(&slot_u->pdsch_slot);
+	slot_point_init(&slot_u->pusch_slot);
+	slot_point_init(&slot_u->uci_slot);
 
 	return slot_u;
 }

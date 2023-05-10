@@ -28,7 +28,7 @@ void log_sched_slot_ues(slot_point pdcch_slot, uint32_t cc)
 	last = dumpstr + 1024;
 	p = dumpstr;
 	
-  	p = oset_slprintf(p, last, "[%5lu] SCHED: UE candidates, pdcch_tti=%lu, cc=%lu: [", get_rx_slot_idx(pdcch_slot), pdcch_slot, cc);
+  	p = oset_slprintf(p, last, "[%5lu] SCHED: UE candidates, pdcch_tti=%lu, cc=%lu: [", GET_RSLOT_ID(pdcch_slot), pdcch_slot, cc);
 
 
 	for (hi = oset_hash_first(mac_manager_self()->sched.cc_workers[cc].slot_ues); hi; hi = oset_hash_next(hi)) {
@@ -84,7 +84,8 @@ void cc_worker_init(cc_worker *cc_w, cell_config_manager *params)
 		bwp_manager_init(&bwp, &params->bwps[bwp_id]);
 		cvector_push_back(cc_w->bwps[bwp_id], bwp)
 	}
-
+	
+	slot_point_init(&cc_w->last_tx_sl);
 	oset_pool_init(&cc_w->slot_ue_pool, SRSENB_MAX_UES);
 	cc_w->slot_ues = oset_hash_make();	
 }
@@ -101,7 +102,6 @@ void cc_worker_dl_rach_info(cc_worker *cc_w, rar_info_t *rar_info)
 dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 {
 	// Reset old sched outputs
-	// 正常不会进入
 	if (!slot_valid(&cc_w->last_tx_sl)) {
 		cc_w->last_tx_sl = tx_sl;
 	}
@@ -147,8 +147,8 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 
 	prb_bitmap prbs_after = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
 
-	// Allocate pending SIBs//一次集中处理多个si
-	cc_w->bwps[0].si.run_slot(bwp_alloc);//void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)申请sib prb
+	// Allocate pending SIBs
+	si_sched_run_slot(bwp_alloc, &cc_w->bwps[0].si);
 
 	// Allocate pending RARs//一次集中处理多个rar
 	cc_w->bwps[0].ra.run_slot(bwp_alloc);//void ra_sched::run_slot(bwp_slot_allocator& slot_alloc)

@@ -49,8 +49,8 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 	cell_config_manager  *cell_cfg = cell_bwp->cell_cfg;
 
 	cell_bwp->bwp_id = bwp_id_;
-	cell_bwp->cfg = bwp_cfg;
-	cell_bwp->bwp_cfg = bwp_cfg;//???
+	cell_bwp->cfg = *bwp_cfg;
+	cell_bwp->bwp_cfg = *bwp_cfg;//???
 	cell_bwp->nof_prb = cell_cfg->carrier.nof_prb;
 	bwp_rb_bitmap_init(&cell_bwp->cached_empty_prb_mask, bwp_cfg->rb_width, bwp_cfg->start_rb, bwp_cfg->pdsch.rbg_size_cfg_1);
 
@@ -75,7 +75,7 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		// TS 38.214, 5.1.2.2 - For DCI format 1_0 and common search space, lowest RB of the CORESET is the RB index = 0
 		//对于DCI格式1_0和公共搜索空间，CORESET的最低RB是RB索引=0
 		prb_interval interval = {0, rb_start};
-		bwp_rb_bitmap_add_by_interval(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);
+		bwp_rb_bitmap_add_by_prb_interval(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);
 		prb_interval_init(&cell_bwp->coresets[cs->id].dci_1_0_prb_limits, rb_start, bwp_cfg->rb_width);//???todo
 
 		// TS 38.214, 5.1.2.2.2 - when DCI format 1_0, common search space and CORESET#0 is configured for the cell,
@@ -85,7 +85,7 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		if (bwp_cfg->pdcch.coreset_present[0]) {
 		  cell_bwp->coresets[cs->id].dci_1_0_prb_limits =  cell_bwp->coresets[cs->id].prb_limits;
 		  prb_interval interval = {cell_bwp->coresets[cs.id].prb_limits.stop_, bwp_cfg->rb_width};
-		  bwp_rb_bitmap_add_by_interval(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);////???todo
+		  bwp_rb_bitmap_add_by_prb_interval(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);////???todo
 		}
 	}
 
@@ -118,6 +118,7 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 	//计算coreset里cce结构计算
 	for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
 		for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
+		  // 计算在slot_idx下，聚合等级为agg_idx时，dci可能的起始位置
 		  int n = srsran_pdcch_nr_locations_coreset(&cell_bwp->cfg.pdcch.coreset[ra_coreset_id],
 		                                            &cell_bwp->cfg.pdcch.ra_search_space,
 		                                            0,
@@ -203,7 +204,7 @@ void cell_config_manager_init(cell_config_manager *cell_cof_manager,
 		bwp_params.cell_cfg = cell_cof_manager;
 		bwp_params.sched_cfg = sched_args_;
 		bwp_params.cc = cell_cof_manager->cc;
-		bwp_params_init(&bwp_params, i, cell->bwps[i]);
+		bwp_params_init(&bwp_params, i, &cell->bwps[i]);
 		cvector_push_back(cell_cof_manager->bwps, bwp_params)
 	}
 	ASSERT_IF_NOT(!cvector_empty(cell_cof_manager->bwps), "No BWPs were configured");

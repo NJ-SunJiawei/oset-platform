@@ -60,6 +60,7 @@ static void phy_manager_destory(void)
 static bool dl_channel_emulator(const phy_args_t *params, const phy_cfg_t *cfg)
 {
 	cvector_copy(cfg->phy_cell_cfg_nr, phy_manager.workers_common.cell_list_nr);
+	//todo one cell
 	struct phy_cell_cfg_nr_t *cell_nr = &cfg->phy_cell_cfg_nr[0];
 
 	// Instantiate DL channel emulator
