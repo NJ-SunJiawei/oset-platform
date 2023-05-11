@@ -17,6 +17,8 @@
 extern "C" {
 #endif
 
+typedef cvector_vector_t(tree_node)  alloc_tree_dfs_t;
+
 // List of PDCCH grants
 typedef struct {
   uint32_t					 aggr_idx;
@@ -65,6 +67,38 @@ typedef struct {
   srsran_dci_ctx_t  *pending_dci; //Saves last PDCCH allocation, in case it needs to be aborted
 }bwp_pdcch_allocator;
 
+
+typedef expected(pdcch_dl_t*, alloc_result) pdcch_dl_alloc_result;
+typedef expected(pdcch_ul_t*, alloc_result) pdcch_ul_alloc_result;
+
+
+inline pdcch_dl_alloc_result pdcch_dl_alloc_result_succ(pdcch_dl_t* pdcch_dl)
+{
+	pdcch_dl_alloc_result result = {0};
+	result.has_val = true;
+	result.res.val = pdcch_dl;
+	return result;
+}
+
+inline pdcch_dl_alloc_result pdcch_dl_alloc_result_fail(alloc_result alloc_res)
+{
+	pdcch_dl_alloc_result result = {0};
+	result.has_val = false;
+	result.res.unexpected = alloc_res;
+	return result;
+}
+
+void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32_t coreset_id_, uint32_t slot_idx_);
+void coreset_region_destory(coreset_region *coreset);
+bool coreset_region_alloc_pdcch(coreset_region             *coreset, 
+								srsran_rnti_type_t         rnti_type,
+								bool                       is_dl,
+								uint32_t                   aggr_idx,
+								uint32_t                   search_space_id,
+								const ue_carrier_params_t  *user,
+								srsran_dci_ctx_t           *dci);
+
+//////////////////////////////////////////////////////////////////////
 void bwp_pdcch_allocator_reset(bwp_pdcch_allocator *pdcchs);
 
 void bwp_pdcch_allocator_init(bwp_pdcch_allocator *pdcchs,
@@ -72,6 +106,8 @@ void bwp_pdcch_allocator_init(bwp_pdcch_allocator *pdcchs,
 										uint32_t            slot_idx_,
 										cvector_vector_t(pdcch_dl_t) dl_pdcchs,
 										cvector_vector_t(pdcch_ul_t) ul_pdcchs);
+uint32_t bwp_pdcch_allocator_nof_allocations(bwp_pdcch_allocator *pdcchs);
+pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_si_pdcch(bwp_pdcch_allocator *pdcchs, uint32_t ss_id, uint32_t aggr_idx);
 
 #ifdef __cplusplus
 }

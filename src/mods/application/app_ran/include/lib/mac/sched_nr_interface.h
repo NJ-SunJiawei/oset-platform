@@ -24,6 +24,17 @@
 extern "C" {
 #endif
 
+#define expected(T, E) \
+			struct { \
+				bool has_val;\
+				union {\
+				  T val;\
+				  E unexpected;\
+				}res;\
+			}
+/////////////////////////////////////////////////////////
+
+
 typedef enum  { IDLE = 0, UL, DL, BOTH } direction_t;
 
 typedef struct mac_lc_ch_cfg_s {
@@ -57,7 +68,7 @@ typedef struct sched_nr_ue_lc_ch_cfg_s {
 typedef struct  sched_nr_ue_cfg_s{
   uint32_t                                  maxharq_tx;//=4
   cvector_vector_t(sched_nr_ue_cc_cfg_t)    carriers;//bounded_vector<sched_nr_ue_cc_cfg_t, SCHED_NR_MAX_CARRIERS> 
-  phy_cfg_nr_t                              phy_cfg;
+  phy_cfg_nr_t                              phy_cfg;//更新并传递给mac/sched更新
   struct  mac_cell_group_cfg_s              *mac_cell_group_cfg;
   struct  phys_cell_group_cfg_s             *phy_cell_group_cfg;
   struct  sp_cell_cfg_s                     *sp_cell_cfg;

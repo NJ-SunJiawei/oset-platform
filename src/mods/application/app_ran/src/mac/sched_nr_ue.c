@@ -320,7 +320,7 @@ static slot_ue* slot_ue_init(ue_carrier *ue_, slot_point slot_tx_, uint32_t cc)
 
 	const uint32_t k0 = 0;
 	slot_u->pdsch_slot  = slot_u->pdcch_slot + k0;                            //dci 1_X  dci0_X
-	uint32_t k1         = get_k1(&ue_->bwp_cfg, slot_u->pdsch_slot);
+	uint32_t k1         = ue_carrier_params_get_k1(&ue_->bwp_cfg, slot_u->pdsch_slot);
 	slot_u->uci_slot    = slot_u->pdsch_slot + k1;                            //dl ack/sr/csi
 	uint32_t k2         = ue_->bwp_cfg.bwp_cfg->pusch_ra_list[0].K;
 	slot_u->pusch_slot  = slot_u->pdcch_slot + k2;                            //dci0_1触发得到的msg4/bsr/ul data

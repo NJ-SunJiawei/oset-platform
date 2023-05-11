@@ -113,7 +113,8 @@ int srsran_pdcch_nr_locations_coreset(const srsran_coreset_t*      coreset,
   if (coreset == NULL || search_space == NULL) {
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
-  
+
+  //aggregation_level聚合等级下 候选数量
   uint32_t nof_candidates = search_space->nof_candidates[aggregation_level];
 
   nof_candidates = SRSRAN_MIN(nof_candidates, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
@@ -124,9 +125,11 @@ int srsran_pdcch_nr_locations_coreset(const srsran_coreset_t*      coreset,
       return ret;
     }
 
+	//candidate后选的cce起始位置
     locations[candidate] = ret;
   }
 
+  //aggregation_level聚合等级下 cce数量
   return nof_candidates;
 }
 

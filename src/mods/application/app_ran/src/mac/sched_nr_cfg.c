@@ -26,8 +26,8 @@ void get_dci_locs(srsran_coreset_t      coreset,
 {
 	for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
 		for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {
-		  uint32_t n = srsran_pdcch_nr_locations_coreset(coreset, search_space, rnti, agg_idx, sl, cce_locs[sl][agg_idx].array);
-		  cce_locs[sl][agg_idx].array_index = n;
+		  uint32_t n = srsran_pdcch_nr_locations_coreset(coreset, search_space, rnti, agg_idx, sl, cce_locs[sl][agg_idx].cce_addr);
+		  cce_locs[sl][agg_idx].cce_index = n;
 		}
 	}
 }
@@ -124,9 +124,9 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		                                            0,
 		                                            agg_idx,
 		                                            sl,
-		                                            cell_bwp->rar_cce_list[sl][agg_idx].array);
+		                                            cell_bwp->rar_cce_list[sl][agg_idx].cce_addr);
 		  ASSERT_IF_NOT(n >= 0, "Failed to configure RAR DCI locations");
-		  cell_bwp->rar_cce_list[sl][agg_idx].array_index = n;
+		  cell_bwp->rar_cce_list[sl][agg_idx].cce_index = n;
 		}
 	}
 
@@ -144,9 +144,9 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 													SRSRAN_SIRNTI,
 													agg_idx,
 													sl,
-													ss_cce_list[sl][agg_idx].array);
+													ss_cce_list[sl][agg_idx].cce_addr);
 		    ASSERT_IF_NOT(n >= 0, "Failed to configure DCI locations of search space id=%d", ss_id);
-		    ss_cce_list[sl][agg_idx].array_index = n;
+		    ss_cce_list[sl][agg_idx].cce_index = n;
 		  }
 		}
 		cell_bwp->common_cce_list[ss_id] = ss_cce_list;

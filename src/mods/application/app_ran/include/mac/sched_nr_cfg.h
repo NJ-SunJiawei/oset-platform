@@ -24,8 +24,8 @@ extern "C" {
 #endif
 
 typedef struct{
-	int      array_index;
-	uint32_t array[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR];
+	int      cce_index;//cce候选块的数量
+	uint32_t cce_addr[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR];
 }pdcch_cce_pos_list;//bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
 
 //typedef cvector_vector_t(uint32_t) pdcch_cce_pos_list;
@@ -60,7 +60,7 @@ typedef struct {
 typedef struct bwp_params_s {
   uint32_t             bwp_id;
   uint32_t             cc;
-  sched_nr_bwp_cfg_t   cfg;
+  sched_nr_bwp_cfg_t   cfg;//rrc获取并转存的sched配置
   cell_config_manager  *cell_cfg;
   sched_args_t         *sched_cfg;
   sched_nr_bwp_cfg_t   bwp_cfg;//???

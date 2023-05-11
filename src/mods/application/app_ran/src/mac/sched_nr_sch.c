@@ -13,6 +13,8 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-sch"
 
+static const  char *log_pdsch = "SCHED: Failure to allocate PDSCH. Cause: ";
+
 alloc_result pdsch_allocator_is_grant_valid_common(pdsch_allocator *pdsch_alloc, 
 																	srsran_search_space_type_t ss_type,
 																	srsran_dci_format_nr_t     dci_fmt,
@@ -21,20 +23,20 @@ alloc_result pdsch_allocator_is_grant_valid_common(pdsch_allocator *pdsch_alloc,
 {
 	// DL must be active in given slot
 	if (!pdsch_alloc->bwp_cfg.slots[pdsch_alloc->slot_idx].is_dl) {
-		oset_error("DL is disabled for slot=%lu", pdsch_alloc->slot_idx);
+		oset_error("%sDL is disabled for slot=%lu", log_pdsch, pdsch_alloc->slot_idx);
 		return (alloc_result)no_sch_space;
 	}
 
 	// No space in Scheduler PDSCH output list
 	if (MAX_GRANTS == cvector_size(pdsch_alloc->pdschs)) {
-		oset_error("Maximum number of PDSCHs={} reached", cvector_size(pdsch_alloc->pdschs));
+		oset_error("%sMaximum number of PDSCHs={} reached", log_pdsch, cvector_size(pdsch_alloc->pdschs));
 		return (alloc_result)no_sch_space;
 	}
 
 	// TS 38.214, 5.1.2.2 - "The UE shall assume that when the scheduling grant is received with DCI format 1_0, then
 	//                       downlink resource allocation type 1 is used."
 	if (dci_fmt == srsran_dci_format_nr_1_0 && !is_alloc_type1(grant)) {
-		oset_error("DL Resource Allocation type 1 must be used in case of DCI format 1_0");
+		oset_error("%sDL Resource Allocation type 1 must be used in case of DCI format 1_0", log_pdsch);
 		return (alloc_result)invalid_grant_params;
 	}
 
@@ -44,7 +46,7 @@ alloc_result pdsch_allocator_is_grant_valid_common(pdsch_allocator *pdsch_alloc,
 		// Grant PRBs do not collide with CORESET PRB limits (in case of common SearchSpace)
 		// 是否越界
 		if (prb_grant_collides(dci_fmt_1_0_excluded_prbs(pdsch_alloc->bwp_cfg, coreset_id), grant)) {
-			oset_error("Provided PRB grant={%lu, %lu} falls outside common CORESET PRB boundaries", grant->alloc.interv.start_, grant->alloc.interv.stop_);
+			oset_error("%sProvided PRB grant={%lu, %lu} falls outside common CORESET PRB boundaries", log_pdsch, grant->alloc.interv.start_, grant->alloc.interv.stop_);
 			return (alloc_result)sch_collision;
 		}
 	}
@@ -52,7 +54,7 @@ alloc_result pdsch_allocator_is_grant_valid_common(pdsch_allocator *pdsch_alloc,
 	// Grant PRBs do not collide with previous PDSCH allocations
 	// 检查授权的区间未被使用
 	if (prb_grant_collides(pdsch_alloc->dl_prbs, grant)) {
-		oset_error("Provided PRB grant={%lu, %lu} collides with allocations previously made", grant->alloc.interv.start_, grant->alloc.interv.stop_);
+		oset_error("%sProvided PRB grant={%lu, %lu} collides with allocations previously made", log_pdsch, grant->alloc.interv.start_, grant->alloc.interv.stop_);
 		return (alloc_result)sch_collision;
 	}
 
@@ -66,7 +68,7 @@ alloc_result pdsch_allocator_is_si_grant_valid(pdsch_allocator *pdsch_alloc, uin
 	const srsran_search_space_t* ss = get_ss(pdsch_alloc->bwp_cfg, ss_id);
 	if (ss == NULL) {
 		// Couldn't find SearchSpace
-		oset_error("SearchSpace has not been configured");
+		oset_error("%sSearchSpace has not been configured", log_pdsch);
 		return (alloc_result)invalid_grant_params;
 	}
 	return pdsch_allocator_is_grant_valid_common(pdsch_alloc, ss->type, srsran_dci_format_nr_1_0, ss->coreset_id, grant);

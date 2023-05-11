@@ -183,6 +183,7 @@ void rrc_config_mac(uint32_t cc)
 
 	// Derive cell config from rrc_nr_cfg_t
 	fill_phy_pdcch_cfg_common(du_cell, rrc_cell_cfg, &cell.bwps[0].pdcch);
+	//ue-spec pddch
 	bool ret = fill_phy_pdcch_cfg(rrc_cell_cfg, &cell.bwps[0].pdcch);
 	ASSERT_IF_NOT(ret, "Failed to generate Dedicated PDCCH config");
 	cell.pci                    = rrc_cell_cfg->phy_cell.carrier.pci;

@@ -56,9 +56,7 @@ void bwp_slot_grid_destory(bwp_slot_grid *slot)
 	cvector_free(slot->pending_acks);
 	//pddchs
 	for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
-		cvector_free(slot->pdcchs.coresets[cs_idx].dci_list);
-		cvector_free(slot->pdcchs.coresets[cs_idx].dfs_tree);
-		cvector_free(slot->pdcchs.coresets[cs_idx].saved_dfs_tree);
+		coreset_region_destory(&slot->pdcchs.coresets[cs_idx]);
 	}
 }
 
@@ -100,6 +98,11 @@ bwp_slot_grid* bwp_res_grid_get_slot(bwp_res_grid *res, slot_point tti)
 
 void bwp_res_grid_destory(bwp_res_grid *res)
 {
+	bwp_slot_grid *slot = NULL;
+	cvector_for_each_in(slot, res->slots){
+		bwp_slot_grid_destory(slot);
+	}
+
 	cvector_free(res->slots);
 }
 
@@ -155,7 +158,7 @@ alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 
 	// Allocate PDCCH
 	// 申请dci，聚合2
-	auto pdcch_result = bwp_pdcch_slot.pdcchs.alloc_si_pdcch(ss_id, aggr_idx);
+	auto pdcch_result = bwp_pdcch_allocator_alloc_si_pdcch(&bwp_pdcch_slot->pdcchs, ss_id, aggr_idx);
 	if (pdcch_result.is_error()) {
 		logger.warning("SCHED: Cannot allocate SIB due to lack of PDCCH space.");
 		return pdcch_result.error();

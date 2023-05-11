@@ -86,17 +86,10 @@ void bwp_manager_destory(bwp_manager *bwp)
 {
 	//ra
 	ra_sched_destory(&bwp->ra);
-
 	//si
 	si_sched_destory(&bwp->si);
-
 	//bwp_res_grid
-	bwp_slot_grid *slot = NULL;
-	cvector_for_each_in(slot, bwp->grid.slots){
-		bwp_slot_grid_destory(slot);
-	}
 	bwp_res_grid_destory(bwp->grid);
-
 }
 
 void bwp_manager_init(bwp_manager *bwp, bwp_params_t *bwp_cfg)

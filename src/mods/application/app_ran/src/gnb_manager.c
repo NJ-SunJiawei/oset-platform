@@ -75,7 +75,8 @@ char* float_to_string(float f)
   }
 
   const double scaled = f * pow(1000.0, -degree);
-  return oset_snprintf(result, sizeof(result), "%5.2f%s", scaled, factor);
+  oset_snprintf(result, sizeof(result), "%5.2f%s", scaled, factor);
+  return result;
 }
 
 static void set_metrics_helper(uint32_t        num_ue, mac_metrics_t *mac)
