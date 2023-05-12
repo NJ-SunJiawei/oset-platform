@@ -33,11 +33,14 @@ typedef struct {
 
 uint32_t ceil_div(uint32_t x, uint32_t y);
 void bit_init(bounded_bitset *bit, size_t N, size_t cur_size, bool reversed);
+void bit_final(bounded_bitset *bit);
 size_t bit_max_size(bounded_bitset *bit);
 size_t bit_size(bounded_bitset *bit);
+bool bit_reversed(bounded_bitset *bit);
 void bit_resize(bounded_bitset *bit, size_t new_size);
 void bit_set(bounded_bitset *bit, size_t pos, bool val);
 void bit_set(bounded_bitset *bit, size_t pos);
+void bit_reset_all(bounded_bitset *bit);
 void bit_reset(bounded_bitset *bit, size_t pos);
 void bit_set_val(bounded_bitset *bit, size_t pos, bool val);
 void bit_reset_all(bounded_bitset *bit);
@@ -52,8 +55,8 @@ size_t bit_count(bounded_bitset *bit);
 char* bit_to_string(bounded_bitset *bit);
 bounded_bitset* bit_or_eq(bounded_bitset *bit, bounded_bitset *other);
 bounded_bitset* bit_and_eq(bounded_bitset *bit, bounded_bitset *other);
-bounded_bitset* bit_or(bounded_bitset *lhs, bounded_bitset *rhs);
-bounded_bitset* bit_and(bounded_bitset *lhs, bounded_bitset *rhs);
+bounded_bitset bit_or(bounded_bitset *lhs, bounded_bitset *rhs);
+bounded_bitset bit_and(bounded_bitset *lhs, bounded_bitset *rhs);
 
 #ifdef __cplusplus
 }

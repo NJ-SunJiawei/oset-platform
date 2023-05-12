@@ -125,7 +125,7 @@ int srsran_pdcch_nr_locations_coreset(const srsran_coreset_t*      coreset,
       return ret;
     }
 
-	//candidate后选的cce起始位置
+	//candidate候选的cce起始位置
     locations[candidate] = ret;
   }
 

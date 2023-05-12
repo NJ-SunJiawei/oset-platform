@@ -55,8 +55,8 @@ typedef struct ssb_s {
 
 typedef struct  dl_sched_s{
   cvector_vector_t(ssb_t)      ssb;//bounded_vector<ssb_t, MAX_SSB>
-  cvector_vector_t(pdcch_dl_t) pdcch_dl;//bounded_vector<pdcch_dl_t, MAX_GRANTS>
-  cvector_vector_t(pdcch_ul_t) pdcch_ul;//bounded_vector<pdcch_ul_t, MAX_GRANTS>
+  cvector_vector_t(pdcch_dl_t *) pdcch_dl;//bounded_vector<pdcch_dl_t, MAX_GRANTS>
+  cvector_vector_t(pdcch_ul_t *) pdcch_ul;//bounded_vector<pdcch_ul_t, MAX_GRANTS>
   cvector_vector_t(pdsch_t)    pdsch;//bounded_vector<pdsch_t, MAX_GRANTS>
   cvector_vector_t(srsran_csi_rs_nzp_resource_t) nzp_csi_rs;//bounded_vector<srsran_csi_rs_nzp_resource_t, MAX_NZP_CSI_RS>
 }dl_sched_t;

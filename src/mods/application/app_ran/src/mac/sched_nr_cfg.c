@@ -41,6 +41,7 @@ static void bwp_params_destory(bwp_params_t *cell_bwp)
 {
 	cvector_free(cell_bwp->slots);
 	cvector_free(cell_bwp->pusch_ra_list);
+	bwp_rb_bitmap_final(&cell_bwp->cached_empty_prb_mask);
 }
 
 //bwp_cfg from rrc configure

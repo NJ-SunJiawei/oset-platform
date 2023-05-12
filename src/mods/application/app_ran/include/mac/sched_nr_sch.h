@@ -37,9 +37,11 @@ typedef struct {
 alloc_result pdsch_allocator_is_si_grant_valid(pdsch_allocator *pdsch_alloc, uint32_t ss_id, prb_grant *grant);
 void pdsch_allocator_reserve_prbs(pdsch_allocator *pdsch_alloc, prb_grant *grant);
 prb_bitmap pdsch_allocator_occupied_prbs(pdsch_allocator *pdsch_alloc, uint32_t ss_id, srsran_dci_format_nr_t dci_fmt);
+void pdsch_allocator_destory(pdsch_allocator *pdsch);
 void pdsch_allocator_reset(pdsch_allocator *pdsch);
 void pdsch_allocator_init(pdsch_allocator *pdsch, bwp_params_t *cfg_, uint32_t slot_index, cvector_vector_t(pdsch_t) pdsch_lst);
 ///////////////////////////////////////////////////////////////////////////
+void pusch_allocator_destory(pusch_allocator *pusch);
 void pusch_allocator_reset(pusch_allocator *pusch);
 void pusch_allocator_init(pusch_allocator *pusch, bwp_params_t *cfg_, uint32_t slot_index,  cvector_vector_t(pusch_t) pusch_lst);
 

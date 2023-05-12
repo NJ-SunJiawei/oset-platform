@@ -28,10 +28,18 @@ static char* log_pdcch_alloc_failure(srsran_rnti_type_t           rnti_type,
 	return fmtbuf;
 }
 
+static uint32_t coreset_region_get_td_symbols(coreset_region *coreset) { return coreset->coreset_cfg->duration; }
+
 static size_t coreset_region_nof_allocs(coreset_region *coreset) 
 {
 	return cvector_size(coreset->dfs_tree);
 }
+
+static uint32_t coreset_region_nof_cces(coreset_region *coreset)
+{ 
+	return coreset->nof_freq_res * coreset_region_get_td_symbols(coreset);
+}
+
 
 static void coreset_region_reset(coreset_region *coreset)
 {
@@ -62,43 +70,54 @@ pdcch_cce_pos_list coreset_region_get_cce_loc_table(coreset_region              
 
 static bool coreset_region_alloc_dfs_node(coreset_region             *coreset, alloc_record *record, uint32_t start_dci_idx)
 {
-  alloc_tree_dfs_t alloc_dfs = coreset->dfs_tree;
-  // Get DCI Location Table
-  pdcch_cce_pos_list cce_locs = coreset_region_get_cce_loc_table(coreset, record);
-  if (start_dci_idx >= cce_locs->cce_index) {
-    return false;
-  }
+	alloc_tree_dfs_t alloc_dfs = coreset->dfs_tree;
+	// Get DCI Location Table
+	// 根据聚合等级/ss_id/slot_idx获取当前的dci候选合集
+	pdcch_cce_pos_list cce_locs = coreset_region_get_cce_loc_table(coreset, record);
+	if (start_dci_idx >= cce_locs->cce_index) {
+		return false;
+	}
 
-  tree_node node;
-  node.dci_pos_idx = start_dci_idx;
-  node.dci_pos.L   = record.aggr_idx;
-  node.rnti        = record.ue != nullptr ? record.ue->rnti : SRSRAN_INVALID_RNTI;
-  node.current_mask.resize(nof_cces());
-  // get cumulative pdcch bitmap
-  if (!alloc_dfs.empty()) {
-    node.total_mask = alloc_dfs.back().total_mask;
-  } else {
-    node.total_mask.resize(nof_cces());
-  }
+	tree_node node = {0};
+	bounded_bitset current_mask = {0};//描述当前某个dci占用频域资源(存储每次申请的临时记录)
+	node.dci_pos_idx = start_dci_idx;
+	node.dci_pos.L   = record->aggr_idx;
+	node.rnti        = record->ue != NULL ? record->ue->rnti : SRSRAN_INVALID_RNTI;
+	bit_init(&current_mask, SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE * SRSRAN_CORESET_DURATION_MAX, coreset_region_nof_cces(coreset), true);
+	bit_resize(&current_mask, coreset_region_nof_cces(coreset));
 
-  for (; node.dci_pos_idx < cce_locs.size(); ++node.dci_pos_idx) {
-    node.dci_pos.ncce = cce_locs[node.dci_pos_idx];
+	// get cumulative pdcch bitmap
+	if (!cvector_empty(alloc_dfs)) {
+		node.total_mask = alloc_dfs[cvector_size(alloc_dfs) - 1].total_mask;//back()
+	} else {
+		bit_init(&node.total_mask, SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE * SRSRAN_CORESET_DURATION_MAX, coreset_region_nof_cces(coreset), true);
+		bit_resize(&node.total_mask, coreset_region_nof_cces(coreset));
+	}
 
-    node.current_mask.reset();
-    node.current_mask.fill(node.dci_pos.ncce, node.dci_pos.ncce + (1U << record.aggr_idx));
-    if ((node.total_mask & node.current_mask).any()) {
-      // there is a PDCCH collision. Try another CCE position
-      continue;
-    }
+	for (; node.dci_pos_idx < cce_locs->cce_index; ++node.dci_pos_idx) {
+		node.dci_pos.ncce = cce_locs[node.dci_pos_idx];//node.dci_pos_idx对应的cce逻辑位
+		//清空所有bit标志位
+		bit_reset_all(&current_mask);
+		//range(first cce, first cce + L)
+		bit_fill(&current_mask, node.dci_pos.ncce, node.dci_pos.ncce + (1U << record->aggr_idx), true);
 
-    // Allocation successful
-    node.total_mask |= node.current_mask;
-    alloc_dfs.push_back(node);
-    record.dci->location = node.dci_pos;
-    return true;
-  }
+		bounded_bitset res = bit_and(&node.total_mask, &current_mask);
+		if (bit_any(&res)) {
+			// there is a PDCCH collision. Try another CCE position
+			bit_final(&res);
+			continue;
+		}
 
-  return false;
+		// Allocation successful
+		node.total_mask |= current_mask;
+		bit_final(&current_mask);
+		cvector_push_back(alloc_dfs, node)
+		record->dci->location = node.dci_pos;
+		return true;
+	}
+
+	bit_final(&current_mask);
+	return false;
 }
 
 void coreset_region_destory(coreset_region *coreset)
@@ -179,11 +198,46 @@ bool coreset_region_alloc_pdcch(coreset_region             *coreset,
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
+void bwp_pdcch_allocator_destory(bwp_pdcch_allocator *pdcchs)
+{
+    //pdcch_dl_list
+	pdcch_dl_t  **dl_node = NULL;
+	cvector_for_each_in(dl_node, pdcchs->pdcch_dl_list){
+		oset_free(*dl_node);
+	}
+	cvector_free(pdcchs->pdcch_dl_list);
+
+	//pdcch_ul_list
+	pdcch_ul_t  **ul_node = NULL;
+	cvector_for_each_in(ul_node, pdcchs->pdcch_ul_list){
+		oset_free(*ul_node);
+	}
+	cvector_free(pdcchs->pdcch_ul_list);
+
+	//pddchs
+	for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
+		coreset_region_destory(&pdcchs->coresets[cs_idx]);
+	}
+}
+
+
 void bwp_pdcch_allocator_reset(bwp_pdcch_allocator *pdcchs)
 {
 	pdcchs->pending_dci = NULL;
-	cvector_clear(pdcchs->pdcch_dl_list);
-	cvector_clear(pdcchs->pdcch_ul_list);
+    //pdcch_dl_list
+	pdcch_dl_t  **dl_node = NULL;
+	cvector_for_each_in(dl_node, pdcchs->pdcch_dl_list){
+		oset_free(*dl_node);
+	}
+	cvector_free(pdcchs->pdcch_dl_list);
+
+	//pdcch_ul_list
+	pdcch_ul_t  **ul_node = NULL;
+	cvector_for_each_in(ul_node, pdcchs->pdcch_ul_list){
+		oset_free(*ul_node);
+	}
+	cvector_free(pdcchs->pdcch_ul_list);
+
 	for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
 	  if (pdcchs->bwp_cfg->cfg.pdcch.coreset_present[cs_idx]) {
 		uint32_t cs_id = pdcchs->bwp_cfg->cfg.pdcch.coreset[cs_idx].id;
@@ -195,8 +249,8 @@ void bwp_pdcch_allocator_reset(bwp_pdcch_allocator *pdcchs)
 void bwp_pdcch_allocator_init(bwp_pdcch_allocator *pdcchs,
 										bwp_params_t        *bwp_cfg_,
 										uint32_t            slot_idx_,
-										cvector_vector_t(pdcch_dl_t) dl_pdcchs,
-										cvector_vector_t(pdcch_ul_t) ul_pdcchs)
+										cvector_vector_t(pdcch_dl_t *) dl_pdcchs,
+										cvector_vector_t(pdcch_ul_t *) ul_pdcchs)
 {
 	pdcchs->bwp_cfg = bwp_cfg_;
 	pdcchs->slot_idx = slot_idx_;
@@ -305,45 +359,47 @@ static pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_dl_pdcch_common(bwp_pdcch
 													srsran_dci_format_nr_t 	    dci_fmt,
 													const ue_carrier_params_t   *user)
 {
-  alloc_result r = bwp_pdcch_allocator_check_args_valid(pdcchs, rnti_type, rnti, ss_id, aggr_idx, dci_fmt, user, true);
-  if (r != (alloc_result)success) {
-	return pdcch_dl_alloc_result_fail(r);
-  }
-  const srsran_search_space_t *ss =
+	//校验参数合法性
+	alloc_result r = bwp_pdcch_allocator_check_args_valid(pdcchs, rnti_type, rnti, ss_id, aggr_idx, dci_fmt, user, true);
+	if (r != (alloc_result)success) {
+		return pdcch_dl_alloc_result_fail(r);
+	}
+	const srsran_search_space_t *ss =
 	  (user == NULL)
 		  ? (rnti_type == srsran_rnti_type_ra ? &pdcchs->bwp_cfg.cfg.pdcch.ra_search_space : get_ss(pdcchs->bwp_cfg, ss_id))
 		  : ue_carrier_params_get_ss(user, ss_id);
 
-  // Add new DL PDCCH to sched result
-  pdcch_dl_t pdcch_dl = {0};
-  bool success = coreset_region_alloc_pdcch(&pdcchs->coresets[ss->coreset_id], rnti_type, true, aggr_idx, ss_id, user, &pdcch_dl.dci.ctx);
+	// Add new DL PDCCH to sched result
+	// 申请pscch资源
+	pdcch_dl_t *pdcch_dl = oset_malloc(sizeof(pdcch_dl_t));
+	bool success = coreset_region_alloc_pdcch(&pdcchs->coresets[ss->coreset_id], rnti_type, true, aggr_idx, ss_id, user, &pdcch_dl->dci.ctx);
 
-  if (not success) {
-	// Remove failed PDCCH allocation
-	pdcch_dl_list.pop_back();
+	if (!success) {
+		// Remove failed PDCCH allocation
+		pdcchs->pdcch_dl_list.pop_back();
 
-	// Log PDCCH allocation failure
-	srslog::log_channel& ch = user == nullptr ? logger.warning : logger.debug;
-	log_pdcch_alloc_failure(ch, rnti_type, ss_id, rnti, "No available PDCCH position");
+		// Log PDCCH allocation failure
+		srslog::log_channel& ch = user == nullptr ? logger.warning : logger.debug;
+		log_pdcch_alloc_failure(ch, rnti_type, ss_id, rnti, "No available PDCCH position");
 
-	return pdcch_dl_alloc_result_fail((alloc_result)no_cch_space);
-  }
+		return pdcch_dl_alloc_result_fail((alloc_result)no_cch_space);
+	}
 
-  cvector_push_back(pdcchs->pdcch_dl_list, pdcch_dl)
+	cvector_push_back(pdcchs->pdcch_dl_list, pdcch_dl)
 
-  // PDCCH allocation was successful
-  pdcch_dl_t& pdcch = pdcch_dl_list.back();
+	// PDCCH allocation was successful
+	pdcch_dl_t& pdcch = pdcch_dl_list.back();
 
-  // Fill DCI with semi-static config
-  fill_dci_from_cfg(bwp_cfg, pdcch.dci);
+	// Fill DCI with semi-static config
+	fill_dci_from_cfg(bwp_cfg, pdcch.dci);
 
-  // Fill DCI context information
-  fill_dci_ctx_common(pdcch.dci.ctx, rnti_type, rnti, ss, dci_fmt, user);
+	// Fill DCI context information
+	fill_dci_ctx_common(pdcch.dci.ctx, rnti_type, rnti, ss, dci_fmt, user);
 
-  // register last PDCCH coreset, in case it needs to be aborted
-  pending_dci = &pdcch.dci.ctx;
+	// register last PDCCH coreset, in case it needs to be aborted
+	pending_dci = &pdcch.dci.ctx;
 
-  return pdcch_dl_alloc_result_succ(&pdcch);
+	return pdcch_dl_alloc_result_succ(&pdcch);
 }
 
 

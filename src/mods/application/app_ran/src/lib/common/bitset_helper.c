@@ -255,8 +255,14 @@ void bit_init(bounded_bitset *bit, size_t N, size_t cur_size, bool reversed)
    bit->cur_size = cur_size;
 }
 
+void bit_final(bounded_bitset *bit)
+{
+	oset_free(bit->buffer);
+}
+
 size_t bit_max_size(bounded_bitset *bit) { return bit->N; }
 size_t bit_size(bounded_bitset *bit) { return bit->cur_size; }
+bool bit_reversed(bounded_bitset *bit) { return bit->reversed; }
 
 void bit_resize(bounded_bitset *bit, size_t new_size)
 {
@@ -285,6 +291,13 @@ void bit_set(bounded_bitset *bit, size_t pos)
 {
   assert_within_bounds_(bit, pos, true);
   set_(bit, pos);
+}
+
+void bit_reset_all(bounded_bitset *bit)
+{
+  for (size_t i = 0; i < nof_words_(bit); ++i) {
+		bit->buffer[i] = (word_t)0;
+  }
 }
 
 void bit_reset(bounded_bitset *bit, size_t pos)
@@ -496,13 +509,19 @@ bounded_bitset* bit_and_eq(bounded_bitset *bit, bounded_bitset *other)
 }
 
 
-bounded_bitset* bit_and(bounded_bitset *lhs, bounded_bitset *rhs)
+bounded_bitset bit_and(bounded_bitset *lhs, bounded_bitset *rhs)
 {
-	return 	bit_and_eq(lhs, rhs);
+	bounded_bitset res = {0}
+	bit_init(&res, bit_max_size(lhs), bit_size(lhs), bit_reversed(lhs));//need free buffer
+	bit_and_eq(&res, rhs);
+	return res;
 }
 
-bounded_bitset* bit_or(bounded_bitset *lhs, bounded_bitset *rhs)
+bounded_bitset bit_or(bounded_bitset *lhs, bounded_bitset *rhs)
 {
-	return 	bit_or_eq(lhs, rhs);
+	bounded_bitset res = {0}
+	bit_init(&res, bit_max_size(lhs), bit_size(lhs), bit_reversed(lhs));//need free buffer
+	bit_or_eq(&res, rhs);
+	return res;
 }
 

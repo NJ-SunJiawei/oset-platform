@@ -40,6 +40,13 @@ static void bwp_slot_grid_init(bwp_slot_grid *slot, bwp_params_t *bwp_cfg_, uint
 
 void bwp_slot_grid_destory(bwp_slot_grid *slot)
 {
+	//pddchs
+	bwp_pdcch_allocator_destory(&slot->pdcchs);
+	//pdsch
+	pdsch_allocator_destory(&slot->pdschs);
+	//pusch
+	bwp_rb_bitmap_final(&slot->puschs.ul_prbs);
+
 	//dl
 	cvector_free(slot->dl.phy.ssb);
 	cvector_free(slot->dl.phy.pdcch_dl);
@@ -54,10 +61,6 @@ void bwp_slot_grid_destory(bwp_slot_grid *slot)
 	cvector_free(slot->ul.pusch);
 	//ack
 	cvector_free(slot->pending_acks);
-	//pddchs
-	for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
-		coreset_region_destory(&slot->pdcchs.coresets[cs_idx]);
-	}
 }
 
 void bwp_slot_grid_reset(bwp_slot_grid *slot)
@@ -169,7 +172,7 @@ alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 	pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_si_pdsch_unchecked(ss_id, prbs, pdcch.dci);
 
 	// Generate DCI for SIB
-	pdcch.dci_cfg.coreset0_bw = srsran_coreset_get_bw(&cfg.cfg.pdcch.coreset[0]);
+	pdcch.dci_cfg.coreset0_bw = srsran_coreset_get_bw(&bwp_alloc->cfg.cfg.pdcch.coreset[0]);
 	pdcch.dci.mcs             = 5;
 	pdcch.dci.rv              = 0;
 	pdcch.dci.sii             = si_idx == 0 ? 0 : 1;
