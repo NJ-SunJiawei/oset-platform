@@ -40,15 +40,7 @@ static uint32_t coreset_region_nof_cces(coreset_region *coreset)
 	return coreset->nof_freq_res * coreset_region_get_td_symbols(coreset);
 }
 
-
-static void coreset_region_reset(coreset_region *coreset)
-{
-	cvector_clear(coreset->dfs_tree);
-	cvector_clear(coreset->saved_dfs_tree);
-	cvector_clear(coreset->dci_list);
-}
-
-pdcch_cce_pos_list coreset_region_get_cce_loc_table(coreset_region              *coreset, alloc_record *record)
+static pdcch_cce_pos_list coreset_region_get_cce_loc_table(coreset_region              *coreset, alloc_record *record)
 {
   switch (record->dci->rnti_type) {
     case srsran_rnti_type_ra:
@@ -86,22 +78,14 @@ static bool coreset_region_alloc_dfs_node(coreset_region             *coreset, a
 	bit_init(&current_mask, SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE * SRSRAN_CORESET_DURATION_MAX, coreset_region_nof_cces(coreset), true);
 	bit_resize(&current_mask, coreset_region_nof_cces(coreset));
 
-	// get cumulative pdcch bitmap
-	if (!cvector_empty(alloc_dfs)) {
-		node.total_mask = alloc_dfs[cvector_size(alloc_dfs) - 1].total_mask;//back()
-	} else {
-		bit_init(&node.total_mask, SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE * SRSRAN_CORESET_DURATION_MAX, coreset_region_nof_cces(coreset), true);
-		bit_resize(&node.total_mask, coreset_region_nof_cces(coreset));
-	}
-
 	for (; node.dci_pos_idx < cce_locs->cce_index; ++node.dci_pos_idx) {
-		node.dci_pos.ncce = cce_locs[node.dci_pos_idx];//node.dci_pos_idx对应的cce逻辑位
+		node.dci_pos.ncce = cce_locs[node.dci_pos_idx];//node.dci_pos_idx对应的first cce id
 		//清空所有bit标志位
 		bit_reset_all(&current_mask);
 		//range(first cce, first cce + L)
 		bit_fill(&current_mask, node.dci_pos.ncce, node.dci_pos.ncce + (1U << record->aggr_idx), true);
 
-		bounded_bitset res = bit_and(&node.total_mask, &current_mask);
+		bounded_bitset res = bit_and(&coreset->total_mask, &current_mask);
 		if (bit_any(&res)) {
 			// there is a PDCCH collision. Try another CCE position
 			bit_final(&res);
@@ -109,7 +93,7 @@ static bool coreset_region_alloc_dfs_node(coreset_region             *coreset, a
 		}
 
 		// Allocation successful
-		node.total_mask |= current_mask;
+		bit_or_eq(&coreset->total_mask, &current_mask);
 		bit_final(&current_mask);
 		cvector_push_back(alloc_dfs, node)
 		record->dci->location = node.dci_pos;
@@ -120,11 +104,21 @@ static bool coreset_region_alloc_dfs_node(coreset_region             *coreset, a
 	return false;
 }
 
+void coreset_region_reset(coreset_region *coreset)
+{
+	cvector_clear(coreset->dfs_tree);
+	cvector_clear(coreset->saved_dfs_tree);
+	cvector_clear(coreset->dci_list);
+	bit_reset_all(&coreset->total_mask);
+
+}
+
 void coreset_region_destory(coreset_region *coreset)
 {
 	cvector_free(coreset->dfs_tree);
 	cvector_free(coreset->saved_dfs_tree);
 	cvector_free(coreset->dci_list);
+	bit_final(&coreset->total_mask);
 }
 
 void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32_t coreset_id_, uint32_t slot_idx_)
@@ -149,6 +143,9 @@ void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32
 	  }
 	}
 
+	bit_init(&coreset->total_mask, SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE * SRSRAN_CORESET_DURATION_MAX, coreset_region_nof_cces(coreset), true);
+	bit_resize(&coreset->total_mask, coreset_region_nof_cces(coreset));
+
 	ASSERT_IF_NOT(coreset->coreset_cfg->duration <= SRSRAN_CORESET_DURATION_MAX,
 	            "Possible number of time-domain OFDM symbols in CORESET must be within {1,2,3}");
 	ASSERT_IF_NOT((coreset->nof_freq_res * 6) <= bwp_cfg_->cell_cfg->carrier.nof_prb,
@@ -158,6 +155,26 @@ void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32
 	            bwp_cfg_->cell_cfg->carrier.nof_prb);
 }
 
+bool coreset_region_get_next_dfs(coreset_region            *coreset)
+{
+	do {
+		if (cvector_empty(coreset->dfs_tree)) {
+			// If we reach root, the allocation failed
+			return false;
+		}
+		// Attempt to re-add last tree node, but with a higher node child index
+		// 最后一个成功的DCI尝试往高位CCE移动，将之前已经申请成功的CCE尝试空出来给本次DCI使用
+		uint32_t start_child_idx = coreset->dfs_tree[cvector_size(coreset->dfs_tree) - 1].dci_pos_idx + 1;
+		cvector_pop_back(coreset->dfs_tree);
+		while (cvector_size(coreset->dfs_tree) < cvector_size(coreset->dci_list) &&\
+				coreset_region_alloc_dfs_node(coreset, coreset->dci_list[cvector_size(coreset->dfs_tree)], start_child_idx)) {
+			start_child_idx = 0;
+		}
+	} while (cvector_size(coreset->dfs_tree) < cvector_size(coreset->dci_list));
+
+	// Finished computation of next DFS node
+	return true;
+}
 
 bool coreset_region_alloc_pdcch(coreset_region             *coreset, 
 								srsran_rnti_type_t         rnti_type,
@@ -180,19 +197,21 @@ bool coreset_region_alloc_pdcch(coreset_region             *coreset,
 	// Try to allocate grant. If it fails, attempt the same grant, but using a different permutation of past grant DCI
 	// positions
 	do {
-		bool success = coreset_region_alloc_dfs_node(coreset, record, 0);
+		bool success = coreset_region_alloc_dfs_node(coreset, &record, 0);
 		if (success) {
 			// DCI record allocation successful
-			coreset->dci_list.push_back(record);
+			// 记录成功的dci参数
+			cvector_push_back(coreset->dci_list, record)
 			return true;
 		}
-		if (coreset->saved_dfs_tree.empty()) {
-			coreset->saved_dfs_tree = dfs_tree;
+		//临时缓存之前已成功的dfs记录
+		if (cvector_empty(coreset->saved_dfs_tree)) {
+			cvector_copy(coreset->dfs_tree, coreset->saved_dfs_tree)
 		}
-	} while (get_next_dfs());
+	} while (coreset_region_get_next_dfs(coreset));
 
 	// Revert steps to initial state, before dci record allocation was attempted
-	dfs_tree.swap(saved_dfs_tree);
+	cvector_copy(coreset->saved_dfs_tree, coreset->dfs_tree);
 	return false;
 }
 
@@ -239,10 +258,7 @@ void bwp_pdcch_allocator_reset(bwp_pdcch_allocator *pdcchs)
 	cvector_free(pdcchs->pdcch_ul_list);
 
 	for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {
-	  if (pdcchs->bwp_cfg->cfg.pdcch.coreset_present[cs_idx]) {
-		uint32_t cs_id = pdcchs->bwp_cfg->cfg.pdcch.coreset[cs_idx].id;
-		coreset_region_reset(&pdcchs->coresets[cs_id]);
-	  }
+		coreset_region_reset(&pdcchs->coresets[cs_idx]);
 	}
 }
 
@@ -370,7 +386,7 @@ static pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_dl_pdcch_common(bwp_pdcch
 		  : ue_carrier_params_get_ss(user, ss_id);
 
 	// Add new DL PDCCH to sched result
-	// 申请pscch资源
+	// 申请pdcch资源
 	pdcch_dl_t *pdcch_dl = oset_malloc(sizeof(pdcch_dl_t));
 	bool success = coreset_region_alloc_pdcch(&pdcchs->coresets[ss->coreset_id], rnti_type, true, aggr_idx, ss_id, user, &pdcch_dl->dci.ctx);
 

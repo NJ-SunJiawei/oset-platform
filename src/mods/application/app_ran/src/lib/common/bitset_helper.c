@@ -257,6 +257,7 @@ void bit_init(bounded_bitset *bit, size_t N, size_t cur_size, bool reversed)
 
 void bit_final(bounded_bitset *bit)
 {
+	*bit = {0};
 	oset_free(bit->buffer);
 }
 
@@ -271,7 +272,7 @@ void bit_resize(bounded_bitset *bit, size_t new_size)
 	return;
   }
   bit->cur_size = new_size;
-  sanitize_(bit);
+  sanitize_(bit);//expand and not change old data
   for (size_t i = nof_words_(bit); i < max_nof_words_(bit); ++i) {
 	bit->buffer[i] = (word_t)0;
   }
@@ -313,13 +314,6 @@ void bit_set_val(bounded_bitset *bit, size_t pos, bool val)
 	set_(bit, pos);
   } else {
 	reset_(bit, pos);
-  }
-}
-
-void bit_reset_all(bounded_bitset *bit)
-{
-  for (size_t i = 0; i < nof_words_(bit); ++i) {
-	bit->buffer[i] = (word_t)0;
   }
 }
 

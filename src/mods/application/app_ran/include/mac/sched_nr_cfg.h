@@ -25,7 +25,7 @@ extern "C" {
 
 typedef struct{
 	int      cce_index;//cce候选块的数量
-	uint32_t cce_addr[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR];//cce候选逻辑位置
+	uint32_t cce_addr[SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR];//first cce id集合
 }pdcch_cce_pos_list;//bounded_vector<uint32_t, SRSRAN_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR>
 
 //typedef cvector_vector_t(uint32_t) pdcch_cce_pos_list;

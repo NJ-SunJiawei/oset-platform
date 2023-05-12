@@ -43,7 +43,6 @@ void bit_set(bounded_bitset *bit, size_t pos);
 void bit_reset_all(bounded_bitset *bit);
 void bit_reset(bounded_bitset *bit, size_t pos);
 void bit_set_val(bounded_bitset *bit, size_t pos, bool val);
-void bit_reset_all(bounded_bitset *bit);
 bounded_bitset* bit_flip(bounded_bitset *bit);
 bounded_bitset* bit_fill(bounded_bitset *bit, size_t startpos, size_t endpos, bool value);
 int bit_find_lowest(bounded_bitset *bit, size_t startpos, size_t endpos, bool value);

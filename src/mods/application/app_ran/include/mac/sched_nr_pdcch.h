@@ -32,10 +32,10 @@ typedef struct {
 typedef struct  {
   uint16_t				rnti;//SRSRAN_INVALID_RNTI
   uint32_t				record_idx;
-  uint32_t				dci_pos_idx;
+  uint32_t				dci_pos_idx;//dci或者cce_idx其实值
   srsran_dci_location_t dci_pos;
   /// Accumulation of all PDCCH masks for the current solution (DFS path)
-  bounded_bitset        total_mask;//记录总的coreset可用频域资源//need free
+  //bounded_bitset        total_mask;//记录总的coreset可用频域资源//need free
   //bounded_bitset		current_mask;//描述当前某个dci占用频域资源(存储每次申请的临时记录)
 }tree_node;
 
@@ -49,10 +49,11 @@ typedef struct {
   bool                    common_cce_list_active[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
   bwp_cce_pos_list        common_cce_list[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
   //cvector_vector_t(bwp_cce_pos_list) common_cce_list;//optional_vector<bwp_cce_pos_list>
-  cvector_vector_t(alloc_record) dci_list;//bounded_vector<alloc_record, 2 * MAX_GRANTS>//已申请的dci资源记录合集
+  cvector_vector_t(alloc_record) dci_list;//bounded_vector<alloc_record, 2 * MAX_GRANTS>//已申请的dci资源记录合集(实际使用)
 
-  cvector_vector_t(tree_node)     dfs_tree;//std::vector<tree_node>//已申请的dci资源合集
-  cvector_vector_t(tree_node)     saved_dfs_tree;//std::vector<tree_node>
+  cvector_vector_t(tree_node)     dfs_tree;//std::vector<tree_node>//已申请的dci资源合集(数据暂存)
+  cvector_vector_t(tree_node)     saved_dfs_tree;//std::vector<tree_node>//临时缓存
+  bounded_bitset                  total_mask;//记录总的coreset可用频域资源//need free
 }coreset_region;
 
 /**
@@ -88,8 +89,9 @@ inline pdcch_dl_alloc_result pdcch_dl_alloc_result_fail(alloc_result alloc_res)
 	return result;
 }
 
-void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32_t coreset_id_, uint32_t slot_idx_);
+void coreset_region_reset(coreset_region *coreset);
 void coreset_region_destory(coreset_region *coreset);
+void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32_t coreset_id_, uint32_t slot_idx_);
 bool coreset_region_alloc_pdcch(coreset_region             *coreset, 
 								srsran_rnti_type_t         rnti_type,
 								bool                       is_dl,
