@@ -145,12 +145,6 @@ void bwp_rb_bitmap_init(bwp_rb_bitmap *prb_map, uint32_t bwp_nof_prbs, uint32_t 
 	prb_map->first_rbg_size = get_rbg_size(bwp_nof_prbs, bwp_prb_start_, config1_or_2, 0);
 }
 
-void bwp_rb_bitmap_final(bwp_rb_bitmap *prb_map)
-{
-	bit_final(&prb_map->prbs_);
-	bit_final(&prb_map->rbgs_);
-}
-
 void prb_interval_init(prb_interval *prb_interval, uint32_t start_point, uint32_t stop_point)
 {
 	prb_interval->start_ = start_point;
@@ -188,9 +182,7 @@ bool prb_grant_collides(bwp_rb_bitmap *prb_map, prb_grant *grant)
 {
   if (is_alloc_type0(grant)) {
   	bounded_bitset res = bit_and(&prb_map->rbgs_, &grant->alloc.rbgs);
-	bool collide = bit_any(&res);
-  	bit_final(&res);
-	return collide;
+	return bit_any(&res);
   }
   return bit_any_range(&prb_map->prbs_, grant->alloc.interv.start_, grant->alloc.interv.stop_);
 }

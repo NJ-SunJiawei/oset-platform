@@ -44,8 +44,6 @@ void bwp_slot_grid_destory(bwp_slot_grid *slot)
 	bwp_pdcch_allocator_destory(&slot->pdcchs);
 	//pdsch
 	pdsch_allocator_destory(&slot->pdschs);
-	//pusch
-	bwp_rb_bitmap_final(&slot->puschs.ul_prbs);
 
 	//dl
 	cvector_free(slot->dl.phy.ssb);

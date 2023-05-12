@@ -20,6 +20,8 @@
 extern "C" {
 #endif
 
+#define WORD_BUFFER_MAX 16  //可以表示16*bits_per_word个bit位
+
 typedef uint64_t word_t;
 #define bits_per_word (8*sizeof(word_t))  //64
 #define bits_buffer_len(N) ((N - 1) / bits_per_word + 1)
@@ -27,13 +29,12 @@ typedef uint64_t word_t;
 typedef struct {
 	bool    reversed;//true:msb   false:lsb (default)
 	size_t  N;
-	word_t  *buffer;
+	word_t  buffer[WORD_BUFFER_MAX];
 	size_t  cur_size;
 }bounded_bitset;//= asn1c BIT_STRING_t
 
 uint32_t ceil_div(uint32_t x, uint32_t y);
 void bit_init(bounded_bitset *bit, size_t N, size_t cur_size, bool reversed);
-void bit_final(bounded_bitset *bit);
 size_t bit_max_size(bounded_bitset *bit);
 size_t bit_size(bounded_bitset *bit);
 bool bit_reversed(bounded_bitset *bit);

@@ -105,7 +105,6 @@ void pdsch_allocator_reset(pdsch_allocator *pdsch)
 void pdsch_allocator_destory(pdsch_allocator *pdsch)
 {
 	cvector_free(pdsch->pdschs);
-	bwp_rb_bitmap_final(&pdsch->dl_prbs);
 }
 
 void pdsch_allocator_init(pdsch_allocator *pdsch, bwp_params_t *cfg_, uint32_t slot_index, cvector_vector_t(pdsch_t) pdsch_lst)
@@ -128,7 +127,6 @@ void pusch_allocator_reset(pusch_allocator *pusch)
 void pusch_allocator_destory(pusch_allocator *pusch)
 {
 	cvector_free(pusch->puschs);
-	bwp_rb_bitmap_final(&pusch->ul_prbs);
 }
 void pusch_allocator_init(pusch_allocator *pusch, bwp_params_t *cfg_, uint32_t slot_index,  cvector_vector_t(pusch_t) pusch_lst)
 {

@@ -71,36 +71,39 @@ static bool coreset_region_alloc_dfs_node(coreset_region             *coreset, a
 	}
 
 	tree_node node = {0};
-	bounded_bitset current_mask = {0};//描述当前某个dci占用频域资源(存储每次申请的临时记录)
 	node.dci_pos_idx = start_dci_idx;
 	node.dci_pos.L   = record->aggr_idx;
 	node.rnti        = record->ue != NULL ? record->ue->rnti : SRSRAN_INVALID_RNTI;
-	bit_init(&current_mask, SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE * SRSRAN_CORESET_DURATION_MAX, coreset_region_nof_cces(coreset), true);
-	bit_resize(&current_mask, coreset_region_nof_cces(coreset));
+	bit_init(&node.current_mask, SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE * SRSRAN_CORESET_DURATION_MAX, coreset_region_nof_cces(coreset), true);
+	bit_resize(&node.current_mask, coreset_region_nof_cces(coreset));
+
+	// get cumulative pdcch bitmap
+	if (!cvector_empty(alloc_dfs)) {
+		node.total_mask = alloc_dfs[cvector_size(alloc_dfs) - 1].total_mask;//back()
+	} else {
+		bit_init(&node.total_mask, SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE * SRSRAN_CORESET_DURATION_MAX, coreset_region_nof_cces(coreset), true);
+		bit_resize(&node.total_mask, coreset_region_nof_cces(coreset));
+	}
 
 	for (; node.dci_pos_idx < cce_locs->cce_index; ++node.dci_pos_idx) {
 		node.dci_pos.ncce = cce_locs[node.dci_pos_idx];//node.dci_pos_idx对应的first cce id
 		//清空所有bit标志位
-		bit_reset_all(&current_mask);
+		bit_reset_all(&node.current_mask);
 		//range(first cce, first cce + L)
-		bit_fill(&current_mask, node.dci_pos.ncce, node.dci_pos.ncce + (1U << record->aggr_idx), true);
+		bit_fill(&node.current_mask, node.dci_pos.ncce, node.dci_pos.ncce + (1U << record->aggr_idx), true);
 
-		bounded_bitset res = bit_and(&coreset->total_mask, &current_mask);
+		bounded_bitset res = bit_and(&node.total_mask, &node.current_mask);
 		if (bit_any(&res)) {
 			// there is a PDCCH collision. Try another CCE position
-			bit_final(&res);
 			continue;
 		}
 
 		// Allocation successful
-		bit_or_eq(&coreset->total_mask, &current_mask);
-		bit_final(&current_mask);
+		bit_or_eq(&node.total_mask, &node.current_mask);
 		cvector_push_back(alloc_dfs, node)
 		record->dci->location = node.dci_pos;
 		return true;
 	}
-
-	bit_final(&current_mask);
 	return false;
 }
 
@@ -109,8 +112,6 @@ void coreset_region_reset(coreset_region *coreset)
 	cvector_clear(coreset->dfs_tree);
 	cvector_clear(coreset->saved_dfs_tree);
 	cvector_clear(coreset->dci_list);
-	bit_reset_all(&coreset->total_mask);
-
 }
 
 void coreset_region_destory(coreset_region *coreset)
@@ -118,7 +119,6 @@ void coreset_region_destory(coreset_region *coreset)
 	cvector_free(coreset->dfs_tree);
 	cvector_free(coreset->saved_dfs_tree);
 	cvector_free(coreset->dci_list);
-	bit_final(&coreset->total_mask);
 }
 
 void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32_t coreset_id_, uint32_t slot_idx_)
@@ -143,9 +143,6 @@ void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32
 	  }
 	}
 
-	bit_init(&coreset->total_mask, SRSRAN_CORESET_FREQ_DOMAIN_RES_SIZE * SRSRAN_CORESET_DURATION_MAX, coreset_region_nof_cces(coreset), true);
-	bit_resize(&coreset->total_mask, coreset_region_nof_cces(coreset));
-
 	ASSERT_IF_NOT(coreset->coreset_cfg->duration <= SRSRAN_CORESET_DURATION_MAX,
 	            "Possible number of time-domain OFDM symbols in CORESET must be within {1,2,3}");
 	ASSERT_IF_NOT((coreset->nof_freq_res * 6) <= bwp_cfg_->cell_cfg->carrier.nof_prb,
@@ -157,13 +154,13 @@ void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32
 
 bool coreset_region_get_next_dfs(coreset_region            *coreset)
 {
+	//从最高位尝试，全部重新排位
 	do {
 		if (cvector_empty(coreset->dfs_tree)) {
 			// If we reach root, the allocation failed
 			return false;
 		}
 		// Attempt to re-add last tree node, but with a higher node child index
-		// 最后一个成功的DCI尝试往高位CCE移动，将之前已经申请成功的CCE尝试空出来给本次DCI使用
 		uint32_t start_child_idx = coreset->dfs_tree[cvector_size(coreset->dfs_tree) - 1].dci_pos_idx + 1;
 		cvector_pop_back(coreset->dfs_tree);
 		while (cvector_size(coreset->dfs_tree) < cvector_size(coreset->dci_list) &&\
@@ -200,7 +197,7 @@ bool coreset_region_alloc_pdcch(coreset_region             *coreset,
 		bool success = coreset_region_alloc_dfs_node(coreset, &record, 0);
 		if (success) {
 			// DCI record allocation successful
-			// 记录成功的dci参数
+			// 记录成功的dci record参数
 			cvector_push_back(coreset->dci_list, record)
 			return true;
 		}

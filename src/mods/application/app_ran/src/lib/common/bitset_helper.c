@@ -251,14 +251,9 @@ void bit_init(bounded_bitset *bit, size_t N, size_t cur_size, bool reversed)
    oset_assert(bit);
    bit->N = N;
    bit->reversed = reversed;
-   bit->buffer = oset_malloc(bits_buffer_len(N)*sizeof(word_t)); 
+   memset(bit->buffer, 0, sizeof(bit->buffer));
+   //bit->buffer = oset_malloc(bits_buffer_len(N)*sizeof(word_t)); 
    bit->cur_size = cur_size;
-}
-
-void bit_final(bounded_bitset *bit)
-{
-	*bit = {0};
-	oset_free(bit->buffer);
 }
 
 size_t bit_max_size(bounded_bitset *bit) { return bit->N; }
