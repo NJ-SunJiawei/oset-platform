@@ -161,6 +161,8 @@ uint32_t srsran_coreset_start_rb(const srsran_coreset_t* coreset)
     // If the frequency resource is enabled...
     if (coreset->freq_resources[res]) {
       // ... return the lowest resource block index
+      ////id = 0; coreset->offset_rb = 1; coreset0首个子载波中心和pointA的rb偏移量
+      ////id > 0; coreset->offset_rb = 0;
       return 6 * res + coreset->offset_rb;
     }
   }

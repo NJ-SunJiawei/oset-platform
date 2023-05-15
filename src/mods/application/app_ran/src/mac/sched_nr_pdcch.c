@@ -28,6 +28,21 @@ static char* log_pdcch_alloc_failure(srsran_rnti_type_t           rnti_type,
 	return fmtbuf;
 }
 
+static void fill_dci_dl_from_cfg(bwp_params_t *bwp_cfg, srsran_dci_dl_nr_t *dci)
+{
+	dci->bwp_id	   = bwp_cfg->bwp_id;
+	dci->cc_id	   = bwp_cfg->cc;
+	dci->tpc	   = 1; //用于功率控制
+	dci->coreset0_bw = bwp_cfg.cfg.pdcch.coreset_present[0] ? prb_interval_length(coreset_prb_range(bwp_cfg, 0)) : 0;
+}
+
+static void fill_dci_ul_from_cfg(bwp_params_t *bwp_cfg, srsran_dci_ul_nr_t *dci)
+{
+	dci->bwp_id = bwp_cfg->bwp_id;
+	dci->cc_id  = bwp_cfg->cc;
+	dci->tpc	  = 1;
+}
+
 static uint32_t coreset_region_get_td_symbols(coreset_region *coreset) { return coreset->coreset_cfg->duration; }
 
 static size_t coreset_region_nof_allocs(coreset_region *coreset) 
@@ -154,7 +169,7 @@ void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32
 
 bool coreset_region_get_next_dfs(coreset_region            *coreset)
 {
-	//从最高位尝试，全部重新排位
+	//从最高位尝试，first cce往高位重选
 	do {
 		if (cvector_empty(coreset->dfs_tree)) {
 			// If we reach root, the allocation failed
@@ -288,6 +303,26 @@ uint32_t bwp_pdcch_allocator_nof_allocations(bwp_pdcch_allocator *pdcchs)
 	return count;
 }
 
+static void bwp_pdcch_allocator_fill_dci_ctx_common(bwp_pdcch_allocator *pdcchs,
+												srsran_dci_ctx_t             *dci,
+												srsran_rnti_type_t           rnti_type,
+												uint16_t                     rnti,
+												srsran_search_space_t        *ss,
+												srsran_dci_format_nr_t       dci_fmt,
+												ue_carrier_params_t          *ue)
+{
+  // Note: Location is filled by coreset_region class.
+  dci->ss_type    = ss->type;
+  dci->coreset_id = ss->coreset_id;
+  srsran_coreset_t* coreset =
+      ue == NULL ? &pdcchs->bwp_cfg->cfg.pdcch.coreset[ss->coreset_id] : &ue->cfg_->phy_cfg.pdcch.coreset[ss.coreset_id];
+  dci->coreset_start_rb = srsran_coreset_start_rb(coreset);
+  dci->rnti_type        = rnti_type;
+  dci->rnti             = rnti;
+  dci->format           = dci_fmt;
+}
+
+
 static alloc_result bwp_pdcch_allocator_check_args_valid(bwp_pdcch_allocator *pdcchs,
 											srsran_rnti_type_t		  rnti_type,
 											uint16_t 				  rnti,
@@ -385,34 +420,30 @@ static pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_dl_pdcch_common(bwp_pdcch
 	// Add new DL PDCCH to sched result
 	// 申请pdcch资源
 	pdcch_dl_t *pdcch_dl = oset_malloc(sizeof(pdcch_dl_t));
+	oset_assert(pdcch_dl);
 	bool success = coreset_region_alloc_pdcch(&pdcchs->coresets[ss->coreset_id], rnti_type, true, aggr_idx, ss_id, user, &pdcch_dl->dci.ctx);
 
 	if (!success) {
 		// Remove failed PDCCH allocation
-		pdcchs->pdcch_dl_list.pop_back();
+		oset_free(pdcch_dl);
 
 		// Log PDCCH allocation failure
-		srslog::log_channel& ch = user == nullptr ? logger.warning : logger.debug;
-		log_pdcch_alloc_failure(ch, rnti_type, ss_id, rnti, "No available PDCCH position");
-
+		oset_error("%sNo available PDCCH position", log_pdcch_alloc_failure(rnti_type, ss_id, rnti));
 		return pdcch_dl_alloc_result_fail((alloc_result)no_cch_space);
 	}
 
-	cvector_push_back(pdcchs->pdcch_dl_list, pdcch_dl)
-
-	// PDCCH allocation was successful
-	pdcch_dl_t& pdcch = pdcch_dl_list.back();
+	cvector_push_back(pdcchs->pdcch_dl_list, pdcch_dl);
 
 	// Fill DCI with semi-static config
-	fill_dci_from_cfg(bwp_cfg, pdcch.dci);
+	fill_dci_dl_from_cfg(pdcchs->bwp_cfg, &pdcch_dl->dci);
 
 	// Fill DCI context information
-	fill_dci_ctx_common(pdcch.dci.ctx, rnti_type, rnti, ss, dci_fmt, user);
+	bwp_pdcch_allocator_fill_dci_ctx_common(pdcchs, pdcch_dl->dci.ctx, rnti_type, rnti, ss, dci_fmt, user);
 
 	// register last PDCCH coreset, in case it needs to be aborted
-	pending_dci = &pdcch.dci.ctx;
+	pdcchs->pending_dci = &pdcch_dl->dci.ctx;
 
-	return pdcch_dl_alloc_result_succ(&pdcch);
+	return pdcch_dl_alloc_result_succ(pdcch_dl);
 }
 
 

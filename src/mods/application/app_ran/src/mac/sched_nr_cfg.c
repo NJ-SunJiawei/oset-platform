@@ -32,6 +32,11 @@ void get_dci_locs(srsran_coreset_t      coreset,
 	}
 }
 
+prb_interval* coreset_prb_range(bwp_params_t *param, uint32_t cs_id)
+{
+	return &param->coresets[cs_id].prb_limits;
+}
+
 bwp_rb_bitmap* dci_fmt_1_0_excluded_prbs(bwp_params_t *param, uint32_t cs_id)
 {
 	return &param->coresets[cs_id].usable_common_ss_prb_mask;
@@ -67,21 +72,30 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		}
 		srsran_coreset_t *cs = bwp_cfg->pdcch.coreset[i];
 
+		// [cs_id = 0, f[0] = 1, offset = 1] RB start = 1, RB end = 49, rb_width = 52
+		// [cs_id = 1, f[0] = 1, offset = 0] RB start = 0, RB end = 48, rb_width = 52
+		// [cs_id = 2, f[0] = 1, offset = 0] RB start = 0, RB end = 48, rb_width = 52
+
 		uint32_t rb_start = srsran_coreset_start_rb(cs);
 		cell_bwp->coresets[cs->id].active  = true;
 		prb_interval_init(&cell_bwp->coresets[cs->id].prb_limits, rb_start, rb_start + srsran_coreset_get_bw(cs));
 		cell_bwp->coresets[cs->id].usable_common_ss_prb_mask = cell_bwp->cached_empty_prb_mask;
 
 		// TS 38.214, 5.1.2.2 - For DCI format 1_0 and common search space, lowest RB of the CORESET is the RB index = 0
-		//对于DCI格式1_0和公共搜索空间，CORESET的最低RB是RB索引=0
+		// cached_empty_prb_mask     [0~~~~~~~~~e]
+		// usable_common_ss_prb_mask [0~s        ]
+		// dci_1_0_prb_limits        [  s~~~~~~~e]
+		// prb_limits                [  s~~~~s   ]
 		prb_interval interval = {0, rb_start};
 		bwp_rb_bitmap_add_by_prb_interval(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);
-		prb_interval_init(&cell_bwp->coresets[cs->id].dci_1_0_prb_limits, rb_start, bwp_cfg->rb_width);//???todo
+		prb_interval_init(&cell_bwp->coresets[cs->id].dci_1_0_prb_limits, rb_start, bwp_cfg->rb_width);//bwp_cfg->rb_width从0开始涵盖整个bwp区间
 
 		// TS 38.214, 5.1.2.2.2 - when DCI format 1_0, common search space and CORESET#0 is configured for the cell,
 		// RA type 1 allocs shall be within the CORESET#0 region
-		//TS 38.214，5.1.2.2.2-当为小区配置DCI格式1_0、公共搜索空间和CORESET#0时，
-		//RA 1型分配应在CORESET#0区域内
+		// cached_empty_prb_mask     [0~~~~~~~~~e]
+		// usable_common_ss_prb_mask [0~s     s~e]
+		// dci_1_0_prb_limits        [  s~~~~~s  ]
+		// prb_limits                [  s~~~~~s  ]
 		if (bwp_cfg->pdcch.coreset_present[0]) {
 		  cell_bwp->coresets[cs->id].dci_1_0_prb_limits =  cell_bwp->coresets[cs->id].prb_limits;
 		  prb_interval interval = {cell_bwp->coresets[cs.id].prb_limits.stop_, bwp_cfg->rb_width};

@@ -788,6 +788,7 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
                                  srsran_sch_grant_nr_t*        pdsch_grant)
 {
   // 5.2.1.1 Resource allocation in time domain时域资源分配
+  // 并且计算DMRS
   if (srsran_ra_dl_nr_time(pdsch_hl_cfg,
                            dci_dl->ctx.rnti_type,
                            dci_dl->ctx.ss_type,
@@ -816,7 +817,7 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   pdsch_grant->tb[0].ndi       = dci_dl->ndi;
   pdsch_cfg->sch_cfg.mcs_table = pdsch_hl_cfg->mcs_table;//暂时未使用好像
 
-  // 5.1.4 PDSCH resource mappingPDSCH资源映射
+  // 5.1.4 PDSCH resource mapping PDSCH zp-csi资源映射
   if (ra_dl_resource_mapping(carrier, slot, pdsch_hl_cfg, pdsch_cfg) < SRSRAN_SUCCESS) {
     ERROR("Error in resource mapping");
     return SRSRAN_ERROR;

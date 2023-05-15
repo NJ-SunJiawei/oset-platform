@@ -8,11 +8,11 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "phy/phy.h"
-#include "phy/slot_worker.h"
 #include "mac/mac.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-slot-worker"
+
 
 #define SLOT_WORK_POOL_SIZE  (TX_ENB_DELAY*2)
 oset_stl_queue_def(slot_worker_t, slot_worker) slot_work_list = NULL;
@@ -115,12 +115,50 @@ bool slot_worker_init(slot_worker_args_t *args)
 	return true;
 }
 
+bool slot_worker_set_common_cfg(const srsran_carrier_nr_t *carrier,
+                                 const srsran_pdcch_cfg_nr_t *pdcch_cfg_,
+                                 const srsran_ssb_cfg_t      *ssb_cfg_)
+{
+	slot_worker_t *slot_w = NULL;
+	oset_stl_queue_foreach(&slot_work_list, slot_w){
+		// Set gNb DL carrier
+		if (srsran_gnb_dl_set_carrier(&slot_w->gnb_dl, carrier) < SRSRAN_SUCCESS) {
+			oset_error("Error setting DL carrier");
+			return false;
+		}
+
+		// Configure SSB
+		if (srsran_gnb_dl_set_ssb_config(&slot_w->gnb_dl, ssb_cfg_) < SRSRAN_SUCCESS) {
+			oset_error("Error setting SSB");
+			return false;
+		}
+
+		// Set gNb UL carrier
+		if (srsran_gnb_ul_set_carrier(&slot_w->gnb_ul, carrier) < SRSRAN_SUCCESS) {
+			oset_error("Error setting UL carrier (pci=%d, nof_prb=%d, max_mimo_layers=%d)",
+			             carrier.pci,
+			             carrier.nof_prb,
+			             carrier.max_mimo_layers);
+			return false;
+		}
+
+		slot_w->pdcch_cfg = *pdcch_cfg_;//get from rrc
+
+		// Update subframe length
+		slot_w->sf_len = SRSRAN_SF_LEN_PRB_NR(carrier->nof_prb);
+	}
+
+	return true;
+}
+
+
 void slot_worker_destory(void)
 {
 	int i = 0;
 	slot_worker_t *slot_w = NULL;
 
 	oset_threadpool_destory(phy_manager_self()->th_pools);
+
 	oset_stl_queue_foreach(&slot_work_list, slot_w){
 		for (i = 0; i < (phy_manager_self()->slot_args.nof_rx_ports; i++){
 			free(slot_w->rx_buffer[i]);

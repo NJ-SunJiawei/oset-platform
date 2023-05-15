@@ -40,10 +40,12 @@ static void bwp_slot_grid_init(bwp_slot_grid *slot, bwp_params_t *bwp_cfg_, uint
 
 void bwp_slot_grid_destory(bwp_slot_grid *slot)
 {
-	//pddchs
+	//pdcchs
 	bwp_pdcch_allocator_destory(&slot->pdcchs);
 	//pdsch
 	pdsch_allocator_destory(&slot->pdschs);
+	//pusch
+	pusch_allocator_destory(&slot->puschs);
 
 	//dl
 	cvector_free(slot->dl.phy.ssb);
@@ -144,7 +146,7 @@ alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 													prb_interval        *prbs,
 													tx_harq_softbuffer  *softbuffer)
 {
-	static const uint32_t               ss_id   = 0;
+	static const uint32_t               ss_id   = 0;//sib ss_id = 0
 	static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0;
 
 	bwp_slot_grid *bwp_pdcch_slot = tx_slot_grid(bwp_alloc);
@@ -159,29 +161,35 @@ alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 
 	// Allocate PDCCH
 	// 申请dci，聚合2
-	auto pdcch_result = bwp_pdcch_allocator_alloc_si_pdcch(&bwp_pdcch_slot->pdcchs, ss_id, aggr_idx);
-	if (pdcch_result.is_error()) {
-		logger.warning("SCHED: Cannot allocate SIB due to lack of PDCCH space.");
-		return pdcch_result.error();
+	pdcch_dl_alloc_result pdcch_result = bwp_pdcch_allocator_alloc_si_pdcch(&bwp_pdcch_slot->pdcchs, ss_id, aggr_idx);
+	if (!pdcch_result.has_val) {
+		oset_error("[%lu] SCHED: Cannot allocate SIB due to lack of PDCCH space.", GET_RSLOT_ID(&bwp_alloc->pdcch_slot));
+		return pdcch_result.res.unexpected;
 	}
-	pdcch_dl_t& pdcch = *pdcch_result.value();
+	pdcch_dl_t *pdcch = pdcch_result.res.val;
 
 	// Allocate PDSCH (no need to verify again if there is space in PDSCH)
-	pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_si_pdsch_unchecked(ss_id, prbs, pdcch.dci);
+	// 申请pdsch
+	pdsch_t *pdsch = pdsch_allocator_alloc_si_pdsch_unchecked(&bwp_pdcch_slot->pdschs, ss_id, prbs, &pdcch->dci);
 
 	// Generate DCI for SIB
-	pdcch.dci_cfg.coreset0_bw = srsran_coreset_get_bw(&bwp_alloc->cfg.cfg.pdcch.coreset[0]);
+	pdcch.dci_cfg.coreset0_bw = srsran_coreset_get_bw(&bwp_alloc->cfg->cfg.pdcch.coreset[0]);
 	pdcch.dci.mcs             = 5;
 	pdcch.dci.rv              = 0;
 	pdcch.dci.sii             = si_idx == 0 ? 0 : 1;
 
 	// Generate PDSCH
-	srsran_slot_cfg_t slot_cfg;
-	slot_cfg.idx = pdcch_slot.to_uint();
-	int code     = srsran_ra_dl_dci_to_grant_nr(
-	  &cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch.dci, &pdsch.sch, &pdsch.sch.grant);
+	srsran_slot_cfg_t slot_cfg  = {0};
+	slot_cfg.idx = count_idx(&bwp_alloc->pdcch_slot);
+	// Resource allocation
+	int code     = srsran_ra_dl_dci_to_grant_nr(&bwp_alloc->cfg->cell_cfg->carrier,
+												&slot_cfg,
+												&bwp_alloc->cfg->cfg.pdsch,
+												&pdcch.dci,
+												&pdsch.sch,
+												&pdsch.sch.grant);
 	if (code != SRSRAN_SUCCESS) {
-		logger.warning("Error generating SIB PDSCH grant.");
+		oset_error("[%lu] Error generating SIB PDSCH grant", GET_RSLOT_ID(&bwp_alloc->pdcch_slot));
 		bwp_pdcch_slot.pdcchs.cancel_last_pdcch();
 		bwp_pdcch_slot.dl.phy.pdsch.pop_back();
 		return alloc_result::other_cause;

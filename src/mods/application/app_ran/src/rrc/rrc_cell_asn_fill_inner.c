@@ -113,10 +113,10 @@ bool make_phy_coreset_cfg(struct ctrl_res_set_s *ctrl_res_set, srsran_coreset_t 
 	srsran_coreset_t srsran_coreset = {0};
 	srsran_coreset.id               = ctrl_res_set->ctrl_res_set_id;
 	switch (ctrl_res_set->precoder_granularity) {
-	case same_as_reg_bundle:
+	case (enum precoder_granularity_opts)same_as_reg_bundle:
 	  srsran_coreset.precoder_granularity = srsran_coreset_precoder_granularity_reg_bundle;
 	  break;
-	case all_contiguous_rbs:
+	case (enum precoder_granularity_opts)all_contiguous_rbs:
 	  srsran_coreset.precoder_granularity = srsran_coreset_precoder_granularity_contiguous;
 	default:
 	  oset_error("Invalid option for precoder_granularity %d", ctrl_res_set->precoder_granularity);
@@ -124,10 +124,10 @@ bool make_phy_coreset_cfg(struct ctrl_res_set_s *ctrl_res_set, srsran_coreset_t 
 	};
 
 	switch (ctrl_res_set->cce_reg_map_type.types) {
-	case interleaved:
+	case (enum cce_reg_map_types_opts)interleaved:
 	  srsran_coreset.mapping_type = srsran_coreset_mapping_type_interleaved;
 	  break;
-	case non_interleaved:
+	case (enum cce_reg_map_types_opts)non_interleaved:
 	  srsran_coreset.mapping_type = srsran_coreset_mapping_type_non_interleaved;
 	  break;
 	default:
@@ -236,8 +236,8 @@ bool fill_phy_pdcch_cfg_common2(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_pdcch_cf
 {
 	if (rrc_cell_cfg->pdcch_cfg_common.common_ctrl_res_set_present) {
 		//is_sa no enter
-		pdcch->coreset_present[rrc_cell_cfg->pdcch_cfg_common.common_ctrl_res_set.ctrl_res_set_id] = true;
-		make_phy_coreset_cfg(rrc_cell_cfg->pdcch_cfg_common.common_ctrl_res_set, &pdcch->coreset[rrc_cell_cfg->pdcch_cfg_common.common_ctrl_res_set.ctrl_res_set_id]);
+		//pdcch->coreset_present[rrc_cell_cfg->pdcch_cfg_common.common_ctrl_res_set.ctrl_res_set_id] = true;
+		//make_phy_coreset_cfg(rrc_cell_cfg->pdcch_cfg_common.common_ctrl_res_set, &pdcch->coreset[rrc_cell_cfg->pdcch_cfg_common.common_ctrl_res_set.ctrl_res_set_id]);
 	}
 
 	struct search_space_s *ss = NULL;
@@ -1059,7 +1059,7 @@ void fill_pdcch_cfg_common_inner(rrc_cell_cfg_nr_t *cell_cfg, struct pdcch_cfg_c
 	out->search_space_sib1_present           = true;
 	out->search_space_sib1                   = 0;
 	out->search_space_other_sys_info_present = true;
-	out->search_space_other_sys_info         = 1;
+	out->search_space_other_sys_info         = 0; //1
 	out->paging_search_space_present         = true;
 	out->paging_search_space                 = 1;
 	out->ra_search_space_present             = true;

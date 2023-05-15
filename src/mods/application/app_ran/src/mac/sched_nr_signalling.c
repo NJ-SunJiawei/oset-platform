@@ -102,7 +102,7 @@ void si_sched_run_slot(bwp_slot_allocator *bwp_alloc, si_sched *si_s)
 
 		// Attempt grants with increasing number of PRBs (if the number of PRBs is too low, the coderate is invalid)
 		si->result         = (alloc_result)invalid_coderate;
-		uint32_t     nprbs = 8;
+		uint32_t     nprbs = 8;//应该根据mcs/tb size计算prb数量
 		prb_interval grant = find_empty_interval_of_length(&prbs, nprbs, 0);
 		if (prb_interval_length(&grant) >= nprbs) {
 		  si->result = bwp_slot_allocator_alloc_si(bwp_alloc, si_aggr_level, si->n, si->n_tx, grant, &si->si_softbuffer->buffer);//申请prb资源
@@ -213,7 +213,7 @@ void sched_dl_signalling(bwp_slot_allocator *bwp_alloc)
 
 		prb_interval interval = {(uint32_t)ssb_start_rb, ssb_start_rb + ssb_len_rb};
 		prb_grant grap = {0};
-		pdsch_allocator_reserve_prbs(sl_grid, prb_grant_interval_init(&grap, &interval));
+		bwp_slot_grid_reserve_pdsch(sl_grid, prb_grant_interval_init(&grap, &interval));
 	}
 
 	// Schedule NZP-CSI-RS

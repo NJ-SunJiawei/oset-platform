@@ -32,6 +32,7 @@ extern "C" {
 				  E unexpected;\
 				}res;\
 			}
+
 /////////////////////////////////////////////////////////
 
 
@@ -78,7 +79,7 @@ typedef struct  sched_nr_ue_cfg_s{
 
 typedef struct  {
   uint32_t                 start_rb;
-  uint32_t                 rb_width;//100
+  uint32_t                 rb_width;//[0~100]
   srsran_pdcch_cfg_nr_t    pdcch;
   srsran_sch_hl_cfg_nr_t   pdsch;
   srsran_sch_hl_cfg_nr_t   pusch;
@@ -157,6 +158,13 @@ typedef struct dl_res_s{
   cvector_vector_t(rar_t)	 rar; //bounsed_vector<rar_t, MAX_GRANTS>;
   cvector_vector_t(uint32_t) sib_idxs;//bounded_vector<uint32_t, MAX_GRANTS>//list of SI indexes
 }dl_res_t;
+
+
+inline uint32_t GET_RSLOT_ID(slot_point tx_slot)
+{
+	return count_idx(&tx_slot) - TX_ENB_DELAY;
+}
+
 
 #ifdef __cplusplus
 }

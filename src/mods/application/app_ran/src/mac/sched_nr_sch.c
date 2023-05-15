@@ -15,6 +15,69 @@
 
 static const  char *log_pdsch = "SCHED: Failure to allocate PDSCH. Cause: ";
 
+pdsch_t* pdsch_allocator_alloc_pdsch_unchecked(pdsch_allocator *pdsch_alloc,
+														uint32_t                   coreset_id,
+														srsran_search_space_type_t ss_type,
+														srsran_dci_format_nr_t     dci_fmt,
+														prb_grant                  *grant,
+														srsran_dci_dl_nr_t         *out_dci)
+{
+  // Create new PDSCH entry in output PDSCH list
+  pdsch_t *pdsch = oset_malloc(sizeof(pdsch_t));
+  oset_assert(pdsch);
+  cvector_push_back(pdsch_alloc->pdschs, pdsch);
+
+  // Register allocated PRBs in accumulated bitmap
+  pdsch_allocator_reserve_prbs(pdsch_alloc, grant);
+
+  // Fill DCI with PDSCH freq/time allocation information
+  // 时域资源分配
+  out_dci->time_domain_assigment = 0;//pdsch-TimeDomainAllocationList  startSymbolAndLength 40 k0= 0 s=1 len=13
+  // 频域资源
+  if (is_alloc_type0(grant)) {
+	out_dci->freq_domain_assigment = bit_to_uint64(&grant->alloc.rbgs);
+  } else {
+    uint32_t rb_start = grant->alloc.interv.start_, nof_prb = pdsch_alloc->bwp_cfg->nof_prb;
+	// coreset0所属，dci和pdsch范围限制在coreset0频域范围内
+    if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type)) {
+      prb_interval *lims = coreset_prb_range(pdsch_alloc->bwp_cfg, coreset_id);
+      if (dci_fmt == srsran_dci_format_nr_1_0) {
+        ASSERT_IF_NOT(rb_start >= lims->start_, "Invalid PRB grant");
+        rb_start -= lims->start_;//coreset0->offset 去除rb_start偏移量
+      }
+	  // TS 38.214, 5.1.2.2.2 - when DCI format 1_0, common search space and CORESET#0 is configured for the cell,
+	  // RA type 1 allocs shall be within the CORESET#0 region
+      if (coreset_id == 0) {
+		nof_prb = prb_interval_length(lims);
+      }
+    }
+    ASSERT_IF_NOT(rb_start + prb_interval_length(&grant->alloc.interv) <= nof_prb, "Invalid PRB grant");
+    out_dci->freq_domain_assigment = srsran_ra_nr_type1_riv(nof_prb, rb_start, prb_interval_length(&grant->alloc.interv));
+  }
+
+  return pdsch;
+}
+
+//not use
+pdsch_alloc_result pdsch_allocator_alloc_si_pdsch(pdsch_allocator *pdsch_alloc, uint32_t ss_id, prb_grant *grant, srsran_dci_dl_nr_t *dci)
+{
+  alloc_result code = pdsch_allocator_is_si_grant_valid(ss_id, grant);
+  if (code != (alloc_result)success) {
+	return pdsch_alloc_result_fail(code);
+  }
+  return pdsch_alloc_result_succ(pdsch_allocator_alloc_si_pdsch_unchecked(pdsch_alloc, ss_id, grant, dci));
+}
+
+
+pdsch_t* pdsch_allocator_alloc_si_pdsch_unchecked(pdsch_allocator *pdsch_alloc, uint32_t ss_id, prb_grant *grant, srsran_dci_dl_nr_t *dci)
+{
+  // Verify SearchSpace validity
+  const srsran_search_space_t* ss = get_ss(pdsch_alloc->bwp_cfg, ss_id);
+  ASSERT_IF_NOT(ss != NULL, "%sSearchSpace has not been configured", log_pdsch);
+  return pdsch_allocator_alloc_pdsch_unchecked(pdsch_alloc, ss->coreset_id, ss->type, srsran_dci_format_nr_1_0, grant, dci);
+}
+
+
 alloc_result pdsch_allocator_is_grant_valid_common(pdsch_allocator *pdsch_alloc, 
 																	srsran_search_space_type_t ss_type,
 																	srsran_dci_format_nr_t     dci_fmt,
@@ -97,13 +160,21 @@ prb_bitmap pdsch_allocator_occupied_prbs(pdsch_allocator *pdsch_alloc, uint32_t 
 
 void pdsch_allocator_reset(pdsch_allocator *pdsch)
 {
+	pdsch_t  **pdsch_node = NULL;
+	cvector_for_each_in(pdsch_node, pdsch->pdschs){
+		oset_free(*pdsch_node);
+	}
 	cvector_clear(pdsch->pdschs);
-	bit_reset_all(&pdsch->dl_prbs.prbs_);
-	bit_reset_all(&pdsch->dl_prbs.rbgs_);
+
+	bwp_rb_bitmap_reset(&pdsch->dl_prbs);
 }
 
 void pdsch_allocator_destory(pdsch_allocator *pdsch)
 {
+	pdsch_t  **pdsch_node = NULL;
+	cvector_for_each_in(pdsch_node, pdsch->pdschs){
+		oset_free(*pdsch_node);
+	}
 	cvector_free(pdsch->pdschs);
 }
 
@@ -119,13 +190,21 @@ void pdsch_allocator_init(pdsch_allocator *pdsch, bwp_params_t *cfg_, uint32_t s
 /////////////////////////////////////////////////////////////////////////////////////////////////
 void pusch_allocator_reset(pusch_allocator *pusch)
 {
+	pusch_t  **pusch_node = NULL;
+	cvector_for_each_in(pusch_node, pusch->puschs){
+		oset_free(*pusch_node);
+	}
 	cvector_clear(pusch->puschs);
-	bit_reset_all(&pusch->ul_prbs.prbs_);
-	bit_reset_all(&pusch->ul_prbs.rbgs_);
+
+	bwp_rb_bitmap_reset(&pusch->ul_prbs);
 }
 
 void pusch_allocator_destory(pusch_allocator *pusch)
 {
+	pusch_t  **pusch_node = NULL;
+	cvector_for_each_in(pusch_node, pusch->puschs){
+		oset_free(*pusch_node);
+	}
 	cvector_free(pusch->puschs);
 }
 void pusch_allocator_init(pusch_allocator *pusch, bwp_params_t *cfg_, uint32_t slot_index,  cvector_vector_t(pusch_t) pusch_lst)

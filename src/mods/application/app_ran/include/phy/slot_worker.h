@@ -42,25 +42,28 @@ typedef struct slot_worker_s{
 	uint32_t			  sf_len;
 	uint32_t			  cell_index;
 	uint32_t			  rf_port;
-	srsran_slot_cfg_t	  dl_slot_cfg;
-	srsran_slot_cfg_t	  ul_slot_cfg;
-	worker_context_t      context;
 	srsran_pdcch_cfg_nr_t pdcch_cfg;
 	srsran_gnb_dl_t 	  gnb_dl;
 	srsran_gnb_ul_t 	  gnb_ul;
+
+	srsran_slot_cfg_t	  dl_slot_cfg;
+	srsran_slot_cfg_t	  ul_slot_cfg;
+	worker_context_t      context;
 	cf_t                  **tx_buffer; ///< Baseband transmit buffers ~1 subframe len //[args->nof_tx_ports]
 	cf_t                  **rx_buffer; ///< Baseband receive buffers ~1 subframe len //[args->nof_rx_ports]
 }slot_worker_t;
 
-typedef struct slot_manager_s{
-	//uint32_t               tti;//txrx
-	slot_worker_t          slot_worker;//phy deal tti slot
-}slot_manager_t;
+//typedef struct slot_manager_s{
+//	slot_worker_t          slot_worker;//phy deal tti slot
+//}slot_manager_t;
 
 slot_worker_t* slot_worker_alloc(void);
 void slot_worker_free(slot_worker_t *slot_w);
 
 void slot_worker_init(slot_worker_args_t *args);
+bool slot_worker_set_common_cfg(const srsran_carrier_nr_t *carrier,
+                                 const srsran_pdcch_cfg_nr_t *pdcch_cfg_,
+                                 const srsran_ssb_cfg_t      *ssb_cfg_);
 void slot_worker_destory(void);
 
 uint32_t get_buffer_len(slot_worker_t *slot_w);

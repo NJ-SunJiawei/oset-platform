@@ -132,6 +132,11 @@ void bwp_rb_bitmap_add_by_prb_grant(bwp_rb_bitmap *prb_map, prb_grant *grant)
   }
 }
 
+void bwp_rb_bitmap_reset(bwp_rb_bitmap *prb_map)
+{
+	bit_reset_all(&prb_map->prbs_);
+	bit_reset_all(&prb_map->rbgs_);
+}
 
 void bwp_rb_bitmap_init(bwp_rb_bitmap *prb_map, uint32_t bwp_nof_prbs, uint32_t bwp_prb_start_, bool config1_or_2)
 {

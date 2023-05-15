@@ -131,39 +131,6 @@ static int init_nr(const phy_args_t& args, const phy_cfg_t& cfg)
 	return OSET_OK;
 }
 
-static bool slot_worker_set_common_cfg(const srsran_carrier_nr_t *carrier,
-                                 const srsran_pdcch_cfg_nr_t *pdcch_cfg_,
-                                 const srsran_ssb_cfg_t      *ssb_cfg_)
-{
-	// Set gNb DL carrier
-	if (srsran_gnb_dl_set_carrier(&slot_manager.slot_worker.gnb_dl, carrier) < SRSRAN_SUCCESS) {
-	oset_error("Error setting DL carrier");
-	return false;
-	}
-
-	// Configure SSB
-	if (srsran_gnb_dl_set_ssb_config(&slot_manager.slot_worker.gnb_dl, ssb_cfg_) < SRSRAN_SUCCESS) {
-	oset_error("Error setting SSB");
-	return false;
-	}
-
-	// Set gNb UL carrier
-	if (srsran_gnb_ul_set_carrier(&slot_manager.slot_worker.gnb_ul, carrier) < SRSRAN_SUCCESS) {
-	oset_error("Error setting UL carrier (pci=%d, nof_prb=%d, max_mimo_layers=%d)",
-	             carrier.pci,
-	             carrier.nof_prb,
-	             carrier.max_mimo_layers);
-	return false;
-	}
-
-	slot_manager.slot_worker.pdcch_cfg = *pdcch_cfg_;
-
-	// Update subframe length
-	slot_manager.slot_worker.sf_len = SRSRAN_SF_LEN_PRB_NR(carrier->nof_prb);
-
-	return true;
-}
-
 
 static int set_common_cfg_from_rrc(common_cfg_t *common_cfg)
 {
@@ -176,6 +143,7 @@ static int set_common_cfg_from_rrc(common_cfg_t *common_cfg)
 	}
 
 	// Best effort to set up NR-PRACH config reused for NR
+	// 消除4G和5G之间的频偏，SA模式不需要
 	srsran_prach_cfg_t *prach_cfg           = &common_cfg->prach;
 	uint32_t           lte_nr_prach_offset = (common_cfg->carrier.nof_prb - cell.nof_prb) / 2;
 	if (prach_cfg->freq_offset < lte_nr_prach_offset) {

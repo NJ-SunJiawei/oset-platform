@@ -49,7 +49,7 @@ typedef struct {
 
 typedef struct {
   bool          active;
-  prb_interval	prb_limits;
+  prb_interval	prb_limits;//coreset频谱配置宽度
   prb_interval	dci_1_0_prb_limits; /// See TS 38.214, section 5.1.2.2
   bwp_rb_bitmap usable_common_ss_prb_mask;
 }coreset_cached_params;

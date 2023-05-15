@@ -145,8 +145,8 @@ typedef struct SRSRAN_API {
   srsran_dci_ctx_t ctx; ///< DCI search context
 
   // Common fields
-  uint32_t freq_domain_assigment; ///< Frequency domain resource assignment频域资源分配
-  uint32_t time_domain_assigment; ///< Time domain resource assignment
+  uint32_t freq_domain_assigment; ///< Frequency domain resource assignment//频域资源分配
+  uint32_t time_domain_assigment; ///< Time domain resource assignment//时域资源分配
   uint32_t vrb_to_prb_mapping;    ///< VRB-to-PRB mapping
   uint32_t mcs;                   ///< Modulation and coding scheme
   uint32_t rv;                    ///< Redundancy version

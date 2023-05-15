@@ -86,6 +86,7 @@ void fill_phy_pdcch_cfg_common(du_cell_config *cell, rrc_cell_cfg_nr_t *rrc_cell
     double pointA_abs_freq_Hz = cell->dl_freq_hz - nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(scs) / 2;
     double ssb_abs_freq_Hz    = cell->ssb_center_freq_hz;
     // Calculate integer SSB to pointA frequency offset in Hz
+    // 计算coreset0
     uint32_t ssb_pointA_freq_offset_Hz =
         (ssb_abs_freq_Hz > pointA_abs_freq_Hz) ? (uint32_t)(ssb_abs_freq_Hz - pointA_abs_freq_Hz) : 0;
     int ret = srsran_coreset_zero(cell->pci, ssb_pointA_freq_offset_Hz, ssb_scs, scs, coreset0_idx, &pdcch->coreset[0]);

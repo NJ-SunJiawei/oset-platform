@@ -890,6 +890,7 @@ static int set_derived_args_nr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cf
 	cvector_for_each_in(cfg, rrc_nr_cfg_->cell_list){
 	   cfg->phy_cell.carrier.max_mimo_layers = args_->enb.nof_ports;
 	   // NR cells have the same bandwidth as EUTRA cells, adjust PRB sizes  //4g prb change to 5g
+	   // 4g prb 50, 5g prb 52
 	   switch (args_->enb.n_prb) {
 		 case 25:
 		   cfg->phy_cell.carrier.nof_prb = 25;
