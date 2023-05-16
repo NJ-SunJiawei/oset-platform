@@ -173,10 +173,10 @@ alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 	pdsch_t *pdsch = pdsch_allocator_alloc_si_pdsch_unchecked(&bwp_pdcch_slot->pdschs, ss_id, prbs, &pdcch->dci);
 
 	// Generate DCI for SIB
-	pdcch.dci_cfg.coreset0_bw = srsran_coreset_get_bw(&bwp_alloc->cfg->cfg.pdcch.coreset[0]);
-	pdcch.dci.mcs             = 5;
-	pdcch.dci.rv              = 0;
-	pdcch.dci.sii             = si_idx == 0 ? 0 : 1;
+	pdcch->dci_cfg.coreset0_bw = srsran_coreset_get_bw(&bwp_alloc->cfg->cfg.pdcch.coreset[0]);
+	pdcch->dci.mcs             = 5;//mcs_index
+	pdcch->dci.rv              = 0;
+	pdcch->dci.sii             = si_idx == 0 ? 0 : 1;
 
 	// Generate PDSCH
 	srsran_slot_cfg_t slot_cfg  = {0};
@@ -185,20 +185,21 @@ alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 	int code     = srsran_ra_dl_dci_to_grant_nr(&bwp_alloc->cfg->cell_cfg->carrier,
 												&slot_cfg,
 												&bwp_alloc->cfg->cfg.pdsch,
-												&pdcch.dci,
-												&pdsch.sch,
-												&pdsch.sch.grant);
+												&pdcch->dci,
+												&pdsch->sch,
+												&pdsch->sch.grant);
 	if (code != SRSRAN_SUCCESS) {
 		oset_error("[%lu] Error generating SIB PDSCH grant", GET_RSLOT_ID(&bwp_alloc->pdcch_slot));
-		bwp_pdcch_slot.pdcchs.cancel_last_pdcch();
-		bwp_pdcch_slot.dl.phy.pdsch.pop_back();
-		return alloc_result::other_cause;
+		bwp_pdcch_allocator_cancel_last_pdcch(&bwp_pdcch_slot->pdcchs);
+		cvector_pop_back(bwp_pdcch_slot->pdschs);
+		oset_free(pdsch);// free back()
+		return (alloc_result)other_cause;
 	}
-	pdsch.sch.grant.tb[0].softbuffer.tx = softbuffer.get();
+	pdsch->sch.grant.tb[0].softbuffer.tx = &softbuffer->buffer;
 
 	// Store SI msg index
-	bwp_pdcch_slot.dl.sib_idxs.push_back(si_idx);
+	cvector_push_back(bwp_pdcch_slot->dl.sib_idxs, si_idx)
 
-	return alloc_result::success;
+	return (alloc_result)success;
 }
 

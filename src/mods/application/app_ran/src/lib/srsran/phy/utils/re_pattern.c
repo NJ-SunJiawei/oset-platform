@@ -312,7 +312,7 @@ uint32_t srsran_re_pattern_list_count(const srsran_re_pattern_list_t* list,
 
     // Count number of masked elements
     for (uint32_t rb = 0; rb < SRSRAN_MAX_PRB_NR; rb++) {
-      // Skip PRB if disabled
+      // Skip PRB if disabled//跳过未占用的prb
       if (!prb_mask[rb]) {
         continue;
       }

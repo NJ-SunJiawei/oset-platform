@@ -216,7 +216,8 @@ void sched_dl_signalling(bwp_slot_allocator *bwp_alloc)
 		bwp_slot_grid_reserve_pdsch(sl_grid, prb_grant_interval_init(&grap, &interval));
 	}
 
-	// Schedule NZP-CSI-RS
+	// Schedule NZP-CSI-RS 
+	//nzp非零RE需要填充数据，先记录下来。zp零功率不填充数据，无需记录。
 	sched_nzp_csi_rs(bwp_params->cfg.pdsch.nzp_csi_rs_sets, cfg, sl_grid->dl.phy.nzp_csi_rs);
 }
 

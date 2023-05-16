@@ -98,8 +98,11 @@ bool coreset_region_alloc_pdcch(coreset_region             *coreset,
 								uint32_t                   search_space_id,
 								const ue_carrier_params_t  *user,
 								srsran_dci_ctx_t           *dci);
+void coreset_region_rem_last_pdcch(coreset_region *coreset);
+
 
 //////////////////////////////////////////////////////////////////////
+void bwp_pdcch_allocator_cancel_last_pdcch(bwp_pdcch_allocator *pdcchs);
 void bwp_pdcch_allocator_reset(bwp_pdcch_allocator *pdcchs);
 void bwp_pdcch_allocator_destory(bwp_pdcch_allocator *pdcchs);
 void bwp_pdcch_allocator_init(bwp_pdcch_allocator *pdcchs,

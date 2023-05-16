@@ -227,8 +227,38 @@ bool coreset_region_alloc_pdcch(coreset_region             *coreset,
 	return false;
 }
 
+void coreset_region_rem_last_pdcch(coreset_region *coreset)
+{
+	oset_assert(!cvector_empty(coreset->dci_list), "called when no PDCCH have yet been allocated");
+
+	// Remove DCI record
+	cvector_pop_back(coreset->dfs_tree);
+	cvector_pop_back(coreset->dci_list);
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
+void bwp_pdcch_allocator_cancel_last_pdcch(bwp_pdcch_allocator *pdcchs)
+{
+	oset_assert(pdcchs->pending_dci != NULL, "Trying to abort PDCCH allocation that does not exist");
+	uint32_t cs_id = pdcchs->pending_dci->coreset_id;
+
+	if (!cvector_empty(pdcchs->pdcch_dl_list) && (&pdcchs->pdcch_dl_list[cvector_size(pdcchs->pdcch_dl_list) - 1].dci.ctx == pdcchs->pending_dci)) {
+		pdcch_dl_t* last_pdcch_dl = pdcchs->pdcch_dl_list[cvector_size(pdcchs->pdcch_dl_list) - 1];
+		cvector_pop_back(pdcchs->pdcch_dl_list);
+		oset_free(last_pdcch_dl);
+	} else if (!cvector_empty(pdcchs->pdcch_ul_list) && (&pdcchs->pdcch_ul_list.[cvector_size(pdcchs->pdcch_ul_list) - 1].dci.ctx == pdcchs->pending_dci)) {
+		pdcch_ul_t* last_pdcch_ul = pdcchs->pdcch_ul_list[cvector_size(pdcchs->pdcch_ul_list) - 1];
+		cvector_pop_back(pdcchs->pdcch_ul_list);
+		oset_free(last_pdcch_ul);
+	} else {
+		oset_error("Invalid DCI context provided to be removed");
+		return;
+	}
+
+	coreset_region_rem_last_pdcch(&pdcchs->coresets[cs_id]);
+	pdcchs->pending_dci = NULL;
+}
+
 void bwp_pdcch_allocator_destory(bwp_pdcch_allocator *pdcchs)
 {
     //pdcch_dl_list

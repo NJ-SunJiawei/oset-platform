@@ -451,6 +451,7 @@ int srsran_ra_dl_nr_slot_nof_re(const srsran_sch_cfg_nr_t* pdsch_cfg, const srsr
 static uint32_t ra_nr_tbs_from_n_info3(uint32_t n_info)
 {
   // quantized intermediate number of information bits
+  // 量化N_info值并查表计算TBSize,量化的目的是将N_info的值取整为2^3的整数倍（具体与LDPC编译码内部实现有关)
   uint32_t n            = (uint32_t)SRSRAN_MAX(3.0, floor(log2(n_info)) - 6.0);
   uint32_t n_info_prime = SRSRAN_MAX(ra_nr_tbs_table[0], POW2(n) * SRSRAN_FLOOR(n_info, POW2(n)));
 
@@ -576,14 +577,14 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
                          uint32_t                     mcs_idx,
                          srsran_sch_tb_t*             tb)
 {
-  // Get target Rate//获取目标速率
+  // Get target Rate//codeRate=num/1024
   double R = srsran_ra_nr_R_from_mcs(
       pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti_type, mcs_idx);
   if (!isnormal(R)) {
     return SRSRAN_ERROR;
   }
 
-  // Get modulation
+  // Get modulation//调制阶数
   srsran_mod_t m = srsran_ra_nr_mod_from_mcs(
       pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti_type, mcs_idx);
   if (m >= SRSRAN_MOD_NITEMS) {
@@ -596,6 +597,9 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
     return SRSRAN_ERROR;
   }
 
+  //efficiency = (CodeRate) * 调制阶数 //表示单个子载波能够承载的有效比特（不包括冗余信息）的位数
+
+
   // For the PDSCH assigned by a
   // - PDCCH with DCI format 1_0 with
   // - CRC scrambled by P-RNTI, or RA-RNTI,
@@ -603,7 +607,8 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
   if ((SRSRAN_RNTI_ISRAR(grant->rnti) || SRSRAN_RNTI_ISPA(grant->rnti)) &&
       grant->dci_format == srsran_dci_format_nr_1_0) {
     // where the scaling factor S is determined based on the TB scaling
-    //  field in the DCI as in Table 5.1.3.2-2.
+    // field in the DCI as in Table 5.1.3.2-2.
+    // 对于DCI1-0 添加缩放因子
     S = ra_nr_get_scaling(grant->tb_scaling_field);
 
     // If the scaling is invalid return error
@@ -612,28 +617,31 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
     }
   }
 
-  // 1) The UE shall first determine the number of REs (N RE ) within the slot.UE应首先确定时隙内RE的数量（N RE）。
+  // 1) The UE shall first determine the number of REs (N RE ) within the slot.
+  // 剔除dci时域/dmrs，当前slot中时频域可用的RE总数量
+  // N_re = 12*L*N_PRB - N_PRB_dmrs - N_PRB_oh
   int N_re = srsran_ra_dl_nr_slot_nof_re(pdsch_cfg, grant);
   if (N_re <= SRSRAN_SUCCESS) {
     ERROR("Invalid number of RE (%d)", N_re);
     return SRSRAN_ERROR;
   }
 
-  // Calculate number of layers accordingly, assumes first codeword only相应地计算层数，仅假设第一个码字
+  // Calculate number of layers accordingly, assumes first codeword only
   uint32_t nof_cw         = grant->nof_layers < 5 ? 1 : 2;
   uint32_t nof_layers_cw1 = grant->nof_layers / nof_cw;
-  tb->N_L                 = nof_layers_cw1;
+  tb->N_L                 = nof_layers_cw1;//每个码字的层数
 
   // Check DMRS and CSI-RS collision according to TS 38.211 7.4.1.5.3 Mapping to physical resources
   // If there was a collision, the number of RE in the grant would be wrong
-  //根据TS 38.211 7.4.1.5.3映射到物理资源，检查DMRS和CSI-RS冲突
-  //如果发生冲突，赠款中的RE数量将是错误的
+  //根据TS 38.211 7.4.1.5.3映射到物理资源，检查DMRS和CSI-RS冲突。如果发生冲突，则授权中的RE数量将是错误的
+
   if (ra_nr_assert_csi_rs_dmrs_collision(pdsch_cfg) < SRSRAN_SUCCESS) {
     ERROR("Error: CSI-RS and DMRS collision detected");
     return SRSRAN_ERROR;
   }
 
   // Calculate reserved RE
+  // 当前slot中grap prb中CSI-RS(NZP/ZP)占用RE数量
   uint32_t N_re_rvd = srsran_re_pattern_list_count(&pdsch_cfg->rvd_re, grant->S, grant->S + grant->L, grant->prb_idx);
 
   // Steps 2,3,4
@@ -641,7 +649,7 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
   tb->tbs      = (int)srsran_ra_nr_tbs(N_re, S, R, Qm, tb->N_L);
   tb->R        = R;
   tb->mod      = m;
-  tb->nof_re   = (N_re - N_re_rvd) * grant->nof_layers;
+  tb->nof_re   = (N_re - N_re_rvd) * grant->nof_layers;//剔除DCI资源/DMRS/grant prb CSI-RS, 当前slot剩余资源可用RE数
   tb->nof_bits = tb->nof_re * Qm;
   tb->enabled  = true;//使能
 
@@ -740,6 +748,7 @@ static int ra_dl_resource_mapping(const srsran_carrier_nr_t*    carrier,
     // Check if the periodic ZP-CSI is transmitted检查是否发送了定期ZP-CSI
     if (srsran_csi_rs_send(&resource->periodicity, slot)) {
       INFO("Tx/Rx ZP-CSI-RS @slot=%d\n", slot->idx);
+	  //将ZP-CSI映射到RE资源
       if (srsran_csi_rs_append_resource_to_pattern(carrier, &resource->resource_mapping, &pdsch_cfg->rvd_re)) {
         ERROR("Error appending ZP-CSI-RS as RE pattern");
         return SRSRAN_ERROR;
@@ -769,6 +778,7 @@ static int ra_dl_resource_mapping(const srsran_carrier_nr_t*    carrier,
       // Check if the periodic ZP-CSI is transmitted
       if (srsran_csi_rs_send(&resource->periodicity, slot)) {
         INFO("Tx/Rx NZP-CSI-RS set_id=%d; res=%d; @slot=%d\n", set_id, res_id, slot->idx);
+		//将NZP-CSI映射到RE资源
         if (srsran_csi_rs_append_resource_to_pattern(carrier, &resource->resource_mapping, &pdsch_cfg->rvd_re)) {
           ERROR("Error appending ZP-CSI-RS as RE pattern");
           return SRSRAN_ERROR;
@@ -787,8 +797,7 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
                                  srsran_sch_cfg_nr_t*          pdsch_cfg,
                                  srsran_sch_grant_nr_t*        pdsch_grant)
 {
-  // 5.2.1.1 Resource allocation in time domain时域资源分配
-  // 并且计算DMRS
+  // 5.2.1.1 Resource allocation in time domain SLV时域资源分配
   if (srsran_ra_dl_nr_time(pdsch_hl_cfg,
                            dci_dl->ctx.rnti_type,
                            dci_dl->ctx.ss_type,
@@ -799,7 +808,7 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
     return SRSRAN_ERROR;
   }
 
-  // 5.1.2.2 Resource allocation in frequency domain频域资源分配
+  // 5.1.2.2 Resource allocation in frequency domain RIV 频域资源分配
   if (srsran_ra_dl_nr_freq(carrier, pdsch_hl_cfg, dci_dl, pdsch_grant) < SRSRAN_SUCCESS) {
     ERROR("Error computing frequency domain resource allocation");
     return SRSRAN_ERROR;
@@ -817,13 +826,14 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   pdsch_grant->tb[0].ndi       = dci_dl->ndi;
   pdsch_cfg->sch_cfg.mcs_table = pdsch_hl_cfg->mcs_table;//暂时未使用好像
 
-  // 5.1.4 PDSCH resource mapping PDSCH zp-csi资源映射
+  // 5.1.4 PDSCH resource mapping PDSCH zp-csi/nzp-csi资源映射(周期性)
+  // 主要为计算TBS服务
   if (ra_dl_resource_mapping(carrier, slot, pdsch_hl_cfg, pdsch_cfg) < SRSRAN_SUCCESS) {
     ERROR("Error in resource mapping");
     return SRSRAN_ERROR;
   }
 
-  // 5.1.6.2 DM-RS reception procedureDM-RS接收程序
+  // 5.1.6.2 DM-RS reception procedure DM-RS接收程序
   if (ra_dl_dmrs(pdsch_hl_cfg, dci_dl, pdsch_cfg) < SRSRAN_SUCCESS) {
     ERROR("Error selecting DMRS configuration");
     return SRSRAN_ERROR;

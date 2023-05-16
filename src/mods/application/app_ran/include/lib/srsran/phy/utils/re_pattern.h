@@ -36,7 +36,7 @@ typedef struct SRSRAN_API {
   uint32_t rb_begin;                         ///< RB where the pattern begins in frequency domain
   uint32_t rb_end;                           ///< RB where the pattern ends in frequency domain (excluded)
   uint32_t rb_stride;                        ///< RB index jump
-  bool     sc[SRSRAN_NRE];                   ///< Frequency-domain pattern
+  bool     sc[SRSRAN_NRE];                   ///< Frequency-domain pattern//频域RE占用标记位
   bool     symbol[SRSRAN_NSYMB_PER_SLOT_NR]; ///< Indicates OFDM symbols where the pattern is present
 } srsran_re_pattern_t;
 

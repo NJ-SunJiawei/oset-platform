@@ -133,7 +133,7 @@ void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer)
 	ue->type = start_msg3_timer ? MSG3_RX_TIMEOUT : MSG5_RX_TIMEOUT;
 
 	// Set timer for MSG3_RX_TIMEOUT or UE_INACTIVITY_TIMEOUT
-	start_msg3_timer ? set_activity_timeout(ue) : set_activity_timeout(ue);
+	set_activity_timeout(ue);
 
 	rrc_nr_ue_set_rnti(rnti_, ue);
     oset_list_add(&rrc_manager_self()->rrc_ue_list, ue);

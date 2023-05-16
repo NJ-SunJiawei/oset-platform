@@ -127,7 +127,7 @@ typedef struct SRSRAN_API {
   srsran_sch_mapping_type_t mapping;
 
   /// Frequency domain resources
-  bool     prb_idx[SRSRAN_MAX_PRB_NR];
+  bool     prb_idx[SRSRAN_MAX_PRB_NR];//当前dci所指示申请的prb频域区间
   uint32_t nof_prb;
 
   /// Number of DMRS groups without data
@@ -241,7 +241,7 @@ typedef struct SRSRAN_API {
   srsran_dmrs_sch_cfg_t    dmrs;    ///< DMRS configuration for this transmission
   srsran_sch_grant_nr_t    grant;   ///< Actual SCH grant
   srsran_sch_cfg_t         sch_cfg; ///< Common shared channel parameters
-  srsran_re_pattern_list_t rvd_re;  ///< Reserved resource elements, as pattern
+  srsran_re_pattern_list_t rvd_re;  ///< Reserved resource elements, as pattern//记录CSI-RS占用情况
 
   /// PUSCH only parameters
   srsran_uci_cfg_nr_t uci; ///< Uplink Control Information configuration

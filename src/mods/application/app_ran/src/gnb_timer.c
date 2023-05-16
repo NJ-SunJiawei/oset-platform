@@ -12,6 +12,7 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-timer"
 
+/*
 static void gnb_timer_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 {
 	oset_assert(msg_p);
@@ -30,7 +31,7 @@ static void gnb_timer_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 			oset_error("Received unknown message: %d:%s",  RQUE_MSG_ID(msg_p), RQUE_MSG_NAME(msg_p));
 			break;
 	}
-}
+}*/
 
 
 void *gnb_timer_task(oset_threadplus_t *thread, void *data)
@@ -43,7 +44,7 @@ void *gnb_timer_task(oset_threadplus_t *thread, void *data)
 
 	while(gnb_manager_self()->running){
 		 gnb_timer_mgr_expire(gnb_manager_self()->app_timer);		   
-		 for ( ;; ){
+		 /*for ( ;; ){
 			 rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
 			 if(rv != OSET_OK)
 			 {
@@ -57,7 +58,7 @@ void *gnb_timer_task(oset_threadplus_t *thread, void *data)
 			 gnb_timer_task_handle(received_msg, length);
 			 task_free_msg(RQUE_MSG_ORIGIN_ID(received_msg), received_msg);
 			 received_msg = NULL;
-			 length = 0;
+			 length = 0;*/
 		}
 	}
 }
