@@ -113,7 +113,8 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 		bwp_manager *bwp = NULL;
 		cvector_for_each_in(bwp, cc_w->bwps){
 			//cc_w->bwps[0].grid.slots[SLOTS_IDX(old_slot)]
-			bwp_slot_grid_reset(bwp_res_grid_get_slot(&bwp->grid, old_slot)]);//slot clear
+			//slot resource reset
+			bwp_slot_grid_reset(bwp_res_grid_get_slot(&bwp->grid, old_slot)]);
 		}
 	}
 
@@ -139,7 +140,7 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 	const uint32_t ss_id    = 0;//si info searchspace_id
 	slot_point     sl_pdcch = get_pdcch_tti(bwp_alloc);
 
-	//计算可用prb位
+	// 计算可用prb位
 	prb_bitmap prbs_before = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
 
 	// Allocate cell DL signalling(PBCH)
@@ -150,8 +151,9 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 	// Allocate pending SIBs
 	si_sched_run_slot(bwp_alloc, &cc_w->bwps[0].si);
 
-	// Allocate pending RARs//一次集中处理多个rar
-	cc_w->bwps[0].ra.run_slot(bwp_alloc);//void ra_sched::run_slot(bwp_slot_allocator& slot_alloc)
+	// Allocate pending RARs
+	// 一次集中处理多个rar
+	ra_sched_run_slot(bwp_alloc, &cc_w->bwps[0].ra);
 
 
 	//函数一次轮询处理一个ue

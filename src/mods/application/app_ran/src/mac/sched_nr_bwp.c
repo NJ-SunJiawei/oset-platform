@@ -81,6 +81,72 @@ static void ra_sched_init(ra_sched *ra, bwp_params_t *bwp_cfg_)
 	  oset_stl_queue_init(&ra->pending_rars);
 }
 
+void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
+{
+  slot_point pdcch_slot = get_pdcch_tti(slot_alloc);
+  slot_point msg3_slot  = pdcch_slot + ra->bwp_cfg->pusch_ra_list[0].msg3_delay;
+  if (!ra->bwp_cfg->slots[slot_idx(&pdcch_slot)].is_dl || !ra->bwp_cfg->slots[slot_idx(&msg3_slot)].is_ul) {
+    // RAR only allowed if PDCCH is available and respective Msg3 slot is available for UL
+    return;
+  }
+
+  for (auto it = pending_rars.begin(); it != pending_rars.end();) {
+    pending_rar_t& rar = *it;
+
+    // In case of RAR outside RAR window:
+    // - if window has passed, discard RAR
+    // - if window hasn't started, stop loop, as RARs are ordered by TTI
+    //-如果RAR超出RAR窗口：
+    //-如果窗口已过，则丢弃RAR
+    //-如果窗口尚未启动，则停止循环，因为RAR由TTI订购
+    if (not rar.rar_win.contains(pdcch_slot)) {//窗口未启动
+      if (pdcch_slot >= rar.rar_win.stop()) {//超出窗口
+        fmt::memory_buffer str_buffer;
+        fmt::format_to(str_buffer,
+                       "SCHED: Could not transmit RAR within the window={}, PRACH={}, RAR={}",
+                       rar.rar_win,
+                       rar.prach_slot,
+                       pdcch_slot);
+        srsran::console("%s\n", srsran::to_c_str(str_buffer));
+        logger.warning("%s", srsran::to_c_str(str_buffer));
+        it = pending_rars.erase(it);
+        continue;
+      }
+      return;
+    }
+
+    // Try to schedule DCIs + RBGs for RAR Grants
+    uint32_t     nof_rar_allocs = 0;//出参 申请成功数
+    alloc_result ret            = allocate_pending_rar(slot_alloc, rar, nof_rar_allocs);
+
+    if (ret == alloc_result::success) {
+      // If RAR allocation was successful:
+      // - in case all Msg3 grants were allocated, remove pending RAR, and continue with following RAR
+      // - otherwise, erase only Msg3 grants that were allocated, and stop iteration
+	  //如果RAR分配成功：
+	  //-如果分配了所有Msg3授权，则删除未决RAR，并继续执行以下RAR
+	  //-否则，仅擦除已分配的Msg3授权，并停止迭代
+
+      if (nof_rar_allocs == rar.msg3_grant.size()) {//单个rar中msg3授权已经完全分配
+        it = pending_rars.erase(it);//已分配prb，可以删除
+      } else {
+        std::copy(rar.msg3_grant.begin() + nof_rar_allocs, rar.msg3_grant.end(), rar.msg3_grant.begin());
+        rar.msg3_grant.resize(rar.msg3_grant.size() - nof_rar_allocs);
+        break;
+      }
+    } else {
+      // If RAR allocation was not successful:
+      // - in case of unavailable PDCCH space, try next pending RAR allocation
+      // - otherwise, stop iteration
+      if (ret != (alloc_result)no_cch_space) {
+        break;
+      }
+      ++it;
+    }
+  }
+}
+
+
 ///////////////////////////////bwp_manager///////////////////////////////////////
 void bwp_manager_destory(bwp_manager *bwp)
 {

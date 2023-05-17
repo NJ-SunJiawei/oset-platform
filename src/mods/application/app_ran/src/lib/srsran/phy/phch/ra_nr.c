@@ -634,7 +634,6 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
   // Check DMRS and CSI-RS collision according to TS 38.211 7.4.1.5.3 Mapping to physical resources
   // If there was a collision, the number of RE in the grant would be wrong
   //根据TS 38.211 7.4.1.5.3映射到物理资源，检查DMRS和CSI-RS冲突。如果发生冲突，则授权中的RE数量将是错误的
-
   if (ra_nr_assert_csi_rs_dmrs_collision(pdsch_cfg) < SRSRAN_SUCCESS) {
     ERROR("Error: CSI-RS and DMRS collision detected");
     return SRSRAN_ERROR;

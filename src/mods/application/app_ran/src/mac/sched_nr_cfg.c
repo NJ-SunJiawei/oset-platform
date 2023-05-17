@@ -119,7 +119,7 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		int ret =
 		    srsran_ra_ul_nr_time(&bwp_cfg->pusch, srsran_rnti_type_ra, srsran_search_space_type_rar, ra_coreset_id, m, &grant);
 		ASSERT_IF_NOT(ret == SRSRAN_SUCCESS, "Failed to obtain");
-		pusch_ra_time.msg3_delay = grant.k;
+		pusch_ra_time.msg3_delay = grant.k;//get form pusch-configCommon
 		ret = srsran_ra_ul_nr_time(&bwp_cfg->pusch, srsran_rnti_type_c, srsran_search_space_type_ue, ra_coreset_id, m, &grant);
 		pusch_ra_time.K = grant.k;
 		pusch_ra_time.S = grant.S;

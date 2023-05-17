@@ -43,6 +43,7 @@ typedef struct {
 }bwp_manager;
 
 int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info);
+void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra);
 
 void bwp_manager_destory(bwp_manager *bwp);
 void bwp_manager_init(bwp_manager *bwp, bwp_params_t *bwp_cfg);

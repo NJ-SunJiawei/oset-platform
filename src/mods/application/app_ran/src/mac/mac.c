@@ -232,7 +232,7 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 }
 
 //????prach_worker_rach_detected()
-void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
+/*void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
 {
 	rach_info_t rach_info = {0};
 	rach_info.enb_cc_idx	= enb_cc_idx;
@@ -240,7 +240,7 @@ void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
 	rach_info.preamble		= preamble_idx;
 	rach_info.time_adv		= time_adv;
 	mac_handle_rach_info(&rach_info);
-}
+}*/
 
 int mac_slot_indication(srsran_slot_cfg_t *slot_cfg)
 {
