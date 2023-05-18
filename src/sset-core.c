@@ -903,7 +903,7 @@ OSET_DECLARE(oset_status_t) sset_core_init_and_modload(oset_core_flag_t flags, o
 
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO,
 					  "OSET Version %s \nOSET Started >>> Max Sessions [%u]  Session Rate [%d]  SQL [%s]\n",
-					  SSETOM_VERSION,
+					  SSET_VERSION,
 					  sset_core_session_limit(0),
 					  oset_core_sessions_per_second(0), oset_test_flag((&runtime), SCF_USE_SQL) ? "Enabled" : "Disabled");
 

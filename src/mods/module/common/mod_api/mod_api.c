@@ -386,7 +386,7 @@ OSET_STANDARD_API(shutdown_function)
 OSET_STANDARD_API(version_function)
 {
 	if (zstr(cmd)) {
-		stream->write_function(stream, "OSET Version %s\n", SSETOM_VERSION);
+		stream->write_function(stream, "OSET Version %s\n", SSET_VERSION);
 		goto end;
 	}
 end:
@@ -1520,7 +1520,7 @@ OSET_STANDARD_JSON_API(json_status_function)
 	cJSON_AddItemToObject(o, "microseconds", cJSON_CreateNumber(duration.mms));
 
 	cJSON_AddItemToObject(reply, "uptime", o);
-	cJSON_AddItemToObject(reply, "version", cJSON_CreateString(SSETOM_VERSION));
+	cJSON_AddItemToObject(reply, "version", cJSON_CreateString(SSET_VERSION));
 
 	o = cJSON_CreateObject();
 	cJSON_AddItemToObject(reply, "sessions", o);

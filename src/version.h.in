@@ -5,4 +5,4 @@
 
 #pragma once
 
-#cmakedefine SSETOM_VERSION "@SSETOM_VERSION@"
+#cmakedefine SSET_VERSION "@SSET_VERSION@"

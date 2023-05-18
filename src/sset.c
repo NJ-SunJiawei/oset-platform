@@ -70,7 +70,7 @@ static const char helpmap[] =
 
 static void show_version(void)
 {
-	fprintf(stdout, "SSET VERSION %s\n\n", SSETOM_VERSION);
+	fprintf(stdout, "SSET VERSION %s\n\n", SSET_VERSION);
 }
 
 

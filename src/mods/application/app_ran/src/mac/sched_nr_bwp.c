@@ -116,7 +116,8 @@ void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
     }
 
     // Try to schedule DCIs + RBGs for RAR Grants
-    uint32_t     nof_rar_allocs = 0;//出参 申请成功数
+    // 出参 申请成功数
+    uint32_t     nof_rar_allocs = 0;
     alloc_result ret            = allocate_pending_rar(slot_alloc, rar, nof_rar_allocs);
 
     if (ret == alloc_result::success) {
