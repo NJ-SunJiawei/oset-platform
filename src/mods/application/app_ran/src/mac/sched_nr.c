@@ -393,7 +393,7 @@ void sched_nr_get_metrics(ue_metrics_manager *manager, mac_metrics_t *metrics)
 /// Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
 /// 处理非特定于运营商或针对支持CA的UE的所有事件
 /// 注意：非CA UE稍后在get_dl_sched中更新，以利用并行性
-static void process_common(sched_nr *scheluder, slot_point slot_rx_)
+static void process_common(sched_nr *scheluder, uint32_t slot_rx_id)
 {
 	event_manager *pending_events = &scheluder->pending_events;
 
@@ -425,7 +425,7 @@ static void process_common(sched_nr *scheluder, slot_point slot_rx_)
 	cvector_for_each_in(u_ev, pending_events->current_slot_ue_events){
 		sched_nr_ue *ue_it = sched_nr_ue_find_by_rnti(u_ev->rnti);
 		if (NULL == ue_it) {
-		  oset_warn("[5%lu] SCHED: %s called for unknown rnti=0x%x", count_idx(&slot_rx_), u_ev->event_name, u_ev->rnti);
+		  oset_warn("[5%lu] SCHED: %s called for unknown rnti=0x%x", slot_rx_id, u_ev->event_name, u_ev->rnti);
 		  u_ev->rnti = SRSRAN_INVALID_RNTI;
 		} else if (sched_nr_ue_has_ca(ue_it)) {
 			// events specific to existing UEs with CA
@@ -440,7 +440,7 @@ static void process_common(sched_nr *scheluder, slot_point slot_rx_)
 
 /// Process events synchronized during slot_indication() that are directed at non CA-enabled UEs
 /// 处理在slot_indication()期间同步的事件，这些事件指向未启用CA的UE
- static void process_cc_events(sched_nr *scheluder, uint32_t cc, slot_point slot_rx_)
+ static void process_cc_events(sched_nr *scheluder, uint32_t cc, uint32_t slot_rx_id)
  {
 	event_manager *pending_events = &scheluder->pending_events;
 
@@ -458,7 +458,7 @@ static void process_common(sched_nr *scheluder, slot_point slot_rx_)
 		}
 		sched_nr_ue *ue_it = sched_nr_ue_find_by_rnti(u_ev->rnti);
 		if (NULL == ue_it) {
-			oset_warn("[5%lu] SCHED: %s called for unknown rnti=0x%x", count_idx(&slot_rx_), u_ev->event_name, u_ev->rnti);
+			oset_warn("[5%lu] SCHED: %s called for unknown rnti=0x%x", slot_rx_id, u_ev->event_name, u_ev->rnti);
 			u_ev->rnti = SRSRAN_INVALID_RNTI;
 		} else if (!sched_nr_ue_has_ca(ue_it)) {
 			// && NULL != ue_it->carriers[cc]
@@ -478,7 +478,7 @@ static void process_common(sched_nr *scheluder, slot_point slot_rx_)
 			if(UL_CRC_INFO == u_cc_ev->event_name) u_cc_ev->callback(ue_it->carriers[u_cc_ev->cc], &u_cc_ev->u.ul_crc_info_argv);
 			if(DL_CQI_INFO == u_cc_ev->event_name) u_cc_ev->callback(ue_it->carriers[u_cc_ev->cc], &u_cc_ev->u.dl_cqi_info_argv);
 		} else {
-			oset_warn("[5%lu] SCHED: %s called for unknown rnti=0x%x, cc=%d", count_idx(&slot_rx_), u_cc_ev->event_name, u_cc_ev->rnti, u_cc_ev->cc);
+			oset_warn("[5%lu] SCHED: %s called for unknown rnti=0x%x, cc=%d", slot_rx_id, u_cc_ev->event_name, u_cc_ev->rnti, u_cc_ev->cc);
 		}
 	}
  }
@@ -584,7 +584,7 @@ void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx)
 {
 	// process non-cc specific feedback if pending (e.g. SRs, buffer state updates, UE config) for CA-enabled UEs
 	// Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
-	process_common(scheluder, slot_tx - TX_ENB_DELAY);
+	process_common(scheluder, GET_RSLOT_ID(slot_tx));
 
 	// prepare CA-enabled UEs internal state for new slot
 	// Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
@@ -605,7 +605,7 @@ dl_res_t* sched_nr_get_dl_sched(sched_nr *scheluder, slot_point pdsch_tti, uint3
 {
 
 	// process non-cc specific feedback if pending (e.g. SRs, buffer state updates, UE config) for non-CA UEs
-	process_cc_events(scheluder, cc, pdsch_tti - TX_ENB_DELAY);
+	process_cc_events(scheluder, cc, GET_RSLOT_ID(pdsch_tti));
 
 	// prepare non-CA UEs internal state for new slot
 	sched_nr_ue *ue = NULL, *next_ue = NULL;

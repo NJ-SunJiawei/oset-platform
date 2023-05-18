@@ -63,7 +63,7 @@ typedef struct bwp_params_s {
   sched_nr_bwp_cfg_t   cfg;//初始化时rrc获取并转存的sched配置
   cell_config_manager  *cell_cfg;
   sched_args_t         *sched_cfg;
-  sched_nr_bwp_cfg_t   bwp_cfg;//???
+  //sched_nr_bwp_cfg_t   bwp_cfg;//???todo 可能不需要
   // derived params
   uint32_t              P;
   uint32_t              N_rbg;

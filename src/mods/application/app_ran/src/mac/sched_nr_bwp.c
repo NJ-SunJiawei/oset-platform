@@ -35,7 +35,7 @@ int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info)
 	// find pending rar with same RA-RNTI
 	// 时频相同，RA-RNTI相同的ra
 	pending_rar_t *r = NULL;
-	oset_stl_queue_foreach(&ra->pending_rars, r){
+	cvector_for_each_in(r, ra->pending_rars){
 		if (r->prach_slot == rar_info->prach_slot && r->ra_rnti == ra_rnti) {
 			if (MAX_GRANTS == cvector_size(r->msg3_grant)) {
 				//PRACH被忽略，因为已达到每个tti的最大RAR授权数
@@ -59,7 +59,7 @@ int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info)
 		}
 	}
 	cvector_push_back(p.msg3_grant, *rar_info);
-	oset_stl_queue_add_last(&ra->pending_rars, p);
+	cvector_push_back(ra->pending_rars, p);
 	return OSET_OK;
 }
 
@@ -69,16 +69,15 @@ static void ra_sched_destory(ra_sched *ra)
 {
 	pending_rar_t *elem = NULL;
 
-	oset_stl_queue_foreach(&ra->pending_rars, elem){
+	cvector_for_each_in(elem, ra->pending_rars){
 		cvector_free(elem->msg3_grant);
 	}
-	oset_stl_queue_term(&ra->pending_rars);
+	cvector_free(ra->pending_rars);
 }
 
 static void ra_sched_init(ra_sched *ra, bwp_params_t *bwp_cfg_)
 {
 	  ra->bwp_cfg = bwp_cfg_;
-	  oset_stl_queue_init(&ra->pending_rars);
 }
 
 void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
@@ -90,26 +89,23 @@ void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
     return;
   }
 
-  for (auto it = pending_rars.begin(); it != pending_rars.end();) {
-    pending_rar_t& rar = *it;
+  for (int i = 0; i < cvector_size(ra->pending_rars); i++) { 
+	  pending_rar_t *rar = ra->pending_rars[i];
 
     // In case of RAR outside RAR window:
     // - if window has passed, discard RAR
     // - if window hasn't started, stop loop, as RARs are ordered by TTI
-    //-如果RAR超出RAR窗口：
-    //-如果窗口已过，则丢弃RAR
-    //-如果窗口尚未启动，则停止循环，因为RAR由TTI订购
-    if (not rar.rar_win.contains(pdcch_slot)) {//窗口未启动
-      if (pdcch_slot >= rar.rar_win.stop()) {//超出窗口
-        fmt::memory_buffer str_buffer;
-        fmt::format_to(str_buffer,
-                       "SCHED: Could not transmit RAR within the window={}, PRACH={}, RAR={}",
-                       rar.rar_win,
-                       rar.prach_slot,
-                       pdcch_slot);
-        srsran::console("%s\n", srsran::to_c_str(str_buffer));
-        logger.warning("%s", srsran::to_c_str(str_buffer));
-        it = pending_rars.erase(it);
+    // -如果RAR超出RAR窗口：
+    // -如果窗口已过，则丢弃RAR
+    // -如果窗口尚未启动，则停止循环，因为RAR由TTI触发
+    if (!contains(&rar->rar_win, pdcch_slot)) {
+      if (pdcch_slot >= rar->rar_win.stop_) {
+        oset_warn("SCHED: Could not transmit RAR within the window=[%lu , %lu], PRACH=%lu, RAR=%lu",
+					count_idx(&rar->rar_win.start_),
+					count_idx(&rar->rar_win.stop_),
+					count_idx(&rar->prach_slot),
+					count_idx(&pdcch_slot));
+		cvector_erase(ra->pending_rars, i);
         continue;
       }
       return;
@@ -120,7 +116,7 @@ void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
     uint32_t     nof_rar_allocs = 0;
     alloc_result ret            = allocate_pending_rar(slot_alloc, rar, nof_rar_allocs);
 
-    if (ret == alloc_result::success) {
+    if (ret == (alloc_result)success) {
       // If RAR allocation was successful:
       // - in case all Msg3 grants were allocated, remove pending RAR, and continue with following RAR
       // - otherwise, erase only Msg3 grants that were allocated, and stop iteration

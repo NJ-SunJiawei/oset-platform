@@ -29,7 +29,7 @@ typedef struct {
 typedef struct {
   pending_rar_t  ra_sched;
   bwp_params_t   *bwp_cfg;
-  oset_stl_queue_def(pending_rar_t, pending_rar) pending_rars;//pending_rar_t
+  cvector_vector_t(pending_rar_t) pending_rars;//pending_rar_t
 }ra_sched;
 
 typedef struct {

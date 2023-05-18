@@ -144,6 +144,7 @@ static void get_default_cell_cfg(phy_cfg_nr_t *phy_cfg, sched_nr_cell_cfg_t *cel
 	bwp.pucch    = phy_cfg->pucch;
 	bwp.harq_ack = phy_cfg->harq_ack;
 	bwp.rb_width = phy_cfg->carrier.nof_prb;
+	bwp.rar_window_size = 10;
 	cvector_push_back(cell_cfg->bwps, bwp);
 
 	if (phy_cfg->duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {

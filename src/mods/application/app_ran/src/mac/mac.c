@@ -212,7 +212,7 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 	}
 	// Trigger scheduler RACH
 	rar_info_t rar_info = {0};
-	rar_info.msg3_size    = 7;//???
+	rar_info.msg3_size    = 7;//???todo
 	rar_info.cc			  = rach_info->enb_cc_idx;
 	rar_info.preamble_idx = rach_info->preamble;
 	rar_info.temp_crnti	  = rnti;

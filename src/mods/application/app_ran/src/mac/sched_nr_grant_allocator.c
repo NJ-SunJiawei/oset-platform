@@ -123,9 +123,19 @@ void bwp_res_grid_init(bwp_res_grid *res, bwp_params_t *bwp_cfg_)
 	}
 }
 /////////////////////////////////////////////////////////////////////////
-slot_point get_pdcch_tti(bwp_slot_allocator *bwp_alloc){ return bwp_alloc->pdcch_slot; }
-slot_point get_tti_rx(bwp_slot_allocator *bwp_alloc) { return bwp_alloc->pdcch_slot - TX_ENB_DELAY; }
-bwp_slot_grid *tx_slot_grid(bwp_slot_allocator *bwp_alloc) { return &bwp_alloc->bwp_grid->slots[SLOT_IDX(bwp_alloc->pdcch_slot)]; }
+slot_point get_pdcch_tti(bwp_slot_allocator *bwp_alloc)
+{
+	return bwp_alloc->pdcch_slot;
+}
+slot_point get_tti_rx(bwp_slot_allocator *bwp_alloc)
+{
+	return bwp_alloc->pdcch_slot - TX_ENB_DELAY;
+}
+
+bwp_slot_grid *tx_slot_grid(bwp_slot_allocator *bwp_alloc)
+{
+	return &bwp_alloc->bwp_grid->slots[SLOT_IDX(bwp_alloc->pdcch_slot)];
+}
 
 bwp_slot_allocator* bwp_slot_allocator_init(bwp_res_grid *bwp_grid_, slot_point pdcch_slot_)
 {

@@ -165,7 +165,6 @@ inline uint32_t GET_RSLOT_ID(slot_point tx_slot)
 	return count_idx(&tx_slot) - TX_ENB_DELAY;
 }
 
-
 #ifdef __cplusplus
 }
 #endif
