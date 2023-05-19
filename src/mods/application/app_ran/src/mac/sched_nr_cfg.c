@@ -149,7 +149,6 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		  continue;
 		}
 		srsran_search_space_t *ss = cell_bwp->cfg.pdcch.search_space[ss_id];
-		cell_bwp->common_cce_list_active[ss_id] = true;
 		bwp_cce_pos_list ss_cce_list = {0};
 		for (uint32_t sl = 0; sl < SRSRAN_NOF_SF_X_FRAME; ++sl) {
 		  for (uint32_t agg_idx = 0; agg_idx < MAX_NOF_AGGR_LEVELS; ++agg_idx) {

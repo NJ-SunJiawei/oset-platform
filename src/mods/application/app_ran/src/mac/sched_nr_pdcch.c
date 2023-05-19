@@ -147,7 +147,6 @@ void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32
 	coreset->slot_idx = slot_idx_;
 	coreset->rar_cce_list = bwp_cfg_->rar_cce_list;
 	for(i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE, ++i){
-		coreset->common_cce_list_active[i] = bwp_cfg_->common_cce_list_active[i];
 		coreset->common_cce_list[i] = bwp_cfg_->common_cce_list[i];
 	}
 

@@ -72,7 +72,6 @@ typedef struct bwp_params_s {
   cvector_vector_t(pusch_ra_time_cfg) pusch_ra_list;//std::vector<pusch_ra_time_cfg>
 
   bwp_cce_pos_list                  rar_cce_list;//cvector_vector_type(uint32_t) rar_cce_list[SRSRAN_NOF_SF_X_FRAME][MAX_NOF_AGGR_LEVELS]
-  bool                              common_cce_list_active[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
   bwp_cce_pos_list                  common_cce_list[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE]; //optional_vector<bwp_cce_pos_list>
   bwp_rb_bitmap                     cached_empty_prb_mask;
   coreset_cached_params             coresets[SRSRAN_UE_DL_NR_MAX_NOF_CORESET];//optional_vector<coreset_cached_params>

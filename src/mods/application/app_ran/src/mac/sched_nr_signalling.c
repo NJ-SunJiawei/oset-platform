@@ -195,7 +195,7 @@ void sched_dl_signalling(bwp_slot_allocator *bwp_alloc)
 {
 	bwp_params_t      *bwp_params = bwp_alloc->cfg;
 	slot_point        sl_pdcch    = get_pdcch_tti(bwp_alloc);
-	bwp_slot_grid     *sl_grid    = tx_slot_grid(bwp_alloc);
+	bwp_slot_grid     *sl_grid    = get_tx_slot_grid(bwp_alloc);
 
 	srsran_slot_cfg_t cfg = {0};
 	cfg.idx = count_idx(&sl_pdcch);

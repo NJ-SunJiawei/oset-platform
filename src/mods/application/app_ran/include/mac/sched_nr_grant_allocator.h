@@ -67,8 +67,9 @@ void bwp_res_grid_destory(bwp_res_grid *res);
 void bwp_res_grid_init(bwp_res_grid *res, bwp_params_t *bwp_cfg_);
 
 slot_point get_pdcch_tti(bwp_slot_allocator *bwp_alloc);
-slot_point get_tti_rx(bwp_slot_allocator *bwp_alloc);
-bwp_slot_grid *tx_slot_grid(bwp_slot_allocator *bwp_alloc);
+slot_point get_rx_tti(bwp_slot_allocator *bwp_alloc);
+bwp_slot_grid *get_tx_slot_grid(bwp_slot_allocator *bwp_alloc);
+bwp_slot_grid *get_slot_grid(bwp_slot_allocator *bwp_alloc, slot_point slot);
 bwp_slot_allocator* bwp_slot_allocator_init(bwp_res_grid *bwp_grid_, slot_point pdcch_slot_);
 alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 													uint32_t            aggr_idx,
@@ -76,6 +77,13 @@ alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 													uint32_t            si_ntx,
 													prb_interval        *prbs,
 													tx_harq_softbuffer  *softbuffer);
+
+alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *slot_grid,
+													uint16_t	   ra_rnti,
+													uint32_t	   aggr_idx,
+													prb_interval   *interv,
+													span_t(dl_sched_rar_info_t) *pending_rachs);
+
 
 #ifdef __cplusplus
 }

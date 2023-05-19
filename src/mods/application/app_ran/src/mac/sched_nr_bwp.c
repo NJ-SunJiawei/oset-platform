@@ -80,67 +80,109 @@ static void ra_sched_init(ra_sched *ra, bwp_params_t *bwp_cfg_)
 	  ra->bwp_cfg = bwp_cfg_;
 }
 
+static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
+													bwp_slot_allocator *slot_grid,
+													pending_rar_t      *rar,
+													uint32_t           *nof_grants_allocs)
+{
+	const uint32_t rar_aggr_level = 2;
+	slot_point     sl_pdcch = get_pdcch_tti(slot_grid);
+	//bwp_cfg->cfg.pdcch.ra_search_space.id
+	prb_bitmap	 prbs = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(slot_grid->bwp_grid, sl_pdcch),
+														ra->bwp_cfg->cfg.pdcch.ra_search_space.id,
+														srsran_dci_format_nr_1_0);
+
+	alloc_result ret = (alloc_result)other_cause;
+	span_t(dl_sched_rar_info_t) msg3_grants = {0};
+	span(&msg3_grants, rar->msg3_grant, cvector_size(rar->msg3_grant));
+
+	//从最大size开始申请资源，无法满足则减小zize
+	for (uint32_t nof_grants_alloc = cvector_size(rar->msg3_grant); nof_grants_alloc > 0; nof_grants_alloc--) {
+		ret = (alloc_result)invalid_coderate;
+		uint32_t start_prb_idx = 0;
+
+		//msg2 prb >= 4
+		for (uint32_t nprb = 4; nprb < ra->bwp_cfg->cfg.rb_width && ret == (alloc_result)invalid_coderate; ++nprb) {
+			prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
+			start_prb_idx 	  = interv->start_;
+			if (prb_interval_length(interv) == nprb) {
+				span_t(dl_sched_rar_info_t) msg3_grant_tmp = {0};
+				subspan(&msg3_grant_tmp, &msg3_grants, 0, nof_grants_alloc);
+				ret = bwp_slot_allocator_alloc_rar_and_msg3(slot_grid, rar->ra_rnti, rar_aggr_level, &interv, &msg3_grant_tmp);
+			} else {
+				ret = (alloc_result)no_sch_space;
+			}
+		}
+
+		// If allocation was not successful because there were not enough RBGs, try allocating fewer Msg3 grants
+		if (ret != (alloc_result)invalid_coderate && ret != (alloc_result)no_sch_space) {
+			break;
+		}
+	}
+
+	if (ret != (alloc_result)success) {
+		oset_info("SCHED: RAR allocation for L=%d was postponed. Cause=%s", rar_aggr_level, to_string(ret));
+	}
+
+	cvector_free(msg3_grants);
+	*nof_grants_allocs = nof_grants_alloc;
+	return ret;
+}
+
 void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
 {
-  slot_point pdcch_slot = get_pdcch_tti(slot_alloc);
-  slot_point msg3_slot  = pdcch_slot + ra->bwp_cfg->pusch_ra_list[0].msg3_delay;
-  if (!ra->bwp_cfg->slots[slot_idx(&pdcch_slot)].is_dl || !ra->bwp_cfg->slots[slot_idx(&msg3_slot)].is_ul) {
-    // RAR only allowed if PDCCH is available and respective Msg3 slot is available for UL
-    return;
-  }
+	slot_point pdcch_slot = get_pdcch_tti(slot_alloc);
+	slot_point msg3_slot  = pdcch_slot + ra->bwp_cfg->pusch_ra_list[0].msg3_delay;
+	if (!ra->bwp_cfg->slots[slot_idx(&pdcch_slot)].is_dl || !ra->bwp_cfg->slots[slot_idx(&msg3_slot)].is_ul) {
+		// RAR only allowed if PDCCH is available and respective Msg3 slot is available for UL
+		return;
+	}
 
-  for (int i = 0; i < cvector_size(ra->pending_rars); i++) { 
-	  pending_rar_t *rar = ra->pending_rars[i];
+	for (int i = 0; i < cvector_size(ra->pending_rars); ) { 
+		pending_rar_t *rar = ra->pending_rars[i];
 
-    // In case of RAR outside RAR window:
-    // - if window has passed, discard RAR
-    // - if window hasn't started, stop loop, as RARs are ordered by TTI
-    // -如果RAR超出RAR窗口：
-    // -如果窗口已过，则丢弃RAR
-    // -如果窗口尚未启动，则停止循环，因为RAR由TTI触发
-    if (!contains(&rar->rar_win, pdcch_slot)) {
-      if (pdcch_slot >= rar->rar_win.stop_) {
-        oset_warn("SCHED: Could not transmit RAR within the window=[%lu , %lu], PRACH=%lu, RAR=%lu",
-					count_idx(&rar->rar_win.start_),
-					count_idx(&rar->rar_win.stop_),
-					count_idx(&rar->prach_slot),
-					count_idx(&pdcch_slot));
-		cvector_erase(ra->pending_rars, i);
-        continue;
-      }
-      return;
-    }
+		// In case of RAR outside RAR window:
+		// - if window has passed, discard RAR
+		// - if window hasn't started, stop loop, as RARs are ordered by TTI
+		if (!contains(&rar->rar_win, pdcch_slot)) {
+			if (pdcch_slot >= rar->rar_win.stop_) {
+				oset_warn("SCHED: Could not transmit RAR within the window=[%lu,%lu], PRACH=%lu, RAR=%lu",
+							count_idx(&rar->rar_win.start_),
+							count_idx(&rar->rar_win.stop_),
+							count_idx(&rar->prach_slot),
+							count_idx(&pdcch_slot));
+				cvector_erase(ra->pending_rars, i);
+				continue;
+			}
+			return;
+		}
 
-    // Try to schedule DCIs + RBGs for RAR Grants
-    // 出参 申请成功数
-    uint32_t     nof_rar_allocs = 0;
-    alloc_result ret            = allocate_pending_rar(slot_alloc, rar, nof_rar_allocs);
+		// Try to schedule DCIs + RBGs for RAR Grants
+		// 既要分配msg2(rar)消息的下行资源，也要分配msg3的上行资源
+		uint32_t     nof_rar_allocs = 0;
+		alloc_result ret            = ra_sched_allocate_pending_rar(slot_alloc, rar, &nof_rar_allocs);
 
-    if (ret == (alloc_result)success) {
-      // If RAR allocation was successful:
-      // - in case all Msg3 grants were allocated, remove pending RAR, and continue with following RAR
-      // - otherwise, erase only Msg3 grants that were allocated, and stop iteration
-	  //如果RAR分配成功：
-	  //-如果分配了所有Msg3授权，则删除未决RAR，并继续执行以下RAR
-	  //-否则，仅擦除已分配的Msg3授权，并停止迭代
-
-      if (nof_rar_allocs == rar.msg3_grant.size()) {//单个rar中msg3授权已经完全分配
-        it = pending_rars.erase(it);//已分配prb，可以删除
-      } else {
-        std::copy(rar.msg3_grant.begin() + nof_rar_allocs, rar.msg3_grant.end(), rar.msg3_grant.begin());
-        rar.msg3_grant.resize(rar.msg3_grant.size() - nof_rar_allocs);
-        break;
-      }
-    } else {
-      // If RAR allocation was not successful:
-      // - in case of unavailable PDCCH space, try next pending RAR allocation
-      // - otherwise, stop iteration
-      if (ret != (alloc_result)no_cch_space) {
-        break;
-      }
-      ++it;
-    }
-  }
+		if (ret == (alloc_result)success) {
+				// If RAR allocation was successful:
+				// - in case all Msg3 grants were allocated, remove pending RAR, and continue with following RAR
+				// - otherwise, erase only Msg3 grants that were allocated, and stop iteration
+				if (nof_rar_allocs == cvector_size(rar->msg3_grant)) {
+				cvector_erase(ra->pending_rars, i); //已分配prb，可以删除
+			} else {
+				std::copy(rar->msg3_grant.begin() + nof_rar_allocs, rar->msg3_grant.end(), rar->msg3_grant.begin());
+				rar->msg3_grant.resize(cvector_size(rar->msg3_grant) - nof_rar_allocs);
+				break;
+			}
+		} else {
+			// If RAR allocation was not successful:
+			// - in case of unavailable PDCCH space, try next pending RAR allocation
+			// - otherwise, stop iteration
+			if (ret != (alloc_result)no_cch_space) {
+				break;
+			}
+			++i;
+		}
+	}
 }
 
 

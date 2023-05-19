@@ -46,7 +46,6 @@ typedef struct {
   uint32_t                nof_freq_res;//频域资源计数
 
   bwp_cce_pos_list        rar_cce_list;
-  bool                    common_cce_list_active[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
   bwp_cce_pos_list        common_cce_list[SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
   //cvector_vector_t(bwp_cce_pos_list) common_cce_list;//optional_vector<bwp_cce_pos_list>
   cvector_vector_t(alloc_record) dci_list;//bounded_vector<alloc_record, 2 * MAX_GRANTS>//已申请的dci资源合集(记录)

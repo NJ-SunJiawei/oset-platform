@@ -18,6 +18,9 @@
 extern "C" {
 #endif
 
+typedef rar_info_t dl_sched_rar_info_t;
+
+
 typedef struct {
   uint16_t	     ra_rnti;
   slot_point	 prach_slot;
@@ -32,6 +35,7 @@ typedef struct {
   cvector_vector_t(pending_rar_t) pending_rars;//pending_rar_t
 }ra_sched;
 
+//////////////////////////////////////////////////////////////
 typedef struct {
   bwp_params_t       *cfg;
   // channel-specific schedulers
@@ -44,7 +48,7 @@ typedef struct {
 
 int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info);
 void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra);
-
+/////////////////////////////////////////////////////////////
 void bwp_manager_destory(bwp_manager *bwp);
 void bwp_manager_init(bwp_manager *bwp, bwp_params_t *bwp_cfg);
 
