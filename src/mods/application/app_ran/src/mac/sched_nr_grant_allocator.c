@@ -87,9 +87,7 @@ void bwp_slot_grid_reserve_pdsch(bwp_slot_grid *slot, prb_grant *grant)
 
 pdsch_allocator* bwp_res_grid_get_pdschs(bwp_res_grid *res, slot_point tti)
 {
-	pdsch_allocator *psdch_alloc = &res->slots[SLOT_IDX(tti)].pdschs;
-
-	return psdch_alloc;
+	return &res->slots[SLOT_IDX(tti)].pdschs;
 }
 
 bwp_slot_grid* bwp_res_grid_get_slot(bwp_res_grid *res, slot_point tti)
@@ -113,7 +111,8 @@ void bwp_res_grid_init(bwp_res_grid *res, bwp_params_t *bwp_cfg_)
 	res->cfg = bwp_cfg_;
 	//TTIMOD_SZ todo???
 	cvector_reserve(res->slots, TTIMOD_SZ);
-	//1 frame 20 slot(30khz)
+	// 1 frame 20 slot(30khz)
+	// 1 frame 10 slot(15khz)
 	for (uint32_t sl = 0; sl < TTIMOD_SZ; ++sl){
 		bwp_slot_grid  slot_grid = {0};
 		bwp_slot_grid_init(&slot_grid, bwp_cfg_, sl % ((uint32_t)SRSRAN_NSLOTS_PER_FRAME_NR(bwp_cfg_->cell_cfg.carrier.scs)));
@@ -127,7 +126,7 @@ slot_point get_pdcch_tti(bwp_slot_allocator *bwp_alloc)
 }
 slot_point get_rx_tti(bwp_slot_allocator *bwp_alloc)
 {
-	return bwp_alloc->pdcch_slot - TX_ENB_DELAY;
+	return slot_point_sub(bwp_alloc->pdcch_slot, TX_ENB_DELAY);
 }
 
 bwp_slot_grid *get_tx_slot_grid(bwp_slot_allocator *bwp_alloc)
@@ -223,78 +222,84 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 																prb_interval   *interv,
 																span_t(dl_sched_rar_info_t) *pending_rachs)
 {
-  static const uint32_t 	msg3_nof_prbs = 3;//msg3 prb
-  static const uint32_t 	m = 0;//ra pusch time alloc list idx
-  static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0;
+	static const uint32_t 	msg3_nof_prbs = 3;//msg3 prb
+	static const uint32_t 	m = 0;//ra pusch time alloc list idx
+	static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0;
 
-  //msg1(rach)和msg2(rar)没有ack,没有harq
-  bwp_slot_grid *bwp_pdcch_slot = get_tx_slot_grid(bwp_alloc);
-  slot_point	 msg3_slot		= bwp_alloc->pdcch_slot + bwp_alloc->cfg.pusch_ra_list[m].msg3_delay;
-  bwp_slot_grid *bwp_msg3_slot	= get_slot_grid(bwp_alloc, msg3_slot);
+	//msg1(rach)和msg2(rar)没有ack,没有harq
+	bwp_slot_grid *bwp_pdcch_slot = get_tx_slot_grid(bwp_alloc);
+	slot_point	   msg3_slot      = slot_point_add(bwp_alloc->pdcch_slot, bwp_alloc->cfg.pusch_ra_list[m].msg3_delay);
+	bwp_slot_grid *bwp_msg3_slot  = get_slot_grid(bwp_alloc, msg3_slot);
 
-  // Verify there is space in PDSCH for RAR
-  alloc_result ret = bwp_pdcch_slot.pdschs.is_rar_grant_valid(interv);//明确空间可用
-  if (ret != alloc_result::success) {
-	return ret;
-  }
-  for (auto& rach : pending_rachs) {
-	auto ue_it = slot_ues.find(rach.temp_crnti);
-	if (ue_it == slot_ues.end()) {
-	  logger.info("SCHED: Postponing rnti=0x%x RAR allocation. Cause: The ue object not yet fully created",
-				  rach.temp_crnti);//ue对象尚未完全创建
-	  return alloc_result::no_rnti_opportunity;
+	// Verify there is space in PDSCH for RAR
+	prb_grant grap = {0};
+	alloc_result ret = pdsch_allocator_is_rar_grant_valid(bwp_pdcch_slot->pdschs, prb_grant_interval_init(&grap, interv));
+	if (ret != (alloc_result)success) {
+		return ret;
 	}
-  }
-  srsran_sanity_check(not bwp_pdcch_slot.dl.rar.full(), "The #RARs should be below #PDSCHs");
-  if (not bwp_pdcch_slot.dl.phy.ssb.empty()) {
-	// TODO: support concurrent PDSCH and SSB
-	logger.debug("SCHED: skipping RAR allocation. Cause: concurrent PDSCH and SSB not yet supported");
-	return alloc_result::no_sch_space;
-  }
 
-  // Verify there is space in PUSCH for Msg3s
-  ret = bwp_msg3_slot.puschs.has_grant_space(pending_rachs.size());//上行pusch中list大小
-  if (ret != alloc_result::success) {
-	return ret;
-  }
-  // Check Msg3 RB collision检查Msg3 RB冲突
-  uint32_t	   total_msg3_nof_prbs = msg3_nof_prbs * pending_rachs.size();
-  prb_interval all_msg3_rbs =
-	  find_empty_interval_of_length(bwp_msg3_slot.puschs.occupied_prbs(), total_msg3_nof_prbs, 0);
-  if (all_msg3_rbs.length() < total_msg3_nof_prbs) {
+	for (init i = 0; i < pending_rachs->len; i++) { 
+		dl_sched_rar_info_t *rach = pending_rachs[i];
+		slot_ue* ue_it = slot_ue_find_by_rnti(rach->temp_crnti, rach->cc);
+		if (NULL == ue_it) {
+			oset_error("SCHED: Postponing rnti=0x%x RAR allocation. Cause: The ue object not yet fully created",
+					  rach.temp_crnti);
+			return (alloc_result)no_rnti_opportunity;
+		}
+	}
+
+	ASSERT_IF_NOT(!(MAX_GRANTS == cvector_size(bwp_pdcch_slot->dl.rar)), "The #RARs should be below #PDSCHs");
+
+	if (!cvector_empty(bwp_pdcch_slot->dl.phy.ssb)) {
+		// TODO: support concurrent PDSCH and SSB
+		// 尚不支持并发PDSCH和SSB
+		oset_debug("SCHED: skipping RAR allocation. Cause: concurrent PDSCH and SSB not yet supported");
+		return (alloc_result)no_sch_space;
+	}
+
+	// Verify there is space in PUSCH for Msg3s
+	ret = pusch_allocator_has_grant_space(&bwp_msg3_slot->puschs, pending_rachs->len, true);
+	if (ret != (alloc_result)success) {
+		return ret;
+	}
+
+	// Check Msg3 RB collision检查Msg3 RB冲突
+	uint32_t	 total_msg3_nof_prbs = msg3_nof_prbs * pending_rachs->len;
+	prb_interval all_msg3_rbs = find_empty_interval_of_length(occupied_prbs(bwp_msg3_slot->puschs), total_msg3_nof_prbs, 0);
+	if (all_msg3_rbs.length() < total_msg3_nof_prbs) {
 	logger.debug("SCHED: No space in PUSCH for Msg3.");
 	return alloc_result::sch_collision;
-  }
+	}
 
-  // Allocate PDCCH position for RAR
-  auto pdcch_result = bwp_pdcch_slot.pdcchs.alloc_rar_pdcch(ra_rnti, aggr_idx);//从链表里申请pDCCH位置
-  if (pdcch_result.is_error()) {
+	// Allocate PDCCH position for RAR
+	auto pdcch_result = bwp_pdcch_slot.pdcchs.alloc_rar_pdcch(ra_rnti, aggr_idx);//从链表里申请pDCCH位置
+	if (pdcch_result.is_error()) {
 	// Could not find space in PDCCH
 	return pdcch_result.error();
-  }
-  pdcch_dl_t& pdcch = *pdcch_result.value();
-  pdcch.dci_cfg 	= slot_ues[pending_rachs[0].temp_crnti]->get_dci_cfg();
-  pdcch.dci.mcs 	= 5;
+	}
+	pdcch_dl_t& pdcch = *pdcch_result.value();
+	pdcch.dci_cfg 	= slot_ues[pending_rachs[0].temp_crnti]->get_dci_cfg();
+	pdcch.dci.mcs 	= 5;
 
-  // Allocate RAR PDSCH
-  pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_rar_pdsch_unchecked(interv, pdcch.dci);//bitmap填充校验、填充dci频域和时域资源
+	// Allocate RAR PDSCH
+	pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_rar_pdsch_unchecked(interv, pdcch.dci);//bitmap填充校验、填充dci频域和时域资源
 
-  // Fill RAR PDSCH content填写RAR PDSCH内容
-  // TODO: Properly fill Msg3 grants
-  srsran_slot_cfg_t slot_cfg;
-  slot_cfg.idx = pdcch_slot.to_uint();
-  int code	   = srsran_ra_dl_dci_to_grant_nr(
-	  &cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch.dci, &pdsch.sch, &pdsch.sch.grant);
-  srsran_assert(code == SRSRAN_SUCCESS, "Error converting DCI to grant");
-  pdsch.sch.grant.tb[0].softbuffer.tx = bwp_pdcch_slot.rar_softbuffer->get();//关联harq buff资源
+	// Fill RAR PDSCH content填写RAR PDSCH内容
+	// TODO: Properly fill Msg3 grants
+	srsran_slot_cfg_t slot_cfg;
+	slot_cfg.idx = pdcch_slot.to_uint();
+	int code	   = srsran_ra_dl_dci_to_grant_nr(
+	&cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch.dci, &pdsch.sch, &pdsch.sch.grant);
+	srsran_assert(code == SRSRAN_SUCCESS, "Error converting DCI to grant");
+	pdsch.sch.grant.tb[0].softbuffer.tx = bwp_pdcch_slot.rar_softbuffer->get();//关联harq buff资源
 
-  // Generate Msg3 grants in PUSCH	 预先在pusch中生成msg3资源
-  uint32_t	last_msg3 = all_msg3_rbs.start();
-  const int mcs = 0, max_harq_msg3_retx = 4;
-  slot_cfg.idx = msg3_slot.to_uint();
-  bwp_pdcch_slot.dl.rar.emplace_back();
-  sched_nr_interface::rar_t& rar_out = bwp_pdcch_slot.dl.rar.back();
-  for (const dl_sched_rar_info_t& grant : pending_rachs) {
+	// Generate Msg3 grants in PUSCH	 预先在pusch中生成msg3资源
+	uint32_t	last_msg3 = all_msg3_rbs.start();
+	const int mcs = 0, max_harq_msg3_retx = 4;
+	slot_cfg.idx = msg3_slot.to_uint();
+	bwp_pdcch_slot.dl.rar.emplace_back();
+	sched_nr_interface::rar_t& rar_out = bwp_pdcch_slot.dl.rar.back();
+	for (const dl_sched_rar_info_t& grant : pending_rachs) {
 	slot_ue& ue = slot_ues[grant.temp_crnti];
 
 	// Generate RAR grant
@@ -325,9 +330,9 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 	srsran_assert(success, "Error converting DCI to PUSCH grant");
 	pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
 	ue.h_ul->set_tbs(pusch.sch.grant.tb[0].tbs);//set harq tbs,并且清空soft buffer
-  }
+	}
 
-  return alloc_result::success;
+	return alloc_result::success;
 }
 
 

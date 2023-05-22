@@ -137,6 +137,15 @@ alloc_result pdsch_allocator_is_si_grant_valid(pdsch_allocator *pdsch_alloc, uin
 	return pdsch_allocator_is_grant_valid_common(pdsch_alloc, ss->type, srsran_dci_format_nr_1_0, ss->coreset_id, grant);
 }
 
+alloc_result pdsch_allocator_is_rar_grant_valid(pdsch_allocator *pdsch_alloc, prb_grant *grant)
+{
+  ASSERT_IF_NOT(pdsch_alloc->bwp_cfg.cfg.pdcch.ra_search_space_present, "Attempting RAR allocation in BWP with no raSearchSpace");
+  return pdsch_allocator_is_grant_valid_common(pdsch_alloc,
+												pdsch_alloc->bwp_cfg.cfg.pdcch.ra_search_space.type,
+												srsran_dci_format_nr_1_0,
+												pdsch_alloc->bwp_cfg.cfg.pdcch.ra_search_space.coreset_id,
+												grant);
+}
 
 /// Marks a range of PRBS as occupied, preventing further allocations
 void pdsch_allocator_reserve_prbs(pdsch_allocator *pdsch_alloc, prb_grant *grant)
@@ -188,6 +197,28 @@ void pdsch_allocator_init(pdsch_allocator *pdsch, bwp_params_t *cfg_, uint32_t s
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
+alloc_result pusch_allocator_has_grant_space(pusch_allocator *pusch, uint32_t nof_grants, bool verbose)
+{
+  // UL must be active in given slot
+  if (!pusch->bwp_cfg.slots[pusch->slot_idx].is_ul) {
+    if (verbose) {
+      log_pusch_alloc_failure(bwp_cfg.logger.error, "UL is disabled for slot=%lu", pusch->slot_idx);
+    }
+    return alloc_result::no_sch_space;
+  }
+
+  // No space in Scheduler PDSCH output list
+  if (puschs.size() + nof_grants > puschs.capacity()) {
+    if (verbose) {
+      log_pusch_alloc_failure(bwp_cfg.logger.warning, "Maximum number of PUSCHs={} reached.", puschs.capacity());
+    }
+    return alloc_result::no_sch_space;
+  }
+
+  return alloc_result::success;
+}
+
+
 void pusch_allocator_reset(pusch_allocator *pusch)
 {
 	pusch_t  **pusch_node = NULL;

@@ -154,7 +154,7 @@ static void sched_ssb_basic(slot_point sl_point,
 		mib_msg.sfn             = slot_sfn(&sl_point);
 		//计算是否在前半帧
 		mib_msg.hrf             = (slot_idx(&sl_point) % SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) >=
-		           SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) / 2);
+		           						SRSRAN_NSLOTS_PER_FRAME_NR(srsran_subcarrier_spacing_15kHz) / 2);
 		// This corresponds to "Position in Burst" = 1000
 		mib_msg.ssb_idx = 0;
 		// Remaining MIB parameters remain constant
@@ -180,7 +180,7 @@ static void sched_nzp_csi_rs(srsran_csi_rs_nzp_set_t nzp_csi_rs_sets_cfg[SRSRAN_
 			// Check if the resource is scheduled for this slot
 			if (srsran_csi_rs_send(&nzp_csi_resource->periodicity, slot_cfg)) {
 				if (MAX_NZP_CSI_RS == cvector_size(csi_rs_list)) {
-					oset_error("[%5lu] SCHED: Failed to allocate NZP-CSI RS", slot_cfg->idx - TX_ENB_DELAY);
+					oset_error("SCHED: Failed to allocate NZP-CSI RS");
 					return;
 				}
 				cvector_push_back(csi_rs_list, *nzp_csi_resource);

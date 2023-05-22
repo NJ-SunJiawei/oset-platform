@@ -106,10 +106,10 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 		cc_w->last_tx_sl = tx_sl;
 	}
 
-	while (cc_w->last_tx_sl != tx_sl) {
-		cc_w->last_tx_sl++;
+	while (slot_point_no_equal(&cc_w->last_tx_sl, &tx_sl)) {
+		slot_point_plus_plus(&cc_w->last_tx_sl);
 		//(slot_rx - 1) 将已经收到的slot前一个状态全部重置
-		slot_point old_slot = cc_w->last_tx_sl - TX_ENB_DELAY - 1;
+		slot_point old_slot = slot_point_sub(cc_w->last_tx_sl, TX_ENB_DELAY + 1);
 		bwp_manager *bwp = NULL;
 		cvector_for_each_in(bwp, cc_w->bwps){
 			//cc_w->bwps[0].grid.slots[SLOTS_IDX(old_slot)]

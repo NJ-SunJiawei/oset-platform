@@ -324,12 +324,6 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 		}
 	}
 
-	cvector_clear(dl_sched_ptr->ssb);
-	cvector_clear(dl_sched_ptr->pdcch_dl);
-	cvector_clear(dl_sched_ptr->pdcch_ul);
-	cvector_clear(dl_sched_ptr->pdsch);
-	cvector_clear(dl_sched_ptr->nzp_csi_rs);
-
 	return true;
 }
 

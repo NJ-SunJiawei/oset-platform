@@ -124,7 +124,6 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 		oset_info("SCHED: RAR allocation for L=%d was postponed. Cause=%s", rar_aggr_level, to_string(ret));
 	}
 
-	cvector_free(msg3_grants);
 	*nof_grants_allocs = nof_grants_alloc;
 	return ret;
 }

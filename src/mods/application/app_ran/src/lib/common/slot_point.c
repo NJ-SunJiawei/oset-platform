@@ -21,7 +21,7 @@ uint8_t nof_slots_per_frame(slot_point *slot)
 
 uint32_t nof_slots_per_hf(slot_point *slot)
 { 
-    return nof_slots_per_frame() * NOF_SFNS; //1*10*1024
+    return nof_slots_per_frame(slot) * NOF_SFNS; //1*10*1024
 }
 
 //valid()
@@ -60,11 +60,6 @@ void slot_clear(slot_point *slot)
 	slot->numerology_ = NOF_NUMEROLOGIES;
 }
 
-bool is_in_interval(slot_point *slot, slot_point begin, slot_point end)
-{
-    return (*slot >= begin && *slot < end);
-}
-
 void slot_point_init(slot_point *slot)
 {
     slot->numerology_ = NOF_NUMEROLOGIES;
@@ -91,6 +86,98 @@ void slot_point_init(slot_point *s, uint8_t numerology, uint16_t sfn_val, uint8_
 }
 
 
+slot_point slot_point_sub_equal(slot_point *slot, uint32_t jump)
+{
+	int a = ((int)slot->count_ - (int)jump) % (int)(nof_slots_per_hf(slot));
+	if (a < 0) {
+		a += nof_slots_per_hf(slot);
+	}
+	slot->count_ = a;
+	return *slot;
+}
 
+
+slot_point slot_point_add_equal(slot_point *slot, uint32_t jump)
+{
+  slot->count_ = (slot->count_ + jump) % nof_slots_per_hf(slot);
+  return *slot;
+}
+
+
+slot_point slot_point_sub(slot_point slot, uint32_t jump)
+{
+	return slot_point_sub_equal(&slot, jump);
+}
+
+
+slot_point slot_point_add(slot_point slot, uint32_t jump)
+{
+	return slot_point_add_equal(&slot, jump);
+}
+
+
+void slot_point_plus_plus(slot_point *slot)
+{
+	slot->count_++;
+	if (slot->count_ == nof_slots_per_hf(slot)) {
+		slot->count_ = 0;
+	}
+}
+
+//==
+bool slot_point_equal(slot_point *slot, slot_point *other)
+{
+	return (other->count_ == slot->count_ && other->numerology_ == slot->numerology_);
+}
+
+//!=
+bool slot_point_no_equal(slot_point *slot, slot_point *other) 
+{
+	return (!slot_point_equal(slot, other));
+}
+
+//<
+bool slot_point_less(slot_point *slot, slot_point *other)
+{
+	ASSERT_IF_NOT(numerology_idx(slot) == numerology_idx(other), "Comparing slots of different numerologies");
+	int a = (int)(other.count_) - (int)(slot->count_);
+	if (a > 0) {
+		return (a < (int)nof_slots_per_hf(slot) / 2);
+	}
+	return (a < -(int)nof_slots_per_hf(slot) / 2);
+}
+
+//<=
+bool slot_point_less_equal(slot_point *slot, slot_point *other)
+{
+	return (slot_point_equal(slot, other) || slot_point_less(slot, other));
+}
+
+//>=
+bool slot_point_greater_equal(slot_point *slot, slot_point *other)
+{
+	return (!slot_point_less(slot, other));
+}
+
+//>
+bool slot_point_greater(slot_point *slot, slot_point *other)
+{
+	return (slot_point_greater_equal(slot, other) && slot_point_no_equal(slot, other));
+}
+
+slot_point slot_point_max(slot_point s1, slot_point s2)
+{
+  return slot_point_greater(&s1, &s2) ? s1 : s2;
+}
+
+slot_point slot_point_min(slot_point s1, slot_point s2)
+{
+  return slot_point_less(&s1, &s2) ? s1 : s2;
+}
+
+bool is_in_interval(slot_point *slot, slot_point begin, slot_point end)
+{
+	return (slot_point_greater_equal(slot, &begin) && slot_point_less(slot, &end));
+}
 
 

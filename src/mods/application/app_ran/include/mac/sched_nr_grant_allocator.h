@@ -55,6 +55,7 @@ typedef struct{
 	bwp_params_t  *cfg;
 	bwp_res_grid  *bwp_grid;
 	slot_point    pdcch_slot;
+	//oset_hash_t   *slot_ues;//slot_ue
 }bwp_slot_allocator;
 
 void bwp_slot_grid_destory(bwp_slot_grid *slot);

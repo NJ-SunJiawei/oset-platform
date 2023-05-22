@@ -66,7 +66,7 @@ bool contains(slot_interval *p, slot_point point) { return p->start_ <= point &&
 
 slot_interval* intersect(slot_interval *p, slot_interval *other)
 {
-  if (! overlaps(other)) {
+  if (!overlaps(other)) {
 	slot_interval_init(p);
   } else {
 	p->start_ = MAX(slot_interval_start(p), slot_interval_start(other));

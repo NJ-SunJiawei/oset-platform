@@ -159,11 +159,11 @@ typedef struct dl_res_s{
   cvector_vector_t(uint32_t) sib_idxs;//bounded_vector<uint32_t, MAX_GRANTS>//list of SI indexes
 }dl_res_t;
 
-
 inline uint32_t GET_RSLOT_ID(slot_point tx_slot)
 {
-	return count_idx(&tx_slot) - TX_ENB_DELAY;
+	return count_idx(&slot_point_sub(tx_slot, TX_ENB_DELAY));
 }
+
 
 #ifdef __cplusplus
 }
