@@ -33,13 +33,9 @@ slot_point slot_interval_stop(slot_interval *p);
 bool slot_interval_empty(slot_interval *p);
 slot_point slot_interval_length(slot_interval *p);
 void slot_interval_set(slot_interval *p, slot_point start_point, slot_point stop_point);
-void slot_interval_resize_by(slot_interval *p, slot_point len);
-void slot_interval_resize_to(slot_interval *p, slot_point len);
-void slot_interval_displace_by(slot_interval *p, int offset);
-void slot_interval_displace_to(slot_interval *p, slot_point start_point);
-bool overlaps(slot_interval *p, slot_interval *other);
-bool contains(slot_interval *p, slot_point point);
-slot_interval* intersect(slot_interval *p, slot_interval *other);
+bool slot_interval_overlaps(slot_interval *p, slot_interval *other);
+bool slot_interval_contains(slot_interval *p, slot_point point);
+slot_interval* slot_interval_intersect(slot_interval *p, slot_interval *other);
 
 #ifdef __cplusplus
 }

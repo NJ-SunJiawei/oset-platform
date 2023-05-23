@@ -36,7 +36,7 @@ int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info)
 	// 时频相同，RA-RNTI相同的ra
 	pending_rar_t *r = NULL;
 	cvector_for_each_in(r, ra->pending_rars){
-		if (r->prach_slot == rar_info->prach_slot && r->ra_rnti == ra_rnti) {
+		if (slot_point_equal(&r->prach_slot, &rar_info->prach_slot) && r->ra_rnti == ra_rnti) {
 			if (MAX_GRANTS == cvector_size(r->msg3_grant)) {
 				//PRACH被忽略，因为已达到每个tti的最大RAR授权数
 				oset_error("PRACH ignored, as the the maximum number of RAR grants per tti has been reached");
@@ -52,9 +52,11 @@ int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info)
 	p.ra_rnti                            = ra_rnti;
 	p.prach_slot                         = rar_info->prach_slot;
 	const static uint32_t prach_duration = 1;
-	for (slot_point t = rar_info->prach_slot + prach_duration; t < rar_info->prach_slot + cvector_size(ra->bwp_cfg->slots); ++t) {
+	slot_point t_max = slot_point_add_jump(rar_info->prach_slot, cvector_size(ra->bwp_cfg->slots));
+	slot_point t_init = slot_point_add_jump(rar_info->prach_slot, prach_duration);
+	for (slot_point t = t_init; slot_point_less(&t, &t_max); slot_point_plus_plus(&t)) {
 		if (ra->bwp_cfg->slots[slot_idx(t)].is_dl) {
-			slot_interval_init(p.rar_win, t, t + ra->bwp_cfg->cfg.rar_window_size);//rar windows
+			slot_interval_init(p.rar_win, t, slot_point_add_jump(t, ra->bwp_cfg->cfg.rar_window_size));//rar windows
 			break;
 		}
 	}
@@ -94,7 +96,7 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 
 	alloc_result ret = (alloc_result)other_cause;
 	span_t(dl_sched_rar_info_t) msg3_grants = {0};
-	span(&msg3_grants, rar->msg3_grant, cvector_size(rar->msg3_grant));
+	span(msg3_grants, rar->msg3_grant, cvector_size(rar->msg3_grant));
 
 	//从最大size开始申请资源，无法满足则减小zize
 	for (uint32_t nof_grants_alloc = cvector_size(rar->msg3_grant); nof_grants_alloc > 0; nof_grants_alloc--) {
@@ -107,7 +109,7 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 			start_prb_idx 	  = interv->start_;
 			if (prb_interval_length(interv) == nprb) {
 				span_t(dl_sched_rar_info_t) msg3_grant_tmp = {0};
-				subspan(&msg3_grant_tmp, &msg3_grants, 0, nof_grants_alloc);
+				subspan(msg3_grant_tmp, msg3_grants, 0, nof_grants_alloc);
 				ret = bwp_slot_allocator_alloc_rar_and_msg3(slot_grid, rar->ra_rnti, rar_aggr_level, &interv, &msg3_grant_tmp);
 			} else {
 				ret = (alloc_result)no_sch_space;
@@ -143,8 +145,8 @@ void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
 		// In case of RAR outside RAR window:
 		// - if window has passed, discard RAR
 		// - if window hasn't started, stop loop, as RARs are ordered by TTI
-		if (!contains(&rar->rar_win, pdcch_slot)) {
-			if (pdcch_slot >= rar->rar_win.stop_) {
+		if (!slot_interval_contains(&rar->rar_win, pdcch_slot)) {
+			if (slot_point_greater_equal(&pdcch_slot, &rar->rar_win.stop_)) {
 				oset_warn("SCHED: Could not transmit RAR within the window=[%lu,%lu], PRACH=%lu, RAR=%lu",
 							count_idx(&rar->rar_win.start_),
 							count_idx(&rar->rar_win.stop_),

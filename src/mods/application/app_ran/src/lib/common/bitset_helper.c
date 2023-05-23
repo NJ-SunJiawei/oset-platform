@@ -318,16 +318,16 @@ bool bit_test(bounded_bitset *bit, size_t pos)
   return test_(bit, pos);
 }
 
-bounded_bitset* bit_flip(bounded_bitset *bit)
+bounded_bitset bit_flip(bounded_bitset *bit)
 {
   for (size_t i = 0; i < nof_words_(bit); ++i) {
 	bit->buffer[i] = ~(bit->buffer[i]);
   }
   sanitize_(bit);
-  return bit;
+  return *bit;
 }
 
-bounded_bitset* bit_fill(bounded_bitset *bit, size_t startpos, size_t endpos, bool value)
+bounded_bitset bit_fill(bounded_bitset *bit, size_t startpos, size_t endpos, bool value)
 {
   assert_range_bounds_(bit, startpos, endpos);
   // NOTE: can be optimized
@@ -340,7 +340,7 @@ bounded_bitset* bit_fill(bounded_bitset *bit, size_t startpos, size_t endpos, bo
 	  reset_(bit, i);
 	}
   }
-  return bit;
+  return *bit;
 }
 
 int bit_find_lowest(bounded_bitset *bit, size_t startpos, size_t endpos, bool value)

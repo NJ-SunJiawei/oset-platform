@@ -241,7 +241,7 @@ void sched_nr_ue_new_slot(sched_nr_ue *ue, slot_point pdcch_slot)
 	for(int i = 0; i < SCHED_NR_MAX_CARRIERS; ++i){
 		if (NULL != ue->carriers[i]) {
 			//清除(rx_slot=已接收到的slot)重传失败达最大上限的harq
-			harq_entity_new_slot(&ue->carriers[i].harq_ent, slot_point_sub(pdcch_slot, TX_ENB_DELAY));
+			harq_entity_new_slot(&ue->carriers[i].harq_ent, slot_point_sub_jump(pdcch_slot, TX_ENB_DELAY));
 		}
 	}
 
@@ -281,7 +281,7 @@ void sched_nr_ue_new_slot(sched_nr_ue *ue, slot_point pdcch_slot)
 
 void sched_nr_ue_ul_sr_info(sched_nr_ue *ue)
 {
-	ue->last_sr_slot = slot_point_sub(ue->last_tx_slot, TX_ENB_DELAY);
+	ue->last_sr_slot = slot_point_sub_jump(ue->last_tx_slot, TX_ENB_DELAY);
 }
 
 void sched_nr_ue_add_dl_mac_ce(sched_nr_ue *ue, uint32_t ce_lcid, uint32_t nof_cmds)
@@ -324,11 +324,11 @@ static slot_ue* slot_ue_init(ue_carrier *ue_, slot_point slot_tx_, uint32_t cc)
 	slot_u->pdcch_slot = slot_tx_;
 
 	const uint32_t k0 = 0;
-	slot_u->pdsch_slot  = slot_point_add(slot_u->pdcch_slot, k0);             //dci 1_X  dci0_X
+	slot_u->pdsch_slot  = slot_point_add_jump(slot_u->pdcch_slot, k0);             //dci 1_X  dci0_X
 	uint32_t k1         = ue_carrier_params_get_k1(&ue_->bwp_cfg, slot_u->pdsch_slot);
-	slot_u->uci_slot    = slot_point_add(slot_u->pdsch_slot, k1);             //dl ack/sr/csi
+	slot_u->uci_slot    = slot_point_add_jump(slot_u->pdsch_slot, k1);             //dl ack/sr/csi
 	uint32_t k2         = ue_->bwp_cfg.bwp_cfg->pusch_ra_list[0].K;
-	slot_u->pusch_slot  = slot_point_add( slot_u->pdcch_slot, k2);            //dci0_1触发得到的msg4/bsr/ul data
+	slot_u->pusch_slot  = slot_point_add_jump( slot_u->pdcch_slot, k2);            //dci0_1触发得到的msg4/bsr/ul data
 
 	slot_u->dl_active = ue_->cell_params.bwps[0].slots[slot_idx(&slot_u->pdsch_slot)].is_dl;
 	if (slot_u->dl_active) {

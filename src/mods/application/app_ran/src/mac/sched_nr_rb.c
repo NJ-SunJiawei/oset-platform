@@ -166,20 +166,20 @@ uint32_t prb_interval_length(prb_interval *prb_interval)
 	return (prb_interval->stop_ - prb_interval->start_);
 }
 
-prb_grant* prb_grant_interval_init(prb_grant *prb_grant, prb_interval *interval)
+prb_grant* prb_grant_interval_init(prb_grant *grant, prb_interval *interval)
 {
-	prb_grant->alloc_type_0 = false;
-	prb_grant->alloc.interv = *interval;
+	grant->alloc_type_0 = false;
+	grant->alloc.interv = *interval;
 
-	return prb_grant;
+	return grant;
 }
 
-prb_grant* prb_grant_rbgs_init(prb_grant *prb_grant, rbg_bitmap *rbgs)
+prb_grant* prb_grant_rbgs_init(prb_grant *grant, rbg_bitmap *rbgs)
 {
-	prb_grant->alloc_type_0 = true;
-	prb_grant->alloc.rbgs = *rbgs;
+	grant->alloc_type_0 = true;
+	grant->alloc.rbgs = *rbgs;
 
-	return prb_grant;
+	return grant;
 }
 
 //查看是否交集

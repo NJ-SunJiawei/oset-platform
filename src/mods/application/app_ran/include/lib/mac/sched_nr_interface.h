@@ -161,7 +161,7 @@ typedef struct dl_res_s{
 
 inline uint32_t GET_RSLOT_ID(slot_point tx_slot)
 {
-	return count_idx(&slot_point_sub(tx_slot, TX_ENB_DELAY));
+	return count_idx(&slot_point_sub_jump(tx_slot, TX_ENB_DELAY));
 }
 
 

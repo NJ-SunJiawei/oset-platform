@@ -104,13 +104,13 @@ slot_point slot_point_add_equal(slot_point *slot, uint32_t jump)
 }
 
 
-slot_point slot_point_sub(slot_point slot, uint32_t jump)
+slot_point slot_point_sub_jump(slot_point slot, uint32_t jump)
 {
 	return slot_point_sub_equal(&slot, jump);
 }
 
 
-slot_point slot_point_add(slot_point slot, uint32_t jump)
+slot_point slot_point_add_jump(slot_point slot, uint32_t jump)
 {
 	return slot_point_add_equal(&slot, jump);
 }
@@ -123,6 +123,19 @@ void slot_point_plus_plus(slot_point *slot)
 		slot->count_ = 0;
 	}
 }
+
+int32_t slot_point_sub(slot_point *slot, slot_point *other)
+{
+  int a = (int)slot->count_ - (int)other->count_;
+  if (a >= (int)nof_slots_per_hf(slot) / 2) {
+	return a - nof_slots_per_hf(slot);
+  }
+  if (a < -(int)nof_slots_per_hf(slot) / 2) {
+	return a + nof_slots_per_hf(slot);
+  }
+  return a;
+}
+
 
 //==
 bool slot_point_equal(slot_point *slot, slot_point *other)
@@ -137,6 +150,7 @@ bool slot_point_no_equal(slot_point *slot, slot_point *other)
 }
 
 //<
+//window_size 10240/2
 bool slot_point_less(slot_point *slot, slot_point *other)
 {
 	ASSERT_IF_NOT(numerology_idx(slot) == numerology_idx(other), "Comparing slots of different numerologies");

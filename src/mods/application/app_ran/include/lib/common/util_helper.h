@@ -60,15 +60,15 @@ extern "C" {
 
 #define span(data, pointer, len) \
 			  do { \
-			  	data->ptr = pointer;\
-				data->len = len;\
+			  	data.ptr = pointer;\
+				data.len = len;\
 			  } while (0)
 
 #define subspan(node, data, offset, count) \
 			do { \
-				ASSERT_IF_NOT(count <= data->len - offset, "size out of bounds!");\
-				node->ptr = data->ptr + offset;\
-				node->len = count;\
+				ASSERT_IF_NOT(count <= data.len - offset, "size out of bounds!");\
+				node.ptr = data.ptr + offset;\
+				node.len = count;\
 			} while (0)
 
 #ifdef __cplusplus

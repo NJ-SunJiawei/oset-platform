@@ -126,7 +126,7 @@ slot_point get_pdcch_tti(bwp_slot_allocator *bwp_alloc)
 }
 slot_point get_rx_tti(bwp_slot_allocator *bwp_alloc)
 {
-	return slot_point_sub(bwp_alloc->pdcch_slot, TX_ENB_DELAY);
+	return slot_point_sub_jump(bwp_alloc->pdcch_slot, TX_ENB_DELAY);
 }
 
 bwp_slot_grid *get_tx_slot_grid(bwp_slot_allocator *bwp_alloc)
@@ -228,7 +228,7 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 
 	//msg1(rach)和msg2(rar)没有ack,没有harq
 	bwp_slot_grid *bwp_pdcch_slot = get_tx_slot_grid(bwp_alloc);
-	slot_point	   msg3_slot      = slot_point_add(bwp_alloc->pdcch_slot, bwp_alloc->cfg.pusch_ra_list[m].msg3_delay);
+	slot_point	   msg3_slot      = slot_point_add_jump(bwp_alloc->pdcch_slot, bwp_alloc->cfg.pusch_ra_list[m].msg3_delay);
 	bwp_slot_grid *bwp_msg3_slot  = get_slot_grid(bwp_alloc, msg3_slot);
 
 	// Verify there is space in PDSCH for RAR
