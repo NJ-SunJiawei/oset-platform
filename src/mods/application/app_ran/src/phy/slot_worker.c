@@ -223,7 +223,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	if (NULL == dl_slot_cfg) return false;
 
 	if (srsran_gnb_dl_base_zero(gnb_dl) < SRSRAN_SUCCESS) {
-		oset_error("[%5lu] Error zeroing RE grid", slot_w->context.sf_idx);
+		oset_error("[%5u] Error zeroing RE grid", slot_w->context.sf_idx);
 		return false;
 	}
 
@@ -231,13 +231,13 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	for (pdcch_dl_t& pdcch : dl_sched_ptr->pdcch_dl) {
 		// Set PDCCH configuration, including DCI dedicated
 		if (srsran_gnb_dl_set_pdcch_config(gnb_dl, &pdcch_cfg, &pdcch.dci_cfg) < SRSRAN_SUCCESS) {//配置dci coreset和namespace
-			oset_error("[%5lu] PDCCH: Error setting DL configuration", slot_w->context.sf_idx);
+			oset_error("[%5u] PDCCH: Error setting DL configuration", slot_w->context.sf_idx);
 			return false;
 		}
 
 		// Put PDCCH message
 		if (srsran_gnb_dl_pdcch_put_dl(gnb_dl, dl_slot_cfg, &pdcch.dci) < SRSRAN_SUCCESS) {//编码dci
-			oset_error("[%5lu] PDCCH: Error putting DL message", slot_w->context.sf_idx);
+			oset_error("[%5u] PDCCH: Error putting DL message", slot_w->context.sf_idx);
 			return false;
 		}
 
@@ -245,7 +245,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 		if (oset_runtime()->hard_log_level >= OSET_LOG2_INFO) {
 			char str[512] = {0};
 			srsran_gnb_dl_pdcch_dl_info(gnb_dl, &pdcch.dci, str, 512);
-			oset_info("[%5lu] PDCCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg->idx);
+			oset_info("[%5u] PDCCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg->idx);
 		}
 	}
 
@@ -253,13 +253,13 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	for (const stack_interface_phy_nr::pdcch_ul_t& pdcch : dl_sched_ptr->pdcch_ul) {
 		// Set PDCCH configuration, including DCI dedicated
 		if (srsran_gnb_dl_set_pdcch_config(gnb_dl, &pdcch_cfg, &pdcch.dci_cfg) < SRSRAN_SUCCESS) {
-			oset_error("[%5lu] PDCCH: Error setting DL configuration", slot_w->context.sf_idx);
+			oset_error("[%5u] PDCCH: Error setting DL configuration", slot_w->context.sf_idx);
 			return false;
 		}
 
 		// Put PDCCH message
 		if (srsran_gnb_dl_pdcch_put_ul(gnb_dl, dl_slot_cfg, &pdcch.dci) < SRSRAN_SUCCESS) {
-			oset_error("[%5lu] PDCCH: Error putting DL message", slot_w->context.sf_idx);
+			oset_error("[%5u] PDCCH: Error putting DL message", slot_w->context.sf_idx);
 			return false;
 		}
 
@@ -267,7 +267,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 		if (oset_runtime()->hard_log_level >= OSET_LOG2_INFO) {
 			char str[512] = {0};
 			srsran_gnb_dl_pdcch_ul_info(gnb_dl, &pdcch.dci, str, 512);
-			oset_info("[%5lu] PDCCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg->idx);
+			oset_info("[%5u] PDCCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg->idx);
 		}
 	}
 
@@ -286,7 +286,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 
 		// Put PDSCH message//重传也在该模块
 		if (srsran_gnb_dl_pdsch_put(gnb_dl, dl_slot_cfg, &pdsch.sch, data) < SRSRAN_SUCCESS) {
-			oset_error("[%5lu] PDSCH: Error putting DL message", slot_w->context.sf_idx);
+			oset_error("[%5u] PDSCH: Error putting DL message", slot_w->context.sf_idx);
 			return false;
 		}
 
@@ -298,9 +298,9 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 			if (oset_runtime()->hard_log_level >= OSET_LOG2_DEBUG) {
 				std::array<char, 1024> str_extra = {};
 				srsran_sch_cfg_nr_info(&pdsch.sch, str_extra.data(), (uint32_t)str_extra.size());
-				oset_info("[%5lu] PDSCH: cc=%d %s tti_tx=%d\n%s", slot_w->context.sf_idx, slot_w->cell_index, str.data(), dl_slot_cfg->idx, str_extra.data());
+				oset_info("[%5u] PDSCH: cc=%d %s tti_tx=%d\n%s", slot_w->context.sf_idx, slot_w->cell_index, str.data(), dl_slot_cfg->idx, str_extra.data());
 			} else {
-				oset_info("[%5lu] PDSCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str.data(), dl_slot_cfg->idx);
+				oset_info("[%5u] PDSCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str.data(), dl_slot_cfg->idx);
 			}
 		}
 	}
@@ -308,7 +308,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	// Put NZP-CSI-RS
 	for (const srsran_csi_rs_nzp_resource_t& nzp_csi_rs : dl_sched_ptr->nzp_csi_rs) {
 		if (srsran_gnb_dl_nzp_csi_rs_put(gnb_dl, dl_slot_cfg, &nzp_csi_rs) < SRSRAN_SUCCESS) {
-			oset_error("[%5lu] NZP-CSI-RS: Error putting signal", slot_w->context.sf_idx);
+			oset_error("[%5u] NZP-CSI-RS: Error putting signal", slot_w->context.sf_idx);
 			return false;
 		}
 	}
@@ -319,7 +319,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	// Add SSB to the baseband signal
 	for (ssb_t& ssb : dl_sched_ptr->ssb) {
 		if (srsran_gnb_dl_add_ssb(gnb_dl, &ssb.pbch_msg, dl_slot_cfg->idx) < SRSRAN_SUCCESS) {
-			oset_error("[%5lu] SSB: Error putting signal", slot_w->context.sf_idx);
+			oset_error("[%5u] SSB: Error putting signal", slot_w->context.sf_idx);
 			return false;
 		}
 	}
@@ -367,10 +367,10 @@ void* slot_worker_process(oset_threadplus_t *thread, void *data)
 
 #ifdef DEBUG_WRITE_FILE
 	if (num_slots++ < slots_to_dump) {
-	oset_info("[%5lu] Writing slot %d", slot_w->context.sf_idx, slot_w->dl_slot_cfg.idx);
+	oset_info("[%5u] Writing slot %d", slot_w->context.sf_idx, slot_w->dl_slot_cfg.idx);
 	fwrite(tx_rf_buffer.get(0), tx_rf_buffer.get_nof_samples() * sizeof(cf_t), 1, f);
 	} else if (num_slots == slots_to_dump) {
-	oset_info("[%5lu] Baseband signaled dump finished. Please close app", slot_w->context.sf_idx);
+	oset_info("[%5u] Baseband signaled dump finished. Please close app", slot_w->context.sf_idx);
 	fclose(f);
 	}
 #endif

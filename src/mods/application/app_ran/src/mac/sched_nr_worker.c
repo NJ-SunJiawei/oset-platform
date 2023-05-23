@@ -28,7 +28,7 @@ void log_sched_slot_ues(slot_point pdcch_slot, uint32_t cc)
 	last = dumpstr + 1024;
 	p = dumpstr;
 	
-  	p = oset_slprintf(p, last, "[%5lu] SCHED: UE candidates, pdcch_tti=%lu, cc=%lu: [", GET_RSLOT_ID(pdcch_slot), pdcch_slot, cc);
+  	p = oset_slprintf(p, last, "[%5u] SCHED: UE candidates, pdcch_tti=%u, cc=%u: [", GET_RSLOT_ID(pdcch_slot), pdcch_slot, cc);
 
 
 	for (hi = oset_hash_first(mac_manager_self()->sched.cc_workers[cc].slot_ues); hi; hi = oset_hash_next(hi)) {
@@ -37,10 +37,10 @@ void log_sched_slot_ues(slot_point pdcch_slot, uint32_t cc)
 
 		p = oset_slprintf(p, last, "%s{rnti=0x%x", use_comma, rnti);
 		if (ue->dl_active) {
-			p = oset_slprintf(p, last, ", dl_bs=%lu", ue->dl_bytes);
+			p = oset_slprintf(p, last, ", dl_bs=%u", ue->dl_bytes);
 		}
 		if (ue->ul_active) {
-			p = oset_slprintf(p, last, ", ul_bs=%lu", ue->ul_bytes);
+			p = oset_slprintf(p, last, ", ul_bs=%u", ue->ul_bytes);
 		}
 		p = oset_slprintf(p, last, "}");
 		use_comma = ", ";
@@ -141,12 +141,12 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 	slot_point     sl_pdcch = get_pdcch_tti(bwp_alloc);
 
 	// 计算可用prb位
-	prb_bitmap prbs_before = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
+	prb_bitmap *prbs_before = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
 
 	// Allocate cell DL signalling(PBCH)
 	sched_dl_signalling(bwp_alloc);
 
-	prb_bitmap prbs_after = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
+	prb_bitmap *prbs_after = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
 
 	// Allocate pending SIBs
 	si_sched_run_slot(bwp_alloc, &cc_w->bwps[0].si);

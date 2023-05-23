@@ -108,13 +108,13 @@ int prach_worker_run_tti(uint32_t cc_idx, sf_buffer* b)
                                    prach_work_manager[cc_idx].prach_offsets,
                                    prach_work_manager[cc_idx].prach_p2avg,
                                    &prach_nof_det)) {
-      oset_error("[%5lu] Error detecting PRACH", b->tti);
+      oset_error("[%5u] Error detecting PRACH", b->tti);
       return OSET_ERROR;
     }
 
     if (prach_nof_det) {
       for (uint32_t i = 0; i < prach_nof_det; i++) {
-        oset_info("[%5lu] PRACH: cc=%d, %d/%d, preamble=%d, offset=%.1f us, peak2avg=%.1f, max_offset=%.1f us",
+        oset_info("[%5u] PRACH: cc=%d, %d/%d, preamble=%d, offset=%.1f us, peak2avg=%.1f, max_offset=%.1f us",
                     b->tti,
                     cc_idx,
                     i,
@@ -149,12 +149,12 @@ int prach_new_tti(uint32_t cc_idx, uint32_t tti_rx, cf_t* buffer_rx)
 		 oset_pool_alloc(&pool_buffer, &prach_work_manager[cc_idx].current_buffer);
 		 memset(prach_work_manager[cc_idx].current_buffer, 0, sizeof(sf_buffer));
 		 if (!prach_work_manager[cc_idx].current_buffer) {
-		   oset_warn("[%5lu] PRACH skipping tti=%d due to lack of available buffers", tti_rx, tti_rx);
+		   oset_warn("[%5u] PRACH skipping tti=%d due to lack of available buffers", tti_rx, tti_rx);
 		   return 0;
 		 }
 	   }
 	   if (!prach_work_manager[cc_idx].current_buffer) {
-		 oset_error("[%5lu] PRACH: Expected available current_buffer", tti_rx);
+		 oset_error("[%5u] PRACH: Expected available current_buffer", tti_rx);
 		 return -1;
 	   }
 
@@ -170,7 +170,7 @@ int prach_new_tti(uint32_t cc_idx, uint32_t tti_rx, cf_t* buffer_rx)
 		 	prach_work_manager[cc_idx].current_buffer->tti = tti_rx;
 		 }
 	   } else {
-		 oset_error("[%5lu] PRACH: Not enough space in current_buffer", tti_rx);
+		 oset_error("[%5u] PRACH: Not enough space in current_buffer", tti_rx);
 		 return -1;
 	   }
 	   //15khz, 1slot = 1sf

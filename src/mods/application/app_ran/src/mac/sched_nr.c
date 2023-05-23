@@ -22,7 +22,7 @@ void dl_cqi_info_callback(ue_carrier *carriers, void *argv)
 	oset_assert(dl_cqi_info_argv);
 
 	carriers->dl_cqi = dl_cqi_info_argv->cqi_value;
-    oset_info("rnti=0x%x dl_cqi_info(cqi=%lu)", carriers->rnti, dl_cqi_info_argv->cqi_value);
+    oset_info("rnti=0x%x dl_cqi_info(cqi=%u)", carriers->rnti, dl_cqi_info_argv->cqi_value);
 }
 
 
@@ -48,7 +48,7 @@ void ul_crc_info_callback(ue_carrier *carriers, void *argv)
 	oset_assert(ul_crc_info_argv);
 
 	ue_carrier_ul_crc_info(carriers, ul_crc_info_argv->pid, ul_crc_info_argv->crc);
-	oset_info("rnti=0x%x ul_crc_info(pid=%lu, crc=%s)", carriers->rnti, ul_crc_info_argv->pid, ul_crc_info_argv->crc ? "OK" : "KO");
+	oset_info("rnti=0x%x ul_crc_info(pid=%u, crc=%s)", carriers->rnti, ul_crc_info_argv->pid, ul_crc_info_argv->crc ? "OK" : "KO");
 }
 
 void sched_nr_ul_crc_info(sched_nr *scheluder, uint16_t rnti, uint32_t cc, uint32_t pid, bool crc)
@@ -75,7 +75,7 @@ void dl_ack_info_callback(ue_carrier *carriers, void *argv)
 	oset_assert(dl_ack_info_argv);
 
 	ue_carrier_dl_ack_info(carriers, dl_ack_info_argv->pid, dl_ack_info_argv->tb_idx, dl_ack_info_argv->ack);
-	oset_info("rnti=0x%x dl_ack_info(pid=%lu, ack=%s)", carriers->rnti, dl_ack_info_argv->pid, dl_ack_info_argv->ack ? "OK" : "KO");
+	oset_info("rnti=0x%x dl_ack_info(pid=%u, ack=%s)", carriers->rnti, dl_ack_info_argv->pid, dl_ack_info_argv->ack ? "OK" : "KO");
 }
 
 void sched_nr_dl_ack_info(sched_nr *scheluder, uint16_t rnti, uint32_t cc, uint32_t pid, uint32_t tb_idx, bool ack)
@@ -128,7 +128,7 @@ void ul_bsr_callback(sched_nr_ue *ue, void *argv)
 
 	sched_nr_ue_ul_bsr(ue, ul_bsr_argv->lcg_id, ul_bsr_argv->bsr);
 
-	oset_info("rnti=0x%x ul_bsr(lcg=%lu, bsr=%lu)", ue->rnti, ul_bsr_argv->lcg_id, ul_bsr_argv->bsr);
+	oset_info("rnti=0x%x ul_bsr(lcg=%u, bsr=%u)", ue->rnti, ul_bsr_argv->lcg_id, ul_bsr_argv->bsr);
 }
 
 
@@ -155,7 +155,7 @@ void dl_mac_ce_callback(sched_nr_ue *ue, void *argv)
 	// CE is added to list of pending CE
 	sched_nr_ue_add_dl_mac_ce(ue, dl_mac_ce_argv->ce_lcid, 1);
 
-	oset_info("rnti=0x%x dl_mac_ce(lcid=%lu)", ue->rnti, dl_mac_ce_argv->ce_lcid);
+	oset_info("rnti=0x%x dl_mac_ce(lcid=%u)", ue->rnti, dl_mac_ce_argv->ce_lcid);
 }
 
 
@@ -180,7 +180,7 @@ void dl_buffer_state_callback(sched_nr_ue *ue, void *argv)
 
 	sched_nr_ue_rlc_buffer_state(ue, dl_buffer_state_argv->lcid, dl_buffer_state_argv->newtx, dl_buffer_state_argv->retx);
 
-	oset_info("rnti=0x%x  dl_buffer_state(lcid=%lu, bsr=%lu,%lu)", ue->rnti, dl_buffer_state_argv->lcid, dl_buffer_state_argv->newtx, dl_buffer_state_argv->retx);
+	oset_info("rnti=0x%x  dl_buffer_state(lcid=%u, bsr=%u,%u)", ue->rnti, dl_buffer_state_argv->lcid, dl_buffer_state_argv->newtx, dl_buffer_state_argv->retx);
 }
 
 
@@ -296,11 +296,11 @@ void dl_rach_info_callback(uint16_t rnti, void *argv)
 	sched_nr_add_ue_impl(rnti, u, cc);
 
 	if (sched_nr_ue_find_by_rnti(rnti)) {
-		oset_info("[%5lu] dl_rach_info(temp c-rnti=0x%x)", count_idx(&rar_info->prach_slot), rnti);
+		oset_info("[%5u] dl_rach_info(temp c-rnti=0x%x)", count_idx(&rar_info->prach_slot), rnti);
 		// RACH is handled only once the UE object is created and inserted in the ue_db
 		cc_worker_dl_rach_info(&mac_manager_self()->sched.cc_workers[cc], rar_info);//pre deal msg2
 	} else {
-		oset_error("[%5lu] Failed to create UE object with rnti=0x%x", count_idx(&rar_info->prach_slot), rnti);
+		oset_error("[%5u] Failed to create UE object with rnti=0x%x", count_idx(&rar_info->prach_slot), rnti);
 	}
 };
 

@@ -90,7 +90,7 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 	const uint32_t rar_aggr_level = 2;
 	slot_point     sl_pdcch = get_pdcch_tti(slot_grid);
 	//bwp_cfg->cfg.pdcch.ra_search_space.id
-	prb_bitmap	 prbs = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(slot_grid->bwp_grid, sl_pdcch),
+	prb_bitmap	 *prbs = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(slot_grid->bwp_grid, sl_pdcch),
 														ra->bwp_cfg->cfg.pdcch.ra_search_space.id,
 														srsran_dci_format_nr_1_0);
 
@@ -98,7 +98,7 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 	span_t(dl_sched_rar_info_t) msg3_grants = {0};
 	span(msg3_grants, rar->msg3_grant, cvector_size(rar->msg3_grant));
 
-	//从最大size开始申请资源，无法满足则减小zize
+	//msg3从最大size开始申请资源，无法满足则减小zize
 	for (uint32_t nof_grants_alloc = cvector_size(rar->msg3_grant); nof_grants_alloc > 0; nof_grants_alloc--) {
 		ret = (alloc_result)invalid_coderate;
 		uint32_t start_prb_idx = 0;
@@ -106,8 +106,8 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 		//msg2 prb >= 4
 		for (uint32_t nprb = 4; nprb < ra->bwp_cfg->cfg.rb_width && ret == (alloc_result)invalid_coderate; ++nprb) {
 			prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
-			start_prb_idx 	  = interv->start_;
-			if (prb_interval_length(interv) == nprb) {
+			start_prb_idx 	  = interv.start_;
+			if (prb_interval_length(&interv) == nprb) {
 				span_t(dl_sched_rar_info_t) msg3_grant_tmp = {0};
 				subspan(msg3_grant_tmp, msg3_grants, 0, nof_grants_alloc);
 				ret = bwp_slot_allocator_alloc_rar_and_msg3(slot_grid, rar->ra_rnti, rar_aggr_level, &interv, &msg3_grant_tmp);
@@ -147,7 +147,7 @@ void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
 		// - if window hasn't started, stop loop, as RARs are ordered by TTI
 		if (!slot_interval_contains(&rar->rar_win, pdcch_slot)) {
 			if (slot_point_greater_equal(&pdcch_slot, &rar->rar_win.stop_)) {
-				oset_warn("SCHED: Could not transmit RAR within the window=[%lu,%lu], PRACH=%lu, RAR=%lu",
+				oset_warn("SCHED: Could not transmit RAR within the window=[%u,%u], PRACH=%u, RAR=%u",
 							count_idx(&rar->rar_win.start_),
 							count_idx(&rar->rar_win.stop_),
 							count_idx(&rar->prach_slot),
@@ -160,6 +160,7 @@ void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
 
 		// Try to schedule DCIs + RBGs for RAR Grants
 		// 既要分配msg2(rar)消息的下行资源，也要分配msg3的上行资源
+		// 时频相同，RA-RNTI相同的ra, msg2消息共用，msg3消息申请cvector_size(rar->msg3_grant)
 		uint32_t     nof_rar_allocs = 0;
 		alloc_result ret            = ra_sched_allocate_pending_rar(slot_alloc, rar, &nof_rar_allocs);
 

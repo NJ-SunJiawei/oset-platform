@@ -21,7 +21,7 @@ static char* log_pdcch_alloc_failure(srsran_rnti_type_t           rnti_type,
 	char fmtbuf[128] = {0};
 	oset_snprintf(fmtbuf,
 					sizeof(fmtbuf),
-					"SCHED: Failure to allocate PDCCH for %s-rnti=0x%x, SS#%lu. Cause: ",
+					"SCHED: Failure to allocate PDCCH for %s-rnti=0x%x, SS#%u. Cause: ",
 					srsran_rnti_type_str_short(rnti_type),
 					rnti,
 					ss_id);
@@ -368,7 +368,7 @@ static alloc_result bwp_pdcch_allocator_check_args_valid(bwp_pdcch_allocator *pd
 
 	// DL must be active in given slot
 	if (pdcchs->bwp_cfg->slots[pdcchs->slot_idx].is_dl) {
-		oset_error("%sDL is disabled for slot=%lu", log_pdcch_alloc_failure(rnti_type, ss_id, rnti), pdcchs->slot_idx);
+		oset_error("%sDL is disabled for slot=%u", log_pdcch_alloc_failure(rnti_type, ss_id, rnti), pdcchs->slot_idx);
 		return (alloc_result)no_cch_space;
 	}
 
@@ -385,7 +385,7 @@ static alloc_result bwp_pdcch_allocator_check_args_valid(bwp_pdcch_allocator *pd
 
 	if (ss->nof_candidates[aggr_idx] == 0) {
 		// No valid DCI position candidates given aggregation level
-		oset_error("%sChosen SearchSpace doesn't have CCE candidates for L=%lu", log_pdcch_alloc_failure(rnti_type, ss_id, rnti), aggr_idx);
+		oset_error("%sChosen SearchSpace doesn't have CCE candidates for L=%u", log_pdcch_alloc_failure(rnti_type, ss_id, rnti), aggr_idx);
 		return (alloc_result)invalid_grant_params;
 	}
 
@@ -417,7 +417,7 @@ static alloc_result bwp_pdcch_allocator_check_args_valid(bwp_pdcch_allocator *pd
 
 	if (user != NULL) {
 		if (user->bwp_cfg->bwp_id != pdcchs->bwp_cfg->bwp_id) {
-		  oset_error("%sTrying to allocate BWP#%lu which is inactive for the UE",
+		  oset_error("%sTrying to allocate BWP#%u which is inactive for the UE",
 								  log_pdcch_alloc_failure(rnti_type, ss_id, rnti), user->bwp_cfg->bwp_id);
 		  return (alloc_result)no_rnti_opportunity;
 		}
@@ -481,4 +481,9 @@ pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_si_pdcch(bwp_pdcch_allocator *pd
 	return bwp_pdcch_allocator_alloc_dl_pdcch_common(srsran_rnti_type_si, SRSRAN_SIRNTI, ss_id, aggr_idx, srsran_dci_format_nr_1_0, NULL);
 }
 
+pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_rar_pdcch(bwp_pdcch_allocator *pdcchs, uint16_t ra_rnti, uint32_t aggr_idx)
+{
+	ASSERT_IF_NOT(pdcchs->bwp_cfg->cfg.pdcch.ra_search_space_present, "Allocating RAR PDCCH in BWP without RA SearchSpace");
+	return bwp_pdcch_allocator_alloc_dl_pdcch_common(srsran_rnti_type_ra, ra_rnti, pdcchs->bwp_cfg->cfg.pdcch.ra_search_space.id, aggr_idx, srsran_dci_format_nr_1_0, NULL);
+}
 

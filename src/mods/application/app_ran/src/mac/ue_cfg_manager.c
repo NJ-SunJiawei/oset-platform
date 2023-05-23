@@ -119,6 +119,11 @@ srsran_search_space_t* ue_carrier_params_get_ss(ue_carrier_params_t *param, uint
   return NULL;
 }
 
+srsran_dci_cfg_nr_t get_dci_cfg(ue_carrier_params_t *param)
+{ 
+	return param->cached_dci_cfg;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 /// Helper function to verify if RNTI type can be placed in specified search space
 /// Based on 38.213, Section 10.1

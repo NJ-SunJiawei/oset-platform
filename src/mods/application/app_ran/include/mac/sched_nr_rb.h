@@ -43,8 +43,8 @@ typedef struct {
   } alloc;
 }prb_grant;
 
-prb_bitmap get_prbs(bwp_rb_bitmap *prb_map);
-rbg_bitmap get_rbgs(bwp_rb_bitmap *prb_map);
+prb_bitmap* get_prbs(bwp_rb_bitmap *prb_map);
+rbg_bitmap* get_rbgs(bwp_rb_bitmap *prb_map);
 uint32_t get_P(uint32_t bwp_nof_prb, bool config_1_or_2);
 uint32_t get_nof_rbgs(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_2);
 uint32_t get_rbg_size(uint32_t bwp_nof_prb, uint32_t bwp_start, bool config1_or_2, uint32_t rbg_idx);
@@ -58,10 +58,10 @@ void bwp_rb_bitmap_add_by_prb_grant(bwp_rb_bitmap *prb_map, prb_grant *grant);
 
 void prb_interval_init(prb_interval *prb_interval, uint32_t start_point, uint32_t stop_point);
 bool prb_interval_empty(prb_interval *prb_interval);
-uint32_t prb_interval_length(prb_interval *prb_interval);
+int32_t prb_interval_length(prb_interval *prb_interval);
 
-prb_grant* prb_grant_interval_init(prb_grant *prb_grant, prb_interval *interval);
-prb_grant* prb_grant_rbgs_init(prb_grant *prb_grant, rbg_bitmap rbgs);
+prb_grant prb_grant_interval_init(prb_interval *interval);
+prb_grant prb_grant_rbgs_init(rbg_bitmap *rbgs);
 bool prb_grant_collides(prb_grant *grant);
 bool is_alloc_type0(prb_grant *prb_grant);
 bool is_alloc_type1(prb_grant *prb_grant);

@@ -55,14 +55,14 @@ static void add_rbgs_to_prbs(bwp_rb_bitmap *prb_map, rbg_bitmap *grant)
   } while (idx != (int)bit_size(prb_map->prbs_));
 }
 
-prb_bitmap get_prbs(bwp_rb_bitmap *prb_map)
+prb_bitmap* get_prbs(bwp_rb_bitmap *prb_map)
 { 
-	return prb_map->prbs_;
+	return &prb_map->prbs_;
 }
 
-rbg_bitmap get_rbgs(bwp_rb_bitmap *prb_map)
+rbg_bitmap* get_rbgs(bwp_rb_bitmap *prb_map)
 {
-	return prb_map->rbgs_;
+	return &prb_map->rbgs_;
 }
 
 /// TS 38.214, Table 6.1.2.2.1-1 - Nominal RBG size P
@@ -161,24 +161,26 @@ bool prb_interval_empty(prb_interval *prb_interval)
 	return (prb_interval->stop_ == prb_interval->start_);
 }
 
-uint32_t prb_interval_length(prb_interval *prb_interval)
+int32_t prb_interval_length(prb_interval *prb_interval)
 {
 	return (prb_interval->stop_ - prb_interval->start_);
 }
 
-prb_grant* prb_grant_interval_init(prb_grant *grant, prb_interval *interval)
+prb_grant prb_grant_interval_init(prb_interval *interval)
 {
-	grant->alloc_type_0 = false;
-	grant->alloc.interv = *interval;
+	prb_grant grant = {0};
 
+	grant.alloc_type_0 = false;
+	grant.alloc.interv = *interval;
 	return grant;
 }
 
-prb_grant* prb_grant_rbgs_init(prb_grant *grant, rbg_bitmap *rbgs)
+prb_grant prb_grant_rbgs_init(rbg_bitmap *rbgs)
 {
-	grant->alloc_type_0 = true;
-	grant->alloc.rbgs = *rbgs;
+	prb_grant grant = {0};
 
+	grant.alloc_type_0 = true;
+	grant.alloc.rbgs = *rbgs;
 	return grant;
 }
 

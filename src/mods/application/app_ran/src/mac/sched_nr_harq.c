@@ -102,7 +102,7 @@ void harq_entity_new_slot(harq_entity *harq_ent, slot_point slot_rx_)
 	dl_harq_proc *dl_h = NULL;
 	cvector_for_each_in(dl_h, harq_ent->dl_harqs){
 		if (harq_proc_clear_if_maxretx(&dl_h->proc ,slot_rx_)) {
-			oset_info("[%5lu] SCHED: discarding rnti=0x%x, DL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
+			oset_info("[%5u] SCHED: discarding rnti=0x%x, DL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
 						count_idx(&slot_rx_),
 						harq_ent->rnti,
 						dl_h->proc.pid,
@@ -113,7 +113,7 @@ void harq_entity_new_slot(harq_entity *harq_ent, slot_point slot_rx_)
 	ul_harq_proc *ul_h = NULL;
 	cvector_for_each_in(ul_h, harq_ent->ul_harqs){
 		if (harq_proc_clear_if_maxretx(&ul_h->proc ,slot_rx_)) {
-			oset_info("[%5lu] SCHED: discarding rnti=0x%x, UL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
+			oset_info("[%5u] SCHED: discarding rnti=0x%x, UL TB pid=%d. Cause: Maximum number of retx exceeded (%d)",
 						count_idx(&slot_rx_),
 						harq_ent->rnti,
 						ul_h->proc.pid,

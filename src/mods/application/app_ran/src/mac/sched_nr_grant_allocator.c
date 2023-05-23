@@ -165,8 +165,8 @@ alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 
 	// Verify there is space in PDSCH
 	// 鉴定授权grap的合法性
-	prb_grant grap = {0};
-	alloc_result ret = pdsch_allocator_is_si_grant_valid(&bwp_pdcch_slot->pdschs, ss_id, prb_grant_interval_init(&grap, prbs));
+	prb_grant grap = prb_grant_interval_init(prbs);
+	alloc_result ret = pdsch_allocator_is_si_grant_valid(&bwp_pdcch_slot->pdschs, ss_id, &grap);
 	if (ret != (alloc_result)success) {
 	  return ret;
 	}
@@ -174,14 +174,14 @@ alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 	// Allocate PDCCH
 	pdcch_dl_alloc_result pdcch_result = bwp_pdcch_allocator_alloc_si_pdcch(&bwp_pdcch_slot->pdcchs, ss_id, aggr_idx);
 	if (!pdcch_result.has_val) {
-		oset_error("[%lu] SCHED: Cannot allocate SIB due to lack of PDCCH space.", GET_RSLOT_ID(&bwp_alloc->pdcch_slot));
+		oset_error("[%5u] SCHED: Cannot allocate SIB due to lack of PDCCH space", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 		return pdcch_result.res.unexpected;
 	}
 	pdcch_dl_t *pdcch = pdcch_result.res.val;
 
 	// Allocate PDSCH (no need to verify again if there is space in PDSCH)
 	// 申请pdsch
-	pdsch_t *pdsch = pdsch_allocator_alloc_si_pdsch_unchecked(&bwp_pdcch_slot->pdschs, ss_id, prbs, &pdcch->dci);
+	pdsch_t *pdsch = pdsch_allocator_alloc_si_pdsch_unchecked(&bwp_pdcch_slot->pdschs, ss_id, &grap, &pdcch->dci);
 
 	// Generate DCI for SIB
 	pdcch->dci_cfg.coreset0_bw = srsran_coreset_get_bw(&bwp_alloc->cfg->cfg.pdcch.coreset[0]);
@@ -200,7 +200,7 @@ alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 												&pdsch->sch,
 												&pdsch->sch.grant);
 	if (code != SRSRAN_SUCCESS) {
-		oset_error("[%lu] Error generating SIB PDSCH grant", GET_RSLOT_ID(&bwp_alloc->pdcch_slot));
+		oset_error("[%5u] Error generating SIB PDSCH grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 		bwp_pdcch_allocator_cancel_last_pdcch(&bwp_pdcch_slot->pdcchs);
 		cvector_pop_back(bwp_pdcch_slot->pdschs);
 		oset_free(pdsch);// free back()
@@ -232,8 +232,8 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 	bwp_slot_grid *bwp_msg3_slot  = get_slot_grid(bwp_alloc, msg3_slot);
 
 	// Verify there is space in PDSCH for RAR
-	prb_grant grap = {0};
-	alloc_result ret = pdsch_allocator_is_rar_grant_valid(bwp_pdcch_slot->pdschs, prb_grant_interval_init(&grap, interv));
+	prb_grant grap = prb_grant_interval_init(interv);
+	alloc_result ret = pdsch_allocator_is_rar_grant_valid(bwp_pdcch_slot->pdschs, &grap);
 	if (ret != (alloc_result)success) {
 		return ret;
 	}
@@ -242,18 +242,17 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 		dl_sched_rar_info_t *rach = pending_rachs[i];
 		slot_ue* ue_it = slot_ue_find_by_rnti(rach->temp_crnti, rach->cc);
 		if (NULL == ue_it) {
-			oset_error("SCHED: Postponing rnti=0x%x RAR allocation. Cause: The ue object not yet fully created",
-					  rach.temp_crnti);
+			oset_error("[%5lu]SCHED: Postponing rnti=0x%x RAR allocation. Cause: The ue object not yet fully created", GET_RSLOT_ID(bwp_alloc->pdcch_slot), rach->temp_crnti);
 			return (alloc_result)no_rnti_opportunity;
 		}
 	}
 
-	ASSERT_IF_NOT(!(MAX_GRANTS == cvector_size(bwp_pdcch_slot->dl.rar)), "The #RARs should be below #PDSCHs");
+	ASSERT_IF_NOT(!(MAX_GRANTS == cvector_size(bwp_pdcch_slot->dl.rar)), "[%5lu]The #RARs should be below #PDSCHs", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 
 	if (!cvector_empty(bwp_pdcch_slot->dl.phy.ssb)) {
 		// TODO: support concurrent PDSCH and SSB
 		// 尚不支持并发PDSCH和SSB
-		oset_debug("SCHED: skipping RAR allocation. Cause: concurrent PDSCH and SSB not yet supported");
+		oset_debug("[%5lu]SCHED: skipping RAR allocation. Cause: concurrent PDSCH and SSB not yet supported", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 		return (alloc_result)no_sch_space;
 	}
 
@@ -263,38 +262,41 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 		return ret;
 	}
 
-	// Check Msg3 RB collision检查Msg3 RB冲突
+	// Check Msg3 RB collision
 	uint32_t	 total_msg3_nof_prbs = msg3_nof_prbs * pending_rachs->len;
-	prb_interval all_msg3_rbs = find_empty_interval_of_length(occupied_prbs(bwp_msg3_slot->puschs), total_msg3_nof_prbs, 0);
-	if (all_msg3_rbs.length() < total_msg3_nof_prbs) {
-	logger.debug("SCHED: No space in PUSCH for Msg3.");
-	return alloc_result::sch_collision;
+	prb_interval all_msg3_rbs = find_empty_interval_of_length(pusch_allocator_occupied_prbs(&bwp_msg3_slot->puschs), total_msg3_nof_prbs, 0);
+	if (prb_interval_length(&all_msg3_rbs) < total_msg3_nof_prbs) {
+		oset_warn("[%5lu]SCHED: No space in PUSCH for Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+		return (alloc_result)sch_collision;
 	}
 
 	// Allocate PDCCH position for RAR
-	auto pdcch_result = bwp_pdcch_slot.pdcchs.alloc_rar_pdcch(ra_rnti, aggr_idx);//从链表里申请pDCCH位置
-	if (pdcch_result.is_error()) {
-	// Could not find space in PDCCH
-	return pdcch_result.error();
+	pdcch_dl_alloc_result pdcch_result = bwp_pdcch_allocator_alloc_rar_pdcch(&bwp_pdcch_slot->pdcchs, ra_rnti, aggr_idx);
+	if (!pdcch_result.has_val) {
+		// Could not find space in PDCCH
+		return pdcch_result.res.unexpected;
 	}
-	pdcch_dl_t& pdcch = *pdcch_result.value();
-	pdcch.dci_cfg 	= slot_ues[pending_rachs[0].temp_crnti]->get_dci_cfg();
-	pdcch.dci.mcs 	= 5;
+
+	pdcch_dl_t *pdcch = pdcch_result.res.val;
+
+	slot_ue* slot_u = slot_ue_find_by_rnti(pending_rachs[0].temp_crnti, bwp_alloc->cfg->cc);
+	pdcch->dci_cfg 	= get_dci_cfg(&slot_u->ue->bwp_cfg);
+	pdcch->dci.mcs 	= 5;
 
 	// Allocate RAR PDSCH
-	pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_rar_pdsch_unchecked(interv, pdcch.dci);//bitmap填充校验、填充dci频域和时域资源
+	pdsch_t *pdsch = pdsch_allocator_alloc_rar_pdsch_unchecked(&bwp_pdcch_slot->pdschs, &grap, &pdcch->dci);
 
-	// Fill RAR PDSCH content填写RAR PDSCH内容
+	// Fill RAR PDSCH content
 	// TODO: Properly fill Msg3 grants
-	srsran_slot_cfg_t slot_cfg;
-	slot_cfg.idx = pdcch_slot.to_uint();
+	srsran_slot_cfg_t slot_cfg = {0};
+	slot_cfg.idx = count_idx(&bwp_alloc->pdcch_slot);
 	int code	   = srsran_ra_dl_dci_to_grant_nr(
 	&cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch.dci, &pdsch.sch, &pdsch.sch.grant);
-	srsran_assert(code == SRSRAN_SUCCESS, "Error converting DCI to grant");
+	srsran_assert(code == SRSRAN_SUCCESS, "[%5lu]Error converting DCI to grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 	pdsch.sch.grant.tb[0].softbuffer.tx = bwp_pdcch_slot.rar_softbuffer->get();//关联harq buff资源
 
 	// Generate Msg3 grants in PUSCH	 预先在pusch中生成msg3资源
-	uint32_t	last_msg3 = all_msg3_rbs.start();
+	uint32_t	last_msg3 = all_msg3_rbs.start_;
 	const int mcs = 0, max_harq_msg3_retx = 4;
 	slot_cfg.idx = msg3_slot.to_uint();
 	bwp_pdcch_slot.dl.rar.emplace_back();
@@ -321,13 +323,13 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 
 	// Allocate UL HARQ
 	ue.h_ul = ue.find_empty_ul_harq();
-	srsran_sanity_check(ue.h_ul != nullptr, "Failed to allocate Msg3");
+	srsran_sanity_check(ue.h_ul != nullptr, "[%5lu]Failed to allocate Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 	bool success = ue.h_ul->new_tx(msg3_slot, msg3_interv, mcs, max_harq_msg3_retx, rar_grant.msg3_dci);
-	srsran_sanity_check(success, "Failed to allocate Msg3");
+	srsran_sanity_check(success, "[%5lu]Failed to allocate Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 
 	// Generate PUSCH content
 	success = ue->phy().get_pusch_cfg(slot_cfg, rar_grant.msg3_dci, pusch.sch);
-	srsran_assert(success, "Error converting DCI to PUSCH grant");
+	srsran_assert(success, "[%5lu]Error converting DCI to PUSCH grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 	pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
 	ue.h_ul->set_tbs(pusch.sch.grant.tb[0].tbs);//set harq tbs,并且清空soft buffer
 	}

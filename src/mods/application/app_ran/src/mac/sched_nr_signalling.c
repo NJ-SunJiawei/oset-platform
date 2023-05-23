@@ -55,7 +55,7 @@ void si_sched_run_slot(bwp_slot_allocator *bwp_alloc, si_sched *si_s)
 	const uint32_t si_aggr_level = 2;
 	const uint32_t ss_id         = 0;
 	slot_point     sl_pdcch      = get_pdcch_tti(bwp_alloc);
-	prb_bitmap     prbs          = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
+	prb_bitmap     *prbs         = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
 
 	// Update SI windows
 	uint32_t N = cvector_size(si_s->bwp_cfg->slots);//一帧slot数量
@@ -83,8 +83,8 @@ void si_sched_run_slot(bwp_slot_allocator *bwp_alloc, si_sched *si_s)
 		  }
 		} else if (si->win_start + si->win_len_slots >= sl_pdcch) {
 		  // If end of SI message window
-		  ASSERT_IF_NOT(si->n == 0, "[%5lu] SCHED: Could not allocate SIB1, len=%d. Cause: %s", GET_RSLOT_ID(sl_pdcch), si->len_bytes, to_string(si->result));
-		  oset_warn("[%5lu] SCHED: Could not allocate SI message idx=%d, len=%d. Cause: %s", GET_RSLOT_ID(sl_pdcch), si->n, si->len_bytes, to_string(si->result));
+		  ASSERT_IF_NOT(si->n == 0, "[%5u] SCHED: Could not allocate SIB1, len=%d. Cause: %s", GET_RSLOT_ID(sl_pdcch), si->len_bytes, to_string(si->result));
+		  oset_warn("[%5u] SCHED: Could not allocate SI message idx=%d, len=%d. Cause: %s", GET_RSLOT_ID(sl_pdcch), si->n, si->len_bytes, to_string(si->result));
 		  slot_clear(&si->win_start);
 		}
 	}
@@ -103,22 +103,22 @@ void si_sched_run_slot(bwp_slot_allocator *bwp_alloc, si_sched *si_s)
 		// Attempt grants with increasing number of PRBs (if the number of PRBs is too low, the coderate is invalid)
 		si->result         = (alloc_result)invalid_coderate;
 		uint32_t     nprbs = 8;//应该根据mcs/tb size计算prb数量
-		prb_interval grant = find_empty_interval_of_length(&prbs, nprbs, 0);
+		prb_interval grant = find_empty_interval_of_length(prbs, nprbs, 0);//仅是查找可能位置，并不在bitmap上占用
 		if (prb_interval_length(&grant) >= nprbs) {
-		  si->result = bwp_slot_allocator_alloc_si(bwp_alloc, si_aggr_level, si->n, si->n_tx, grant, &si->si_softbuffer->buffer);//申请prb资源
+		  si->result = bwp_slot_allocator_alloc_si(bwp_alloc, si_aggr_level, si->n, si->n_tx, &grant, &si->si_softbuffer->buffer);//申请prb资源
 		  if (si->result == (alloc_result)success) {
 		    // SIB scheduled successfully
 		 	slot_clear(&si->win_start);
 		    si->n_tx++;
 		    if (si->n == 0) {
-		      oset_debug("[%5lu] SCHED: Allocated SIB1, len=%d.", GET_RSLOT_ID(sl_pdcch), si.len_bytes);
+		      oset_debug("[%5u] SCHED: Allocated SIB1, len=%d.", GET_RSLOT_ID(sl_pdcch), si.len_bytes);
 		    } else {
-		      oset_debug("[%5lu] SCHED: Allocated SI message idx=%d, len=%d.", GET_RSLOT_ID(sl_pdcch), si.n, si.len_bytes);
+		      oset_debug("[%5u] SCHED: Allocated SI message idx=%d, len=%d.", GET_RSLOT_ID(sl_pdcch), si.n, si.len_bytes);
 		    }
 		  }
 		}
 		if (si->result != (alloc_result)success) {
-		  oset_warn("[%5lu] SCHED: Failed to allocate SI%s%d ntx=%d", GET_RSLOT_ID(sl_pdcch), si.n == 0 ? "B" : " message idx=", si.n + 1, si.n_tx);
+		  oset_warn("[%5u] SCHED: Failed to allocate SI%s%d ntx=%d", GET_RSLOT_ID(sl_pdcch), si.n == 0 ? "B" : " message idx=", si.n + 1, si.n_tx);
 		}
 	}
 }
@@ -130,7 +130,7 @@ static void sched_ssb_basic(slot_point sl_point,
 			                     cvector_vector_t(ssb_t) ssb_list)
 {
 	if (MAX_SSB == cvector_size(ssb_list)) {
-		oset_error("[%5lu] SCHED: Failed to allocate SSB", GET_RSLOT_ID(sl_point));
+		oset_error("[%5u] SCHED: Failed to allocate SSB", GET_RSLOT_ID(sl_point));
 		return;
 	}
 	// If the periodicity is 0, it means that the parameter was not passed by the upper layers.
@@ -161,7 +161,7 @@ static void sched_ssb_basic(slot_point sl_point,
 
 		// Pack mib message to be sent to PHY(asn1c encode mib)
 		int packing_ret_code = srsran_pbch_msg_nr_mib_pack(&mib_msg, &ssb_msg.pbch_msg);
-		oset_assert(packing_ret_code == SRSRAN_SUCCESS, "[%5lu] SSB packing returned en error");
+		oset_assert(packing_ret_code == SRSRAN_SUCCESS, "[%5u] SSB packing returned en error", GET_RSLOT_ID(sl_point));
 		cvector_push_back(ssb_list, ssb_msg)
 	}
 }
@@ -212,8 +212,8 @@ void sched_dl_signalling(bwp_slot_allocator *bwp_alloc)
 		oset_assert(ssb_start_rb >= 0 && ssb_start_rb + ssb_len_rb < bwp_params->cell_cfg->carrier.nof_prb);
 
 		prb_interval interval = {(uint32_t)ssb_start_rb, ssb_start_rb + ssb_len_rb};
-		prb_grant grap = {0};
-		bwp_slot_grid_reserve_pdsch(sl_grid, prb_grant_interval_init(&grap, &interval));
+		prb_grant grap = prb_grant_interval_init(&interval);
+		bwp_slot_grid_reserve_pdsch(sl_grid, &grap);
 	}
 
 	// Schedule NZP-CSI-RS 

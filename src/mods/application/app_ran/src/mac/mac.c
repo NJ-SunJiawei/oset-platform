@@ -222,7 +222,7 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 	sched_nr_dl_rach_info(&mac_manager.sched, &rar_info);
 	rrc_add_user_callback(rnti, rach_info->enb_cc_idx);//todo
 
-	oset_info("[%5lu] RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
+	oset_info("[%5u] RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
 				rach_info->slot_index,
 				rach_info->slot_index,
 				rach_info->enb_cc_idx,
@@ -286,6 +286,7 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
   sched_nr_slot_indication(&mac_manager.sched, pdsch_slot);
 
   // Run DL Scheduler for CC
+  // todp cell=0
   dl_res_t* dl_res = sched_nr_get_dl_sched(&mac_manager.sched, pdsch_slot, 0);
   if (NULL == dl_res) {
     return NULL;

@@ -111,6 +111,7 @@ void bwp_pdcch_allocator_init(bwp_pdcch_allocator *pdcchs,
 										cvector_vector_t(pdcch_ul_t *) ul_pdcchs);
 uint32_t bwp_pdcch_allocator_nof_allocations(bwp_pdcch_allocator *pdcchs);
 pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_si_pdcch(bwp_pdcch_allocator *pdcchs, uint32_t ss_id, uint32_t aggr_idx);
+pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_rar_pdcch(bwp_pdcch_allocator *pdcchs, uint16_t ra_rnti, uint32_t aggr_idx);
 
 #ifdef __cplusplus
 }

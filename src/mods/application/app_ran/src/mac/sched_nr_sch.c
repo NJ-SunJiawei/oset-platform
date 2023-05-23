@@ -14,6 +14,7 @@
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-sch"
 
 static const  char *log_pdsch = "SCHED: Failure to allocate PDSCH. Cause: ";
+static const  char *log_pusch = "SCHED: Failure to allocate PUSCH. Cause: ";
 
 pdsch_t* pdsch_allocator_alloc_pdsch_unchecked(pdsch_allocator *pdsch_alloc,
 														uint32_t                   coreset_id,
@@ -69,6 +70,20 @@ pdsch_alloc_result pdsch_allocator_alloc_si_pdsch(pdsch_allocator *pdsch_alloc, 
 }
 
 
+
+pdsch_t* pdsch_allocator_alloc_rar_pdsch_unchecked(pdsch_allocator *pdsch_alloc, prb_grant *grant, srsran_dci_dl_nr_t *dci)
+{
+	// TS 38.213, 8.2 - "In response to a PRACH transmission, a UE attempts to detect a DCI format 1_0"
+	const static srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0;
+
+	return pdsch_allocator_alloc_si_pdsch_unchecked(pdsch_alloc->bwp_cfg->cfg.pdcch.ra_search_space.coreset_id,
+													pdsch_alloc->bwp_cfg->cfg.pdcch.ra_search_space.type,
+													dci_fmt,
+													grant,
+													dci);
+}
+
+
 pdsch_t* pdsch_allocator_alloc_si_pdsch_unchecked(pdsch_allocator *pdsch_alloc, uint32_t ss_id, prb_grant *grant, srsran_dci_dl_nr_t *dci)
 {
   // Verify SearchSpace validity
@@ -86,13 +101,13 @@ alloc_result pdsch_allocator_is_grant_valid_common(pdsch_allocator *pdsch_alloc,
 {
 	// DL must be active in given slot
 	if (!pdsch_alloc->bwp_cfg.slots[pdsch_alloc->slot_idx].is_dl) {
-		oset_error("%sDL is disabled for slot=%lu", log_pdsch, pdsch_alloc->slot_idx);
+		oset_error("%sDL is disabled for slot=%u", log_pdsch, pdsch_alloc->slot_idx);
 		return (alloc_result)no_sch_space;
 	}
 
 	// No space in Scheduler PDSCH output list
 	if (MAX_GRANTS == cvector_size(pdsch_alloc->pdschs)) {
-		oset_error("%sMaximum number of PDSCHs={} reached", log_pdsch, cvector_size(pdsch_alloc->pdschs));
+		oset_error("%sMaximum number of PDSCHs=%u reached", log_pdsch, cvector_size(pdsch_alloc->pdschs));
 		return (alloc_result)no_sch_space;
 	}
 
@@ -109,7 +124,7 @@ alloc_result pdsch_allocator_is_grant_valid_common(pdsch_allocator *pdsch_alloc,
 		// Grant PRBs do not collide with CORESET PRB limits (in case of common SearchSpace)
 		// 是否越界
 		if (prb_grant_collides(dci_fmt_1_0_excluded_prbs(pdsch_alloc->bwp_cfg, coreset_id), grant)) {
-			oset_error("%sProvided PRB grant={%lu, %lu} falls outside common CORESET PRB boundaries", log_pdsch, grant->alloc.interv.start_, grant->alloc.interv.stop_);
+			oset_error("%sProvided PRB grant={%u, %u} falls outside common CORESET PRB boundaries", log_pdsch, grant->alloc.interv.start_, grant->alloc.interv.stop_);
 			return (alloc_result)sch_collision;
 		}
 	}
@@ -117,7 +132,7 @@ alloc_result pdsch_allocator_is_grant_valid_common(pdsch_allocator *pdsch_alloc,
 	// Grant PRBs do not collide with previous PDSCH allocations
 	// 检查授权的区间未被使用
 	if (prb_grant_collides(pdsch_alloc->dl_prbs, grant)) {
-		oset_error("%sProvided PRB grant={%lu, %lu} collides with allocations previously made", log_pdsch, grant->alloc.interv.start_, grant->alloc.interv.stop_);
+		oset_error("%sProvided PRB grant={%u, %u} collides with allocations previously made", log_pdsch, grant->alloc.interv.start_, grant->alloc.interv.stop_);
 		return (alloc_result)sch_collision;
 	}
 
@@ -155,7 +170,7 @@ void pdsch_allocator_reserve_prbs(pdsch_allocator *pdsch_alloc, prb_grant *grant
 
 
 /// Get available PRBs for allocation
-prb_bitmap pdsch_allocator_occupied_prbs(pdsch_allocator *pdsch_alloc, uint32_t ss_id, srsran_dci_format_nr_t dci_fmt)
+prb_bitmap* pdsch_allocator_occupied_prbs(pdsch_allocator *pdsch_alloc, uint32_t ss_id, srsran_dci_format_nr_t dci_fmt)
 {
   if (dci_fmt == srsran_dci_format_nr_1_0) {
 	const srsran_search_space_t *ss = get_ss(pdsch_alloc->bwp_cfg, ss_id);
@@ -197,25 +212,30 @@ void pdsch_allocator_init(pdsch_allocator *pdsch, bwp_params_t *cfg_, uint32_t s
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
+prb_bitmap* pusch_allocator_occupied_prbs(pusch_allocator *pusch)
+{
+	return get_prbs(&pusch->ul_prbs);
+}
+
 alloc_result pusch_allocator_has_grant_space(pusch_allocator *pusch, uint32_t nof_grants, bool verbose)
 {
   // UL must be active in given slot
   if (!pusch->bwp_cfg.slots[pusch->slot_idx].is_ul) {
     if (verbose) {
-      log_pusch_alloc_failure(bwp_cfg.logger.error, "UL is disabled for slot=%lu", pusch->slot_idx);
+      oset_error("%sUL is disabled for slot=%u", log_pusch, pusch->slot_idx);
     }
-    return alloc_result::no_sch_space;
+    return (alloc_result)no_sch_space;
   }
 
   // No space in Scheduler PDSCH output list
-  if (puschs.size() + nof_grants > puschs.capacity()) {
+  if (cvector_size(pusch->puschs) + nof_grants > MAX_GRANTS) {
     if (verbose) {
-      log_pusch_alloc_failure(bwp_cfg.logger.warning, "Maximum number of PUSCHs={} reached.", puschs.capacity());
+      oset_warn("%sMaximum number of PUSCHs=%d reached", log_pusch, MAX_GRANTS);
     }
-    return alloc_result::no_sch_space;
+    return (alloc_result)no_sch_space;
   }
 
-  return alloc_result::success;
+  return (alloc_result)success;
 }
 
 
