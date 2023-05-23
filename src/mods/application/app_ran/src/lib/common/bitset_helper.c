@@ -472,7 +472,7 @@ uint8_t* bit_to_hex(bounded_bitset *bit)
 	return out_buffer;
 }
 
-bounded_bitset* bit_or_eq(bounded_bitset *bit, bounded_bitset *other)
+bounded_bitset bit_or_eq(bounded_bitset *bit, bounded_bitset *other)
 {
 	ASSERT_IF_NOT(bit_size(other) == bit_size(bit),
 			"ERROR: operator|= called for bitsets of different sizes (%zd!=%zd)",
@@ -481,10 +481,10 @@ bounded_bitset* bit_or_eq(bounded_bitset *bit, bounded_bitset *other)
 	for (size_t i = 0; i < nof_words_(bit); ++i) {
 		bit->buffer[i] |= other->buffer[i];
 	}
-	return bit;
+	return *bit;
 }
 
-bounded_bitset* bit_and_eq(bounded_bitset *bit, bounded_bitset *other)
+bounded_bitset bit_and_eq(bounded_bitset *bit, bounded_bitset *other)
 {
 	ASSERT_IF_NOT(bit_size(other) == bit_size(bit),
 			"ERROR: operator&= called for bitsets of different sizes (%zd!=%zd)",
@@ -494,7 +494,7 @@ bounded_bitset* bit_and_eq(bounded_bitset *bit, bounded_bitset *other)
 	for (size_t i = 0; i < nof_words_(bit); ++i) {
 		bit->buffer[i] &= other->buffer[i];
 	}
-	return bit;
+	return *bit;
 }
 
 
@@ -502,15 +502,13 @@ bounded_bitset bit_and(bounded_bitset *lhs, bounded_bitset *rhs)
 {
 	bounded_bitset res = {0}
 	bit_init(&res, bit_max_size(lhs), bit_size(lhs), bit_reversed(lhs));//need free buffer
-	bit_and_eq(&res, rhs);
-	return res;
+	return bit_and_eq(&res, rhs);
 }
 
 bounded_bitset bit_or(bounded_bitset *lhs, bounded_bitset *rhs)
 {
 	bounded_bitset res = {0}
 	bit_init(&res, bit_max_size(lhs), bit_size(lhs), bit_reversed(lhs));//need free buffer
-	bit_or_eq(&res, rhs);
-	return res;
+	return bit_or_eq(&res, rhs);
 }
 

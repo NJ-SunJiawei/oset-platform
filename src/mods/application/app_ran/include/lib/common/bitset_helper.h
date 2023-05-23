@@ -53,8 +53,8 @@ bool bit_any_range(bounded_bitset *bit, size_t start, size_t stop);
 bool bit_none(bounded_bitset *bit);
 size_t bit_count(bounded_bitset *bit);
 char* bit_to_string(bounded_bitset *bit);
-bounded_bitset* bit_or_eq(bounded_bitset *bit, bounded_bitset *other);
-bounded_bitset* bit_and_eq(bounded_bitset *bit, bounded_bitset *other);
+bounded_bitset bit_or_eq(bounded_bitset *bit, bounded_bitset *other);
+bounded_bitset bit_and_eq(bounded_bitset *bit, bounded_bitset *other);
 bounded_bitset bit_or(bounded_bitset *lhs, bounded_bitset *rhs);
 bounded_bitset bit_and(bounded_bitset *lhs, bounded_bitset *rhs);
 
