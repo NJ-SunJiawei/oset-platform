@@ -86,7 +86,8 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		// usable_common_ss_prb_mask [0~s        ]
 		// dci_1_0_prb_limits        [  s~~~~~~~e]
 		// prb_limits                [  s~~~~s   ]
-		prb_interval interval = {0, rb_start};
+		prb_interval interval = {0};
+		prb_interval_init(&interval, 0, rb_start);
 		bwp_rb_bitmap_add_by_prb_interval(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);
 		prb_interval_init(&cell_bwp->coresets[cs->id].dci_1_0_prb_limits, rb_start, bwp_cfg->rb_width);//bwp_cfg->rb_width从0开始涵盖整个bwp区间
 

@@ -28,7 +28,7 @@ typedef struct {
 	slot_point     last_tx_sl;
 }cc_worker;
 
-harq_softbuffer_pool *harq_buffer_pool_self(uint32_t cc);
+
 void cc_worker_destoy(cc_worker *cc_w);
 void cc_worker_init(cc_worker *cc_w, cell_config_manager *params);
 void cc_worker_dl_rach_info(cc_worker *cc_w, rar_info_t *rar_info);

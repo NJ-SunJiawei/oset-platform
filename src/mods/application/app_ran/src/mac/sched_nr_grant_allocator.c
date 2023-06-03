@@ -49,16 +49,25 @@ void bwp_slot_grid_destory(bwp_slot_grid *slot)
 
 	//dl
 	cvector_free(slot->dl.phy.ssb);
-	cvector_free(slot->dl.phy.pdcch_dl);
-	cvector_free(slot->dl.phy.pdcch_ul);
-	cvector_free(slot->dl.phy.pdsch);
 	cvector_free(slot->dl.phy.nzp_csi_rs);
+	dl_pdu_t  *dl_pdu_node = NULL;
+	cvector_for_each_in(dl_pdu_node, slot->dl.data){
+		cvector_free(dl_pdu_node->subpdus);
+	}
 	cvector_free(slot->dl.data);
+	rar_t  *rar_node = NULL;
+	cvector_for_each_in(rar_node, slot->dl.rar){
+		cvector_free(rar_node->grants);
+	}
 	cvector_free(slot->dl.rar);
+
 	cvector_free(slot->dl.sib_idxs);
 	//ul
+	//pucch_t **ul_node = NULL;
+	//cvector_for_each_in(ul_node, slot->ul.pucch){
+	//	oset_free(*ul_node);
+	//}
 	cvector_free(slot->ul.pucch);
-	cvector_free(slot->ul.pusch);
 	//ack
 	cvector_free(slot->pending_acks);
 }
@@ -70,9 +79,21 @@ void bwp_slot_grid_reset(bwp_slot_grid *slot)
 	pusch_allocator_reset(&slot->puschs);
 	cvector_clear(slot->dl.phy.ssb);
 	cvector_clear(slot->dl.phy.nzp_csi_rs);
+	dl_pdu_t  *dl_pdu_node = NULL;
+	cvector_for_each_in(dl_pdu_node, slot->dl.data){
+		cvector_clear(dl_pdu_node->subpdus);
+	}
 	cvector_clear(slot->dl.data);
+	rar_t  *rar_node = NULL;
+	cvector_for_each_in(rar_node, slot->dl.rar){
+		cvector_clear(rar_node->grants);
+	}
 	cvector_clear(slot->dl.rar);
 	cvector_clear(slot->dl.sib_idxs);
+	//pucch_t **ul_node = NULL;
+	//cvector_for_each_in(ul_node, slot->ul.pucch){
+	//	oset_free(*ul_node);
+	//}
 	cvector_clear(slot->ul.pucch);
 	cvector_clear(slot->pending_acks);
 }
@@ -211,7 +232,7 @@ alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 	pdsch->sch.grant.tb[0].softbuffer.tx = &softbuffer->buffer;
 
 	// Store SI msg index
-	cvector_push_back(bwp_pdcch_slot->dl.sib_idxs, si_idx)
+	cvector_push_back(bwp_pdcch_slot->dl.sib_idxs, si_idx);
 
 	return (alloc_result)success;
 }
@@ -222,23 +243,25 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 																prb_interval   *interv,
 																span_t(dl_sched_rar_info_t) *pending_rachs)
 {
+	int i = 0;
+	srsran_slot_cfg_t slot_cfg = {0};
 	static const uint32_t 	msg3_nof_prbs = 3;//msg3 prb
 	static const uint32_t 	m = 0;//ra pusch time alloc list idx
 	static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0;
 
-	//msg1(rach)和msg2(rar)没有ack,没有harq
+	//msg1(rach)和msg2(rar)没有ack
 	bwp_slot_grid *bwp_pdcch_slot = get_tx_slot_grid(bwp_alloc);
 	slot_point	   msg3_slot      = slot_point_add_jump(bwp_alloc->pdcch_slot, bwp_alloc->cfg.pusch_ra_list[m].msg3_delay);
 	bwp_slot_grid *bwp_msg3_slot  = get_slot_grid(bwp_alloc, msg3_slot);
 
 	// Verify there is space in PDSCH for RAR
-	prb_grant grap = prb_grant_interval_init(interv);
-	alloc_result ret = pdsch_allocator_is_rar_grant_valid(bwp_pdcch_slot->pdschs, &grap);
+	prb_grant grap_rar = prb_grant_interval_init(interv);
+	alloc_result ret = pdsch_allocator_is_rar_grant_valid(bwp_pdcch_slot->pdschs, &grap_rar);
 	if (ret != (alloc_result)success) {
 		return ret;
 	}
 
-	for (init i = 0; i < pending_rachs->len; i++) { 
+	for (i = 0; i < pending_rachs->len; i++) { 
 		dl_sched_rar_info_t *rach = pending_rachs[i];
 		slot_ue* ue_it = slot_ue_find_by_rnti(rach->temp_crnti, rach->cc);
 		if (NULL == ue_it) {
@@ -284,57 +307,73 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 	pdcch->dci.mcs 	= 5;
 
 	// Allocate RAR PDSCH
-	pdsch_t *pdsch = pdsch_allocator_alloc_rar_pdsch_unchecked(&bwp_pdcch_slot->pdschs, &grap, &pdcch->dci);
+	pdsch_t *pdsch = pdsch_allocator_alloc_rar_pdsch_unchecked(&bwp_pdcch_slot->pdschs, &grap_rar, &pdcch->dci);
 
 	// Fill RAR PDSCH content
 	// TODO: Properly fill Msg3 grants
-	srsran_slot_cfg_t slot_cfg = {0};
+	slot_cfg = {0};
 	slot_cfg.idx = count_idx(&bwp_alloc->pdcch_slot);
-	int code	   = srsran_ra_dl_dci_to_grant_nr(
-	&cfg.cell_cfg.carrier, &slot_cfg, &cfg.cfg.pdsch, &pdcch.dci, &pdsch.sch, &pdsch.sch.grant);
-	srsran_assert(code == SRSRAN_SUCCESS, "[%5lu]Error converting DCI to grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
-	pdsch.sch.grant.tb[0].softbuffer.tx = bwp_pdcch_slot.rar_softbuffer->get();//关联harq buff资源
+	int code	   = srsran_ra_dl_dci_to_grant_nr(&bwp_alloc->cfg->cell_cfg->carrier,
+													&slot_cfg,
+													&bwp_alloc->cfg->cfg.pdsch,
+													&pdcch->dci,
+													&pdsch->sch,
+													&pdsch->sch.grant);
+	ASSERT_IF_NOT(code == SRSRAN_SUCCESS, "[%5lu]Error converting DCI to grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+	pdsch.sch.grant.tb[0].softbuffer.tx = &bwp_pdcch_slot->rar_softbuffer->buffer;
 
-	// Generate Msg3 grants in PUSCH	 预先在pusch中生成msg3资源
-	uint32_t	last_msg3 = all_msg3_rbs.start_;
+	//mac rar pdu???
+	/////////////////////////////////////////////////////////////////////////////////
+	// Generate Msg3 grants in PUSCH
+	slot_cfg = {0};
+	uint32_t  last_msg3 = all_msg3_rbs.start_;
 	const int mcs = 0, max_harq_msg3_retx = 4;
-	slot_cfg.idx = msg3_slot.to_uint();
-	bwp_pdcch_slot.dl.rar.emplace_back();
-	sched_nr_interface::rar_t& rar_out = bwp_pdcch_slot.dl.rar.back();
-	for (const dl_sched_rar_info_t& grant : pending_rachs) {
-	slot_ue& ue = slot_ues[grant.temp_crnti];
+	slot_cfg.idx = count_idx(&msg3_slot);
 
-	// Generate RAR grant
-	rar_out.grants.emplace_back();
-	auto& rar_grant = rar_out.grants.back();
-	rar_grant.data	= grant;
-	fill_dci_from_cfg(cfg, rar_grant.msg3_dci);
-	// Fill Msg3 DCI context
-	rar_grant.msg3_dci.ctx.coreset_id = pdcch.dci.ctx.coreset_id;
-	rar_grant.msg3_dci.ctx.rnti_type  = srsran_rnti_type_tc;
-	rar_grant.msg3_dci.ctx.rnti 	  = ue->rnti;
-	rar_grant.msg3_dci.ctx.ss_type	  = srsran_search_space_type_rar;
-	rar_grant.msg3_dci.ctx.format	  = srsran_dci_format_nr_rar;
+	rar_t rar_out = {0}; //对应msg2 rar_out[i] ==> rar_out[i].grants[0~len] 对应msg3集合
+	for (i = 0; i < pending_rachs->len; i++) { 
+		dl_sched_rar_info_t *grant = pending_rachs[i];
+		slot_ue *slot_u = slot_ue_find_by_rnti(grant->temp_crnti, grant->cc);
 
-	// Allocate Msg3 PUSCH allocation
-	prb_interval msg3_interv{last_msg3, last_msg3 + msg3_nof_prbs};
-	last_msg3 += msg3_nof_prbs;
-	pusch_t& pusch = bwp_msg3_slot.puschs.alloc_pusch_unchecked(msg3_interv, rar_grant.msg3_dci);
+		// Generate RAR grant
+		msg3_grant_t rar_grant = {0};
+		rar_grant.data	= grant;
+		fill_dci_ul_from_cfg(bwp_alloc->cfg, &rar_grant.msg3_dci);
+		// Fill Msg3 DCI context(pdcch_ul)
+		// msg3上行授权调度， ul_grant包含在mac rar中
+		rar_grant.msg3_dci.ctx.coreset_id = pdcch->dci.ctx.coreset_id;
+		rar_grant.msg3_dci.ctx.rnti_type  = srsran_rnti_type_tc;
+		rar_grant.msg3_dci.ctx.rnti 	  = slot_u->ue->rnti;
+		rar_grant.msg3_dci.ctx.ss_type	  = srsran_search_space_type_rar;
+		rar_grant.msg3_dci.ctx.format	  = srsran_dci_format_nr_rar;
 
-	// Allocate UL HARQ
-	ue.h_ul = ue.find_empty_ul_harq();
-	srsran_sanity_check(ue.h_ul != nullptr, "[%5lu]Failed to allocate Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
-	bool success = ue.h_ul->new_tx(msg3_slot, msg3_interv, mcs, max_harq_msg3_retx, rar_grant.msg3_dci);
-	srsran_sanity_check(success, "[%5lu]Failed to allocate Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+		// Allocate Msg3 PUSCH allocation
+		prb_interval msg3_interv = {0};
+		prb_interval_init(&msg3_interv, last_msg3, last_msg3 + msg3_nof_prbs);
+		prb_grant grap_msg3 = prb_grant_interval_init(msg3_interv);
+	
+		last_msg3 += msg3_nof_prbs;
+		pusch_t *pusch = pusch_allocator_alloc_pusch_unchecked(&bwp_msg3_slot->puschs, &grap_msg3, &rar_grant.msg3_dci);
 
-	// Generate PUSCH content
-	success = ue->phy().get_pusch_cfg(slot_cfg, rar_grant.msg3_dci, pusch.sch);
-	srsran_assert(success, "[%5lu]Error converting DCI to PUSCH grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
-	pusch.sch.grant.tb[0].softbuffer.rx = ue.h_ul->get_softbuffer().get();
-	ue.h_ul->set_tbs(pusch.sch.grant.tb[0].tbs);//set harq tbs,并且清空soft buffer
+		// Allocate UL HARQ
+		slot_u->h_ul = find_empty_ul_harq(&slot_u->ue->harq_ent);
+		ASSERT_IF_NOT(slot_u.h_ul != NULL, "[%5lu]Failed to allocate Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+		bool success = ul_harq_proc_new_tx(slot_u.h_ul, msg3_slot, msg3_interv, mcs, max_harq_msg3_retx, rar_grant.msg3_dci);
+		ASSERT_IF_NOT(success, "[%5lu]Failed to allocate Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+
+		// Generate PUSCH content(pusch out)
+		success = get_pusch_cfg(&slot_u->ue->bwp_cfg.cfg_->phy_cfg, &slot_cfg, &rar_grant.msg3_dci, &pusch->sch);
+		ASSERT_IF_NOT(success, "[%5lu]Error converting DCI to PUSCH grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+		pusch->sch.grant.tb[0].softbuffer.rx = &slot_u->h_ul->softbuffer->buffer;
+		slot_u->h_ul->set_tbs(pusch->sch.grant.tb[0].tbs);//set harq tbs,并且清空soft buffer
+
+		cvector_push_back(rar_out.grants, rar_grant);
+
 	}
 
-	return alloc_result::success;
+	cvector_push_back(bwp_pdcch_slot->dl.rar, rar_out);
+
+	return (alloc_result)success;
 }
 
 

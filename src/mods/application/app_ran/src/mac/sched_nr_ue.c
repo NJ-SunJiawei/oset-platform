@@ -66,7 +66,7 @@ static ue_carrier* ue_carrier_init(sched_nr_ue       *u, uint32_t cc)
 	carrier->cell_params = &u->sched_cfg->cells[cc];
 	pdu_builder_init(&carrier->pdu_builders, cc, &u->buffers);
 	carrier->common_ctxt = &u->common_ctxt;
-	harq_entity_init(&carrier->harq_ent, u->rnti, &u->sched_cfg->cells[cc].carrier.nof_prb, SCHED_NR_MAX_HARQ);
+	harq_entity_init(&carrier->harq_ent, cc, u->rnti, &cell_params_->carrier.nof_prb, SCHED_NR_MAX_HARQ);
 	return carrier;
 }
 

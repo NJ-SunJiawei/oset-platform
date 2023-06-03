@@ -84,7 +84,7 @@ typedef struct pucch_s {
 }pucch_t;
 
 typedef struct ul_sched_s {
-   cvector_vector_t(pusch_t) pusch;//bounded_vector<pusch_t, MAX_GRANTS>
+   cvector_vector_t(pusch_t *) pusch;//bounded_vector<pusch_t, MAX_GRANTS>
    cvector_vector_t(pucch_t) pucch;//bounded_vector<pucch_t, MAX_GRANTS>
 }ul_sched_t;
 

@@ -32,7 +32,7 @@ typedef struct {
 typedef struct  {
   uint16_t				rnti;//SRSRAN_INVALID_RNTI
   uint32_t				record_idx;
-  uint32_t				dci_pos_idx;//dci或者cce_idx其实值
+  uint32_t				dci_pos_idx;//cce_index值
   srsran_dci_location_t dci_pos;
   /// Accumulation of all PDCCH masks for the current solution (DFS path)
   bounded_bitset        total_mask;//记录总的coreset可用频域资源//need free
@@ -87,6 +87,11 @@ inline pdcch_dl_alloc_result pdcch_dl_alloc_result_fail(alloc_result alloc_res)
 	return result;
 }
 
+
+void fill_dci_dl_from_cfg(bwp_params_t *bwp_cfg, srsran_dci_dl_nr_t *dci);
+void fill_dci_ul_from_cfg(bwp_params_t *bwp_cfg, srsran_dci_ul_nr_t *dci);
+
+////////////////////////////////////////////////////////////////
 void coreset_region_reset(coreset_region *coreset);
 void coreset_region_destory(coreset_region *coreset);
 void coreset_region_init(coreset_region *coreset, bwp_params_t *bwp_cfg_, uint32_t coreset_id_, uint32_t slot_idx_);

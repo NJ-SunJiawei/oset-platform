@@ -653,6 +653,8 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
   tb->enabled  = true;//使能
 
   // Calculate actual rate计算实际码率
+  // TBS不包含CRC，TBS在传给PL层时，需要加上不同bit位数的CRC。比特位的大小跟TBS的长度有关.
+  // 38.321记载TBS大于3824时，CRC为24位，TBS小于3824时，CRC是16位
   tb->R_prime = 0.0;
   if (tb->nof_re != 0) {
     tb->R_prime = (double)(tb->tbs + ra_nr_nof_crc_bits(tb->tbs, tb->R)) / (double)tb->nof_bits;
@@ -777,7 +779,7 @@ static int ra_dl_resource_mapping(const srsran_carrier_nr_t*    carrier,
       // Check if the periodic ZP-CSI is transmitted
       if (srsran_csi_rs_send(&resource->periodicity, slot)) {
         INFO("Tx/Rx NZP-CSI-RS set_id=%d; res=%d; @slot=%d\n", set_id, res_id, slot->idx);
-		//将NZP-CSI映射到RE资源
+		// 将NZP-CSI映射到RE资源
         if (srsran_csi_rs_append_resource_to_pattern(carrier, &resource->resource_mapping, &pdsch_cfg->rvd_re)) {
           ERROR("Error appending ZP-CSI-RS as RE pattern");
           return SRSRAN_ERROR;

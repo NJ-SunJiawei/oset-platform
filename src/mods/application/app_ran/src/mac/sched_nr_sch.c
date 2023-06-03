@@ -38,7 +38,8 @@ pdsch_t* pdsch_allocator_alloc_pdsch_unchecked(pdsch_allocator *pdsch_alloc,
   if (is_alloc_type0(grant)) {
 	out_dci->freq_domain_assigment = bit_to_uint64(&grant->alloc.rbgs);
   } else {
-    uint32_t rb_start = grant->alloc.interv.start_, nof_prb = pdsch_alloc->bwp_cfg->nof_prb;
+    uint32_t rb_start = grant->alloc.interv.start_;
+	uint32_t nof_prb  = pdsch_alloc->bwp_cfg->nof_prb;
 	// coreset0所属，dci和pdsch范围限制在coreset0频域范围内
     if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type)) {
       prb_interval *lims = coreset_prb_range(pdsch_alloc->bwp_cfg, coreset_id);
@@ -60,14 +61,14 @@ pdsch_t* pdsch_allocator_alloc_pdsch_unchecked(pdsch_allocator *pdsch_alloc,
 }
 
 //not use
-pdsch_alloc_result pdsch_allocator_alloc_si_pdsch(pdsch_allocator *pdsch_alloc, uint32_t ss_id, prb_grant *grant, srsran_dci_dl_nr_t *dci)
+/*pdsch_alloc_result pdsch_allocator_alloc_si_pdsch(pdsch_allocator *pdsch_alloc, uint32_t ss_id, prb_grant *grant, srsran_dci_dl_nr_t *dci)
 {
   alloc_result code = pdsch_allocator_is_si_grant_valid(ss_id, grant);
   if (code != (alloc_result)success) {
 	return pdsch_alloc_result_fail(code);
   }
   return pdsch_alloc_result_succ(pdsch_allocator_alloc_si_pdsch_unchecked(pdsch_alloc, ss_id, grant, dci));
-}
+}*/
 
 
 
@@ -76,7 +77,7 @@ pdsch_t* pdsch_allocator_alloc_rar_pdsch_unchecked(pdsch_allocator *pdsch_alloc,
 	// TS 38.213, 8.2 - "In response to a PRACH transmission, a UE attempts to detect a DCI format 1_0"
 	const static srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0;
 
-	return pdsch_allocator_alloc_si_pdsch_unchecked(pdsch_alloc->bwp_cfg->cfg.pdcch.ra_search_space.coreset_id,
+	return pdsch_allocator_alloc_pdsch_unchecked(pdsch_alloc->bwp_cfg->cfg.pdcch.ra_search_space.coreset_id,
 													pdsch_alloc->bwp_cfg->cfg.pdcch.ra_search_space.type,
 													dci_fmt,
 													grant,
@@ -182,53 +183,82 @@ prb_bitmap* pdsch_allocator_occupied_prbs(pdsch_allocator *pdsch_alloc, uint32_t
   return get_prbs(&pdsch_alloc->dl_prbs);
 }
 
-void pdsch_allocator_reset(pdsch_allocator *pdsch)
+void pdsch_allocator_reset(pdsch_allocator *pdsch_alloc)
 {
 	pdsch_t  **pdsch_node = NULL;
-	cvector_for_each_in(pdsch_node, pdsch->pdschs){
+	cvector_for_each_in(pdsch_node, pdsch_alloc->pdschs){
 		oset_free(*pdsch_node);
 	}
-	cvector_clear(pdsch->pdschs);
+	cvector_clear(pdsch_alloc->pdschs);
 
-	bwp_rb_bitmap_reset(&pdsch->dl_prbs);
+	bwp_rb_bitmap_reset(&pdsch_alloc->dl_prbs);
 }
 
-void pdsch_allocator_destory(pdsch_allocator *pdsch)
+void pdsch_allocator_destory(pdsch_allocator *pdsch_alloc)
 {
 	pdsch_t  **pdsch_node = NULL;
-	cvector_for_each_in(pdsch_node, pdsch->pdschs){
+	cvector_for_each_in(pdsch_node, pdsch_alloc->pdschs){
 		oset_free(*pdsch_node);
 	}
-	cvector_free(pdsch->pdschs);
+	cvector_free(pdsch_alloc->pdschs);
 }
 
-void pdsch_allocator_init(pdsch_allocator *pdsch, bwp_params_t *cfg_, uint32_t slot_index, cvector_vector_t(pdsch_t) pdsch_lst)
+void pdsch_allocator_init(pdsch_allocator *pdsch_alloc, bwp_params_t *cfg_, uint32_t slot_index, cvector_vector_t(pdsch_t) pdsch_lst)
 {
-	pdsch->bwp_cfg = cfg_;
-	pdsch->slot_idx = slot_index;
-	pdsch->pdschs = pdsch_lst;
+	pdsch_alloc->bwp_cfg = cfg_;
+	pdsch_alloc->slot_idx = slot_index;
+	pdsch_alloc->pdschs = pdsch_lst;
 	//dl_prbs
-	bwp_rb_bitmap_init(&pdsch->dl_prbs, cfg_->cfg.rb_width, cfg_->cfg.start_rb, cfg_->cfg.pdsch.rbg_size_cfg_1);
+	bwp_rb_bitmap_init(&pdsch_alloc->dl_prbs, cfg_->cfg.rb_width, cfg_->cfg.start_rb, cfg_->cfg.pdsch.rbg_size_cfg_1);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
-prb_bitmap* pusch_allocator_occupied_prbs(pusch_allocator *pusch)
+pusch_t* pusch_allocator_alloc_pusch_unchecked(pusch_allocator *pusch_alloc, prb_grant *grant, srsran_dci_ul_nr_t *out_dci)
 {
-	return get_prbs(&pusch->ul_prbs);
+  // Create new PUSCH entry in output PUSCH list
+  pusch_t *pusch = oset_malloc(sizeof(pusch_t));
+  oset_assert(pusch);
+  cvector_push_back(pusch_alloc->puschs, pusch);
+
+  // Register allocated PRBs in accumulated bitmap
+  pusch_allocator_reserve_prbs(pusch_alloc, grant);
+
+  // Fill DCI with PUSCH freq/time allocation information
+  out_dci.time_domain_assigment = 0;
+  if (is_alloc_type0(grant)) {
+    out_dci.freq_domain_assigment = bit_to_uint64(&grant->alloc.rbgs);
+  } else {
+  	uint32_t rb_start = grant->alloc.interv.start_;
+    uint32_t nof_prb  = pusch_alloc->bwp_cfg->nof_prb;
+    out_dci.freq_domain_assigment = srsran_ra_nr_type1_riv(nof_prb, rb_start, prb_interval_length(&grant->alloc.interv));
+  }
+
+  return pusch;
 }
 
-alloc_result pusch_allocator_has_grant_space(pusch_allocator *pusch, uint32_t nof_grants, bool verbose)
+/// Marks a range of PRBS as occupied, preventing further allocations
+void pusch_allocator_reserve_prbs(pusch_allocator *pdsch_alloc, prb_grant *grant)
+{
+	bwp_rb_bitmap_add_by_prb_grant(&pdsch_alloc->ul_prbs, grant);
+}
+
+prb_bitmap* pusch_allocator_occupied_prbs(pusch_allocator *pusch_alloc)
+{
+	return get_prbs(&pusch_alloc->ul_prbs);
+}
+
+alloc_result pusch_allocator_has_grant_space(pusch_allocator *pusch_alloc, uint32_t nof_grants, bool verbose)
 {
   // UL must be active in given slot
-  if (!pusch->bwp_cfg.slots[pusch->slot_idx].is_ul) {
+  if (!pusch_alloc->bwp_cfg.slots[pusch_alloc->slot_idx].is_ul) {
     if (verbose) {
-      oset_error("%sUL is disabled for slot=%u", log_pusch, pusch->slot_idx);
+      oset_error("%sUL is disabled for slot=%u", log_pusch, pusch_alloc->slot_idx);
     }
     return (alloc_result)no_sch_space;
   }
 
   // No space in Scheduler PDSCH output list
-  if (cvector_size(pusch->puschs) + nof_grants > MAX_GRANTS) {
+  if (cvector_size(pusch_alloc->puschs) + nof_grants > MAX_GRANTS) {
     if (verbose) {
       oset_warn("%sMaximum number of PUSCHs=%d reached", log_pusch, MAX_GRANTS);
     }
@@ -239,31 +269,31 @@ alloc_result pusch_allocator_has_grant_space(pusch_allocator *pusch, uint32_t no
 }
 
 
-void pusch_allocator_reset(pusch_allocator *pusch)
+void pusch_allocator_reset(pusch_allocator *pusch_alloc)
 {
 	pusch_t  **pusch_node = NULL;
-	cvector_for_each_in(pusch_node, pusch->puschs){
+	cvector_for_each_in(pusch_node, pusch_alloc->puschs){
 		oset_free(*pusch_node);
 	}
-	cvector_clear(pusch->puschs);
+	cvector_clear(pusch_alloc->puschs);
 
-	bwp_rb_bitmap_reset(&pusch->ul_prbs);
+	bwp_rb_bitmap_reset(&pusch_alloc->ul_prbs);
 }
 
-void pusch_allocator_destory(pusch_allocator *pusch)
+void pusch_allocator_destory(pusch_allocator *pusch_alloc)
 {
 	pusch_t  **pusch_node = NULL;
-	cvector_for_each_in(pusch_node, pusch->puschs){
+	cvector_for_each_in(pusch_node, pusch_alloc->puschs){
 		oset_free(*pusch_node);
 	}
-	cvector_free(pusch->puschs);
+	cvector_free(pusch_alloc->puschs);
 }
-void pusch_allocator_init(pusch_allocator *pusch, bwp_params_t *cfg_, uint32_t slot_index,  cvector_vector_t(pusch_t) pusch_lst)
+void pusch_allocator_init(pusch_allocator *pusch_alloc, bwp_params_t *cfg_, uint32_t slot_index,  cvector_vector_t(pusch_t) pusch_lst)
 {
-	pusch->bwp_cfg = cfg_;
-	pusch->slot_idx = slot_idx;
-	pusch->puschs = pusch_lst;
+	pusch_alloc->bwp_cfg = cfg_;
+	pusch_alloc->slot_idx = slot_idx;
+	pusch_alloc->puschs = pusch_lst;
 	//ul_prbs
-	bwp_rb_bitmap_init(&pusch->ul_prbs, cfg_->cfg.rb_width, cfg_->cfg.start_rb, cfg_->cfg.pdsch.rbg_size_cfg_1);
+	bwp_rb_bitmap_init(&pusch_alloc->ul_prbs, cfg_->cfg.rb_width, cfg_->cfg.start_rb, cfg_->cfg.pdsch.rbg_size_cfg_1);
 }
 

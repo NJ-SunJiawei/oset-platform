@@ -28,7 +28,9 @@ static char* log_pdcch_alloc_failure(srsran_rnti_type_t           rnti_type,
 	return fmtbuf;
 }
 
-static void fill_dci_dl_from_cfg(bwp_params_t *bwp_cfg, srsran_dci_dl_nr_t *dci)
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void fill_dci_dl_from_cfg(bwp_params_t *bwp_cfg, srsran_dci_dl_nr_t *dci)
 {
 	dci->bwp_id	   = bwp_cfg->bwp_id;
 	dci->cc_id	   = bwp_cfg->cc;
@@ -36,13 +38,14 @@ static void fill_dci_dl_from_cfg(bwp_params_t *bwp_cfg, srsran_dci_dl_nr_t *dci)
 	dci->coreset0_bw = bwp_cfg.cfg.pdcch.coreset_present[0] ? prb_interval_length(coreset_prb_range(bwp_cfg, 0)) : 0;
 }
 
-static void fill_dci_ul_from_cfg(bwp_params_t *bwp_cfg, srsran_dci_ul_nr_t *dci)
+void fill_dci_ul_from_cfg(bwp_params_t *bwp_cfg, srsran_dci_ul_nr_t *dci)
 {
 	dci->bwp_id = bwp_cfg->bwp_id;
 	dci->cc_id  = bwp_cfg->cc;
 	dci->tpc	  = 1;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 static uint32_t coreset_region_get_td_symbols(coreset_region *coreset) { return coreset->coreset_cfg->duration; }
 
 static size_t coreset_region_nof_allocs(coreset_region *coreset) 

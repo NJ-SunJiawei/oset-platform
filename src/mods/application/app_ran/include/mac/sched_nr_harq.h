@@ -65,8 +65,27 @@ slot_point	harq_slot_tx(harq_proc *harq);
 
 bool harq_proc_clear_if_maxretx(harq_proc *proc, slot_point slot_rx);
 int harq_proc_ack_info(harq_proc *proc, uint32_t tb_idx, bool ack);
+void harq_proc_reset(harq_proc *proc);
+bool harq_proc_new_tx(harq_proc *proc,
+					   slot_point       slot_tx_,
+                       slot_point       slot_ack_,
+                       prb_grant        grant,
+                       uint32_t         mcs,
+                       uint32_t         max_retx_);
 ////////////////////////////////////////////////////////////////////////////////////
-void harq_entity_init(harq_entity *harq_ent, uint16_t rnti_, uint32_t nprb, uint32_t nof_harq_procs);
+void dl_harq_proc_init(dl_harq_proc *h_dl, uint32_t cc, uint32_t id, uint32_t nprb);
+
+////////////////////////////////////////////////////////////////////////////////////
+void ul_harq_proc_fill_dci(ul_harq_proc          *h_ul, srsran_dci_ul_nr_t *dci);
+bool ul_harq_proc_new_tx(ul_harq_proc       *h_ul,
+						slot_point          slot_tx,
+						prb_grant           grant,
+						uint32_t            mcs_,
+						uint32_t            max_retx,
+						srsran_dci_ul_nr_t  *dci);
+void ul_harq_proc_init(ul_harq_proc *h_ul, uint32_t cc, uint32_t id, uint32_t nprb);
+////////////////////////////////////////////////////////////////////////////////////
+void harq_entity_init(harq_entity *harq_ent, uint32_t cc, uint16_t rnti_, uint32_t nprb, uint32_t nof_harq_procs);
 void harq_entity_destory(harq_entity *harq_ent);
 void harq_entity_new_slot(harq_entity *harq_ent, slot_point slot_rx_);
 uint32_t nof_dl_harqs(harq_entity *harq_ent);
@@ -77,6 +96,8 @@ dl_harq_proc* find_pending_dl_retx(harq_entity *harq_ent);
 ul_harq_proc* find_pending_ul_retx(harq_entity *harq_ent);
 dl_harq_proc* find_empty_dl_harq(harq_entity *harq_ent);
 ul_harq_proc* find_empty_ul_harq(harq_entity *harq_ent);
+///////////////////////////////////////////////////////////////////
+harq_softbuffer_pool *harq_buffer_pool_self(uint32_t cc);
 
 #ifdef __cplusplus
 }

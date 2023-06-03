@@ -12,6 +12,14 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-harq"
 
+static harq_softbuffer_pool    g_harq_buffer_pool[SCHED_NR_MAX_CARRIERS];
+
+harq_softbuffer_pool *harq_buffer_pool_self(uint32_t cc)
+{
+	return &g_harq_buffer_pool[cc];
+}
+///////////////////////////////////////////////////////////////////////////////
+
 static bool has_pending_retx(harq_proc *proc, slot_point slot_rx)
 {
 	bool condition1 = !empty(proc->tb);
@@ -65,8 +73,80 @@ int harq_proc_ack_info(harq_proc *proc, uint32_t tb_idx, bool ack)
 	return ack ? proc->tb[tb_idx].tbs : 0;
 }
 
+void harq_proc_reset(harq_proc *proc)
+{
+	proc->tb[0].ack_state = false;
+	proc->tb[0].active    = false;
+	proc->tb[0].n_rtx     = 0;
+	proc->tb[0].mcs       = 0xffffffff ;
+	proc->tb[0].tbs       = 0xffffffff;
+}
+
+bool harq_proc_new_tx(harq_proc *proc,
+					   slot_point       slot_tx_,
+                       slot_point       slot_ack_,
+                       prb_grant        grant,
+                       uint32_t         mcs,
+                       uint32_t         max_retx_)
+{
+  if (!empty(proc->tb)) {
+    return false;
+  }
+  harq_proc_reset(proc);
+  proc->max_retx     = max_retx_;
+  proc->slot_tx      = slot_tx_;
+  proc->slot_ack     = slot_ack_;
+  proc->prbs_        = grant;
+  proc->tb[0].ndi    = !proc->tb[0].ndi;//通过NDI（翻转为初传，否则为重传）字段
+  proc->tb[0].mcs    = mcs;
+  proc->tb[0].tbs    = 0;
+  proc->tb[0].active = true;//表示该harq是否需要重传
+  return true;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void harq_entity_init(harq_entity *harq_ent, uint16_t rnti_, uint32_t nprb, uint32_t nof_harq_procs)
+void dl_harq_proc_init(dl_harq_proc *h_dl, uint32_t cc, uint32_t id, uint32_t nprb)
+{
+	h_dl->proc.pid  = id;
+	h_dl->softbuffer = harq_softbuffer_pool_get_tx(&g_harq_buffer_pool[cc], nprb);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void ul_harq_proc_fill_dci(ul_harq_proc          *h_ul, srsran_dci_ul_nr_t *dci)
+{
+	const static uint32_t rv_idx[4] = {0, 2, 3, 1};
+
+	dci->pid = h_ul->proc.pid;
+	dci->ndi = ndi(h_ul->proc.tb);
+	dci->mcs = mcs(h_ul->proc.tb);
+	dci->rv  = rv_idx[nof_retx(&h_ul->proc) % 4];
+}
+
+bool ul_harq_proc_new_tx(ul_harq_proc          *h_ul,
+						slot_point          slot_tx,
+						prb_grant           grant,
+						uint32_t            mcs_,
+						uint32_t            max_retx,
+						srsran_dci_ul_nr_t  *dci)
+
+{
+  const static uint32_t rv_idx[4] = {0, 2, 3, 1};
+
+  if (harq_proc_new_tx(&h_ul->proc, slot_tx, slot_tx, grant, mcs_, max_retx)) {
+    ul_harq_proc_fill_dci(h_ul, dci);
+    return true;
+  }
+  return false;
+}
+
+void ul_harq_proc_init(ul_harq_proc *h_ul, uint32_t cc, uint32_t id, uint32_t nprb)
+{
+	h_ul->proc.pid	= id;
+	h_ul->softbuffer = harq_softbuffer_pool_get_rx(&g_harq_buffer_pool[cc], nprb);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void harq_entity_init(harq_entity *harq_ent, uint32_t cc, uint16_t rnti_, uint32_t nprb, uint32_t nof_harq_procs)
 {
 	//每个ue都有一个harq实体，一个harq实体8个harq process
 	harq_ent->rnti = rnti_;
@@ -76,13 +156,11 @@ void harq_entity_init(harq_entity *harq_ent, uint16_t rnti_, uint32_t nprb, uint
 
 	for (uint32_t pid = 0; pid < nof_harq_procs; ++pid) {
 		dl_harq_proc dl_harqs = {0};
-		dl_harqs.proc.pid   = pid;
-		dl_harqs.proc.prbs_ = nprb;
+		dl_harq_proc_init(&dl_harqs, cc, pid, nprb);
 		cvector_push_back(harq_ent->dl_harqs, dl_harqs);
 
 		ul_harq_proc ul_harqs = {0};
-		ul_harqs.proc.pid   = pid;
-		ul_harqs.proc.prbs_ = nprb;
+		ul_harq_proc_init(&ul_harqs, cc, pid, nprb);
 		cvector_push_back(harq_ent->ul_harqs, ul_harqs);
 	}
 }

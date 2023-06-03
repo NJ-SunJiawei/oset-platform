@@ -45,6 +45,10 @@ typedef struct phy_cfg_nr_s {
 }phy_cfg_nr_t;
 
 srsran_dci_cfg_nr_t get_dci_cfg(phy_cfg_nr_t *phy_cfg);
+bool get_pusch_cfg(phy_cfg_nr_t *phy_cfg, 
+						srsran_slot_cfg_t   *slot_cfg,
+						srsran_dci_ul_nr_t  *dci,
+						srsran_sch_cfg_nr_t *pusch_cfg);
 
 #ifdef __cplusplus
 }

@@ -60,8 +60,8 @@ int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info)
 			break;
 		}
 	}
-	cvector_push_back(p.msg3_grant, *rar_info);
-	cvector_push_back(ra->pending_rars, p);
+	cvector_push_back(p.msg3_grant, *rar_info);//待处理对应相同slot和ra-rnti的Msg3消息list，msg2一对多msg3
+	cvector_push_back(ra->pending_rars, p);//待处理的Msg2消息list
 	return OSET_OK;
 }
 
@@ -69,10 +69,10 @@ int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info)
 ///////////////////////////////ra_sched///////////////////////////////////////////
 static void ra_sched_destory(ra_sched *ra)
 {
-	pending_rar_t *elem = NULL;
+	pending_rar_t *node = NULL;
 
-	cvector_for_each_in(elem, ra->pending_rars){
-		cvector_free(elem->msg3_grant);
+	cvector_for_each_in(node, ra->pending_rars){
+		cvector_free(node->msg3_grant);
 	}
 	cvector_free(ra->pending_rars);
 }
@@ -83,14 +83,14 @@ static void ra_sched_init(ra_sched *ra, bwp_params_t *bwp_cfg_)
 }
 
 static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
-													bwp_slot_allocator *slot_grid,
+													bwp_slot_allocator *bwp_alloc,
 													pending_rar_t      *rar,
 													uint32_t           *nof_grants_allocs)
 {
 	const uint32_t rar_aggr_level = 2;
-	slot_point     sl_pdcch = get_pdcch_tti(slot_grid);
+	slot_point     sl_pdcch = get_pdcch_tti(bwp_alloc);
 	//bwp_cfg->cfg.pdcch.ra_search_space.id
-	prb_bitmap	 *prbs = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(slot_grid->bwp_grid, sl_pdcch),
+	prb_bitmap	 *prbs = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch),
 														ra->bwp_cfg->cfg.pdcch.ra_search_space.id,
 														srsran_dci_format_nr_1_0);
 
@@ -103,14 +103,15 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 		ret = (alloc_result)invalid_coderate;
 		uint32_t start_prb_idx = 0;
 
-		//msg2 prb >= 4
+		// msg2 prb >= 4
+		// 只循环一次？？？
 		for (uint32_t nprb = 4; nprb < ra->bwp_cfg->cfg.rb_width && ret == (alloc_result)invalid_coderate; ++nprb) {
 			prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
 			start_prb_idx 	  = interv.start_;
 			if (prb_interval_length(&interv) == nprb) {
 				span_t(dl_sched_rar_info_t) msg3_grant_tmp = {0};
 				subspan(msg3_grant_tmp, msg3_grants, 0, nof_grants_alloc);
-				ret = bwp_slot_allocator_alloc_rar_and_msg3(slot_grid, rar->ra_rnti, rar_aggr_level, &interv, &msg3_grant_tmp);
+				ret = bwp_slot_allocator_alloc_rar_and_msg3(bwp_alloc, rar->ra_rnti, rar_aggr_level, &interv, &msg3_grant_tmp);
 			} else {
 				ret = (alloc_result)no_sch_space;
 			}
@@ -140,6 +141,7 @@ void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
 	}
 
 	for (int i = 0; i < cvector_size(ra->pending_rars); ) { 
+		//对应相同slot和ra-rnti的msg2和msg3消息处理
 		pending_rar_t *rar = ra->pending_rars[i];
 
 		// In case of RAR outside RAR window:
@@ -168,7 +170,7 @@ void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
 				// If RAR allocation was successful:
 				// - in case all Msg3 grants were allocated, remove pending RAR, and continue with following RAR
 				// - otherwise, erase only Msg3 grants that were allocated, and stop iteration
-				if (nof_rar_allocs == cvector_size(rar->msg3_grant)) {
+			if (nof_rar_allocs == cvector_size(rar->msg3_grant)) {
 				cvector_erase(ra->pending_rars, i); //已分配prb，可以删除
 			} else {
 				std::copy(rar->msg3_grant.begin() + nof_rar_allocs, rar->msg3_grant.end(), rar->msg3_grant.begin());

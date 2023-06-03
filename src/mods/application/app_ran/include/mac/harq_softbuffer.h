@@ -27,15 +27,18 @@ typedef struct {
 }rx_harq_softbuffer;
 
 typedef struct {
+  uint32_t batch_size;
+
   tx_harq_softbuffer  *tx_pool[SRSRAN_MAX_PRB_NR];
-  OSET_POOL(tx_id_pool[SRSRAN_MAX_PRB_NR], uint32_t);
+  uint32_t tx_buffer_idnex[SRSRAN_MAX_PRB_NR];
 
   rx_harq_softbuffer  *rx_pool[SRSRAN_MAX_PRB_NR];
-  OSET_POOL(rx_id_pool[SRSRAN_MAX_PRB_NR], uint32_t);
+  uint32_t rx_buffer_idnex[SRSRAN_MAX_PRB_NR];
+
 }harq_softbuffer_pool;
 
-void harq_softbuffer_pool_init(harq_softbuffer_pool *harq_pool, uint32_t nof_prb, uint32_t batch_size, uint32_t init_size);
-void harq_softbuffer_pool_destory(harq_softbuffer_pool *harq_pool, uint32_t nof_prb, uint32_t batch_size, uint32_t init_size);
+void harq_softbuffer_pool_init(harq_softbuffer_pool *harq_pool, uint32_t nof_prb, uint32_t batch_size);
+void harq_softbuffer_pool_destory(harq_softbuffer_pool *harq_pool, uint32_t nof_prb, uint32_t batch_size);
 
 tx_harq_softbuffer *harq_softbuffer_pool_get_tx(harq_softbuffer_pool *harq_pool, uint32_t nof_prb);
 rx_harq_softbuffer *harq_softbuffer_pool_get_rx(harq_softbuffer_pool *harq_pool, uint32_t nof_prb);

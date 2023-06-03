@@ -12,7 +12,6 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-worker"
 
-static harq_softbuffer_pool    g_harq_buffer_pool[SCHED_NR_MAX_CARRIERS];
 
 void log_sched_slot_ues(slot_point pdcch_slot, uint32_t cc)
 {
@@ -48,10 +47,6 @@ void log_sched_slot_ues(slot_point pdcch_slot, uint32_t cc)
 	oset_log_print(OSET_LOG2_DEBUG, "%s]", dumpstr);
 }
 
-harq_softbuffer_pool *harq_buffer_pool_self(uint32_t cc)
-{
-	return &g_harq_buffer_pool[cc];
-}
 
 void cc_worker_destoy(cc_worker *cc_w)
 {
@@ -65,7 +60,7 @@ void cc_worker_destoy(cc_worker *cc_w)
 	oset_pool_final(&cc_w->slot_ue_pool);
 
 	//release harqbuffer
-	harq_softbuffer_pool_destory(harq_buffer_pool_self(cc_w->cfg->cc), cc_w->cfg->carrier.nof_prb, 4 * MAX_HARQ, 0);
+	harq_softbuffer_pool_destory(harq_buffer_pool_self(cc_w->cfg->cc), cc_w->cfg->carrier.nof_prb, 2 * SRSENB_MAX_UES * SCHED_NR_MAX_HARQ);
 
 }
 
@@ -75,7 +70,7 @@ void cc_worker_init(cc_worker *cc_w, cell_config_manager *params)
 
 	cc_w->cfg = params;
 	// Pre-allocate HARQs in common pool of softbuffers
-	harq_softbuffer_pool_init(&g_harq_buffer_pool[params->cc], params->carrier.nof_prb, 4 * MAX_HARQ, 0);
+	harq_softbuffer_pool_init(harq_buffer_pool_self(params->cc), params->carrier.nof_prb, 2 * SRSENB_MAX_UES * SCHED_NR_MAX_HARQ);
 
 	cvector_reserve(cc_w->bwps[bwp_id], SCHED_NR_MAX_BWP_PER_CELL);
 	// idx0 for BWP-common
