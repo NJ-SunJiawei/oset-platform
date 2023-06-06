@@ -35,6 +35,12 @@ static void rx_harq_softbuffer_destory(rx_harq_softbuffer *pool)
 }
 
 
+void rx_harq_softbuffer_reset(rx_harq_softbuffer *pool, uint32_t tbs_bits)
+{
+	srsran_softbuffer_rx_reset_tbs(&pool->buffer, tbs_bits);
+}
+
+
 void harq_softbuffer_pool_init(harq_softbuffer_pool *harq_pool, uint32_t nof_prb, uint32_t batch_size)
 {
 	ASSERT_IF_NOT(nof_prb <= SRSRAN_MAX_PRB_NR, "Invalid nof prb=%d", nof_prb);

@@ -37,6 +37,9 @@ typedef struct {
 
 }harq_softbuffer_pool;
 
+void rx_harq_softbuffer_reset(rx_harq_softbuffer *pool, uint32_t tbs_bits);
+
+
 void harq_softbuffer_pool_init(harq_softbuffer_pool *harq_pool, uint32_t nof_prb, uint32_t batch_size);
 void harq_softbuffer_pool_destory(harq_softbuffer_pool *harq_pool, uint32_t nof_prb, uint32_t batch_size);
 

@@ -66,6 +66,8 @@ slot_point	harq_slot_tx(harq_proc *harq);
 bool harq_proc_clear_if_maxretx(harq_proc *proc, slot_point slot_rx);
 int harq_proc_ack_info(harq_proc *proc, uint32_t tb_idx, bool ack);
 void harq_proc_reset(harq_proc *proc);
+bool harq_proc_set_tbs(harq_proc *proc, uint32_t tbs);
+bool harq_proc_set_mcs(harq_proc *proc, uint32_t mcs);
 bool harq_proc_new_tx(harq_proc *proc,
 					   slot_point       slot_tx_,
                        slot_point       slot_ack_,
@@ -76,6 +78,7 @@ bool harq_proc_new_tx(harq_proc *proc,
 void dl_harq_proc_init(dl_harq_proc *h_dl, uint32_t cc, uint32_t id, uint32_t nprb);
 
 ////////////////////////////////////////////////////////////////////////////////////
+bool ul_harq_set_tbs(ul_harq_proc *h_ul, uint32_t tbs);
 void ul_harq_proc_fill_dci(ul_harq_proc          *h_ul, srsran_dci_ul_nr_t *dci);
 bool ul_harq_proc_new_tx(ul_harq_proc       *h_ul,
 						slot_point          slot_tx,

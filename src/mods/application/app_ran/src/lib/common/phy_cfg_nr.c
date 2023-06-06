@@ -98,7 +98,6 @@ bool get_pusch_cfg(phy_cfg_nr_t *phy_cfg,
 						srsran_dci_ul_nr_t  *dci,
 						srsran_sch_cfg_nr_t *pusch_cfg)
 {
-  return srsran_ra_ul_dci_to_grant_nr(&phy_cfg->carrier, slot_cfg, &phy_cfg->pusch, dci, pusch_cfg, &pusch_cfg->grant) ==
-         SRSRAN_SUCCESS;
+  return  (SRSRAN_SUCCESS == srsran_ra_ul_dci_to_grant_nr(&phy_cfg->carrier, slot_cfg, &phy_cfg->pusch, dci, pusch_cfg, &pusch_cfg->grant));
 }
 

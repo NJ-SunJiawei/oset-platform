@@ -265,17 +265,17 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 		dl_sched_rar_info_t *rach = pending_rachs[i];
 		slot_ue* ue_it = slot_ue_find_by_rnti(rach->temp_crnti, rach->cc);
 		if (NULL == ue_it) {
-			oset_error("[%5lu]SCHED: Postponing rnti=0x%x RAR allocation. Cause: The ue object not yet fully created", GET_RSLOT_ID(bwp_alloc->pdcch_slot), rach->temp_crnti);
+			oset_error("[%5u]SCHED: Postponing rnti=0x%x RAR allocation. Cause: The ue object not yet fully created", GET_RSLOT_ID(bwp_alloc->pdcch_slot), rach->temp_crnti);
 			return (alloc_result)no_rnti_opportunity;
 		}
 	}
 
-	ASSERT_IF_NOT(!(MAX_GRANTS == cvector_size(bwp_pdcch_slot->dl.rar)), "[%5lu]The #RARs should be below #PDSCHs", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+	ASSERT_IF_NOT(!(MAX_GRANTS == cvector_size(bwp_pdcch_slot->dl.rar)), "[%5u]The #RARs should be below #PDSCHs", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 
 	if (!cvector_empty(bwp_pdcch_slot->dl.phy.ssb)) {
 		// TODO: support concurrent PDSCH and SSB
 		// 尚不支持并发PDSCH和SSB
-		oset_debug("[%5lu]SCHED: skipping RAR allocation. Cause: concurrent PDSCH and SSB not yet supported", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+		oset_debug("[%5u]SCHED: skipping RAR allocation. Cause: concurrent PDSCH and SSB not yet supported", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 		return (alloc_result)no_sch_space;
 	}
 
@@ -289,7 +289,7 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 	uint32_t	 total_msg3_nof_prbs = msg3_nof_prbs * pending_rachs->len;
 	prb_interval all_msg3_rbs = find_empty_interval_of_length(pusch_allocator_occupied_prbs(&bwp_msg3_slot->puschs), total_msg3_nof_prbs, 0);
 	if (prb_interval_length(&all_msg3_rbs) < total_msg3_nof_prbs) {
-		oset_warn("[%5lu]SCHED: No space in PUSCH for Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+		oset_warn("[%5u]SCHED: No space in PUSCH for Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 		return (alloc_result)sch_collision;
 	}
 
@@ -313,13 +313,13 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 	// TODO: Properly fill Msg3 grants
 	slot_cfg = {0};
 	slot_cfg.idx = count_idx(&bwp_alloc->pdcch_slot);
-	int code	   = srsran_ra_dl_dci_to_grant_nr(&bwp_alloc->cfg->cell_cfg->carrier,
+	int code	 = srsran_ra_dl_dci_to_grant_nr(&bwp_alloc->cfg->cell_cfg->carrier,
 													&slot_cfg,
 													&bwp_alloc->cfg->cfg.pdsch,
 													&pdcch->dci,
 													&pdsch->sch,
 													&pdsch->sch.grant);
-	ASSERT_IF_NOT(code == SRSRAN_SUCCESS, "[%5lu]Error converting DCI to grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+	ASSERT_IF_NOT(code == SRSRAN_SUCCESS, "[%5u]Error converting DCI to grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 	pdsch.sch.grant.tb[0].softbuffer.tx = &bwp_pdcch_slot->rar_softbuffer->buffer;
 
 	//mac rar pdu???
@@ -357,15 +357,15 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 
 		// Allocate UL HARQ
 		slot_u->h_ul = find_empty_ul_harq(&slot_u->ue->harq_ent);
-		ASSERT_IF_NOT(slot_u.h_ul != NULL, "[%5lu]Failed to allocate Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+		ASSERT_IF_NOT(slot_u.h_ul != NULL, "[%5u]Failed to allocate Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 		bool success = ul_harq_proc_new_tx(slot_u.h_ul, msg3_slot, msg3_interv, mcs, max_harq_msg3_retx, rar_grant.msg3_dci);
-		ASSERT_IF_NOT(success, "[%5lu]Failed to allocate Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+		ASSERT_IF_NOT(success, "[%5u]Failed to allocate Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 
 		// Generate PUSCH content(pusch out)
 		success = get_pusch_cfg(&slot_u->ue->bwp_cfg.cfg_->phy_cfg, &slot_cfg, &rar_grant.msg3_dci, &pusch->sch);
-		ASSERT_IF_NOT(success, "[%5lu]Error converting DCI to PUSCH grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
+		ASSERT_IF_NOT(success, "[%5u]Error converting DCI to PUSCH grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 		pusch->sch.grant.tb[0].softbuffer.rx = &slot_u->h_ul->softbuffer->buffer;
-		slot_u->h_ul->set_tbs(pusch->sch.grant.tb[0].tbs);//set harq tbs,并且清空soft buffer
+		ul_harq_proc_fill_dci(slot_u->h_ul, pusch->sch.grant.tb[0].tbs);//set harq tbs,并且清空soft buffer
 
 		cvector_push_back(rar_out.grants, rar_grant);
 

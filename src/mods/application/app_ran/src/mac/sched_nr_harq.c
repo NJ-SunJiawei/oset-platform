@@ -78,8 +78,26 @@ void harq_proc_reset(harq_proc *proc)
 	proc->tb[0].ack_state = false;
 	proc->tb[0].active    = false;
 	proc->tb[0].n_rtx     = 0;
-	proc->tb[0].mcs       = 0xffffffff ;
+	proc->tb[0].mcs       = 0xffffffff;
 	proc->tb[0].tbs       = 0xffffffff;
+}
+
+bool harq_proc_set_tbs(harq_proc *proc, uint32_t tbs)
+{
+  if (empty(proc) || nof_retx(proc) > 0) {
+    return false;
+  }
+  proc->tb[0].tbs = tbs;
+  return true;
+}
+
+bool harq_proc_set_mcs(harq_proc *proc, uint32_t mcs)
+{
+  if (empty(proc) || nof_retx(proc) > 0) {
+    return false;
+  }
+  proc->tb[0].mcs = mcs;
+  return true;
 }
 
 bool harq_proc_new_tx(harq_proc *proc,
@@ -112,7 +130,14 @@ void dl_harq_proc_init(dl_harq_proc *h_dl, uint32_t cc, uint32_t id, uint32_t np
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void ul_harq_proc_fill_dci(ul_harq_proc          *h_ul, srsran_dci_ul_nr_t *dci)
+bool ul_harq_set_tbs(ul_harq_proc *h_ul, uint32_t tbs)
+{
+	rx_harq_softbuffer_reset(h_ul->softbuffer, tbs);
+	return harq_proc_set_tbs(h_ul->proc, tbs);
+}
+
+
+void ul_harq_proc_fill_dci(ul_harq_proc         *h_ul, srsran_dci_ul_nr_t *dci)
 {
 	const static uint32_t rv_idx[4] = {0, 2, 3, 1};
 
