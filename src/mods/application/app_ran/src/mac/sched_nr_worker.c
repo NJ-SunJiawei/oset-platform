@@ -7,20 +7,21 @@
  *Date: 2023.02
 ************************************************************************/
 #include "gnb_common.h"
-#include "mac/sched_nr.h"
+#include "mac/sched_nr_worker.h"
+#include "mac/sched_nr_bwp.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-worker"
 
 
-void log_sched_slot_ues(slot_point pdcch_slot, uint32_t cc)
+static void log_sched_slot_ues(slot_point pdcch_slot, cc_worker *cc_w)
 {
 	char dumpstr[1024] = {0};
 	char *p = NULL, *last = NULL;
 	char *use_comma = "";
 	oset_hash_index_t *hi = NULL;
 
-	if (0 == oset_hash_count(mac_manager_self()->sched.cc_workers[cc].slot_ues)) {
+	if (0 == oset_hash_count(cc_w->slot_ues)) {
 		return;
 	}
 
@@ -30,7 +31,7 @@ void log_sched_slot_ues(slot_point pdcch_slot, uint32_t cc)
   	p = oset_slprintf(p, last, "[%5u] SCHED: UE candidates, pdcch_tti=%u, cc=%u: [", GET_RSLOT_ID(pdcch_slot), pdcch_slot, cc);
 
 
-	for (hi = oset_hash_first(mac_manager_self()->sched.cc_workers[cc].slot_ues); hi; hi = oset_hash_next(hi)) {
+	for (hi = oset_hash_first(cc_w->slot_ues); hi; hi = oset_hash_next(hi)) {
 		uint16_t rnti = *(uint16_t *)oset_hash_this_key(hi);
 		slot_ue  *ue = oset_hash_this_val(hi);
 
@@ -47,6 +48,14 @@ void log_sched_slot_ues(slot_point pdcch_slot, uint32_t cc)
 	oset_log_print(OSET_LOG2_DEBUG, "%s]", dumpstr);
 }
 
+static void cc_worker_alloc_dl_ues(cc_worker *cc_w, bwp_slot_allocator *bwp_alloc)
+{
+	if (!cc_w->cfg->sched_args->pdsch_enabled) {
+		return;
+	}
+	sched_nr_time_rr_sched_dl_users(bwp_alloc, cc_w->slot_ue_list);
+}
+
 
 void cc_worker_destoy(cc_worker *cc_w)
 {
@@ -56,9 +65,7 @@ void cc_worker_destoy(cc_worker *cc_w)
 		bwp_manager_destory(bwp);
 	}
 
-	oset_hash_destroy(cc_w->slot_ues);
-	oset_pool_final(&cc_w->slot_ue_pool);
-
+	slot_ue_destory(cc_w->cfg->cc);
 	//release harqbuffer
 	harq_softbuffer_pool_destory(harq_buffer_pool_self(cc_w->cfg->cc), cc_w->cfg->carrier.nof_prb, 2 * SRSENB_MAX_UES * SCHED_NR_MAX_HARQ);
 
@@ -94,7 +101,7 @@ void cc_worker_dl_rach_info(cc_worker *cc_w, rar_info_t *rar_info)
 	}
 }
 
-dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
+dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl, oset_list_t *ue_db)
 {
 	// Reset old sched outputs
 	if (!slot_valid(&cc_w->last_tx_sl)) {
@@ -116,7 +123,7 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 
 	// Reserve UEs for this worker slot (select candidate UEs)
 	sched_nr_ue *u = NULL, *next_u = NULL;
-	oset_list_for_each_safe(&mac_manager_self()->sched.sched_ue_list, next_u, u){
+	oset_list_for_each_safe(ue_db, next_u, u){
 		if (NULL == u->carriers[cc_w->cfg->cc]) {
 			continue;
 		}
@@ -130,7 +137,7 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 	bwp_slot_allocator *bwp_alloc = bwp_slot_allocator_init(cc_w->bwps[0].grid, tx_sl);
 
 	// Log UEs state for slot
-	log_sched_slot_ues(tx_sl, cc_w->cfg->cc);
+	log_sched_slot_ues(tx_sl, cc_w);
 
 	const uint32_t ss_id    = 0;//si info searchspace_id
 	slot_point     sl_pdcch = get_pdcch_tti(bwp_alloc);
@@ -154,12 +161,10 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl)
 	// 一次集中处理多个rar
 	ra_sched_run_slot(bwp_alloc, &cc_w->bwps[0].ra);
 
-
-	//函数一次轮询处理一个ue
 	// TODO: Prioritize PDCCH scheduling for DL and UL data in a Round-Robin fashion
-	//以轮询方式对DL和UL数据的PDCCH调度进行优先级排序
-	alloc_dl_ues(bwp_alloc);//void sched_nr_time_rr::sched_dl_users
-	alloc_ul_ues(bwp_alloc);//void sched_nr_time_rr::sched_ul_users //为DCI0-X的pucch和pusch申请资源（msg3/bsr/ul_data）
+	cc_worker_alloc_dl_ues(cc_w, bwp_alloc);
+	// 为DCI0-X的pucch和pusch申请资源(msg3/bsr/ul_data)
+	alloc_ul_ues(bwp_alloc);
 
 	// Post-processing of scheduling decisions
 	//调度决策的后处理

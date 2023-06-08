@@ -361,7 +361,7 @@ static alloc_result bwp_pdcch_allocator_check_args_valid(bwp_pdcch_allocator *pd
 											uint32_t 				  ss_id,
 											uint32_t 				  aggr_idx,
 											srsran_dci_format_nr_t	  dci_fmt,
-											const ue_carrier_params_t *user,
+											ue_carrier_params_t       *user,
 											bool 					  is_dl)
 {
 	ASSERT_IF_NOT(ss_id < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE, "Invalid SearchSpace#%d", ss_id);
@@ -437,7 +437,7 @@ static pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_dl_pdcch_common(bwp_pdcch
 													uint32_t					ss_id,
 													uint32_t					aggr_idx,
 													srsran_dci_format_nr_t 	    dci_fmt,
-													const ue_carrier_params_t   *user)
+												    ue_carrier_params_t         *user)
 {
 	//校验参数合法性
 	alloc_result r = bwp_pdcch_allocator_check_args_valid(pdcchs, rnti_type, rnti, ss_id, aggr_idx, dci_fmt, user, true);

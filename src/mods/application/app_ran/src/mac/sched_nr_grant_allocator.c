@@ -152,7 +152,7 @@ slot_point get_rx_tti(bwp_slot_allocator *bwp_alloc)
 
 bwp_slot_grid *get_tx_slot_grid(bwp_slot_allocator *bwp_alloc)
 {
-	return &bwp_alloc->bwp_grid->slots[SLOT_IDX(bwp_alloc->pdcch_slot)];
+	return &bwp_alloc->bwp_grid->slots[SLOT_IDX(get_pdcch_tti(bwp_alloc))];
 }
 
 bwp_slot_grid *get_slot_grid(bwp_slot_allocator *bwp_alloc, slot_point slot)

@@ -12,7 +12,7 @@
 
 #include "mac/sched_nr_grant_allocator.h"
 #include "mac/sched_nr_signalling.h"
-
+#include "mac/sched_nr_time_rr.h"
 
 #ifdef __cplusplus
 extern "C" {

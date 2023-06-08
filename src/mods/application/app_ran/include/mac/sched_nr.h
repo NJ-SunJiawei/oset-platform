@@ -12,7 +12,6 @@
 
 #include "mac/sched_nr_cfg.h"
 #include "mac/sched_nr_ue.h"
-#include "mac/sched_nr_worker.h"
 
 #ifdef __cplusplus
 extern "C" {

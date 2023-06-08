@@ -9,7 +9,6 @@
 #include "gnb_common.h"
 #include "mac/sched_nr_bwp.h"
 	
-	
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-bwp"
 
@@ -131,9 +130,9 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 	return ret;
 }
 
-void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
+void ra_sched_run_slot(bwp_slot_allocator *bwp_alloc, ra_sched *ra)
 {
-	slot_point pdcch_slot = get_pdcch_tti(slot_alloc);
+	slot_point pdcch_slot = get_pdcch_tti(bwp_alloc);
 	slot_point msg3_slot  = pdcch_slot + ra->bwp_cfg->pusch_ra_list[0].msg3_delay;
 	if (!ra->bwp_cfg->slots[slot_idx(&pdcch_slot)].is_dl || !ra->bwp_cfg->slots[slot_idx(&msg3_slot)].is_ul) {
 		// RAR only allowed if PDCCH is available and respective Msg3 slot is available for UL
@@ -164,7 +163,7 @@ void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
 		// 既要分配msg2(rar)消息的下行资源，也要分配msg3的上行资源
 		// 时频相同，RA-RNTI相同的ra, msg2消息共用，msg3消息申请cvector_size(rar->msg3_grant)
 		uint32_t     nof_rar_allocs = 0;
-		alloc_result ret            = ra_sched_allocate_pending_rar(slot_alloc, rar, &nof_rar_allocs);
+		alloc_result ret            = ra_sched_allocate_pending_rar(ra, bwp_alloc, rar, &nof_rar_allocs);
 
 		if (ret == (alloc_result)success) {
 				// If RAR allocation was successful:

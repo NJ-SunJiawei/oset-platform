@@ -7,6 +7,7 @@
  *Date: 2023.04
 ************************************************************************/
 #include "gnb_common.h"
+#include "mac/mac.h"
 #include "mac/sched_nr_ue.h"
 #include "lib/mac/mac_sch_pdu_nr.h"
 
@@ -362,7 +363,9 @@ void slot_ue_alloc(sched_nr_ue *ue, slot_point pdcch_slot, uint32_t cc)
 {
   ASSERT_IF_NOT(ue->carriers[cc] != NULL, "make_slot_ue() called for unknown rnti=0x%x,cc=%d", ue->rnti, cc);
   slot_ue* slot_u = slot_ue_init(ue->carriers[cc], pdcch_slot, cc);
+  oset_assert(slot_u);
   slot_ue_set_by_rnti(ue->rnti, slot_u, cc);
+  cvector_push_back(mac_manager_self()->sched.cc_workers[cc].slot_ue_list, slot_u);
 }
 
 void slot_ue_clear(uint32_t cc)
@@ -373,8 +376,15 @@ void slot_ue_clear(uint32_t cc)
 		oset_pool_free(&mac_manager_self()->sched.cc_workers[cc].slot_ue_pool, slot_u);
 	}
 	oset_hash_clear(mac_manager_self()->sched.cc_workers[cc].slot_ues);
+	cvector_clear(mac_manager_self()->sched.cc_workers[cc].slot_ue_list);
 }
 
+void slot_ue_destory(uint32_t cc)
+{
+	cvector_free(mac_manager_self()->sched.cc_workers[cc].slot_ue_list);
+	oset_hash_destroy(mac_manager_self()->sched.cc_workers[cc].slot_ues);
+	oset_pool_final(&mac_manager_self()->sched.cc_workers[cc].slot_ue_pool);
+}
 
 slot_ue *slot_ue_find_by_rnti(uint16_t rnti, uint32_t cc)
 {

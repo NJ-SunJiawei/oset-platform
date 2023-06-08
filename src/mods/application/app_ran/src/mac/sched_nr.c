@@ -7,8 +7,9 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-#include "mac/sched_nr.h"
 #include "mac/mac.h"
+#include "mac/sched_nr.h"
+#include "mac/sched_nr_worker.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched"
@@ -616,7 +617,7 @@ dl_res_t* sched_nr_get_dl_sched(sched_nr *scheluder, slot_point pdsch_tti, uint3
 	}
 
 	// Process pending CC-specific feedback, generate {slot_idx,cc} scheduling decision
-	dl_res_t* ret = cc_worker_run_slot(&scheluder->cc_workers[cc], pdsch_tti);
+	dl_res_t* ret = cc_worker_run_slot(&scheluder->cc_workers[cc], pdsch_tti, &scheluder->sched_ue_list);
 
   return ret;
 }

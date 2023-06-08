@@ -10,8 +10,7 @@
 #ifndef RRC_INTERFACE_TYPES_H_
 #define RRC_INTERFACE_TYPES_H_
 
-#include "mac/sched_common.h"
-#include "mac/sched_nr_cfg.h"
+#include "mac/sched_nr_grant_allocator.h"
 
 #ifdef __cplusplus
 extern "C" {

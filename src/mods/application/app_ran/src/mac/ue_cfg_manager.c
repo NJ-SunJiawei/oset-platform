@@ -124,6 +124,54 @@ srsran_dci_cfg_nr_t get_dci_cfg(ue_carrier_params_t *param)
 	return param->cached_dci_cfg;
 }
 
+static bool contains_dci_format(srsran_search_space_t *ss, srsran_dci_format_nr_t dci_fmt)
+{
+	for(int i = 0; i < ss->nof_formats; ++i){
+		if(dci_fmt == ss->formats[i]){
+			return true;
+		}
+	}
+	return false;
+}
+
+int ue_carrier_params_find_ss_id(ue_carrier_params_t *param, srsran_dci_format_nr_t dci_fmt)
+{
+  static const uint32_t           aggr_idx  = 2;                  // TODO: Make it dynamic
+  static const srsran_rnti_type_t rnti_type = srsran_rnti_type_c; // TODO: Use TC-RNTI for Msg4
+  int i = 0;
+
+  srsran_pdcch_cfg_nr_t *pdcch  = &param->cfg_->phy_cfg.pdcch;
+
+  for (i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++i) {
+	if(pdcch->search_space_present[i]){
+		// Prioritize UE-dedicated SearchSpaces确定UE专用搜索空间的优先级
+		srsran_search_space_t *ss = pdcch->search_space[i];
+		if (ss->type == srsran_search_space_type_ue &&\
+			ss->nof_candidates[aggr_idx] > 0 &&\
+			contains_dci_format(ss, dci_fmt) &&\
+			is_rnti_type_valid_in_search_space(rnti_type, ss->type)) {
+		  return ss->id;
+		}
+	}
+  }
+
+  // Search Common SearchSpaces
+  for (i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++i) {
+	if(pdcch->search_space_present[i]){
+		// Prioritize UE-dedicated SearchSpaces确定UE专用搜索空间的优先级
+		srsran_search_space_t *ss = pdcch->search_space[i];
+		if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss.type) &&\
+			ss->nof_candidates[aggr_idx] > 0 &&\
+			contains_dci_format(ss, dci_fmt) &&\
+			is_rnti_type_valid_in_search_space(rnti_type, ss->type)) {
+		  return ss->id;
+		}
+	}
+  }
+
+  return -1;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 /// Helper function to verify if RNTI type can be placed in specified search space
 /// Based on 38.213, Section 10.1
@@ -134,15 +182,13 @@ bool is_rnti_type_valid_in_search_space(srsran_rnti_type_t rnti_type, srsran_sea
     case srsran_search_space_type_common_0A: // Other SIBs
       return rnti_type == srsran_rnti_type_si;
     case srsran_search_space_type_common_1:
-      return rnti_type == srsran_rnti_type_ra or rnti_type == srsran_rnti_type_tc or
-             /* in case of Pcell -> */ rnti_type == srsran_rnti_type_c;
+      return rnti_type == srsran_rnti_type_ra || rnti_type == srsran_rnti_type_tc || rnti_type == srsran_rnti_type_c;
     case srsran_search_space_type_common_2:
       return rnti_type == srsran_rnti_type_p;
     case srsran_search_space_type_common_3:
       return rnti_type == srsran_rnti_type_c; // TODO: Fix
     case srsran_search_space_type_ue:
-      return rnti_type == srsran_rnti_type_c or rnti_type == srsran_rnti_type_cs or
-             rnti_type == srsran_rnti_type_sp_csi;
+      return rnti_type == srsran_rnti_type_c || rnti_type == srsran_rnti_type_cs || rnti_type == srsran_rnti_type_sp_csi;
     default:
       break;
   }

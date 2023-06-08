@@ -18,7 +18,7 @@ extern "C" {
 #endif
 
 typedef struct {
-  bool	   active;//harq 重传是否激活
+  bool	   active;//harq 重传是否激活 true激活
   bool	   ack_state;
   bool	   ndi;//通过NDI（翻转为初传，否则为重传）字段
   uint32_t n_rtx;

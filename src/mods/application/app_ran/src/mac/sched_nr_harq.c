@@ -24,7 +24,7 @@ static bool has_pending_retx(harq_proc *proc, slot_point slot_rx)
 {
 	bool condition1 = !empty(proc->tb);
 	bool condition2 = !proc->tb[0].ack_state;
-	bool condition3 = proc->slot_ack <= slot_rx;//ack窗口小于slot tx 意思是还未确认
+	bool condition3 = proc->slot_ack <= slot_rx;//ack窗口小于slot tx 意思是还未确认，需要重传
 	return condition1 && condition2 && condition3; 
 }
 
@@ -93,7 +93,7 @@ bool harq_proc_set_tbs(harq_proc *proc, uint32_t tbs)
 
 bool harq_proc_set_mcs(harq_proc *proc, uint32_t mcs)
 {
-  if (empty(proc) || nof_retx(proc) > 0) {
+  if (empty(proc->tb) || nof_retx(proc) > 0) {
     return false;
   }
   proc->tb[0].mcs = mcs;
@@ -157,6 +157,7 @@ bool ul_harq_proc_new_tx(ul_harq_proc          *h_ul,
 {
   const static uint32_t rv_idx[4] = {0, 2, 3, 1};
 
+  //对于上行，slot_tx为预调度，slot_tx时刻为收到该消息的时刻，所以slot_ack和slot_tx一致
   if (harq_proc_new_tx(&h_ul->proc, slot_tx, slot_tx, grant, mcs_, max_retx)) {
     ul_harq_proc_fill_dci(h_ul, dci);
     return true;

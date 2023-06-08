@@ -24,7 +24,7 @@ typedef struct harq_ack {
 /// This only contains information about a given slot
 
 typedef struct {
-  uint32_t            slot_idx;//转换后的slotid
+  uint32_t            slot_idx;//一帧中slot_id下标
   bwp_params_t        *cfg;
 
   dl_res_t                    dl;
