@@ -33,7 +33,7 @@ int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info)
 	          rar_info->msg3_size);
 
 	// find pending rar with same RA-RNTI
-	// 时频相同，RA-RNTI相同的ra
+	// 时频相同，RA-RNTI相同的ra, preamble_id可能不同
 	pending_rar_t *r = NULL;
 	cvector_for_each_in(r, ra->pending_rars){
 		if (slot_point_equal(&r->prach_slot, &rar_info->prach_slot) && r->ra_rnti == ra_rnti) {
@@ -60,7 +60,7 @@ int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info)
 			break;
 		}
 	}
-	cvector_push_back(p.msg3_grant, *rar_info);//待处理对应相同slot和ra-rnti的Msg3消息list，msg2一对多msg3
+	cvector_push_back(p.msg3_grant, *rar_info);//mac rar pdu
 	cvector_push_back(ra->pending_rars, p);//待处理的Msg2消息list
 	return OSET_OK;
 }
@@ -90,7 +90,7 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 	const uint32_t rar_aggr_level = 2;
 	slot_point     sl_pdcch = get_pdcch_tti(bwp_alloc);
 	//bwp_cfg->cfg.pdcch.ra_search_space.id
-	prb_bitmap	 *prbs = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch),
+	prb_bitmap	  *prbs = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch),
 														ra->bwp_cfg->cfg.pdcch.ra_search_space.id,
 														srsran_dci_format_nr_1_0);
 
@@ -98,23 +98,23 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 	span_t(dl_sched_rar_info_t) msg3_grants = {0};
 	span(msg3_grants, rar->msg3_grant, cvector_size(rar->msg3_grant));
 
-	//msg3从最大size开始申请资源，无法满足则减小zize
+	// msg3从最大size开始申请资源，无法满足则减小zize
 	for (uint32_t nof_grants_alloc = cvector_size(rar->msg3_grant); nof_grants_alloc > 0; nof_grants_alloc--) {
 		ret = (alloc_result)invalid_coderate;
 		uint32_t start_prb_idx = 0;
 
-		// msg2 prb >= 4
-		// 只循环一次？？？
-		for (uint32_t nprb = 4; nprb < ra->bwp_cfg->cfg.rb_width && ret == (alloc_result)invalid_coderate; ++nprb) {
-			prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
-			start_prb_idx 	  = interv.start_;
-			if (prb_interval_length(&interv) == nprb) {
-				span_t(dl_sched_rar_info_t) msg3_grant_tmp = {0};
-				subspan(msg3_grant_tmp, msg3_grants, 0, nof_grants_alloc);
-				ret = bwp_slot_allocator_alloc_rar_and_msg3(bwp_alloc, rar->ra_rnti, rar_aggr_level, &interv, &msg3_grant_tmp);
-			} else {
-				ret = (alloc_result)no_sch_space;
-			}
+		// 目前只循环一次, msg2 prb = 4 ===> 4*12*(14-2)*2*379/1024*1 = 426bit/8 = 53byte
+		// RAR payload size in bytes as per TS38.321, 6.1.5 and 6.2.3.
+        // rar_payload_size_bytes = 7, rar_subheader_size_bytes = 1  ====》 4*8 = 32byte
+		uint32_t nprb = 4;
+		prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
+		start_prb_idx 	  = interv.start_;
+		if (prb_interval_length(&interv) == nprb) {
+			span_t(dl_sched_rar_info_t) msg3_grant_tmp = {0};
+			subspan(msg3_grant_tmp, msg3_grants, 0, nof_grants_alloc);
+			ret = bwp_slot_allocator_alloc_rar_and_msg3(bwp_alloc, rar->ra_rnti, rar_aggr_level, &interv, &msg3_grant_tmp);
+		} else {
+			ret = (alloc_result)no_sch_space;
 		}
 
 		// If allocation was not successful because there were not enough RBGs, try allocating fewer Msg3 grants
@@ -141,7 +141,7 @@ void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
 	}
 
 	for (int i = 0; i < cvector_size(ra->pending_rars); ) { 
-		//对应相同slot和ra-rnti的msg2和msg3消息处理
+		//对应相同slot、ra-rnti的msg2和msg3消息处理
 		pending_rar_t *rar = ra->pending_rars[i];
 
 		// In case of RAR outside RAR window:
@@ -173,8 +173,9 @@ void ra_sched_run_slot(bwp_slot_allocator *slot_alloc, ra_sched *ra)
 			if (nof_rar_allocs == cvector_size(rar->msg3_grant)) {
 				cvector_erase(ra->pending_rars, i); //已分配prb，可以删除
 			} else {
-				std::copy(rar->msg3_grant.begin() + nof_rar_allocs, rar->msg3_grant.end(), rar->msg3_grant.begin());
-				rar->msg3_grant.resize(cvector_size(rar->msg3_grant) - nof_rar_allocs);
+				for(int n = 0; n < nof_rar_allocs; ++n){
+					cvector_erase(rar->msg3_grant, n);
+				}
 				break;
 			}
 		} else {

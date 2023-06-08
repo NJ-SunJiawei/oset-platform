@@ -102,7 +102,8 @@ void si_sched_run_slot(bwp_slot_allocator *bwp_alloc, si_sched *si_s)
 
 		// Attempt grants with increasing number of PRBs (if the number of PRBs is too low, the coderate is invalid)
 		si->result         = (alloc_result)invalid_coderate;
-		uint32_t     nprbs = 8;//应该根据mcs/tb size计算prb数量
+		// 当调度PDSCH的DCI由SI-RNTI加扰，即PDSCH传输SIB1信息时，TBSize的大小不能超过2976
+		uint32_t     nprbs = 8;//应该根据mcs/tb size计算prb数量???
 		prb_interval grant = find_empty_interval_of_length(prbs, nprbs, 0);//仅是查找可能位置，并不在bitmap上占用
 		if (prb_interval_length(&grant) >= nprbs) {
 		  si->result = bwp_slot_allocator_alloc_si(bwp_alloc, si_aggr_level, si->n, si->n_tx, &grant, &si->si_softbuffer->buffer);//申请prb资源

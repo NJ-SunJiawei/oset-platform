@@ -598,7 +598,10 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
   }
 
   //efficiency = (CodeRate) * 调制阶数 //表示单个子载波能够承载的有效比特（不包括冗余信息）的位数
+  // 调制阶数 = 每个符号（码元）所能代表的比特数
 
+  // 当调度PDSCH的DCI由P-RNTI、RA-RNTI和Msg-B RNTI加扰时，在信息量N_info计算时与前述略微由差别，多了缩放因子S
+  // S值由DCI位域中的字段TB scaling值查表可得，从表中可以看出S的取值小于等于1，整体还是为了降低码率，增强小区覆盖能力。
 
   // For the PDSCH assigned by a
   // - PDCCH with DCI format 1_0 with
@@ -645,7 +648,7 @@ int srsran_ra_nr_fill_tb(const srsran_sch_cfg_nr_t*   pdsch_cfg,
 
   // Steps 2,3,4
   tb->mcs      = mcs_idx;
-  tb->tbs      = (int)srsran_ra_nr_tbs(N_re, S, R, Qm, tb->N_L);
+  tb->tbs      = (int)srsran_ra_nr_tbs(N_re, S, R, Qm, tb->N_L);// bit
   tb->R        = R;
   tb->mod      = m;
   tb->nof_re   = (N_re - N_re_rvd) * grant->nof_layers;//剔除DCI资源/DMRS/grant prb CSI-RS, 当前slot剩余资源可用RE数

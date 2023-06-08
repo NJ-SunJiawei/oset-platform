@@ -270,6 +270,7 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 		}
 	}
 
+	//当前bwp_pdcch_slot最多处理MAX_GRANTS个msg2消息
 	ASSERT_IF_NOT(!(MAX_GRANTS == cvector_size(bwp_pdcch_slot->dl.rar)), "[%5u]The #RARs should be below #PDSCHs", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 
 	if (!cvector_empty(bwp_pdcch_slot->dl.phy.ssb)) {
@@ -280,6 +281,7 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 	}
 
 	// Verify there is space in PUSCH for Msg3s
+	// 当前bwp_msg3_slot最多预授权MAX_GRANTS个msg3消息
 	ret = pusch_allocator_has_grant_space(&bwp_msg3_slot->puschs, pending_rachs->len, true);
 	if (ret != (alloc_result)success) {
 		return ret;
@@ -340,7 +342,7 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 		rar_grant.data	= grant;
 		fill_dci_ul_from_cfg(bwp_alloc->cfg, &rar_grant.msg3_dci);
 		// Fill Msg3 DCI context(pdcch_ul)
-		// msg3上行授权调度， ul_grant包含在mac rar中
+		// msg3上行授权调度， ul_grant包含在mac rar中(27 bit)
 		rar_grant.msg3_dci.ctx.coreset_id = pdcch->dci.ctx.coreset_id;
 		rar_grant.msg3_dci.ctx.rnti_type  = srsran_rnti_type_tc;
 		rar_grant.msg3_dci.ctx.rnti 	  = slot_u->ue->rnti;
