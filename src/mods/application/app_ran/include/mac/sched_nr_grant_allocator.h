@@ -71,6 +71,7 @@ slot_point get_pdcch_tti(bwp_slot_allocator *bwp_alloc);
 slot_point get_rx_tti(bwp_slot_allocator *bwp_alloc);
 bwp_slot_grid *get_tx_slot_grid(bwp_slot_allocator *bwp_alloc);
 bwp_slot_grid *get_slot_grid(bwp_slot_allocator *bwp_alloc, slot_point slot);
+prb_grant find_optimal_dl_grant(bwp_slot_allocator *bwp_alloc, slot_ue *ue, uint32_t ss_id);
 bwp_slot_allocator* bwp_slot_allocator_init(bwp_res_grid *bwp_grid_, slot_point pdcch_slot_);
 alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 													uint32_t            aggr_idx,
@@ -84,6 +85,11 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *slot_grid
 													uint32_t	   aggr_idx,
 													prb_interval   *interv,
 													span_t(dl_sched_rar_info_t) *pending_rachs);
+
+alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
+														slot_ue *ue,
+														uint32_t ss_id,
+														prb_grant *dl_grant);
 
 
 #ifdef __cplusplus

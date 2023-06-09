@@ -150,6 +150,8 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl, oset_list_t *ue_
 
 	prb_bitmap *prbs_after = pdsch_allocator_occupied_prbs(bwp_res_grid_get_pdschs(bwp_alloc->bwp_grid, sl_pdcch), ss_id, srsran_dci_format_nr_1_0);
 
+	// todo aggr_level = 2
+
 	// 在接入阶段且调度PDSCH的DCI通过P-RNTI、RA-RNTI和SI-RNTI加扰时，PDSCH只能使用QPSK调制，即Qm=2
 	// 这样设计的原因是小区在发送寻呼、msg2和sib1信息时需要覆盖整个小区
 	// 则需要通过限制调制阶数的方式降低码率，提高PDSCH的解调性能，保证覆盖

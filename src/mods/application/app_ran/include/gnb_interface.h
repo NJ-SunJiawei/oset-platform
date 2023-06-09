@@ -29,7 +29,7 @@ typedef struct {
 
 /****mac_interface_phy_nr****/
 #define MAX_SSB			       4
-#define MAX_GRANTS 		       4
+#define MAX_GRANTS 		       4//现有PDCCH CEE候选位置只有4个
 #define MAX_PUCCH_MSG		   64
 #define MAX_PUCCH_CANDIDATES   2
 #define MAX_NZP_CSI_RS 	       4

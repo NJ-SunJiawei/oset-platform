@@ -66,6 +66,7 @@ alloc_result pdsch_allocator_is_si_grant_valid(pdsch_allocator *pdsch_alloc, uin
 alloc_result pdsch_allocator_is_rar_grant_valid(pdsch_allocator *pdsch_alloc, prb_grant *grant);
 void pdsch_allocator_reserve_prbs(pdsch_allocator *pdsch_alloc, prb_grant *grant);
 prb_bitmap* pdsch_allocator_occupied_prbs(pdsch_allocator *pdsch_alloc, uint32_t ss_id, srsran_dci_format_nr_t dci_fmt);
+rbg_bitmap* pdsch_allocator_occupied_rbgs(pdsch_allocator *pdsch_alloc);
 void pdsch_allocator_destory(pdsch_allocator *pdsch_alloc);
 void pdsch_allocator_reset(pdsch_allocator *pdsch_alloc);
 void pdsch_allocator_init(pdsch_allocator *pdsch_alloc, bwp_params_t *cfg_, uint32_t slot_index, cvector_vector_t(pdsch_t) pdsch_lst);

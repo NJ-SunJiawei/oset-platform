@@ -136,40 +136,39 @@ static bool contains_dci_format(srsran_search_space_t *ss, srsran_dci_format_nr_
 
 int ue_carrier_params_find_ss_id(ue_carrier_params_t *param, srsran_dci_format_nr_t dci_fmt)
 {
-  static const uint32_t           aggr_idx  = 2;                  // TODO: Make it dynamic
-  static const srsran_rnti_type_t rnti_type = srsran_rnti_type_c; // TODO: Use TC-RNTI for Msg4
-  int i = 0;
+	static const uint32_t           aggr_idx  = 2;                  // TODO: Make it dynamic
+	static const srsran_rnti_type_t rnti_type = srsran_rnti_type_c; // TODO: Use TC-RNTI for Msg4
+	int i = 0;
 
-  srsran_pdcch_cfg_nr_t *pdcch  = &param->cfg_->phy_cfg.pdcch;
+	srsran_pdcch_cfg_nr_t *pdcch  = &param->cfg_->phy_cfg.pdcch;
 
-  for (i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++i) {
-	if(pdcch->search_space_present[i]){
-		// Prioritize UE-dedicated SearchSpaces确定UE专用搜索空间的优先级
-		srsran_search_space_t *ss = pdcch->search_space[i];
-		if (ss->type == srsran_search_space_type_ue &&\
-			ss->nof_candidates[aggr_idx] > 0 &&\
-			contains_dci_format(ss, dci_fmt) &&\
-			is_rnti_type_valid_in_search_space(rnti_type, ss->type)) {
-		  return ss->id;
+	for (i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++i) {
+		if(pdcch->search_space_present[i]){
+			// Prioritize UE-dedicated SearchSpaces确定UE专用搜索空间的优先级
+			srsran_search_space_t *ss = pdcch->search_space[i];
+			if (ss->type == srsran_search_space_type_ue &&\
+				ss->nof_candidates[aggr_idx] > 0 &&\
+				contains_dci_format(ss, dci_fmt) &&\
+				is_rnti_type_valid_in_search_space(rnti_type, ss->type)) {
+				return ss->id;
+			}
 		}
 	}
-  }
 
-  // Search Common SearchSpaces
-  for (i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++i) {
-	if(pdcch->search_space_present[i]){
-		// Prioritize UE-dedicated SearchSpaces确定UE专用搜索空间的优先级
-		srsran_search_space_t *ss = pdcch->search_space[i];
-		if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss.type) &&\
-			ss->nof_candidates[aggr_idx] > 0 &&\
-			contains_dci_format(ss, dci_fmt) &&\
-			is_rnti_type_valid_in_search_space(rnti_type, ss->type)) {
-		  return ss->id;
+	// Search Common SearchSpaces
+	for (i = 0; i < SRSRAN_UE_DL_NR_MAX_NOF_SEARCH_SPACE; ++i) {
+		if(pdcch->search_space_present[i]){
+			srsran_search_space_t *ss = pdcch->search_space[i];
+			if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss.type) &&\
+				ss->nof_candidates[aggr_idx] > 0 &&\
+				contains_dci_format(ss, dci_fmt) &&\
+				is_rnti_type_valid_in_search_space(rnti_type, ss->type)) {
+				return ss->id;
+			}
 		}
 	}
-  }
 
-  return -1;
+	return -1;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////

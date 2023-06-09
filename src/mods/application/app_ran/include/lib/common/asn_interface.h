@@ -57,25 +57,27 @@ struct ctrl_res_set_s {
   uint32_t							  pdcch_dmrs_scrambling_id;
 };
 
+enum monitoring_slot_periodicity_and_offset_types_opts{
+  sl1,
+  sl2,
+  sl4,
+  sl5,
+  sl8,
+  sl10,
+  sl16,
+  sl20,
+  sl40,
+  sl80,
+  sl160,
+  sl320,
+  sl640,
+  sl1280,
+  sl2560,
+  nulltype
+};
+
 struct monitoring_slot_periodicity_and_offset_c_ {
-	enum types_opts {
-	  sl1,
-	  sl2,
-	  sl4,
-	  sl5,
-	  sl8,
-	  sl10,
-	  sl16,
-	  sl20,
-	  sl40,
-	  sl80,
-	  sl160,
-	  sl320,
-	  sl640,
-	  sl1280,
-	  sl2560,
-	  nulltype
-	} types;
+	enum monitoring_slot_periodicity_and_offset_types_opts types;
 	void	*c;//pod_choice_buffer_t
 };
 

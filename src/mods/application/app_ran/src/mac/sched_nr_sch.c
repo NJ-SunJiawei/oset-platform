@@ -169,7 +169,6 @@ void pdsch_allocator_reserve_prbs(pdsch_allocator *pdsch_alloc, prb_grant *grant
 	bwp_rb_bitmap_add_by_prb_grant(&pdsch_alloc->dl_prbs, grant);
 }
 
-
 /// Get available PRBs for allocation
 prb_bitmap* pdsch_allocator_occupied_prbs(pdsch_allocator *pdsch_alloc, uint32_t ss_id, srsran_dci_format_nr_t dci_fmt)
 {
@@ -181,6 +180,13 @@ prb_bitmap* pdsch_allocator_occupied_prbs(pdsch_allocator *pdsch_alloc, uint32_t
 	}
   }
   return get_prbs(&pdsch_alloc->dl_prbs);
+}
+
+/// Get available RBGs for allocation
+rbg_bitmap* pdsch_allocator_occupied_rbgs(pdsch_allocator *pdsch_alloc)
+{
+  // Note: in case, RBGs are used, dci format is not 1_0
+  return get_rbgs(&pdsch_alloc->dl_prbs);
 }
 
 void pdsch_allocator_reset(pdsch_allocator *pdsch_alloc)

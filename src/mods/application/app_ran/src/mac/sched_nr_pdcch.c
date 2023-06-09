@@ -450,7 +450,9 @@ static pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_dl_pdcch_common(bwp_pdcch
 		  : ue_carrier_params_get_ss(user, ss_id);
 
 	// Add new DL PDCCH to sched result
-	// 申请pdcch资源
+	// 某个PDCCH信道的所有候选位置的CCE位置，与该PDCCH信道的聚合等级、搜索空间类型、子帧号、可用CCE总个数、RNTI等参数有关
+	// 在同个子帧时刻，一旦某个CCE已经被分配，则不能再分配给其他用户
+	// 对于SIB、寻呼、RAR、TPC、集群组呼这些共享信道对应的PDCCH，需要在公共空间进行CCE的调度，其它的则在UE专用的搜索空间中调度
 	pdcch_dl_t *pdcch_dl = oset_malloc(sizeof(pdcch_dl_t));
 	oset_assert(pdcch_dl);
 	bool success = coreset_region_alloc_pdcch(&pdcchs->coresets[ss->coreset_id], rnti_type, true, aggr_idx, ss_id, user, &pdcch_dl->dci.ctx);

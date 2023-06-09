@@ -39,10 +39,13 @@ static void round_robin_apply(bwp_slot_allocator *bwp_alloc, cvector_vector_t(sl
 static bool sched_dl_retxs(bwp_slot_allocator *bwp_alloc, slot_ue *ue)
 {	
 	if (ue->h_dl != NULL && has_pending_retx(&ue->h_dl.proc, get_rx_tti(bwp_alloc))) {
-		alloc_result res = alloc_pdsch(bwp_alloc,
-										ue,
-										ue_carrier_params_find_ss_id(&ue->ue->bwp_cfg, srsran_dci_format_nr_1_0),
-										ue.h_dl->prbs());
+		
+		int ss_id = ue_carrier_params_find_ss_id(&ue->ue->bwp_cfg, srsran_dci_format_nr_1_0);
+		if (ss_id < 0) {
+		  return false;
+		}
+		//ue->h_dl->proc.prbs_重传bitmap
+		alloc_result res = bwp_slot_allocator_alloc_pdsch(bwp_alloc, ue, ss_id, &ue->h_dl->proc.prbs_);
 		if (res == (alloc_result)success) {
 			return true;
 		}
@@ -52,18 +55,18 @@ static bool sched_dl_retxs(bwp_slot_allocator *bwp_alloc, slot_ue *ue)
 
 static bool sched_dl_newtxs(bwp_slot_allocator *bwp_alloc, slot_ue *ue)
 {
-  if (ue.dl_bytes > 0 && ue.h_dl != NULL && empty(ue->h_dl.proc.tb)) {
-	int ss_id = ue->find_ss_id(srsran_dci_format_nr_1_0);
-	if (ss_id < 0) {
-	  return false;
+	if (ue.dl_bytes > 0 && ue.h_dl != NULL && empty(ue->h_dl.proc.tb)) {
+		int ss_id = ue_carrier_params_find_ss_id(&ue->ue->bwp_cfg, srsran_dci_format_nr_1_0);
+		if (ss_id < 0) {
+			return false;
+		}
+		prb_grant	 prbs = find_optimal_dl_grant(bwp_alloc, ue, ss_id);
+		alloc_result res  = bwp_slot_allocator_alloc_pdsch(bwp_alloc, ue, ss_id, prbs);
+		if (res == (alloc_result)success) {
+			return true;
+		}
 	}
-	prb_grant	 prbs = find_optimal_dl_grant(bwp_alloc, ue, ss_id);
-	alloc_result res  = bwp_alloc.alloc_pdsch(ue, ss_id, prbs);
-	if (res == (alloc_result)success) {
-	  return true;
-	}
-  }
-  return false;
+	return false;
 }
 
 

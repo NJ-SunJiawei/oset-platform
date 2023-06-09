@@ -160,6 +160,25 @@ bwp_slot_grid *get_slot_grid(bwp_slot_allocator *bwp_alloc, slot_point slot)
 	return &bwp_alloc->bwp_grid->slots[SLOT_IDX(slot)];
 }
 
+static prb_bitmap* occupied_dl_prbs(bwp_slot_allocator *bwp_alloc, slot_point sl_tx, uint32_t ss_id, srsran_dci_format_nr_t dci_fmt)
+{
+	return pdsch_allocator_occupied_prbs(bwp_alloc->bwp_grid->slots[SLOT_IDX(sl_tx)].pdschs, ss_id, dci_fmt);
+}
+
+prb_grant find_optimal_dl_grant(bwp_slot_allocator *bwp_alloc, slot_ue *ue, uint32_t ss_id)
+{
+  static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0; // TODO: Support more DCI formats
+
+  //获取当前prb_bitmap
+  prb_bitmap *used_prb_mask = occupied_dl_prbs(bwp_alloc, ue->pdsch_slot, ss_id, dci_fmt);
+
+  //prb_bitmap中查找出最大的一块空闲
+  prb_interval prb_interv = find_empty_interval_of_length(used_prb_mask, bit_size(used_prb_mask), 0);
+
+  return prb_interv;
+}
+
+
 bwp_slot_allocator* bwp_slot_allocator_init(bwp_res_grid *bwp_grid_, slot_point pdcch_slot_)
 {
 	bwp_slot_allocator *bwp_alloc = oset_malloc(sizeof(bwp_slot_allocator));
@@ -379,5 +398,150 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 }
 
 
+// ue is the UE (1 only) that will be allocated
+// func computes the grant allocation for this UE
+alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
+														slot_ue *ue,
+														uint32_t ss_id,
+														prb_grant *dl_grant)
+{
+	static const uint32_t 			  aggr_idx	= 2;
+	static const srsran_dci_format_nr_t dci_fmt	= srsran_dci_format_nr_1_0;
+	static const srsran_rnti_type_t	  rnti_type = srsran_rnti_type_c; //c-rnti
+
+bwp_slot_grid& bwp_pdcch_slot = bwp_grid[ue.pdcch_slot];
+bwp_slot_grid& bwp_pdsch_slot = bwp_grid[ue.pdsch_slot];
+bwp_slot_grid& bwp_uci_slot	= bwp_grid[ue.uci_slot]; // UCI : UL control info
+//UCI(Uplink Control Information)是由PUCCH承载的上行控制信息；与DCI不同,UCI可以根据情况由PUCCH或PUSCH承载，而DCI只能由PDCCH承载。
+
+// Verify there is space in PDSCH//确认是否有空间
+alloc_result ret = bwp_pdcch_slot.pdschs.is_ue_grant_valid(ue.cfg(), ss_id, dci_fmt, dl_grant);
+if (ret != alloc_result::success) {
+return ret;
+}
+
+alloc_result result = verify_uci_space(bwp_uci_slot);//？？？uci传递ack信息，位于当前slot之后，先预先将ack bitmap占用
+												   //FDD，这边应该是上行bitmap
+if (result != alloc_result::success) {
+return result;
+}
+if (ue.h_dl == nullptr) {
+logger.warning("SCHED: Trying to allocate rnti=0x%x with no available DL HARQs", ue->rnti);
+return result;
+}
+if (not bwp_pdsch_slot.dl.phy.ssb.empty()) {
+// TODO: support concurrent PDSCH and SSB
+logger.debug("SCHED: skipping PDSCH allocation. Cause: concurrent PDSCH and SSB not yet supported");
+return alloc_result::no_sch_space;
+}
+
+// Check space in PUCCH/PUSCH for UCI
+// TODO
+
+// Find space and allocate PDCCH
+auto pdcch_result = bwp_pdcch_slot.pdcchs.alloc_dl_pdcch(rnti_type, ss_id, aggr_idx, ue.cfg());
+if (pdcch_result.is_error()) {
+// Could not find space in PDCCH
+return pdcch_result.error();
+}
+
+//dai针对tdd1~6模式，对于fdd和tdd0上行一个子帧对应一个下行子帧ACK，不需要
+pdcch_dl_t& pdcch 	   = *pdcch_result.value();
+pdcch.dci_cfg 		   = ue->get_dci_cfg();
+pdcch.dci.pucch_resource = 0;
+pdcch.dci.dai 		   = std::count_if(bwp_uci_slot.pending_acks.begin(),
+							bwp_uci_slot.pending_acks.end(),
+							[&ue](const harq_ack_t& p) { return p.res.rnti == ue->rnti; });
+pdcch.dci.dai %= 4;
+
+// Allocate PDSCH
+pdsch_t& pdsch = bwp_pdcch_slot.pdschs.alloc_ue_pdsch_unchecked(ss_id, dci_fmt, dl_grant, ue.cfg(), pdcch.dci);//pdcch.dci出参
+
+// Select MCS and Allocate HARQ
+int			   mcs			= ue->fixed_pdsch_mcs();//默认配置mcs值
+const static int min_MCS_ccch = 4;
+if (ue.h_dl->empty()) {//有新数据要发送 dl全部处于inactive态
+if (mcs < 0) {
+  //链路自适应（暂时好像使用默认值64qam）
+  mcs = srsran_ra_nr_cqi_to_mcs(/* cqi */ ue.dl_cqi(),//cqi 反馈获取
+								/* cqi_table_idx */ ue.cfg().phy().csi.reports->cqi_table,//csi上报csi.reports[0].cqi_table
+								/* mcs_table */ pdsch.sch.sch_cfg.mcs_table,//初始值 默认值srsran_mcs_table_64qam = 0
+								/* dci_format */ pdcch.dci.ctx.format,
+								/* search_space_type*/ pdcch.dci.ctx.ss_type,
+								/* rnti_type */ rnti_type);
+  if (mcs < 0) {
+	logger.warning("SCHED: UE rnti=0x%x reported CQI=0 - Using lowest MCS=0", ue->rnti);
+	mcs = 0;
+  }
+}
+// Overwrite MCS if there are pending bytes for LCID. The optimal way would be to verify that there are pending
+// bytes and that the MAC SDU for CCCH gets segmented. But since the event of segmentation happens at most a couple
+// of times (e.g., to send msg4/RRCSetup), we opt for the less optimal but simpler approach.
+if (ue.get_pending_bytes(srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH) and mcs < min_MCS_ccch) {
+  mcs = min_MCS_ccch;
+  logger.info("SCHED: MCS increased to min value %d to allocate SRB0/CCCH for rnti=0x%x", min_MCS_ccch, ue->rnti);
+}
+bool success = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, 4, pdcch.dci);//bool dl_harq_proc::new_tx创建新的harq资源
+srsran_assert(success, "Failed to allocate DL HARQ");
+} else {//有数据重传
+bool success = ue.h_dl->new_retx(ue.pdsch_slot, ue.uci_slot, dl_grant, pdcch.dci);//bool dl_harq_proc::new_retx
+mcs 		 = ue.h_dl->mcs();//采用之前的mcs,重传采用非自适应
+srsran_assert(success, "Failed to allocate DL HARQ retx");
+}
+
+srsran_slot_cfg_t slot_cfg;
+slot_cfg.idx = ue.pdsch_slot.to_uint();
+// Value 0.95 is from TS 38.214 v15.14.00, Section 5.1.3, page 17
+const static float max_R = 0.95;
+double			 R_prime;
+// The purpose of the internal loop is to decrease the MCS if the effective coderate is too high. This loop
+// only affects the high MCS values
+//如果有效码率太高，内部环路的目的是减小MCS。这个循环
+//仅影响高MCS值
+
+while (true) {
+// Generate PDSCH
+bool success = ue->phy().get_pdsch_cfg(slot_cfg, pdcch.dci, pdsch.sch);//srsran_ra_dl_dci_to_grant_nr  pdsch.sch为出参
+srsran_assert(success, "Error converting DCI to grant");
+if (ue.h_dl->nof_retx() != 0) {
+  srsran_assert(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");//TBS在retx中没有保持恒定
+}
+R_prime = pdsch.sch.grant.tb[0].R_prime;
+if (ue.h_dl->nof_retx() > 0 or R_prime < max_R or mcs <= 0 or
+	(ue.get_pending_bytes(srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH) and mcs <= min_MCS_ccch)) {
+  break;
+}
+// Decrease MCS if first tx and rate is too high 如果第一次tx和速率过高，则降低MCS
+mcs--;
+pdcch.dci.mcs = mcs;
+}
+if (R_prime >= max_R and mcs == 0) {
+logger.warning("Couldn't find mcs that leads to R<0.95");
+}
+
+
+//？？？这边重传数据有问题，没有使用old harq tb。实际上是新传。
+
+ue.h_dl->set_mcs(mcs);
+ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // set HARQ TBS,不会清空soft buffer
+pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();//软合并buffer地址，在物理层中使用
+pdsch.data[0] 					  = ue.h_dl->get_tx_pdu()->get();//buffer地址，赋值需要下行传输的TB数据源 从RLC获取
+
+// Select scheduled LCIDs and update UE buffer state分配好mac sdu中的LCID
+bwp_pdsch_slot.dl.data.emplace_back();
+// NOTE: ue.h_dl->tbs() has to be converted from bits to bytes
+bool segmented_ccch_pdu = not ue.build_pdu(ue.h_dl->tbs() / 8, bwp_pdsch_slot.dl.data.back());//ue_buffer_manager::pdu_builder::alloc_subpdus
+if (segmented_ccch_pdu) {
+logger.error("SCHED: Insufficient resources to allocate SRB0/CCCH for rnti=0x%x", min_MCS_ccch, ue->rnti);
+}
+
+// Generate PUCCH
+bwp_uci_slot.pending_acks.emplace_back();//在队尾创建
+bwp_uci_slot.pending_acks.back().phy_cfg = &ue->phy();//back()取最后一个元素
+bool success = ue->phy().get_pdsch_ack_resource(pdcch.dci, bwp_uci_slot.pending_acks.back().res);//配置n+K1 slot中的ack资源
+srsran_assert(success, "Error getting ack resource");
+
+return alloc_result::success;
+}
 
 

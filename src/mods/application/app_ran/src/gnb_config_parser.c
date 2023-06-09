@@ -396,7 +396,7 @@ static void make_default_common_search_space(uint8_t ss_id, struct ctrl_res_set_
   ss->ctrl_res_set_id                                = cs->ctrl_res_set_id;
   ss->dur_present                                    = false; // false for duration=1
   ss->monitoring_slot_periodicity_and_offset_present = true;
-  ss->monitoring_slot_periodicity_and_offset.types = sl1;
+  ss->monitoring_slot_periodicity_and_offset.types = (enum monitoring_slot_periodicity_and_offset_types_opts)sl1;
   ss->monitoring_symbols_within_slot_present = true;
   memset(&ss->monitoring_symbols_within_slot[0], 0, 2);
   bitstring_from_number(&ss->monitoring_symbols_within_slot[0], 0b10000000000000, 14);
@@ -845,8 +845,8 @@ static int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t *cell)
     struct ctrl_res_set_s dummy_coreset = {0};//?????????
     make_default_coreset(0, cell->phy_cell.carrier.nof_prb , &dummy_coreset);
     make_default_common_search_space(1, &dummy_coreset, &ss1);
-    ss1.nrof_candidates.aggregation_level1  = (enum aggregation_level1_opts)n0//n0;
-    ss1.nrof_candidates.aggregation_level2  = (enum aggregation_level2_opts)n0//n0;
+    ss1.nrof_candidates.aggregation_level1  = (enum aggregation_level1_opts)n1//n0;
+    ss1.nrof_candidates.aggregation_level2  = (enum aggregation_level2_opts)n1//n0;
     ss1.nrof_candidates.aggregation_level4  = (enum aggregation_level4_opts)n1//n1;
     ss1.nrof_candidates.aggregation_level8  = (enum aggregation_level8_opts)n0//n0;
     ss1.nrof_candidates.aggregation_level16 = (enum aggregation_level16_opts)n0//n0;
