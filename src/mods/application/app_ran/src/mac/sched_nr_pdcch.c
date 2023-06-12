@@ -492,3 +492,16 @@ pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_rar_pdcch(bwp_pdcch_allocator *p
 	return bwp_pdcch_allocator_alloc_dl_pdcch_common(srsran_rnti_type_ra, ra_rnti, pdcchs->bwp_cfg->cfg.pdcch.ra_search_space.id, aggr_idx, srsran_dci_format_nr_1_0, NULL);
 }
 
+pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_dl_pdcch(bwp_pdcch_allocator *pdcchs,
+																	srsran_rnti_type_t         rnti_type,
+																	uint32_t                   ss_id,
+																	uint32_t                   aggr_idx,
+																	ue_carrier_params_t        *user)
+{
+	static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0; // TODO: make it configurable
+	ASSERT_IF_NOT(rnti_type == srsran_rnti_type_c || rnti_type == srsran_rnti_type_tc,
+	            "Invalid RNTI type=%s for UE-specific PDCCH",
+	            srsran_rnti_type_str_short(rnti_type));
+	return bwp_pdcch_allocator_alloc_dl_pdcch_common(pdcchs, rnti_type, user->rnti, ss_id, aggr_idx, dci_fmt, user);
+}
+

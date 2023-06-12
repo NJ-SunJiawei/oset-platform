@@ -64,6 +64,11 @@ pdsch_t* pdsch_allocator_alloc_rar_pdsch_unchecked(pdsch_allocator *pdsch_alloc,
 pdsch_t* pdsch_allocator_alloc_si_pdsch_unchecked(pdsch_allocator *pdsch_alloc, uint32_t ss_id, prb_grant *grant, srsran_dci_dl_nr_t *dci);
 alloc_result pdsch_allocator_is_si_grant_valid(pdsch_allocator *pdsch_alloc, uint32_t ss_id, prb_grant *grant);
 alloc_result pdsch_allocator_is_rar_grant_valid(pdsch_allocator *pdsch_alloc, prb_grant *grant);
+alloc_result pdsch_allocator_is_ue_grant_valid(pdsch_allocator *pdsch_alloc,
+														ue_carrier_params_t        *ue,
+														uint32_t                   ss_id,
+														srsran_dci_format_nr_t     dci_fmt,
+														prb_grant                  *grant);
 void pdsch_allocator_reserve_prbs(pdsch_allocator *pdsch_alloc, prb_grant *grant);
 prb_bitmap* pdsch_allocator_occupied_prbs(pdsch_allocator *pdsch_alloc, uint32_t ss_id, srsran_dci_format_nr_t dci_fmt);
 rbg_bitmap* pdsch_allocator_occupied_rbgs(pdsch_allocator *pdsch_alloc);

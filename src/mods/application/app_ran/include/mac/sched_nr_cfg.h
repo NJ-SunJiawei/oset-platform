@@ -102,8 +102,8 @@ typedef struct sched_params_s {
 
 srsran_search_space_t* get_ss(bwp_params_t *param, uint32_t ss_id);
 
-void get_dci_locs(srsran_coreset_t      coreset,
-                      srsran_search_space_t search_space,
+void get_dci_locs(srsran_coreset_t      *coreset,
+                      srsran_search_space_t *search_space,
                       uint16_t             rnti,
                       pdcch_cce_pos_list  (*cce_locs)[MAX_NOF_AGGR_LEVELS]);
 

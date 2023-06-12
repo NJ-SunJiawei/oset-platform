@@ -12,7 +12,7 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-time-rr"
 
-typedef bool *sched_time_rr_callback(slot_ue *);
+typedef bool *sched_time_rr_callback(bwp_slot_allocator *, slot_ue *);
 
 static void round_robin_apply(bwp_slot_allocator *bwp_alloc, cvector_vector_t(slot_ue *) slot_ue_list, uint32_t rr_count, sched_time_rr_callback func)
 {

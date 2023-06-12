@@ -74,7 +74,7 @@ void ue_carrier_params_init(ue_carrier_params_t *param, uint16_t rnti_, bwp_para
 			              coreset_idx);
 			bwp_cce_pos_list bwp_cce_pos_lt = {0};
 			//根据rnti、ss等信息计算终端candidates的first CCE位置，每个ue所处的cce位置不同
-			get_dci_locs(pdcch->coreset[coreset_idx], pdcch->search_space[i], rnti_, bwp_cce_pos_lt);
+			get_dci_locs(&pdcch->coreset[coreset_idx], &pdcch->search_space[i], rnti_, bwp_cce_pos_lt);
 			//记录ss_id下每个slot的cce合集
 			cvector_push_back(param->cce_positions_list, bwp_cce_pos_lt);
 			//对应ss_id的cce_positions_list下标映射

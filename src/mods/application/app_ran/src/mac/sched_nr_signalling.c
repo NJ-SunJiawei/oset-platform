@@ -71,8 +71,8 @@ void si_sched_run_slot(bwp_slot_allocator *bwp_alloc, si_sched *si_s)
 		  } else {
 		    // 5.2.2.3.2 - Acquisition of SI message
 		    // SI不包含sib1
-		    // SI起始帧 sfn%t=floor(x/N)
-		    // SI起始slot slot=x%N
+		    // SI起始帧       sfn%t=floor(x/N)
+		    // SI起始slot    slot=x%N
 		    start_window = (slot_sfn(sl_pdcch) % si->period_frames == x / N) && (slot_idx(&sl_pdcch) == x % N);
 		  }
 		  if (start_window) {
@@ -146,7 +146,13 @@ static void sched_ssb_basic(slot_point sl_point,
 	// "ssb_periodicity * nof_slots_per_subframe" gives the number of slots in 1 ssb_periodicity time interval
 	uint32_t sl_point_mod = sl_cnt % (ssb_periodicity * (uint32_t)nof_slots_per_subframe(&sl_point));
 
-	// code below is simplified, it assumes 15kHz subcarrier spacing and sub 3GHz carrier
+	// code below is simplified, it assumes 15kHz subcarrier spacing and sub 3GHz carrier caseA sub6以内位于子帧0和1的2、8 OFDM符号。
+	// PSS在SS／PBCH块的第l个OFDM符号上, OFDM同步
+	// SSS在SS／PBCH块的第3个OFDM符号上
+	// 在每个周期内，多个SSB块被限制在某一个5ms的半帧内
+	// PBCH的信道编码采用Polar码,调制采用QPSK调制
+	// PBCH上承载着MIB消息，物理信道PBCH上的内容包括23bit MIB+8 bit additional PBCH payload,加上CRC一共56bit
+	// SFN低4位在additional PBCH payload,    SFN的高6位在MIB中（所以MIB数据80ms改变一次）
 	if (sl_point_mod == 0) {
 		ssb_t           ssb_msg = {0};
 		srsran_mib_nr_t mib_msg = *mib;

@@ -163,6 +163,39 @@ alloc_result pdsch_allocator_is_rar_grant_valid(pdsch_allocator *pdsch_alloc, pr
 												grant);
 }
 
+alloc_result pdsch_allocator_is_ue_grant_valid(pdsch_allocator *pdsch_alloc,
+														ue_carrier_params_t        *ue,
+														uint32_t                   ss_id,
+														srsran_dci_format_nr_t     dci_fmt,
+														prb_grant                  *grant)
+{
+	const srsran_search_space_t* ss = get_ss(ue->bwp_cfg, ss_id);
+	if (ss == NULL) {
+	// Couldn't find SearchSpace
+	oset_error("%srnti=0x%x,SearchSpaceId=%d has not been configured", log_pdsch, ue->rnti, ss_id);
+		return (alloc_result)invalid_grant_params;
+	}
+	alloc_result ret = pdsch_allocator_is_grant_valid_common(pdsch_alloc, ss->type, dci_fmt, ss->coreset_id, grant);
+	if (ret != (alloc_result)success) {
+		return ret;
+	}
+
+	// TS 38.214, 5.1.2.2 - "the UE shall use the downlink frequency resource allocation type as defined by the higher
+	//                       layer parameter resourceAllocation"
+	if (ue->cfg_->phy_cfg.pdsch.alloc != srsran_resource_alloc_dynamic) {
+		if ((ue->cfg_->phy_cfg.pdsch.alloc == srsran_resource_alloc_type0) != is_alloc_type0(grant)) {
+		  oset_warn("%sUE rnti=0x%x PDSCH Res Alloc configuration type %d doesn't match grant type",
+		                    log_pdsch,
+		                    ue->rnti,
+		                    is_alloc_type0(grant) ? 0 : 1);
+		  return (alloc_result)invalid_grant_params;
+		}
+	}
+
+	return (alloc_result)success;
+}
+
+
 /// Marks a range of PRBS as occupied, preventing further allocations
 void pdsch_allocator_reserve_prbs(pdsch_allocator *pdsch_alloc, prb_grant *grant)
 {
