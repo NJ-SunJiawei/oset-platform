@@ -121,8 +121,7 @@ int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells)
 	}
 	
 	//mac_manager.rx = new mac_nr_rx; ???callback func
-
-	mac_manager.default_ue_phy_cfg = get_common_ue_phy_cfg(sched_nr_cell_cfg);
+	//mac_manager.default_ue_phy_cfg = get_common_ue_phy_cfg(sched_nr_cell_cfg);
 
 	return OSET_OK;
 }

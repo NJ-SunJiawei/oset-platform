@@ -60,6 +60,19 @@ pdsch_t* pdsch_allocator_alloc_pdsch_unchecked(pdsch_allocator *pdsch_alloc,
   return pdsch;
 }
 
+pdsch_t* pdsch_allocator_alloc_ue_pdsch_unchecked(pdsch_allocator *pdsch_alloc,
+															uint32_t 				  ss_id,
+															srsran_dci_format_nr_t	  dci_fmt,
+															prb_grant 		          *grant,
+															ue_carrier_params_t       *ue,
+															srsran_dci_dl_nr_t		  *dci)
+{
+	const srsran_search_space_t* ss = ue_carrier_params_get_ss(ue, ss_id);
+	ASSERT_IF_NOT(ss != NULL, "SearchSpace has not been configured");
+	return pdsch_allocator_alloc_pdsch_unchecked(pdsch_alloc, ss->coreset_id, ss->type, dci_fmt, grant, dci);
+}
+
+
 //not use
 /*pdsch_alloc_result pdsch_allocator_alloc_si_pdsch(pdsch_allocator *pdsch_alloc, uint32_t ss_id, prb_grant *grant, srsran_dci_dl_nr_t *dci)
 {
@@ -69,8 +82,6 @@ pdsch_t* pdsch_allocator_alloc_pdsch_unchecked(pdsch_allocator *pdsch_alloc,
   }
   return pdsch_alloc_result_succ(pdsch_allocator_alloc_si_pdsch_unchecked(pdsch_alloc, ss_id, grant, dci));
 }*/
-
-
 
 pdsch_t* pdsch_allocator_alloc_rar_pdsch_unchecked(pdsch_allocator *pdsch_alloc, prb_grant *grant, srsran_dci_dl_nr_t *dci)
 {
@@ -169,7 +180,7 @@ alloc_result pdsch_allocator_is_ue_grant_valid(pdsch_allocator *pdsch_alloc,
 														srsran_dci_format_nr_t     dci_fmt,
 														prb_grant                  *grant)
 {
-	const srsran_search_space_t* ss = get_ss(ue->bwp_cfg, ss_id);
+	const srsran_search_space_t* ss = ue_carrier_params_get_ss(ue, ss_id);
 	if (ss == NULL) {
 	// Couldn't find SearchSpace
 	oset_error("%srnti=0x%x,SearchSpaceId=%d has not been configured", log_pdsch, ue->rnti, ss_id);

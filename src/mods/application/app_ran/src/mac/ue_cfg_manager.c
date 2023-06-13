@@ -93,7 +93,7 @@ static bwp_cce_pos_list cce_pos_list(ue_carrier_params_t *param, uint32_t search
 pdcch_cce_pos_list ue_carrier_params_cce_pos_list(ue_carrier_params_t *param, uint32_t search_id, uint32_t slot_idx, uint32_t aggr_idx)
 {
   if (cvector_size(param->cce_positions_list) > param->ss_id_to_cce_idx[search_id]) {
-	bwp_cce_pos_list lst = cce_pos_list(search_id);
+	bwp_cce_pos_list lst = cce_pos_list(param, search_id);
 	return lst[slot_idx][aggr_idx];
   }
   return {0};
@@ -112,16 +112,11 @@ uint32_t ue_carrier_params_get_k1(ue_carrier_params_t *param, slot_point pdsch_s
 /// Get SearchSpace based on SearchSpaceId
 srsran_search_space_t* ue_carrier_params_get_ss(ue_carrier_params_t *param, uint32_t ss_id)
 {
-  if (param->cfg_->phy_cfg.pdcch.search_space_present[ss_id]) {
-	// UE-dedicated SearchSpace
-	return &param->bwp_cfg->cfg.pdcch.search_space[ss_id];
-  }
-  return NULL;
-}
-
-srsran_dci_cfg_nr_t get_dci_cfg(ue_carrier_params_t *param)
-{ 
-	return param->cached_dci_cfg;
+	if (param->cfg_->phy_cfg.pdcch.search_space_present[ss_id]) {
+		// UE-dedicated SearchSpace
+		return &param->bwp_cfg->cfg.pdcch.search_space[ss_id];
+	}
+	return NULL;
 }
 
 static bool contains_dci_format(srsran_search_space_t *ss, srsran_dci_format_nr_t dci_fmt)
@@ -170,6 +165,28 @@ int ue_carrier_params_find_ss_id(ue_carrier_params_t *param, srsran_dci_format_n
 
 	return -1;
 }
+
+
+srsran_dci_cfg_nr_t ue_carrier_params_get_dci_cfg(ue_carrier_params_t *param)
+{ 
+	return param->cached_dci_cfg;
+}
+
+int ue_carrier_params_fixed_pdsch_mcs(ue_carrier_params_t *param)
+{ 
+	return param->bwp_cfg->sched_cfg.fixed_dl_mcs;
+}
+
+int ue_carrier_params_fixed_pusch_mcs(ue_carrier_params_t *param)
+{
+	return param->bwp_cfg->sched_cfg.fixed_ul_mcs;
+}
+
+phy_cfg_nr_t *ue_carrier_params_phy(ue_carrier_params_t *param)
+{
+	return &param->cfg_->phy_cfg;
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 /// Helper function to verify if RNTI type can be placed in specified search space

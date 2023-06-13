@@ -55,13 +55,15 @@ typedef struct {
 }coreset_cached_params;
 
 
-/// Structure that extends the sched_nr_interface::bwp_cfg_t passed by upper layers with other
+/// Structure that extends the bwp_cfg_t passed by upper layers with other
 /// derived BWP-specific params
+/// rrc层获取并处理后的bwp参数
 typedef struct bwp_params_s {
   uint32_t             bwp_id;
   uint32_t             cc;
   sched_nr_bwp_cfg_t   cfg;//初始化时rrc获取并转存的sched配置
   cell_config_manager  *cell_cfg;
+
   sched_args_t         *sched_cfg;
   //sched_nr_bwp_cfg_t   bwp_cfg;//???todo 可能不需要
   // derived params

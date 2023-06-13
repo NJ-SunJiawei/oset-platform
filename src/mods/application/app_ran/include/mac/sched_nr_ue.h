@@ -52,7 +52,7 @@ typedef struct {
   // common context
   ue_context_common   *common_ctxt;
 
-  ue_carrier_params_t  bwp_cfg;
+  ue_carrier_params_t  bwp_cfg;//每个ue对应小区的参数，初始从rrc获取，随后rrc高层更新
   // metrics
   mac_ue_metrics_t     metrics;
 } ue_carrier;

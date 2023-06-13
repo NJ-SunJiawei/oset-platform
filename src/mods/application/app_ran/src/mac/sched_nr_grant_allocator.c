@@ -320,7 +320,7 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 	pdcch_dl_t *pdcch = pdcch_result.res.val;
 
 	slot_ue* slot_u = slot_ue_find_by_rnti(pending_rachs[0].temp_crnti, bwp_alloc->cfg->cc);
-	pdcch->dci_cfg 	= get_dci_cfg(&slot_u->ue->bwp_cfg);
+	pdcch->dci_cfg 	= ue_carrier_params_get_dci_cfg(&slot_u->ue->bwp_cfg);
 	pdcch->dci.mcs 	= 5;
 
 	// Allocate RAR PDSCH
@@ -379,7 +379,7 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 		ASSERT_IF_NOT(success, "[%5u]Failed to allocate Msg3", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 
 		// Generate PUSCH content(pusch out)
-		success = get_pusch_cfg(&slot_u->ue->bwp_cfg.cfg_->phy_cfg, &slot_cfg, &rar_grant.msg3_dci, &pusch->sch);
+		success = get_pusch_cfg(ue_carrier_params_phy(&slot_u->ue->bwp_cfg), &slot_cfg, &rar_grant.msg3_dci, &pusch->sch);
 		ASSERT_IF_NOT(success, "[%5u]Error converting DCI to PUSCH grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 		pusch->sch.grant.tb[0].softbuffer.rx = &slot_u->h_ul->softbuffer->buffer;
 		ul_harq_proc_fill_dci(slot_u->h_ul, pusch->sch.grant.tb[0].tbs);//set harq tbs,并且清空soft buffer
@@ -407,7 +407,7 @@ static alloc_result verify_uci_space(const bwp_slot_grid *uci_grid)
 // ue is the UE (1 only) that will be allocated
 // func computes the grant allocation for this UE
 alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
-														slot_ue *ue,
+														slot_ue *slot_u,
 														uint32_t ss_id,
 														prb_grant *dl_grant)
 {
@@ -415,13 +415,13 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 	static const srsran_dci_format_nr_t dci_fmt	= srsran_dci_format_nr_1_0;
 	static const srsran_rnti_type_t	  rnti_type = srsran_rnti_type_c; //c-rnti
 
-	bwp_slot_grid *bwp_pdcch_slot = get_slot_grid(bwp_alloc, ue->pdcch_slot);
-	bwp_slot_grid *bwp_pdsch_slot = get_slot_grid(bwp_alloc, ue->pdsch_slot);
-	bwp_slot_grid *bwp_uci_slot   = get_slot_grid(bwp_alloc, ue->uci_slot);
+	bwp_slot_grid *bwp_pdcch_slot = get_slot_grid(bwp_alloc, slot_u->pdcch_slot);
+	bwp_slot_grid *bwp_pdsch_slot = get_slot_grid(bwp_alloc, slot_u->pdsch_slot);
+	bwp_slot_grid *bwp_uci_slot   = get_slot_grid(bwp_alloc, slot_u->uci_slot);
 	//UCI(Uplink Control Information)是由PUCCH承载的上行控制信息；与DCI不同,UCI可以根据情况由PUCCH或PUSCH承载，而DCI只能由PDCCH承载。
 
 	// Verify there is space in PDSCH//确认是否有空间
-	alloc_result ret = pdsch_allocator_is_ue_grant_valid(bwp_alloc, &ue->ue->bwp_cfg, ss_id, dci_fmt, dl_grant);
+	alloc_result ret = pdsch_allocator_is_ue_grant_valid(bwp_alloc, &slot_u->ue->bwp_cfg, ss_id, dci_fmt, dl_grant);
 	if (ret != (alloc_result)success) {
 		return ret;
 	}
@@ -432,7 +432,7 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 		return result;
 	}
 
-	if (ue->h_dl == NULL) {
+	if (slot_u->h_dl == NULL) {
 		oset_warn("[%5u]SCHED: Trying to allocate rnti=0x%x with no available DL HARQs", GET_RSLOT_ID(bwp_alloc->pdcch_slot), ue->ue->rnti);
 		return (alloc_result)other_cause;
 	}
@@ -457,54 +457,53 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 
 	//dai针对tdd1~6模式(对于fdd和tdd0上行一个子帧对应一个下行子帧ACK,不需要)
 	pdcch_dl_t *pdcch 	   = pdcch_result.res.val;
-	pdcch->dci_cfg 		   = get_dci_cfg(&ue->ue->bwp_cfg);
+	pdcch->dci_cfg 		   = ue_carrier_params_get_dci_cfg(&slot_u->ue->bwp_cfg);
 	pdcch->dci.pucch_resource = 0;
 	harq_ack_t *p = NULL;
 	cvector_for_each_in(p, bwp_uci_slot->pending_acks){
-		if(p->res.rnti == ue->ue->rnti){
-			pdcch->dci.dai = true;
-			break;
+		if(p->res.rnti == slot_u->ue->rnti){
+			pdcch->dci.dai++;
 		}
 	}
-	pdcch->dci.dai %       = 4;
+	pdcch->dci.dai % = 4;// MAX_GRANTS
 
 	// Allocate PDSCH
-	pdsch_t *pdsch = alloc_ue_pdsch_unchecked(&bwp_pdcch_slot->pdschs, ss_id, dci_fmt, dl_grant, &ue->ue->bwp_cfg, &pdcch->dci);
+	pdsch_t *pdsch = pdsch_allocator_alloc_ue_pdsch_unchecked(&bwp_pdcch_slot->pdschs, ss_id, dci_fmt, dl_grant, &ue->ue->bwp_cfg, &pdcch->dci);
 
 	// Select MCS and Allocate HARQ
-	int mcs = ue->fixed_pdsch_mcs();//默认配置mcs值
+	int mcs = ue_carrier_params_fixed_pdsch_mcs(&slot_u->ue->bwp_cfg);//cnf默认配置mcs值
 	const static int min_MCS_ccch = 4;
-	if (empty(ue->h_dl.proc.tb)) {
+	if (empty(slot_u->h_dl.proc.tb)) {
 		if (mcs < 0) {
-		  //amc(暂时好像使用默认值64qam)
-		  mcs = srsran_ra_nr_cqi_to_mcs(/* cqi */ ue.dl_cqi(),//cqi 反馈获取
-										/* cqi_table_idx */ ue.cfg().phy().csi.reports->cqi_table,//csi上报csi.reports[0].cqi_table
+		  //AMC(暂时好像使用默认值64qam)
+		  mcs = srsran_ra_nr_cqi_to_mcs(/* cqi */ slot_u.dl_cqi(),//cqi 反馈获取
+										/* cqi_table_idx */ slot_u.cfg().phy().csi.reports->cqi_table,//csi上报csi.reports[0].cqi_table
 										/* mcs_table */ pdsch.sch.sch_cfg.mcs_table,//初始值 默认值srsran_mcs_table_64qam = 0
 										/* dci_format */ pdcch.dci.ctx.format,
 										/* search_space_type*/ pdcch->dci.ctx.ss_type,
 										/* rnti_type */ rnti_type);
 		  if (mcs < 0) {
-			oset_warn("[%5u]SCHED: UE rnti=0x%x reported CQI=0 - Using lowest MCS=0", GET_RSLOT_ID(bwp_alloc->pdcch_slot), ue->ue->rnti);
+			oset_warn("[%5u]SCHED: UE rnti=0x%x reported CQI=0 - Using lowest MCS=0", GET_RSLOT_ID(bwp_alloc->pdcch_slot), slot_u->ue->rnti);
 			mcs = 0;
 		  }
 		}
 		// Overwrite MCS if there are pending bytes for LCID. The optimal way would be to verify that there are pending
 		// bytes and that the MAC SDU for CCCH gets segmented. But since the event of segmentation happens at most a couple
 		// of times (e.g., to send msg4/RRCSetup), we opt for the less optimal but simpler approach.
-		if (ue.get_pending_bytes(srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH) and mcs < min_MCS_ccch) {
+		if (slot_u.get_pending_bytes(srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH) and mcs < min_MCS_ccch) {
 		  mcs = min_MCS_ccch;
-		  oset_info("[%5u]SCHED: MCS increased to min value %d to allocate SRB0/CCCH for rnti=0x%x", GET_RSLOT_ID(bwp_alloc->pdcch_slot), min_MCS_ccch, ue->ue->rnti);
+		  oset_info("[%5u]SCHED: MCS increased to min value %d to allocate SRB0/CCCH for rnti=0x%x", GET_RSLOT_ID(bwp_alloc->pdcch_slot), min_MCS_ccch, slot_u->ue->rnti);
 		}
-		bool success = ue.h_dl->new_tx(ue.pdsch_slot, ue.uci_slot, dl_grant, mcs, 4, pdcch.dci);//bool dl_harq_proc::new_tx创建新的harq资源
+		bool success = slot_u.h_dl->new_tx(slot_u.pdsch_slot, slot_u.uci_slot, dl_grant, mcs, 4, pdcch.dci);//bool dl_harq_proc::new_tx创建新的harq资源
 		ASSERT_IF_NOT(success, "Failed to allocate DL HARQ");
 	} else {
-		bool success = ue.h_dl->new_retx(ue.pdsch_slot, ue.uci_slot, dl_grant, pdcch.dci);//bool dl_harq_proc::new_retx
-		mcs 		 = ue.h_dl->mcs();//采用之前的mcs,重传采用非自适应
+		bool success = slot_u.h_dl->new_retx(slot_u.pdsch_slot, slot_u.uci_slot, dl_grant, pdcch.dci);//bool dl_harq_proc::new_retx
+		mcs 		 = slot_u.h_dl->mcs();//采用之前的mcs,重传采用非自适应
 		ASSERT_IF_NOT(success, "Failed to allocate DL HARQ retx");
 	}
 
 	srsran_slot_cfg_t slot_cfg = {0};
-	slot_cfg.idx = count_idx(&ue->pdsch_slot);
+	slot_cfg.idx = count_idx(&slot_u->pdsch_slot);
 	// Value 0.95 is from TS 38.214 v15.14.00, Section 5.1.3, page 17
 	const static float max_R = 0.95;
 	double			 R_prime;
@@ -515,14 +514,14 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 
 	while (true) {
 		// Generate PDSCH
-		bool success = ue->phy().get_pdsch_cfg(slot_cfg, pdcch->dci, pdsch.sch);//srsran_ra_dl_dci_to_grant_nr  pdsch.sch为出参
+		bool success = get_pdsch_cfg(ue_carrier_params_phy(&slot_u->ue->bwp_cfg), slot_cfg, pdcch->dci, pdsch.sch);//srsran_ra_dl_dci_to_grant_nr  pdsch.sch为出参
 		ASSERT_IF_NOT(success, "Error converting DCI to grant");
-		if (ue.h_dl->nof_retx() != 0) {
-		  ASSERT_IF_NOT(pdsch.sch.grant.tb[0].tbs == (int)ue.h_dl->tbs(), "The TBS did not remain constant in retx");//TBS在retx中没有保持恒定
+		if (slot_u.h_dl->nof_retx() != 0) {
+		  ASSERT_IF_NOT(pdsch.sch.grant.tb[0].tbs == (int)slot_u.h_dl->tbs(), "The TBS did not remain constant in retx");//TBS在retx中没有保持恒定
 		}
 		R_prime = pdsch.sch.grant.tb[0].R_prime;
-		if (ue.h_dl->nof_retx() > 0 or R_prime < max_R or mcs <= 0 or
-			(ue.get_pending_bytes(srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH) and mcs <= min_MCS_ccch)) {
+		if (slot_u.h_dl->nof_retx() > 0 or R_prime < max_R or mcs <= 0 or
+			(slot_u.get_pending_bytes(srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH) and mcs <= min_MCS_ccch)) {
 		  break;
 		}
 		// Decrease MCS if first tx and rate is too high 如果第一次tx和速率过高，则降低MCS
@@ -535,23 +534,23 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 
 	//todo ？？？这边重传数据有问题,没有使用old harq tb,实际上是新传
 
-	ue.h_dl->set_mcs(mcs);
-	ue.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // set HARQ TBS,不会清空soft buffer
-	pdsch.sch.grant.tb[0].softbuffer.tx = ue.h_dl->get_softbuffer().get();//软合并buffer地址，在物理层中使用
-	pdsch.data[0] 					  = ue.h_dl->get_tx_pdu()->get();//buffer地址，赋值需要下行传输的TB数据源 从RLC获取
+	slot_u.h_dl->set_mcs(mcs);
+	slot_u.h_dl->set_tbs(pdsch.sch.grant.tb[0].tbs); // set HARQ TBS,不会清空soft buffer
+	pdsch.sch.grant.tb[0].softbuffer.tx = slot_u.h_dl->get_softbuffer().get();//软合并buffer地址，在物理层中使用
+	pdsch.data[0] 					  = slot_u.h_dl->get_tx_pdu()->get();//buffer地址，赋值需要下行传输的TB数据源 从RLC获取
 
 	// Select scheduled LCIDs and update UE buffer state分配好mac sdu中的LCID
 	bwp_pdsch_slot.dl.data.emplace_back();
 	// NOTE: ue.h_dl->tbs() has to be converted from bits to bytes
-	bool segmented_ccch_pdu = not ue.build_pdu(ue.h_dl->tbs() / 8, bwp_pdsch_slot.dl.data.back());//ue_buffer_manager::pdu_builder::alloc_subpdus
+	bool segmented_ccch_pdu = not slot_u.build_pdu(slot_u.h_dl->tbs() / 8, bwp_pdsch_slot.dl.data.back());//ue_buffer_manager::pdu_builder::alloc_subpdus
 	if (segmented_ccch_pdu) {
 		oset_error("[%5u]SCHED: Insufficient resources to allocate SRB0/CCCH for rnti=0x%x", GET_RSLOT_ID(bwp_alloc->pdcch_slot), min_MCS_ccch, ue->rnti);
 	}
 
 	// Generate PUCCH
 	bwp_uci_slot.pending_acks.emplace_back();//在队尾创建
-	bwp_uci_slot.pending_acks.back().phy_cfg = &ue->phy();//back()取最后一个元素
-	bool success = ue->phy().get_pdsch_ack_resource(pdcch->dci, bwp_uci_slot.pending_acks.back().res);//配置n+K1 slot中的ack资源
+	bwp_uci_slot.pending_acks.back().phy_cfg = ue_carrier_params_phy(&slot_u->ue->bwp_cfg);//back()取最后一个元素
+	bool success = ue_carrier_params_phy(&slot_u->ue->bwp_cfg).get_pdsch_ack_resource(pdcch->dci, bwp_uci_slot.pending_acks.back().res);//配置n+K1 slot中的ack资源
 	ASSERT_IF_NOT(success, "Error getting ack resource");
 
 	return (alloc_result)success;

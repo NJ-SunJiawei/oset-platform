@@ -49,6 +49,10 @@ bool get_pusch_cfg(phy_cfg_nr_t *phy_cfg,
 						srsran_slot_cfg_t   *slot_cfg,
 						srsran_dci_ul_nr_t  *dci,
 						srsran_sch_cfg_nr_t *pusch_cfg);
+bool get_pdsch_cfg(phy_cfg_nr_t *phy_cfg,
+						srsran_slot_cfg_t    *slot_cfg,
+						srsran_dci_dl_nr_t   *dci,
+						srsran_sch_cfg_nr_t	 *pdsch_cfg);
 
 #ifdef __cplusplus
 }

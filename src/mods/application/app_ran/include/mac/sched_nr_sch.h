@@ -59,6 +59,12 @@ pdsch_t* pdsch_allocator_alloc_pdsch_unchecked(pdsch_allocator *pdsch_alloc,
 														srsran_dci_format_nr_t     dci_fmt,
 														prb_grant                  *grant,
 														srsran_dci_dl_nr_t         *out_dci);
+pdsch_t* pdsch_allocator_alloc_ue_pdsch_unchecked(pdsch_allocator *pdsch_alloc,
+															uint32_t 				  ss_id,
+															srsran_dci_format_nr_t	  dci_fmt,
+															prb_grant 		          *grant,
+															ue_carrier_params_t       *ue,
+															srsran_dci_dl_nr_t		  *dci);
 //pdsch_alloc_result pdsch_allocator_alloc_si_pdsch(pdsch_allocator *pdsch_alloc, uint32_t ss_id, prb_grant *grant, srsran_dci_dl_nr_t *dci);
 pdsch_t* pdsch_allocator_alloc_rar_pdsch_unchecked(pdsch_allocator *pdsch_alloc, prb_grant *grant, srsran_dci_dl_nr_t *dci);
 pdsch_t* pdsch_allocator_alloc_si_pdsch_unchecked(pdsch_allocator *pdsch_alloc, uint32_t ss_id, prb_grant *grant, srsran_dci_dl_nr_t *dci);

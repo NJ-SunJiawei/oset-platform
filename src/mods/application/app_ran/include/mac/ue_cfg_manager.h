@@ -48,8 +48,12 @@ void ue_carrier_params_init(ue_carrier_params_t *param, uint16_t rnti_, bwp_para
 uint32_t ue_carrier_params_get_k1(ue_carrier_params_t *param, slot_point pdsch_slot);
 srsran_search_space_t* ue_carrier_params_get_ss(ue_carrier_params_t *param, uint32_t ss_id);
 pdcch_cce_pos_list ue_carrier_params_cce_pos_list(ue_carrier_params_t *param, uint32_t search_id, uint32_t slot_idx, uint32_t aggr_idx);
-srsran_dci_cfg_nr_t get_dci_cfg(ue_carrier_params_t *param);
+srsran_dci_cfg_nr_t ue_carrier_params_get_dci_cfg(ue_carrier_params_t *param);
 int ue_carrier_params_find_ss_id(ue_carrier_params_t *param, srsran_dci_format_nr_t dci_fmt);
+int ue_carrier_params_fixed_pdsch_mcs(ue_carrier_params_t *param);
+int ue_carrier_params_fixed_pusch_mcs(ue_carrier_params_t *param);
+phy_cfg_nr_t *ue_carrier_params_phy(ue_carrier_params_t *param);
+
 //////////////////////////////////////////////////////////////////////////////
 bool is_rnti_type_valid_in_search_space(srsran_rnti_type_t rnti_type, srsran_search_space_type_t ss_type);
 
