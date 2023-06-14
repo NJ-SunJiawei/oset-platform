@@ -31,7 +31,7 @@ typedef struct {
 
 typedef struct  {
   uint32_t			 cc;//SRSRAN_MAX_CARRIERS
-  ue_buffer_manager  *parent;//???
+  ue_buffer_manager  *parent;//sched_nr_ue->buffers
 }pdu_builder;
 
 ///containing context of UE that is common to all carriers
@@ -109,6 +109,11 @@ void slot_ue_alloc(sched_nr_ue *ue, slot_point pdcch_slot, uint32_t cc);
 void slot_ue_clear(uint32_t cc);
 void slot_ue_destory(uint32_t cc);
 slot_ue* slot_ue_find_by_rnti(uint16_t rnti, uint32_t cc);
+///////////////////////////////////////////////////////////////////////////////////////////
+uint32_t dl_cqi(slot_ue *slot_u);
+uint32_t ul_cqi(slot_ue *slot_u);
+bool get_pending_bytes(slot_ue *slot_u, uint32_t lcid);
+
 
 #ifdef __cplusplus
 }

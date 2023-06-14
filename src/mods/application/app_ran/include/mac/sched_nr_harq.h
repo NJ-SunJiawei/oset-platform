@@ -57,9 +57,9 @@ typedef struct{
 bool empty(tb_t tb[SCHED_NR_MAX_TB]);
 bool empty(harq_proc *proc, uint32_t tb_idx);
 
-uint32_t tbs(tb_t tb[SCHED_NR_MAX_TB]);
-uint32_t ndi(tb_t tb[SCHED_NR_MAX_TB]);
-uint32_t mcs(tb_t tb[SCHED_NR_MAX_TB]);
+uint32_t TBS(tb_t tb[SCHED_NR_MAX_TB]);
+uint32_t NDI(tb_t tb[SCHED_NR_MAX_TB]);
+uint32_t MCS(tb_t tb[SCHED_NR_MAX_TB]);
 slot_point	harq_slot_ack(harq_proc *harq);
 slot_point	harq_slot_tx(harq_proc *harq);
 
@@ -74,8 +74,21 @@ bool harq_proc_new_tx(harq_proc *proc,
                        prb_grant        grant,
                        uint32_t         mcs,
                        uint32_t         max_retx_);
+bool harq_proc_new_retx(harq_proc *proc,
+								slot_point slot_tx_,
+								slot_point slot_ack_,
+								prb_grant *grant);
+
 ////////////////////////////////////////////////////////////////////////////////////
 void dl_harq_proc_init(dl_harq_proc *h_dl, uint32_t cc, uint32_t id, uint32_t nprb);
+void dl_harq_proc_fill_dci(dl_harq_proc *h_dl, srsran_dci_dl_nr_t *dci);
+bool dl_harq_proc_new_tx(dl_harq_proc *h_dl,
+								slot_point          slot_tx,
+								slot_point          slot_ack,
+								prb_grant           *grant,
+								uint32_t            mcs_,
+								uint32_t            max_retx,
+								srsran_dci_dl_nr_t  *dci);
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool ul_harq_set_tbs(ul_harq_proc *h_ul, uint32_t tbs);

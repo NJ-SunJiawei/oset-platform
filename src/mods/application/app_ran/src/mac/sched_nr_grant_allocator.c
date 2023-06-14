@@ -433,7 +433,7 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 	}
 
 	if (slot_u->h_dl == NULL) {
-		oset_warn("[%5u]SCHED: Trying to allocate rnti=0x%x with no available DL HARQs", GET_RSLOT_ID(bwp_alloc->pdcch_slot), ue->ue->rnti);
+		oset_warn("[%5u]SCHED: Trying to allocate rnti=0x%x with no available DL HARQs", GET_RSLOT_ID(bwp_alloc->pdcch_slot), slot_u->ue->rnti);
 		return (alloc_result)other_cause;
 	}
 
@@ -449,7 +449,7 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 
 	// Find space and allocate PDCCH
 	
-	pdcch_dl_alloc_result pdcch_result = bwp_pdcch_allocator_alloc_dl_pdcch(&bwp_pdcch_slot->pdcchs, rnti_type, ss_id, aggr_idx, &ue->ue->bwp_cfg);
+	pdcch_dl_alloc_result pdcch_result = bwp_pdcch_allocator_alloc_dl_pdcch(&bwp_pdcch_slot->pdcchs, rnti_type, ss_id, aggr_idx, &slot_u->ue->bwp_cfg);
 	if (!pdcch_result.has_val) {
 		// Could not find space in PDCCH
 		return pdcch_result.res.unexpected;
@@ -468,37 +468,37 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 	pdcch->dci.dai % = 4;// MAX_GRANTS
 
 	// Allocate PDSCH
-	pdsch_t *pdsch = pdsch_allocator_alloc_ue_pdsch_unchecked(&bwp_pdcch_slot->pdschs, ss_id, dci_fmt, dl_grant, &ue->ue->bwp_cfg, &pdcch->dci);
+	pdsch_t *pdsch = pdsch_allocator_alloc_ue_pdsch_unchecked(&bwp_pdcch_slot->pdschs, ss_id, dci_fmt, dl_grant, &slot_u->ue->bwp_cfg, &pdcch->dci);
 
 	// Select MCS and Allocate HARQ
 	int mcs = ue_carrier_params_fixed_pdsch_mcs(&slot_u->ue->bwp_cfg);//cnf默认配置mcs值
 	const static int min_MCS_ccch = 4;
 	if (empty(slot_u->h_dl.proc.tb)) {
 		if (mcs < 0) {
-		  //AMC(暂时好像使用默认值64qam)
-		  mcs = srsran_ra_nr_cqi_to_mcs(/* cqi */ slot_u.dl_cqi(),//cqi 反馈获取
-										/* cqi_table_idx */ slot_u.cfg().phy().csi.reports->cqi_table,//csi上报csi.reports[0].cqi_table
-										/* mcs_table */ pdsch.sch.sch_cfg.mcs_table,//初始值 默认值srsran_mcs_table_64qam = 0
-										/* dci_format */ pdcch.dci.ctx.format,
+			//AMC(mcs_table暂时好像使用默认值64qam)
+			mcs = srsran_ra_nr_cqi_to_mcs(/* cqi */ dl_cqi(slot_u),
+										/* cqi_table_idx */ slot_u->ue->bwp_cfg.cfg_.phy_cfg.csi.reports[0].cqi_table,
+										/* mcs_table */ pdsch->sch.sch_cfg.mcs_table,
+										/* dci_format */ pdcch->dci.ctx.format,
 										/* search_space_type*/ pdcch->dci.ctx.ss_type,
 										/* rnti_type */ rnti_type);
-		  if (mcs < 0) {
-			oset_warn("[%5u]SCHED: UE rnti=0x%x reported CQI=0 - Using lowest MCS=0", GET_RSLOT_ID(bwp_alloc->pdcch_slot), slot_u->ue->rnti);
-			mcs = 0;
-		  }
+			if (mcs < 0) {
+				oset_warn("[%5u]SCHED: UE rnti=0x%x reported CQI=0 - Using lowest MCS=0", GET_RSLOT_ID(bwp_alloc->pdcch_slot), slot_u->ue->rnti);
+				mcs = 0;
+			}
 		}
 		// Overwrite MCS if there are pending bytes for LCID. The optimal way would be to verify that there are pending
 		// bytes and that the MAC SDU for CCCH gets segmented. But since the event of segmentation happens at most a couple
 		// of times (e.g., to send msg4/RRCSetup), we opt for the less optimal but simpler approach.
-		if (slot_u.get_pending_bytes(srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CCCH) and mcs < min_MCS_ccch) {
-		  mcs = min_MCS_ccch;
-		  oset_info("[%5u]SCHED: MCS increased to min value %d to allocate SRB0/CCCH for rnti=0x%x", GET_RSLOT_ID(bwp_alloc->pdcch_slot), min_MCS_ccch, slot_u->ue->rnti);
+		if (get_pending_bytes(slot_u, (nr_lcid_sch_t)CCCH) && mcs < min_MCS_ccch) {
+			mcs = min_MCS_ccch;
+			oset_info("[%5u]SCHED: MCS increased to min value %d to allocate SRB0/CCCH for rnti=0x%x", GET_RSLOT_ID(bwp_alloc->pdcch_slot), min_MCS_ccch, slot_u->ue->rnti);
 		}
-		bool success = slot_u.h_dl->new_tx(slot_u.pdsch_slot, slot_u.uci_slot, dl_grant, mcs, 4, pdcch.dci);//bool dl_harq_proc::new_tx创建新的harq资源
+		bool success = dl_harq_proc_new_tx(slot_u->h_dl, slot_u->pdsch_slot, slot_u->uci_slot, dl_grant, mcs, 4, &pdcch->dci);
 		ASSERT_IF_NOT(success, "Failed to allocate DL HARQ");
 	} else {
-		bool success = slot_u.h_dl->new_retx(slot_u.pdsch_slot, slot_u.uci_slot, dl_grant, pdcch.dci);//bool dl_harq_proc::new_retx
-		mcs 		 = slot_u.h_dl->mcs();//采用之前的mcs,重传采用非自适应
+		bool success = dl_harq_proc_new_retx(slot_u.h_dl, slot_u.pdsch_slot, slot_u.uci_slot, dl_grant, pdcch.dci);//bool dl_harq_proc::new_retx
+		mcs 		 = MCS(slot_u->h_dl->proc.tb);//采用之前的mcs,重传采用非自适应
 		ASSERT_IF_NOT(success, "Failed to allocate DL HARQ retx");
 	}
 
@@ -509,12 +509,10 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 	double			 R_prime;
 	// The purpose of the internal loop is to decrease the MCS if the effective coderate is too high. This loop
 	// only affects the high MCS values
-	//如果有效码率太高，内部环路的目的是减小MCS。这个循环
-	//仅影响高MCS值
-
+	//如果有效码率太高，内部环路的目的是减小MCS。这个循环仅影响高MCS值
 	while (true) {
 		// Generate PDSCH
-		bool success = get_pdsch_cfg(ue_carrier_params_phy(&slot_u->ue->bwp_cfg), slot_cfg, pdcch->dci, pdsch.sch);//srsran_ra_dl_dci_to_grant_nr  pdsch.sch为出参
+		bool success = get_pdsch_cfg(ue_carrier_params_phy(&slot_u->ue->bwp_cfg), slot_cfg, &pdcch->dci, &pdsch->sch);
 		ASSERT_IF_NOT(success, "Error converting DCI to grant");
 		if (slot_u.h_dl->nof_retx() != 0) {
 		  ASSERT_IF_NOT(pdsch.sch.grant.tb[0].tbs == (int)slot_u.h_dl->tbs(), "The TBS did not remain constant in retx");//TBS在retx中没有保持恒定

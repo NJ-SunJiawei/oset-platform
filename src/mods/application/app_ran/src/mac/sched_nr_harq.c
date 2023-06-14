@@ -31,9 +31,9 @@ static bool has_pending_retx(harq_proc *proc, slot_point slot_rx)
 static uint32_t nof_retx(harq_proc *proc)  { return proc->tb[0].n_rtx; }
 static uint32_t max_nof_retx(harq_proc *proc)  { return proc->max_retx; }
 
-uint32_t tbs(tb_t tb[SCHED_NR_MAX_TB]) { return tb[0].tbs; }
-uint32_t ndi(tb_t tb[SCHED_NR_MAX_TB]) { return tb[0].ndi; }
-uint32_t mcs(tb_t tb[SCHED_NR_MAX_TB]) { return tb[0].mcs; }
+uint32_t TBS(tb_t tb[SCHED_NR_MAX_TB]) { return tb[0].tbs; }
+uint32_t NDI(tb_t tb[SCHED_NR_MAX_TB]) { return tb[0].ndi; }
+uint32_t MCS(tb_t tb[SCHED_NR_MAX_TB]) { return tb[0].mcs; }
 
 bool empty(tb_t tb[SCHED_NR_MAX_TB])
 {
@@ -48,9 +48,15 @@ bool empty(harq_proc *proc, uint32_t tb_idx)
 	return !proc->tb[tb_idx].active;
 }
 
-slot_point	harq_slot_tx(harq_proc *harq)      { return harq->slot_tx; }
-slot_point	harq_slot_ack(harq_proc *harq)      { return harq->slot_ack; }
+slot_point	harq_slot_tx(harq_proc *harq)
+{
+	return harq->slot_tx;
+}
 
+slot_point	harq_slot_ack(harq_proc *harq)
+{
+	return harq->slot_ack;
+}
 
 bool harq_proc_clear_if_maxretx(harq_proc *proc, slot_point slot_rx)
 {
@@ -122,13 +128,88 @@ bool harq_proc_new_tx(harq_proc *proc,
   return true;
 }
 
+static bool new_retx(harq_proc *proc, slot_point slot_tx_, slot_point slot_ack_)
+{
+	if (empty(proc->tb)) {
+		return false;
+	}
+	proc->slot_tx		 = slot_tx_;
+	proc->slot_ack		 = slot_ack_;
+	proc->tb[0].ack_state = false;
+	proc->tb[0].n_rtx++;
+	return true;
+}
+
+bool harq_proc_new_retx(harq_proc *proc,
+							slot_point slot_tx_,
+							slot_point slot_ack_,
+							prb_grant *grant)
+{
+	if (is_alloc_type0(grant) != is_alloc_type0(&proc->prbs_) ||
+	 	(is_alloc_type0(grant) && bit_count(&grant->alloc.rbgs) != bit_count(&proc->prbs_.alloc.rbgs)) ||
+	 	(is_alloc_type1(grant) && prb_interval_length(&grant->alloc.interv) != prb_interval_length(&proc->prbs_.alloc.interv))) {
+		return false;//判断数据前后是否一致
+	}
+	if (new_retx(proc, slot_tx_, slot_ack_)) {
+		proc->prbs_ = grant;
+		return true;
+	}
+	return false;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void dl_harq_proc_fill_dci(dl_harq_proc *h_dl, srsran_dci_dl_nr_t *dci)
+{
+	const static uint32_t rv_idx[4] = {0, 2, 3, 1};
+
+	dci->pid = h_dl->proc.pid;
+	dci->ndi = NDI(h_dl->proc.tb);
+	dci->mcs = MCS(h_dl->proc.tb);
+	dci->rv  = rv_idx[nof_retx(&h_dl->proc) % 4];
+	if (dci->ctx.format == srsran_dci_format_nr_1_0) {
+		dci->harq_feedback = slot_point_sub(&h_dl->proc.slot_ack, &h_dl->proc.slot_tx) - 1;//-1针对tdd，用于表示idx下标值
+	} else {
+		dci->harq_feedback = count_idx(&h_dl->proc.slot_tx);//todo
+	}
+}
+
+bool dl_harq_proc_new_tx(dl_harq_proc *h_dl,
+								slot_point          slot_tx,
+								slot_point          slot_ack,
+								prb_grant           *grant,
+								uint32_t            mcs_,
+								uint32_t            max_retx,
+								srsran_dci_dl_nr_t  *dci)
+{
+	const static uint32_t rv_idx[4] = {0, 2, 3, 1};
+
+	if (harq_proc_new_tx(&h_dl->proc, slot_tx, slot_ack, grant, mcs_, max_retx)) {
+		byte_buffer_clear(h_dl->pdu);
+		dl_harq_proc_fill_dci(h_dl, dci);
+		return true;
+	}
+	return false;
+}
+
+bool dl_harq_proc_new_retx(dl_harq_proc *h_dl,
+									slot_point slot_tx,
+									slot_point slot_ack,
+									prb_grant *grant,
+									srsran_dci_dl_nr_t *dci)
+{
+	if (harq_proc_new_retx(&h_dl->proc, slot_tx, slot_ack, grant)) {
+		dl_harq_proc_fill_dci(h_dl, dci);
+		return true;
+	}
+	return false;
+}
+
 void dl_harq_proc_init(dl_harq_proc *h_dl, uint32_t cc, uint32_t id, uint32_t nprb)
 {
 	h_dl->proc.pid  = id;
 	h_dl->softbuffer = harq_softbuffer_pool_get_tx(&g_harq_buffer_pool[cc], nprb);
+	h_dl->pdu = byte_buffer_init();
 }
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool ul_harq_set_tbs(ul_harq_proc *h_ul, uint32_t tbs)
 {
@@ -142,8 +223,8 @@ void ul_harq_proc_fill_dci(ul_harq_proc         *h_ul, srsran_dci_ul_nr_t *dci)
 	const static uint32_t rv_idx[4] = {0, 2, 3, 1};
 
 	dci->pid = h_ul->proc.pid;
-	dci->ndi = ndi(h_ul->proc.tb);
-	dci->mcs = mcs(h_ul->proc.tb);
+	dci->ndi = NDI(h_ul->proc.tb);
+	dci->mcs = MCS(h_ul->proc.tb);
 	dci->rv  = rv_idx[nof_retx(&h_ul->proc) % 4];
 }
 
@@ -194,6 +275,10 @@ void harq_entity_init(harq_entity *harq_ent, uint32_t cc, uint16_t rnti_, uint32
 void harq_entity_destory(harq_entity       *harq_ent)
 {
 	// Create HARQs
+	dl_harq_proc *hq_dl = NULL;
+	cvector_for_each_in(hq_dl, harq_ent->dl_harqs){
+		oset_free(hq_dl->pdu);
+	}
 	cvector_free(harq_ent->dl_harqs);
 	cvector_free(harq_ent->ul_harqs);
 }

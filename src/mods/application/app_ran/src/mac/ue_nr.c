@@ -21,7 +21,7 @@ ue_nr *ue_nr_add(uint16_t rnti)
 
     memset(ue, 0, sizeof(ue_nr));
 
-	ue->ue_rlc_buffer = oset_malloc(sizeof(byte_buffer_t));
+	ue->ue_rlc_buffer = byte_buffer_init();
 
 	ue_nr_set_rnti(rnti, ue);
     oset_list_add(&mac_manager_self()->mac_ue_list, ue);

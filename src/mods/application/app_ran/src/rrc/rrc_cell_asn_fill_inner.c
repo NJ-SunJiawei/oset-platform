@@ -1534,7 +1534,7 @@ int fill_csi_meas_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_
   return OSET_OK;
 }
 
-void fill_pdsch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, pdsch_cfg_s& out)
+void fill_pdsch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, pdsch_cfg_s *out)
 {
   out->dmrs_dl_for_pdsch_map_type_a_present = true;
   out->dmrs_dl_for_pdsch_map_type_a.type_ = setup;

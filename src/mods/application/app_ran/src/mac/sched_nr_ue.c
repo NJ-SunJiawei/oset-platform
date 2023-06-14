@@ -43,6 +43,10 @@ static void pdu_builder_init(pdu_builder        *pdu_builders, uint32_t cc_, ue_
 	pdu_builders->parent = parent_;
 }
 
+static uint32_t pdu_builder_pending_bytes(pdu_builder           *pdu_builders,uint32_t lcid)  
+{
+	return get_dl_tx_inner(&pdu_builders->parent->base_ue ,lcid);
+}
 
 //////////////////////////////////////////ue_carrier////////////////////////////////////////////
 static void ue_carrier_destory(ue_carrier *carrier)
@@ -261,11 +265,11 @@ void sched_nr_ue_new_slot(sched_nr_ue *ue, slot_point pdcch_slot)
 		    // Discount UL HARQ pending bytes to BSR
 		    // 获得bsr后需要将ul harq重传的资源扣除，剩余的才能用来给ue其他上行数据
 		    for (uint32_t pid = 0; pid < nof_ul_harqs(&cc->harq_ent); ++pid) {
-			  //tb.active harq处于激活态
+			  // harq重传
 		      if (!empty(cc->harq_ent.ul_harqs[pid].proc.tb)) {
-		        ue->common_ctxt.pending_ul_bytes -= MIN(tbs(cc->harq_ent.ul_harqs[pid].proc.tb) / 8, ue->common_ctxt.pending_ul_bytes);
-				// 若上行harq slot>last_sr_slot，且该slot已处理，就清空该sr
-				if (slot_valid(&ue->last_sr_slot) && harq_slot_tx(&cc->harq_ent.ul_harqs[pid].proc)> ue->last_sr_slot) {
+		        ue->common_ctxt.pending_ul_bytes -= MIN(TBS(cc->harq_ent.ul_harqs[pid].proc.tb) / 8, ue->common_ctxt.pending_ul_bytes);
+				// 若上行harq slot>last_sr_slot(已经拿到上行数据授权，不需要在发sr)，且该slot已处理，就清空该sr
+				if (slot_valid(&ue->last_sr_slot) && harq_slot_tx(&cc->harq_ent.ul_harqs[pid].proc) > ue->last_sr_slot) {
 					slot_clear(&ue->last_sr_slot);
 		        }
 		      }
@@ -392,5 +396,22 @@ slot_ue *slot_ue_find_by_rnti(uint16_t rnti, uint32_t cc)
             mac_manager_self()->sched.cc_workers[cc].slot_ues, &rnti, sizeof(rnti));
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+
+/// Channel Information Getters
+uint32_t dl_cqi(slot_ue *slot_u)
+{
+	return slot_u->ue->dl_cqi;
+}
+
+uint32_t ul_cqi(slot_ue *slot_u)
+{ 
+	return slot_u->ue->ul_cqi;
+}
+
+bool get_pending_bytes(slot_ue *slot_u, uint32_t lcid)
+{
+	return pdu_builder_pending_bytes(&slot_u->ue->pdu_builders, lcid);
+}
 
 

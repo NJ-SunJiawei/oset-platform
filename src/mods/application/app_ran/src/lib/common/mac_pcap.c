@@ -37,6 +37,7 @@ static void pack_and_queue_nr(mac_pcap *pcap,
     pdu->context_nr.system_frame_number = tti / 10;
     pdu->context_nr.sub_frame_number    = tti % 10;
 
+	//todo
     // try to allocate PDU buffer
 	pdu->pdu = oset_pkbuf_alloc(NULL, SRSRAN_MAX_BUFFER_SIZE_BYTES);
     oset_pkbuf_reserve(pdu->pdu, SRSRAN_BUFFER_HEADER_OFFSET);

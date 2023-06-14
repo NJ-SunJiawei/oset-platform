@@ -44,8 +44,8 @@ static void mac_manager_destory(void)
 static int mac_init(void)
 {
 	mac_manager_init();
-	mac_manager.bcch_bch_payload = oset_malloc(sizeof(byte_buffer_t));
-	mac_manager.rar_pdu_buffer = oset_malloc(sizeof(byte_buffer_t));
+	mac_manager.bcch_bch_payload = byte_buffer_init();
+	mac_manager.rar_pdu_buffer = byte_buffer_init();
 	sched_nr_init(&mac_manager.sched);
 
 	mac_manager.started = true;

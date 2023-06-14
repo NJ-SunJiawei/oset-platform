@@ -194,6 +194,7 @@ bool prb_grant_collides(bwp_rb_bitmap *prb_map, prb_grant *grant)
   return bit_any_range(&prb_map->prbs_, grant->alloc.interv.start_, grant->alloc.interv.stop_);
 }
 
+
 bool is_alloc_type0(prb_grant *prb_grant)  { return prb_grant->alloc_type_0; }
 bool is_alloc_type1(prb_grant *prb_grant)  { return !is_alloc_type0(prb_grant); }
 
