@@ -53,6 +53,9 @@ bool get_pdsch_cfg(phy_cfg_nr_t *phy_cfg,
 						srsran_slot_cfg_t    *slot_cfg,
 						srsran_dci_dl_nr_t   *dci,
 						srsran_sch_cfg_nr_t	 *pdsch_cfg);
+bool get_pdsch_ack_resource(phy_cfg_nr_t *phy_cfg,
+									srsran_dci_dl_nr_t   *dci_dl,
+									srsran_harq_ack_resource_t *ack_resource);
 
 #ifdef __cplusplus
 }

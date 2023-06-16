@@ -430,6 +430,50 @@ static alloc_result bwp_pdcch_allocator_check_args_valid(bwp_pdcch_allocator *pd
 	return (alloc_result)success;
 }
 
+pdcch_ul_alloc_result bwp_pdcch_allocator_alloc_ul_pdcch(bwp_pdcch_allocator *pdcchs,
+																	uint32_t			  ss_id,
+																	uint32_t			  aggr_idx,
+																	ue_carrier_params_t   *user)
+
+{
+	static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_0_0; // TODO: make it configurable
+	alloc_result r = bwp_pdcch_allocator_check_args_valid(srsran_rnti_type_c, user->rnti, ss_id, aggr_idx, dci_fmt, user, false);
+	if (r != (alloc_result)success) {
+		return pdcch_ul_alloc_result_fail(r);
+	}
+
+	const srsran_search_space_t *ss = ue_carrier_params_get_ss(user, ss_id);
+
+	// Add new UL PDCCH to sched result
+	pdcch_ul_t *pdcch_ul = oset_malloc(sizeof(pdcch_ul_t));
+	oset_assert(pdcch_ul);
+
+	bool success = coreset_region_alloc_pdcch(&pdcchs->coresets[ss->coreset_id], srsran_rnti_type_c, false, aggr_idx, ss_id, user, &pdcch_ul->dci.ctx);
+	if (!success) {
+		// Remove failed PDCCH allocation
+		oset_free(pdcch_ul);
+
+		// Log PDCCH allocation failure
+		oset_error("%sNo available PDCCH position", log_pdcch_alloc_failure(srsran_rnti_type_c, ss_id, user->rnti));
+
+		return pdcch_ul_alloc_result_fail((alloc_result)no_cch_space);
+	}
+
+	// PDCCH allocation was successful
+	cvector_push_back(pdcchs->pdcch_ul_list, pdcch_ul);
+
+	// Fill DCI with semi-static config
+	fill_dci_ul_from_cfg(pdcchs->bwp_cfg, pdcch_ul->dci);
+
+	// Fill DCI context information
+	bwp_pdcch_allocator_fill_dci_ctx_common(pdcchs, &pdcch_ul->dci.ctx, srsran_rnti_type_c, user->rnti, ss, dci_fmt, user);
+
+	// register last PDCCH coreset, in case it needs to be aborted
+	pdcchs->pending_dci = &pdcch_ul->dci.ctx;
+
+	return pdcch_dl_alloc_result_succ(pdcch_ul);
+}
+
 
 static pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_dl_pdcch_common(bwp_pdcch_allocator *pdcchs,
 													srsran_rnti_type_t 		    rnti_type,
@@ -455,8 +499,8 @@ static pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_dl_pdcch_common(bwp_pdcch
 	// 对于SIB、寻呼、RAR、TPC、集群组呼这些共享信道对应的PDCCH，需要在公共空间进行CCE的调度，其它的则在UE专用的搜索空间中调度
 	pdcch_dl_t *pdcch_dl = oset_malloc(sizeof(pdcch_dl_t));
 	oset_assert(pdcch_dl);
-	bool success = coreset_region_alloc_pdcch(&pdcchs->coresets[ss->coreset_id], rnti_type, true, aggr_idx, ss_id, user, &pdcch_dl->dci.ctx);
 
+	bool success = coreset_region_alloc_pdcch(&pdcchs->coresets[ss->coreset_id], rnti_type, true, aggr_idx, ss_id, user, &pdcch_dl->dci.ctx);
 	if (!success) {
 		// Remove failed PDCCH allocation
 		oset_free(pdcch_dl);
@@ -466,13 +510,14 @@ static pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_dl_pdcch_common(bwp_pdcch
 		return pdcch_dl_alloc_result_fail((alloc_result)no_cch_space);
 	}
 
+	// PDCCH allocation was successful
 	cvector_push_back(pdcchs->pdcch_dl_list, pdcch_dl);
 
 	// Fill DCI with semi-static config
 	fill_dci_dl_from_cfg(pdcchs->bwp_cfg, &pdcch_dl->dci);
 
 	// Fill DCI context information
-	bwp_pdcch_allocator_fill_dci_ctx_common(pdcchs, pdcch_dl->dci.ctx, rnti_type, rnti, ss, dci_fmt, user);
+	bwp_pdcch_allocator_fill_dci_ctx_common(pdcchs, &pdcch_dl->dci.ctx, rnti_type, rnti, ss, dci_fmt, user);
 
 	// register last PDCCH coreset, in case it needs to be aborted
 	pdcchs->pending_dci = &pdcch_dl->dci.ctx;

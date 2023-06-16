@@ -110,3 +110,10 @@ bool get_pdsch_cfg(phy_cfg_nr_t *phy_cfg,
   return  (SRSRAN_SUCCESS == srsran_ra_dl_dci_to_grant_nr(&phy_cfg->carrier, slot_cfg, &phy_cfg->pdsch, dci, pdsch_cfg, &pdsch_cfg.grant));
 }
 
+bool get_pdsch_ack_resource(phy_cfg_nr_t *phy_cfg,
+									srsran_dci_dl_nr_t   *dci_dl,
+									srsran_harq_ack_resource_t *ack_resource)
+{
+  return (SRSRAN_SUCCESS == srsran_harq_ack_resource(&phy_cfg->harq_ack, &dci_dl, &ack_resource));
+}
+

@@ -212,7 +212,6 @@ OSET_DECLARE(int) om_sess_resource_init(void)
 		oset_free((void *)addr);
 		oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "om create rtmq procuder success.IP[%s],PORT[%s],GROUP_ID[%s]",\
 															self.mq_server_ip, self.mq_port, self.mq_group_id);
-
 	}else{
 		oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "om create rtmq procuder failed.IP[%s],PORT[%s],GROUP_ID[%s]",\
 															self.mq_server_ip, self.mq_port, self.mq_group_id);

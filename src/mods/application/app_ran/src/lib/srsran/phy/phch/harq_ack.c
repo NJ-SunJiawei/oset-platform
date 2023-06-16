@@ -171,7 +171,8 @@ int srsran_harq_ack_resource(const srsran_harq_ack_cfg_hl_t* cfg,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  // Calculate Data to UL ACK timing k1计算数据到UL ACK定时k1
+  // Calculate Data to UL ACK timing k1
+  // 计算数据到UL ACK定时k1
   int k1 = harq_ack_k1(cfg, dci_dl);
   if (k1 < SRSRAN_ERROR) {
     ERROR("Error calculating K1");

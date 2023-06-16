@@ -202,7 +202,7 @@ void sched_nr_dl_buffer_state(sched_nr *scheluder, uint16_t rnti, uint32_t lcid,
 }
 
 
-//enqueue_event
+/// enqueue_event
 /// Enqueue an event that does not map into a ue method (e.g. rem_user, add_user)
 static int sched_nr_ue_cfg_impl(sched_nr *scheluder, uint16_t rnti, sched_nr_ue_cfg_t *uecfg)
 {
@@ -212,7 +212,8 @@ static int sched_nr_ue_cfg_impl(sched_nr *scheluder, uint16_t rnti, sched_nr_ue_
 		// create user object
 		sched_nr_ue *u = sched_nr_ue_add_inner(rnti, uecfg, scheluder->cfg);
 		oset_assert(u);
-		return sched_nr_add_ue_impl(rnti, u, uecfg->carriers[0].cc);
+		sched_nr_add_ue_impl(rnti, u, uecfg->carriers[0].cc);
+		return OSET_OK;
 	}
 
 	sched_nr_ue_set_cfg(u, uecfg);

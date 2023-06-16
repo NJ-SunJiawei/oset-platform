@@ -56,6 +56,14 @@ static void cc_worker_alloc_dl_ues(cc_worker *cc_w, bwp_slot_allocator *bwp_allo
 	sched_nr_time_rr_sched_dl_users(bwp_alloc, cc_w->slot_ue_list);
 }
 
+static void cc_worker_alloc_ul_ues(cc_worker *cc_w, bwp_slot_allocator *bwp_alloc)
+{
+  if (! cc_w->cfg.sched_args.pusch_enabled) {
+    return;
+  }
+  bwps[0].data_sched->sched_ul_users(slot_ues, bwp_alloc);
+  sched_nr_time_rr_sched_ul_users(bwp_alloc, cc_w->slot_ue_list);
+}
 
 void cc_worker_destoy(cc_worker *cc_w)
 {
@@ -166,7 +174,7 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl, oset_list_t *ue_
 	// TODO: Prioritize PDCCH scheduling for DL and UL data in a Round-Robin fashion
 	cc_worker_alloc_dl_ues(cc_w, bwp_alloc);
 	// 为DCI0-X的pucch和pusch申请资源(msg3/bsr/ul_data)
-	alloc_ul_ues(bwp_alloc);
+	cc_worker_alloc_ul_ues(cc_w, bwp_alloc);
 
 	// Post-processing of scheduling decisions
 	//调度决策的后处理

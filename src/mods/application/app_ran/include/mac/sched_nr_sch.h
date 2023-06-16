@@ -84,6 +84,7 @@ void pdsch_allocator_init(pdsch_allocator *pdsch_alloc, bwp_params_t *cfg_, uint
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 pusch_t* pusch_allocator_alloc_pusch_unchecked(pusch_allocator *pusch_alloc, prb_grant *grant, srsran_dci_ul_nr_t *out_dci);
 prb_bitmap* pusch_allocator_occupied_prbs(pusch_allocator *pusch_alloc);
+alloc_result pusch_allocator_is_grant_valid(pusch_allocator *pusch_alloc, srsran_search_space_type_t ss_type, prb_grant *grant, bool verbose);
 void pusch_allocator_reserve_prbs(pusch_allocator *pdsch_alloc, prb_grant *grant);
 alloc_result pusch_allocator_has_grant_space(pusch_allocator *pusch_alloc, uint32_t nof_grants, bool verbose);
 void pusch_allocator_destory(pusch_allocator *pusch_alloc);

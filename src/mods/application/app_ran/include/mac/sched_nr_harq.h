@@ -38,7 +38,7 @@ typedef struct {
 typedef struct {
   harq_proc           proc;
   tx_harq_softbuffer  *softbuffer;//tx_harq_softbuffer  *tx_pool[SRSRAN_MAX_PRB_NR] alloc
-  byte_buffer_t       *pdu;
+  byte_buffer_t       *pdu;//pdsch.data[0]  from RLC dl
 }dl_harq_proc;
 
 typedef struct {

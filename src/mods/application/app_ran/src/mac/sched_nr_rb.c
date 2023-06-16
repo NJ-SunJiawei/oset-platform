@@ -166,6 +166,8 @@ int32_t prb_interval_length(prb_interval *prb_interval)
 	return (prb_interval->stop_ - prb_interval->start_);
 }
 
+// In case of common SearchSpaces, the PRBs must be contiguous
+// 在公共搜索空间的情况下，PRB必须是type1映射
 prb_grant prb_grant_interval_init(prb_interval *interval)
 {
 	prb_grant grant = {0};

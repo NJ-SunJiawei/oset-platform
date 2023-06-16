@@ -99,7 +99,8 @@ static void bwp_params_init(bwp_params_t *cell_bwp, uint32_t bwp_id_, sched_nr_b
 		// prb_limits                [  s~~~~~s  ]
 		if (bwp_cfg->pdcch.coreset_present[0]) {
 		  cell_bwp->coresets[cs->id].dci_1_0_prb_limits =  cell_bwp->coresets[cs->id].prb_limits;
-		  prb_interval interval = {cell_bwp->coresets[cs.id].prb_limits.stop_, bwp_cfg->rb_width};
+		  prb_interval interval = {0};
+		  prb_interval_init(&interval, cell_bwp->coresets[cs.id].prb_limits.stop_, bwp_cfg->rb_width);
 		  bwp_rb_bitmap_add_by_prb_interval(cell_bwp->coresets[cs->id].usable_common_ss_prb_mask, &interval);////???todo
 		}
 	}

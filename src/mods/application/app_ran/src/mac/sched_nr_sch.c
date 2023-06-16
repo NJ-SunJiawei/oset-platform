@@ -144,7 +144,7 @@ alloc_result pdsch_allocator_is_grant_valid_common(pdsch_allocator *pdsch_alloc,
 	// Grant PRBs do not collide with previous PDSCH allocations
 	// 检查授权的区间未被使用
 	if (prb_grant_collides(pdsch_alloc->dl_prbs, grant)) {
-		oset_error("%sProvided PRB grant={%u, %u} collides with allocations previously made", log_pdsch, grant->alloc.interv.start_, grant->alloc.interv.stop_);
+		oset_error("%sProvided PRB DL grant={%u, %u} collides with allocations previously made", log_pdsch, grant->alloc.interv.start_, grant->alloc.interv.stop_);
 		return (alloc_result)sch_collision;
 	}
 
@@ -182,8 +182,8 @@ alloc_result pdsch_allocator_is_ue_grant_valid(pdsch_allocator *pdsch_alloc,
 {
 	const srsran_search_space_t* ss = ue_carrier_params_get_ss(ue, ss_id);
 	if (ss == NULL) {
-	// Couldn't find SearchSpace
-	oset_error("%srnti=0x%x,SearchSpaceId=%d has not been configured", log_pdsch, ue->rnti, ss_id);
+		// Couldn't find SearchSpace
+		oset_error("%srnti=0x%x,SearchSpaceId=%d has not been configured", log_pdsch, ue->rnti, ss_id);
 		return (alloc_result)invalid_grant_params;
 	}
 	alloc_result ret = pdsch_allocator_is_grant_valid_common(pdsch_alloc, ss->type, dci_fmt, ss->coreset_id, grant);
@@ -285,6 +285,34 @@ pusch_t* pusch_allocator_alloc_pusch_unchecked(pusch_allocator *pusch_alloc, prb
 
   return pusch;
 }
+
+alloc_result pusch_allocator_is_grant_valid(pusch_allocator *pusch_alloc, srsran_search_space_type_t ss_type, prb_grant *grant, bool verbose)
+{
+	alloc_result ret = pusch_allocator_has_grant_space(pusch_alloc, 1, verbose);
+	if (ret != (alloc_result)success) {
+		return ret;
+	}
+
+	if (SRSRAN_SEARCH_SPACE_IS_COMMON(ss_type)) {
+		// In case of common SearchSpaces, the PRBs must be contiguous
+		// 在公共搜索空间的情况下，PRB必须是连续的
+		if (is_alloc_type0(grant)) {
+			oset_warn("%sAllocType0 not allowed in common SearchSpace", log_pusch);
+			return (alloc_result)invalid_grant_params;
+		}
+	}
+
+	// Grant PRBs do not collide with previous PDSCH allocations
+	if (prb_grant_collides(pusch_alloc->ul_prbs, grant)) {
+		if (verbose) {
+			oset_debug("%sProvided UL grant={%u, %u} PRB mask collides with previous allocations", log_pusch, grant->alloc.interv.start_, grant->alloc.interv.stop_);
+		}
+		return (alloc_result)sch_collision;
+	}
+
+	return (alloc_result)success;
+}
+
 
 /// Marks a range of PRBS as occupied, preventing further allocations
 void pusch_allocator_reserve_prbs(pusch_allocator *pdsch_alloc, prb_grant *grant)

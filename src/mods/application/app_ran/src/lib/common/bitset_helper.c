@@ -386,12 +386,12 @@ bool bit_any_range(bounded_bitset *bit, size_t start, size_t stop)
 {
   assert_within_bounds_(bit, start, false);
   assert_within_bounds_(bit, stop, false);
-  // NOTE: can be optimized
-  for (size_t i = start; i < stop; ++i) {
-	if (test_(bit, i)) {
-	  return true;
+	// NOTE: can be optimized
+	for (size_t i = start; i < stop; ++i) {
+		if (test_(bit, i)) {
+			return true;
+		}
 	}
-  }
   return false;
 }
 

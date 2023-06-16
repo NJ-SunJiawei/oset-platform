@@ -28,7 +28,6 @@ typedef struct {
 	oset_stl_queue_def(ce_t, ce)  pending_ces;//srsran::deque<ce_t>
 }ue_buffer_manager;
 
-
 typedef struct  {
   uint32_t			 cc;//SRSRAN_MAX_CARRIERS
   ue_buffer_manager  *parent;//sched_nr_ue->buffers
@@ -60,7 +59,7 @@ typedef struct {
 
 typedef struct {
     oset_lnode_t lnode;
-	ue_carrier   *carriers[SCHED_NR_MAX_CARRIERS];//对应每个ue的小区配置
+	ue_carrier   *carriers[SCHED_NR_MAX_CARRIERS];//对应每个ue的小区配置和资源
 	uint16_t     rnti;
 
 	sched_params_t    *sched_cfg;
@@ -113,6 +112,7 @@ slot_ue* slot_ue_find_by_rnti(uint16_t rnti, uint32_t cc);
 uint32_t dl_cqi(slot_ue *slot_u);
 uint32_t ul_cqi(slot_ue *slot_u);
 bool get_pending_bytes(slot_ue *slot_u, uint32_t lcid);
+bool build_pdu(slot_ue *slot_u, uint32_t rem_bytes, dl_pdu_t *pdu);
 
 
 #ifdef __cplusplus

@@ -43,10 +43,57 @@ static void pdu_builder_init(pdu_builder        *pdu_builders, uint32_t cc_, ue_
 	pdu_builders->parent = parent_;
 }
 
-static uint32_t pdu_builder_pending_bytes(pdu_builder           *pdu_builders,uint32_t lcid)  
+static uint32_t pdu_builder_pending_bytes(pdu_builder           *pdu_builders, uint32_t lcid)  
 {
 	return get_dl_tx_inner(&pdu_builders->parent->base_ue ,lcid);
 }
+
+/**
+ * @brief Allocates LCIDs and update US buffer states depending on available resources and checks if there is SRB0/CCCH
+ MAC PDU segmentation
+
+ * @param rem_bytes TBS to be filled with MAC CEs and MAC SDUs [in bytes]
+ * @param reset_buf_states If true, when there is SRB0/CCCH MAC PDU segmentation, restore the UE buffers and scheduled
+ LCIDs as before running this function
+ * @return true if there is no SRB0/CCCH MAC PDU segmentation, false otherwise
+ */
+bool pdu_builder_alloc_subpdus(pdu_builder           *pdu_builders, uint32_t rem_bytes, dl_pdu_t *pdu)
+{
+	// 调度的是单个ue（rnti）的lcid资源
+	// rem_bytes tb传输块允许大小
+	// First step: allocate MAC CEs until resources allow
+	ce_t *ce = NULL;
+	oset_stl_queue_foreach(&pdu_builders->parent->pending_ces, ce){
+		if (ce->cc == pdu_builders->cc) {
+			// Note: This check also avoids thread collisions across UE carriers
+			uint32_t size_ce = mac_sch_subpdu_nr_sizeof_ce(ce->lcid, false);
+			if (size_ce > rem_bytes) {
+				break;
+			}
+			rem_bytes -= size_ce;
+			cvector_push_back(pdu->subpdus, ce->lcid);
+			oset_stl_queue_del_first(&pdu_builders->parent->pending_ces);
+		}
+	}
+
+	// todo ???? 为啥不记录长度 ???? 应该用令牌桶
+	// Second step: allocate the remaining LCIDs (LCIDs for MAC CEs are addressed above)
+	for (uint32_t lcid = 0; rem_bytes > 0 && is_lcid_valid(lcid); ++lcid) {
+		uint32_t pending_lcid_bytes = get_dl_tx_total_inner(&pdu_builders->parent->base_ue, lcid);
+		// Return false if the TBS is too small to store the entire CCCH buffer without segmentation
+		if (lcid == (nr_lcid_sch_t)CCCH && pending_lcid_bytes > rem_bytes) {
+			cvector_push_back(pdu->subpdus, lcid);
+			return false;
+		}
+		if (pending_lcid_bytes > 0) {
+			rem_bytes -= MIN(rem_bytes, pending_lcid_bytes);
+			cvector_push_back(pdu->subpdus, lcid);
+		}
+	}
+
+	return true;
+}
+
 
 //////////////////////////////////////////ue_carrier////////////////////////////////////////////
 static void ue_carrier_destory(ue_carrier *carrier)
@@ -135,7 +182,7 @@ static void sched_nr_ue_set_cfg(sched_nr_ue *u, sched_nr_ue_cfg_t *cfg)
 		  if (u->carriers[ue_cc_cfg->cc] == nullptr) {
 		  	u->carriers[ue_cc_cfg->cc] = ue_carrier_init(u, ue_cc_cfg->cc);
 		  } else {
-			  //rrc传递下来明确uss coreset和searchspace资源，非coreset0和searchspcae0
+			// rrc传递下来明确uss coreset和searchspace资源，非coreset0和searchspcae0
 		    ue_carrier  *carrier = u->carriers[ue_cc_cfg->cc];
 			ue_carrier_params_init(&carrier->bwp_cfg, carrier->rnti, &carrier->cell_params->bwps[0], &u->ue_cfg);
 		  }
@@ -155,6 +202,8 @@ void sched_nr_ue_remove(sched_nr_ue *u)
     oset_hash_set(mac_manager_self()->sched.ue_db, &u->rnti, sizeof(u->rnti), NULL);
 
 	oset_info("SCHED: Removed sched user rnti=0x%x", u->rnti);
+
+	oset_stl_queue_term(&u->buffers.pending_ces);
 
 	sched_nr_ue_cc_cfg_t *ue_cc_cfg = NULL;
 	cvector_for_each_in(ue_cc_cfg, u->ue_cfg.carriers){
@@ -218,6 +267,7 @@ sched_nr_ue *sched_nr_ue_add_inner(uint16_t rnti_, sched_nr_ue_cfg_t *uecfg, sch
 	u->rnti = rnti_;
 	u->sched_cfg = sched_cfg_;
 	base_ue_buffer_manager_init(&u->buffers.base_ue, rnti_);
+	oset_stl_queue_init(&u->buffers.pending_ces);
 	ue_cfg_manager_init(&u->ue_cfg, uecfg->carriers[0].cc);//todo cc
 	sched_nr_ue_set_cfg(u, uecfg);//create carriers[cc]
 
@@ -346,7 +396,7 @@ static slot_ue* slot_ue_init(ue_carrier *ue_, slot_point slot_tx_, uint32_t cc)
 
 	slot_u->ul_active = ue_->cell_params.bwps[0].slots[slot_idx(&slot_u->pusch_slot)].is_ul;
 	if (slot_u->ul_active) {
-		slot_u->ul_bytes = ue_->common_ctxt.pending_ul_bytes;
+		slot_u->ul_bytes = ue_->common_ctxt.pending_ul_bytes;//已经减去要重传bytes
 		slot_u->h_ul     = find_pending_ul_retx(&ue_->harq_ent);
 		if (NULL == slot_u->h_ul) {
 			slot_u->h_ul = find_empty_ul_harq(&ue_->harq_ent);
@@ -413,5 +463,12 @@ bool get_pending_bytes(slot_ue *slot_u, uint32_t lcid)
 {
 	return pdu_builder_pending_bytes(&slot_u->ue->pdu_builders, lcid);
 }
+
+/// Build PDU with MAC CEs and MAC SDUs
+bool build_pdu(slot_ue *slot_u, uint32_t rem_bytes, dl_pdu_t *pdu)
+{
+	return pdu_builder_alloc_subpdus(&slot_u->ue->pdu_builders, rem_bytes, pdu);
+}
+
 
 

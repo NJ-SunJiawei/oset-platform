@@ -29,7 +29,7 @@ typedef struct {
 
   dl_res_t                    dl;
   ul_sched_t                  ul;
-  cvector_vector_t(harq_ack_t)  pending_acks;//bounded_vector<harq_ack_t, MAX_GRANTS>;
+  cvector_vector_t(harq_ack_t)  pending_acks;//bounded_vector<harq_ack_t, MAX_GRANTS>;//存储DCI
   bwp_pdcch_allocator pdcchs; /// slot PDCCH resource allocator
   pdsch_allocator     pdschs; /// slot PDSCH resource allocator
   pusch_allocator     puschs; /// slot PUSCH resource allocator
@@ -58,6 +58,8 @@ typedef struct{
 	//oset_hash_t   *slot_ues;//slot_ue
 }bwp_slot_allocator;
 
+typedef cvector_vector_t(srsran_search_space_t *) candidate_ss_list_t;
+
 void bwp_slot_grid_destory(bwp_slot_grid *slot);
 void bwp_slot_grid_reset(bwp_slot_grid *slot);
 void bwp_slot_grid_reserve_pdsch(bwp_slot_grid *slot, prb_grant *grant);
@@ -77,7 +79,7 @@ alloc_result bwp_slot_allocator_alloc_si(bwp_slot_allocator *bwp_alloc,
 													uint32_t            aggr_idx,
 													uint32_t            si_idx,
 													uint32_t            si_ntx,
-													prb_interval        *prbs,
+													prb_interval        *interv,
 													tx_harq_softbuffer  *softbuffer);
 
 alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *slot_grid,
@@ -87,10 +89,13 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *slot_grid
 													span_t(dl_sched_rar_info_t) *pending_rachs);
 
 alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
-														slot_ue *ue,
+														slot_ue *slot_u,
 														uint32_t ss_id,
 														prb_grant *dl_grant);
 
+alloc_result bwp_slot_allocator_alloc_pusch(bwp_slot_allocator *bwp_alloc,
+														slot_ue   *slot_u, 
+														prb_grant *ul_grant);
 
 #ifdef __cplusplus
 }

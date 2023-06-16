@@ -87,6 +87,22 @@ inline pdcch_dl_alloc_result pdcch_dl_alloc_result_fail(alloc_result alloc_res)
 	return result;
 }
 
+inline pdcch_ul_alloc_result pdcch_ul_alloc_result_succ(pdcch_ul_t* pdcch_ul)
+{
+	pdcch_ul_alloc_result result = {0};
+	result.has_val = true;
+	result.res.val = pdcch_ul;
+	return result;
+}
+
+inline pdcch_ul_alloc_result pdcch_ul_alloc_result_fail(alloc_result alloc_res)
+{
+	pdcch_ul_alloc_result result = {0};
+	result.has_val = false;
+	result.res.unexpected = alloc_res;
+	return result;
+}
+
 
 void fill_dci_dl_from_cfg(bwp_params_t *bwp_cfg, srsran_dci_dl_nr_t *dci);
 void fill_dci_ul_from_cfg(bwp_params_t *bwp_cfg, srsran_dci_ul_nr_t *dci);
@@ -122,6 +138,11 @@ pdcch_dl_alloc_result bwp_pdcch_allocator_alloc_dl_pdcch(bwp_pdcch_allocator *pd
 																	uint32_t                   ss_id,
 																	uint32_t                   aggr_idx,
 																	ue_carrier_params_t        *user);
+pdcch_ul_alloc_result bwp_pdcch_allocator_alloc_ul_pdcch(bwp_pdcch_allocator *pdcchs,
+																	uint32_t              ss_id,
+																	uint32_t              aggr_idx,
+																	ue_carrier_params_t   *user);
+
 
 #ifdef __cplusplus
 }

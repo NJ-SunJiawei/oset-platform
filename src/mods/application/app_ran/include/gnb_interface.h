@@ -46,7 +46,7 @@ typedef struct pdcch_ul_s {
 
 typedef struct pdsch_s {
   srsran_sch_cfg_nr_t	sch; ///< PDSCH configuration
-  byte_buffer_t         *data[SRSRAN_MAX_TB]; ///< Data pointer //实际传输tb数据指针
+  byte_buffer_t         *data[SRSRAN_MAX_TB]; ///< Data pointer //harq pdu
 }pdsch_t;
 
 typedef struct ssb_s {
