@@ -92,6 +92,39 @@ srsran_dci_cfg_nr_t get_dci_cfg(phy_cfg_nr_t *phy_cfg)
   return dci_cfg;
 }
 
+bool get_uci_cfg(phy_cfg_nr_t *phy_cfg,
+					srsran_slot_cfg_t *slot_cfg,
+					srsran_pdsch_ack_nr_t *pdsch_ack,
+					srsran_uci_cfg_nr_t   *uci_cfg)
+{
+  // Generate configuration for HARQ feedback//为HARQ反馈生成配置
+  if (srsran_harq_ack_gen_uci_cfg(&harq_ack, pdsch_ack, uci_cfg) < SRSRAN_SUCCESS) {
+    return false;
+  }
+
+  // Generate configuration for SR//生成SR配置
+  uint32_t sr_resource_id[SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES] = {0};
+  int      n = srsran_ue_ul_nr_sr_send_slot(phy_cfg->pucch.sr_resources, slot_cfg->idx, sr_resource_id);
+  if (n < SRSRAN_SUCCESS) {
+    ERROR("Calculating SR opportunities");
+    return false;
+  }
+
+  if (n > 0) {
+    uci_cfg->pucch.sr_resource_id = sr_resource_id[0];
+    uci_cfg->o_sr                 = srsran_ra_ul_nr_nof_sr_bits((uint32_t)n);
+    uci_cfg->sr_positive_present  = true;
+  }
+
+  // Generate configuration for CSI reports //生成CSI报告的配置
+  n = srsran_csi_reports_generate(&phy_cfg->csi, slot_cfg, uci_cfg->csi);
+  if (n > SRSRAN_SUCCESS) {
+    uci_cfg->nof_csi = (uint32_t)n;
+  }
+
+  return true;
+}
+
 
 bool get_pusch_cfg(phy_cfg_nr_t *phy_cfg, 
 						srsran_slot_cfg_t   *slot_cfg,

@@ -66,7 +66,7 @@ typedef struct {
  * carrier
  */
 typedef struct {
-  uint32_t            M;
+  uint32_t            M;//m计数
   srsran_harq_ack_m_t m[SRSRAN_UCI_NR_MAX_M];
 } srsran_harq_ack_cc_t;
 

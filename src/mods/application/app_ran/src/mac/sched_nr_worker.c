@@ -58,11 +58,10 @@ static void cc_worker_alloc_dl_ues(cc_worker *cc_w, bwp_slot_allocator *bwp_allo
 
 static void cc_worker_alloc_ul_ues(cc_worker *cc_w, bwp_slot_allocator *bwp_alloc)
 {
-  if (! cc_w->cfg.sched_args.pusch_enabled) {
-    return;
-  }
-  bwps[0].data_sched->sched_ul_users(slot_ues, bwp_alloc);
-  sched_nr_time_rr_sched_ul_users(bwp_alloc, cc_w->slot_ue_list);
+	if (! cc_w->cfg.sched_args.pusch_enabled) {
+		return;
+	}
+	sched_nr_time_rr_sched_ul_users(bwp_alloc, cc_w->slot_ue_list);
 }
 
 void cc_worker_destoy(cc_worker *cc_w)
@@ -108,6 +107,123 @@ void cc_worker_dl_rach_info(cc_worker *cc_w, rar_info_t *rar_info)
 		ra_sched_dl_rach_info(&bwp->ra, rar_info);
 	}
 }
+
+static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator *bwp_alloc)
+{
+	srsran_slot_cfg_t slot_cfg = {0};
+
+	slot_point sl_point = get_pdcch_tti(bwp_alloc);
+	bwp_slot_grid *bwp_slot = get_slot_grid(bwp_alloc, sl_point);
+	slot_cfg.idx = count_idx(&sl_point);
+
+	slot_ue **ue_pair = NULL;
+	cvector_for_each_in(ue_pair, cc_w->slot_ue_list){
+		slot_ue *ue = *ue_pair;
+		// Group pending HARQ ACKs
+		// 单个ue待处理ack资源合集
+		srsran_pdsch_ack_nr_t ack = {0};
+
+		harq_ack_t *h_ack = NULL;
+		cvector_for_each_in(h_ack, bwp_slot->pending_acks){
+			if (h_ack->res.rnti == ue->ue->rnti) {
+				ack.nof_cc = 1;  //cell
+				srsran_harq_ack_m_t ack_m = {0};
+				ack_m.resource            = h_ack->res;
+				ack_m.present             = true;
+				srsran_harq_ack_insert_m(&ack, &ack_m);
+			}
+		}
+		// UE在公共PUCCH资源上发送PUCCH时,有以下3个特点:
+		// 第一、使用时隙内跳频;
+		// 第二、对于PUCCH格式l,PUCCH资源使用的正交序列码是0,也即在时域上没有多UE复用;
+		// 第三、在建立RRC连接之前,UE只能反馈l个bit的harq-ACK信息.
+
+
+
+		// PUCCH格式0可以传递1~2个bit的HARQ-ACK和／或l个bit的SR信息,当
+		// PDSCH使用l个TB时,HARQ-ACK是l个bit;当PDSCH使用2个TB时,HARQ-ACK是2个bit。
+		
+		// PUCCH格式0是通过不同的循环移位来传递信息，循环移位mCS有12种选择，
+		// 因此一个PUCCH格式0的PUCCH信道可以传递12个信号。
+		// 同一PUCCH信道可以被多个UE同时使用，通过m0来区分不同的用户，
+		// 同一个UE的信息通过mCS区分。
+
+		// PUCCH format 0 : 1~2 bit UCI信息， 频域占用1个RB的12个子载波。当承载1bit信息时，可以复用6个用户，承载2bit信息时，可以复用3个用户。
+
+		// 生成uci ack\sr\csi相关配置
+		srsran_uci_cfg_nr_t uci_cfg = {0};
+		if (!get_uci_cfg(ue_carrier_params_phy(&ue->ue->bwp_cfg), &slot_cfg, &ack, &uci_cfg)) {
+			oset_error("Error getting UCI configuration");
+			continue;
+		}
+
+		if (uci_cfg.ack.count == 0 && uci_cfg.nof_csi == 0 && uci_cfg.o_sr == 0) {
+			continue;
+		}
+
+		// Rel-l5不支持同一个用户的PUCCH和PUSCH并发，当UE在上
+		// 报UCI的时隙上同时有PUCCH和PUSCH时,UE使用PUSCH上报UCI信息.
+
+		bool has_pusch = false;
+		pusch_t *pusch = NULL;
+		//bwp_slot->ul.pusch ~~ bwp_slot->puschs.puschs
+		cvector_for_each_in(pusch, bwp_slot->ul.pusch){
+		  if (pusch->sch.grant.rnti == ue->ue->rnti) {
+		    // Put UCI configuration in PUSCH config
+		    has_pusch = true;
+
+		    // If has PUSCH, no SR shall be received
+		    uci_cfg.o_sr = 0;
+
+			//为PUSCH生成配置,分配资源
+		    if (!get_pusch_uci_cfg(ue_carrier_params_phy(&ue->ue->bwp_cfg), &slot_cfg, &uci_cfg, &pusch->sch)) {
+		      oset_error("Error setting UCI configuration in PUSCH");
+		      continue;
+		    }
+		    break;
+		  }
+		}
+
+		// 当前仅支持PUCCH 0
+		if (!has_pusch) {
+		  // If any UCI information is triggered, schedule PUCCH
+		  //如果触发任何UCI信息，则安排PUCCH
+		  if (bwp_slot.ul.pucch.full()) {
+		    logger.warning("SCHED: Cannot fit pending UCI into PUCCH");
+		    continue;
+		  }
+		  bwp_slot.ul.pucch.emplace_back();
+		  mac_interface_phy_nr::pucch_t& pucch = bwp_slot.ul.pucch.back();
+
+		  uci_cfg.pucch.rnti = ue->rnti;
+		  pucch.candidates.emplace_back();
+		  pucch.candidates.back().uci_cfg = uci_cfg;
+		  if (not ue->phy().get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
+		    logger.error("Error getting UCI CFG");//pucch.pucch_cfg???貌似通过rrc配置
+		    continue;
+		  }
+
+		  // If this slot has a SR opportunity and the selected PUCCH format is 1, consider positive SR.
+		  // PUCCH format 0和1 在频域上都只占用一个RB
+		  if (uci_cfg.o_sr > 0 and uci_cfg.ack.count > 0 and
+		      pucch.candidates.back().resource.format == SRSRAN_PUCCH_NR_FORMAT_1) {
+		    // Set SR negative设置SR负
+		    if (uci_cfg.o_sr > 0) {
+		      uci_cfg.sr_positive_present = false;
+		    }
+
+		    // Append new resource追加新资源
+		    pucch.candidates.emplace_back();
+		    pucch.candidates.back().uci_cfg = uci_cfg;
+		    if (not ue->phy().get_pucch_uci_cfg(slot_cfg, uci_cfg, pucch.pucch_cfg, pucch.candidates.back().resource)) {
+		      logger.error("Error getting UCI CFG");
+		      continue;
+		    }
+		  }
+		}
+	}
+}
+
 
 dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl, oset_list_t *ue_db)
 {
@@ -172,13 +288,14 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl, oset_list_t *ue_
 	ra_sched_run_slot(bwp_alloc, &cc_w->bwps[0].ra);
 
 	// TODO: Prioritize PDCCH scheduling for DL and UL data in a Round-Robin fashion
+	// todo 现阶段一个tti调度一个ue
 	cc_worker_alloc_dl_ues(cc_w, bwp_alloc);
 	// 为DCI0-X的pucch和pusch申请资源(msg3/bsr/ul_data)
 	cc_worker_alloc_ul_ues(cc_w, bwp_alloc);
 
 	// Post-processing of scheduling decisions
 	//调度决策的后处理
-	postprocess_decisions(bwp_alloc);//为UCI的pusch和pucch申请资源（sr/ack/csi）
+	cc_worker_postprocess_decisions(cc_w, bwp_alloc);//为UCI的pusch和pucch申请资源（sr/ack/csi）
 
 	// Log CC scheduler result
 	log_sched_bwp_result(logger, bwp_alloc.get_pdcch_tti(), bwps[0].grid, slot_ues);

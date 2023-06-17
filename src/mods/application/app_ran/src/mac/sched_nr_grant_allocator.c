@@ -172,15 +172,15 @@ static prb_bitmap* occupied_dl_prbs(bwp_slot_allocator *bwp_alloc, slot_point sl
 
 prb_grant find_optimal_dl_grant(bwp_slot_allocator *bwp_alloc, slot_ue *ue, uint32_t ss_id)
 {
-  static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0; // TODO: Support more DCI formats
+	static const srsran_dci_format_nr_t dci_fmt = srsran_dci_format_nr_1_0; // TODO: Support more DCI formats
 
-  // 获取当前prb_bitmap
-  prb_bitmap *used_prb_mask = occupied_dl_prbs(bwp_alloc, ue->pdsch_slot, ss_id, dci_fmt);
+	// 获取当前prb_bitmap
+	prb_bitmap *used_prb_mask = occupied_dl_prbs(bwp_alloc, ue->pdsch_slot, ss_id, dci_fmt);
 
-  // prb_bitmap中查找出最大的一块空闲
-  prb_interval prb_interv = find_empty_interval_of_length(used_prb_mask, bit_size(used_prb_mask), 0);
+	// prb_bitmap中查找出最大的一块空闲
+	prb_interval prb_interv = find_empty_interval_of_length(used_prb_mask, bit_size(used_prb_mask), 0);
 
-  return prb_interv;
+	return prb_interv;
 }
 
 
@@ -466,7 +466,7 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 	//dai针对tdd1~6模式(对于fdd和tdd0上行一个子帧对应一个下行子帧ACK,不需要)
 	pdcch_dl_t *pdcch 	   = pdcch_result.res.val;
 	pdcch->dci_cfg 		   = ue_carrier_params_get_dci_cfg(&slot_u->ue->bwp_cfg);
-	pdcch->dci.pucch_resource = 0;
+	pdcch->dci.pucch_resource = 0;//harq-ack对应的pucch set索引PUCCH resource indicator
 	harq_ack_t *p = NULL;
 	cvector_for_each_in(p, bwp_uci_slot->pending_acks){
 		if(p->res.rnti == slot_u->ue->rnti){
@@ -640,7 +640,7 @@ alloc_result bwp_slot_allocator_alloc_pusch(bwp_slot_allocator *bwp_alloc,
 	static const srsran_dci_format_nr_t dci_fmt_list[2] = {srsran_dci_format_nr_0_1, srsran_dci_format_nr_0_0};
 	static const srsran_rnti_type_t		rnti_type = srsran_rnti_type_c;
 
-	bwp_slot_grid *bwp_pdcch_slot = get_slot_grid(bwp_alloc, slot_u->pdcch_slot);//eg dci0 上行调度命令
+	bwp_slot_grid *bwp_pdcch_slot = get_slot_grid(bwp_alloc, slot_u->pdcch_slot);//eg dci0_X 上行调度命令
 	bwp_slot_grid *bwp_pusch_slot = get_slot_grid(bwp_alloc, slot_u->pusch_slot);//eg msg4/bsr/上行数据grant预申请
 
 	//对于上行数据发送，如果需要重传，基站不向UE发送ACK/NACK信息，而是直接调度UE进行数据重传(PDCCH调度,通过NDI判断新传、重传)
@@ -675,7 +675,7 @@ alloc_result bwp_slot_allocator_alloc_pusch(bwp_slot_allocator *bwp_alloc,
 
 	// Allocation Successful
 	pdcch_ul_t *pdcch = pdcch_result.res.val;
-	pdcch.dci_cfg 	  = ue_carrier_params_get_dci_cfg(&slot_u->ue->bwp_cfg);
+	pdcch->dci_cfg 	  = ue_carrier_params_get_dci_cfg(&slot_u->ue->bwp_cfg);
 
 	// Allocate PUSCH
 	pusch_t *pusch = pusch_allocator_alloc_pusch_unchecked(&bwp_pusch_slot->puschs, ul_grant, &pdcch->dci);
@@ -696,7 +696,7 @@ alloc_result bwp_slot_allocator_alloc_pusch(bwp_slot_allocator *bwp_alloc,
 	pusch->pid    = slot_u->h_ul->proc.pid;
 	bool success = get_pusch_cfg(ue_carrier_params_phy(&slot_u->ue->bwp_cfg), &slot_cfg, &pdcch->dci, &pusch->sch);//申请上行pusch资源和相关配置，计算tbs相关
 	ASSERT_IF_NOT(success, "Error converting DCI to PUSCH grant");
-	pusch.sch.grant.tb[0].softbuffer.rx = &slot_u->h_ul->softbuffer->buffer;
+	pusch->sch.grant.tb[0].softbuffer.rx = &slot_u->h_ul->softbuffer->buffer;
 	if (nof_retx(&slot_u->h_ul->proc) == 0) {
 		// set HARQ TBS,不会清空soft buffer
 		harq_proc_set_tbs(&slot_u->h_ul->proc, pusch->sch.grant.tb[0].tbs);

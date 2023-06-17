@@ -14,13 +14,13 @@
 
 typedef bool *sched_time_rr_callback(bwp_slot_allocator *, slot_ue *);
 
-static void round_robin_apply(bwp_slot_allocator *bwp_alloc, cvector_vector_t(slot_ue *) slot_ue_list, uint32_t rr_count, sched_time_rr_callback func)
+static bool round_robin_apply(bwp_slot_allocator *bwp_alloc, cvector_vector_t(slot_ue *) slot_ue_list, uint32_t rr_count, sched_time_rr_callback func)
 {
 	uint32_t size = cvector_size(slot_ue_list);
 	uint32_t it   = 0;
 
 	if (0 == size) {
-		return;
+		return false;
 	}
 
 	it += (rr_count % size);
@@ -31,8 +31,11 @@ static void round_robin_apply(bwp_slot_allocator *bwp_alloc, cvector_vector_t(sl
 		  it = 0;
 		}
 
-		func(bwp_alloc, slot_ue_list[it]);
+		if (func(bwp_alloc, slot_ue_list[it])) {
+			return true;//一次只处理一个ue
+		}
 	}
+	return false；
 }
 
 
@@ -59,7 +62,8 @@ static bool sched_dl_newtxs(bwp_slot_allocator *bwp_alloc, slot_ue *ue)
 		if (ss_id < 0) {
 			return false;
 		}
-		//todo 应该根据当前ue dl数据计算带宽
+		// todo ？？？ 应该根据当前ue->dl_bytes数据计算RB
+		// Find the largest set of available RBGs possible
 		prb_grant	 prbs = find_optimal_dl_grant(bwp_alloc, ue, ss_id);
 		alloc_result res  = bwp_slot_allocator_alloc_pdsch(bwp_alloc, ue, ss_id, &prbs);
 		if (res == (alloc_result)success) {
@@ -84,7 +88,7 @@ static bool sched_ul_retxs(bwp_slot_allocator *bwp_alloc, slot_ue *ue)
 static bool sched_ul_newtxs(bwp_slot_allocator *bwp_alloc, slot_ue *ue)
 {
 	if (ue->ul_bytes > 0 && ue->h_ul != NULL && empty(ue->h_ul.proc.tb)) {
-		//todo 应该根据当前ue bsr数据计算带宽
+		// todo 应该根据当前ue->ul_bytes数据计算RB
 		prb_interval interval = {0, bwp_alloc->cfg->cfg.rb_width};
 		prb_grant prbs = prb_grant_interval_init(&interval);
 		alloc_result res  = bwp_slot_allocator_alloc_pusch(bwp_alloc, ue, &prbs);
@@ -101,7 +105,9 @@ void sched_nr_time_rr_sched_dl_users(bwp_slot_allocator *bwp_alloc, cvector_vect
 	slot_point sl_pdcch = get_pdcch_tti(bwp_alloc);
 
 	// Start with retxs
-	round_robin_apply(bwp_alloc, slot_ue_list, count_idx(&sl_pdcch), sched_dl_retxs);
+	if(round_robin_apply(bwp_alloc, slot_ue_list, count_idx(&sl_pdcch), sched_dl_retxs)){
+		return;
+	}
 	// Move on to new txs
 	round_robin_apply(bwp_alloc, slot_ue_list, count_idx(&sl_pdcch), sched_dl_newtxs);
 }
@@ -111,7 +117,9 @@ void sched_nr_time_rr_sched_ul_users(bwp_slot_allocator *bwp_alloc, cvector_vect
 	slot_point sl_pdcch = get_pdcch_tti(bwp_alloc);
 
 	// Start with retxs
-	round_robin_apply(bwp_alloc, slot_ue_list, count_idx(&sl_pdcch), sched_ul_retxs);
+	if(round_robin_apply(bwp_alloc, slot_ue_list, count_idx(&sl_pdcch), sched_ul_retxs)){
+		return;
+	}
 	// Move on to new txs
 	round_robin_apply(bwp_alloc, slot_ue_list, count_idx(&sl_pdcch), sched_ul_newtxs);
 }
