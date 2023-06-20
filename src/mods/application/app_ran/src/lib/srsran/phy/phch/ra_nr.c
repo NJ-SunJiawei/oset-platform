@@ -838,6 +838,8 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   }
 
   // 5.1.6.2 DM-RS reception procedure DM-RS接收程序
+  // UE在收到 RRCSetup  消息之前，如何确定DMRS配置参数？比如MSG2的DMRS配置参数，UE怎么确定？
+  // 如果当前基站配置的DMRS是映射类型A，那么此时UE会默认：PDSCH信道中的前置DMRS是单符号， dmrs-AdditionalPosition=pos2，dmrs-Type=type1，天线端口=1000
   if (ra_dl_dmrs(pdsch_hl_cfg, dci_dl, pdsch_cfg) < SRSRAN_SUCCESS) {
     ERROR("Error selecting DMRS configuration");
     return SRSRAN_ERROR;
@@ -919,6 +921,7 @@ int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
                                  srsran_sch_grant_nr_t*        pusch_grant)
 {
   // 5.2.1.1 Resource allocation in time domain
+  // pusch-TimeDomainAllocationList
   if (srsran_ra_ul_nr_time(pusch_hl_cfg,
                            dci_ul->ctx.rnti_type,
                            dci_ul->ctx.ss_type,
@@ -1061,6 +1064,8 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
   }
   nof_dmrs_l = (uint32_t)n;
 
+  // 如果ack的bit数小于或者等于2的时候都按照bit数等于2来计算空间进行预留
+
   // Find OFDM symbol index of the first OFDM symbol after the first set of consecutive OFDM symbol(s) carrying DMRS
   // Starts at first OFDM symbol carrying DMRS
   for (uint32_t l = dmrs_l[0], dmrs_l_idx = 0; l < pusch_cfg->grant.S + pusch_cfg->grant.L; l++) {
@@ -1188,6 +1193,7 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
   int Gcsi2 = 0; // NOT supported
 
   // Update Number of TB encoded bits
+  // 数据放置没有间隔这个放置规则，等导频，harq-ack csi-port1 csi-port2放置完了剩下什么位置就挨着放就行，这块特殊情况就是harq-ack的bit数小于等于2的时候，data也是可以占用之前需要的空间
   for (uint32_t i = 0; i < SRSRAN_MAX_TB; i++) {
     pusch_cfg->grant.tb[i].nof_bits =
         pusch_cfg->grant.tb[i].nof_re * srsran_mod_bits_x_symbol(pusch_cfg->grant.tb[i].mod) - Gack - Gcsi1 - Gcsi2;

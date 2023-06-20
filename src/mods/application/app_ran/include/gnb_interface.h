@@ -79,8 +79,8 @@ typedef struct pucch_candidate_s {
 }pucch_candidate_t;
 
 typedef struct pucch_s {
-  srsran_pucch_nr_common_cfg_t	pucch_cfg;  ///< UE dedicated PUCCH configuration
-  cvector_vector_t(pucch_candidate_t) candidates; ///< PUCCH candidates to decode要解码的PUCCH候选//bounded_vector<pucch_candidate_t, MAX_PUCCH_CANDIDATES>
+  srsran_pucch_nr_common_cfg_t	pucch_cfg;  ///< UE dedicated PUCCH configuration //not use
+  cvector_vector_t(pucch_candidate_t) candidates; ///< PUCCH candidates to decode //bounded_vector<pucch_candidate_t, MAX_PUCCH_CANDIDATES>
 }pucch_t;
 
 typedef struct ul_sched_s {

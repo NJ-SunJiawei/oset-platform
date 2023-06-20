@@ -466,7 +466,7 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 	//dai针对tdd1~6模式(对于fdd和tdd0上行一个子帧对应一个下行子帧ACK,不需要)
 	pdcch_dl_t *pdcch 	   = pdcch_result.res.val;
 	pdcch->dci_cfg 		   = ue_carrier_params_get_dci_cfg(&slot_u->ue->bwp_cfg);
-	pdcch->dci.pucch_resource = 0;//harq-ack对应的pucch set索引PUCCH resource indicator
+	pdcch->dci.pucch_resource = 0;//PUCCH resource indicator //UE收到format 1_0 或者format 1_1格式的DCI信息后，PUCCH发送HARQ-ACK信息的资源索引
 	harq_ack_t *p = NULL;
 	cvector_for_each_in(p, bwp_uci_slot->pending_acks){
 		if(p->res.rnti == slot_u->ue->rnti){

@@ -102,7 +102,7 @@ bool get_uci_cfg(phy_cfg_nr_t *phy_cfg,
     return false;
   }
 
-  // Generate configuration for SR//生成SR配置
+  // Generate configuration for SR//生成SR资源配置
   uint32_t sr_resource_id[SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES] = {0};
   int      n = srsran_ue_ul_nr_sr_send_slot(phy_cfg->pucch.sr_resources, slot_cfg->idx, sr_resource_id);
   if (n < SRSRAN_SUCCESS) {
@@ -116,7 +116,7 @@ bool get_uci_cfg(phy_cfg_nr_t *phy_cfg,
     uci_cfg->sr_positive_present  = true;
   }
 
-  // Generate configuration for CSI reports //生成CSI报告的配置
+  // Generate configuration for CSI reports //生成CSI报告的资源配置
   n = srsran_csi_reports_generate(&phy_cfg->csi, slot_cfg, uci_cfg->csi);
   if (n > SRSRAN_SUCCESS) {
     uci_cfg->nof_csi = (uint32_t)n;
@@ -148,5 +148,30 @@ bool get_pdsch_ack_resource(phy_cfg_nr_t *phy_cfg,
 									srsran_harq_ack_resource_t *ack_resource)
 {
   return (SRSRAN_SUCCESS == srsran_harq_ack_resource(&phy_cfg->harq_ack, &dci_dl, &ack_resource));
+}
+
+bool get_pusch_uci_cfg(phy_cfg_nr_t *phy_cfg,
+							srsran_uci_cfg_nr_t *uci_cfg,
+							srsran_sch_cfg_nr_t *pusch_cfg)
+{
+  // Generate configuration for PUSCH
+  if (srsran_ra_ul_set_grant_uci_nr(&phy_cfg->carrier, &phy_cfg->pusch, uci_cfg, pusch_cfg) < SRSRAN_SUCCESS) {
+	return false;
+  }
+
+  return true;
+}
+
+bool get_pucch_uci_cfg(phy_cfg_nr_t *phy_cfg,
+							const srsran_uci_cfg_nr_t    *uci_cfg,
+							srsran_pucch_nr_resource_t   *resource)
+{
+  // Select PUCCH resource
+  if (srsran_ra_ul_nr_pucch_resource(&phy_cfg->pucch, uci_cfg, &phy_cfg->carrier.nof_prb, resource) < SRSRAN_SUCCESS) {
+	ERROR("Selecting PUCCH resource");
+	return false;
+  }
+
+  return true;
 }
 

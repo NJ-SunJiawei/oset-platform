@@ -312,6 +312,7 @@ void bit_set_val(bounded_bitset *bit, size_t pos, bool val)
   }
 }
 
+//判断是否为1
 bool bit_test(bounded_bitset *bit, size_t pos)
 {
   assert_within_bounds_(bit, pos, true);

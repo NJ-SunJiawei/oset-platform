@@ -34,6 +34,7 @@ pdsch_t* pdsch_allocator_alloc_pdsch_unchecked(pdsch_allocator *pdsch_alloc,
   // Fill DCI with PDSCH freq/time allocation information
   // 时域资源分配
   out_dci->time_domain_assigment = 0;//pdsch-TimeDomainAllocationList  typeA k0= 0 s=2 len=12
+  									 //并推算DMRS
   // 频域资源
   if (is_alloc_type0(grant)) {
 	out_dci->freq_domain_assigment = bit_to_uint64(&grant->alloc.rbgs);

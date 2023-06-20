@@ -60,6 +60,13 @@ bool get_pdsch_cfg(phy_cfg_nr_t *phy_cfg,
 bool get_pdsch_ack_resource(phy_cfg_nr_t *phy_cfg,
 									srsran_dci_dl_nr_t   *dci_dl,
 									srsran_harq_ack_resource_t *ack_resource);
+bool get_pusch_uci_cfg(phy_cfg_nr_t *phy_cfg,
+							srsran_uci_cfg_nr_t *uci_cfg,
+							srsran_sch_cfg_nr_t *pusch_cfg);
+bool get_pucch_uci_cfg(phy_cfg_nr_t *phy_cfg,
+							const srsran_uci_cfg_nr_t    *uci_cfg,
+							srsran_pucch_nr_resource_t   *resource);
+
 
 #ifdef __cplusplus
 }

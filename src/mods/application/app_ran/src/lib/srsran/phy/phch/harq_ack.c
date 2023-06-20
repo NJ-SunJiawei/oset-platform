@@ -148,6 +148,9 @@ static int harq_ack_gen_ack_type2(const srsran_harq_ack_cfg_hl_t* cfg,
 
 static int harq_ack_k1(const srsran_harq_ack_cfg_hl_t* cfg, const srsran_dci_dl_nr_t* dci_dl)
 {
+  // 对于DCI format 1_0, PDSCH-to-HARQ_feedback timing indicator field带的值就代表 K1值
+  // 对于DCI format 1_1,PDSCH-to-HARQ_feedback timing indicator field带的值需要根据RRC 层参数dl-DataToUL-ACK进行映射确定K1值
+
   // For DCI format 1_0, the PDSCH-to-HARQ_feedback timing indicator field values map to {1, 2, 3, 4, 5, 6, 7, 8}
   if (dci_dl->ctx.format == srsran_dci_format_nr_1_0) {
     return (int)dci_dl->harq_feedback + 1;
