@@ -310,11 +310,11 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl, oset_list_t *ue_
 	cc_worker_postprocess_decisions(cc_w, bwp_alloc);
 
 	// Log CC scheduler result
-	log_sched_bwp_result(logger, bwp_alloc.get_pdcch_tti(), bwps[0].grid, slot_ues);
+	log_sched_bwp_result(get_pdcch_tti(bwp_alloc), cc_w->bwps[0].grid, cc_w->slot_ue_list);
 
 	// releases UE resources
 	slot_ue_clear(cc_w->cfg->cc);
 
-	return &bwp_alloc.tx_slot_grid().dl;
+	return &(get_tx_slot_grid(bwp_alloc)->dl);
 }
 
