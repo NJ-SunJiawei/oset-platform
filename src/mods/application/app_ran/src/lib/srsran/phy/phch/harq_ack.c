@@ -212,10 +212,6 @@ int srsran_harq_ack_gen_uci_cfg(const srsran_harq_ack_cfg_hl_t* cfg,
 
   // According TS 38.213 9.1.3 Type-2 HARQ-ACK codebook determination
   // HARQ-ACK码本：UE在一个HARQ反馈资源上反馈的HARQ-ACK信息的整体(eg K1\HARQ-ACK比特等)
-  // 参数K1是确定HARQ-ACK码本重要的参数之一，指的是PDSCH和其对应的HARQ-ACK信息反馈的
-  // PUCCH或PUSCH之间的时隙偏移值。K1参数的指示方式是基站先通过预定义的或RRC参数
-  // dl-DataT-UL-ACK配置的K1可能的取值集合，然后通过PDSCH相应调度DCI信息中的
-  // PDSCH到HARQ反馈域动态指示上述K1可能取值集合中的一个值。
   if (cfg->harq_ack_codebook == srsran_pdsch_harq_ack_codebook_dynamic) {
     // This clause applies if the UE is configured with pdsch-HARQ-ACK-Codebook = dynamic.
     return harq_ack_gen_ack_type2(cfg, ack_info, uci_cfg);

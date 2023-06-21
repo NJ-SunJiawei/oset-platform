@@ -211,7 +211,7 @@ void dl_harq_proc_init(dl_harq_proc *h_dl, uint32_t cc, uint32_t id, uint32_t np
 	h_dl->pdu = byte_buffer_init();
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool ul_harq_set_tbs(ul_harq_proc *h_ul, uint32_t tbs)
+bool ul_harq_proc_set_tbs(ul_harq_proc *h_ul, uint32_t tbs)
 {
 	rx_harq_softbuffer_reset(h_ul->softbuffer, tbs);
 	return harq_proc_set_tbs(h_ul->proc, tbs);

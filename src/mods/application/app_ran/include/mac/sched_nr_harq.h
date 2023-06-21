@@ -91,7 +91,7 @@ bool dl_harq_proc_new_tx(dl_harq_proc *h_dl,
 								srsran_dci_dl_nr_t  *dci);
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool ul_harq_set_tbs(ul_harq_proc *h_ul, uint32_t tbs);
+bool ul_harq_proc_set_tbs(ul_harq_proc *h_ul, uint32_t tbs);
 void ul_harq_proc_fill_dci(ul_harq_proc          *h_ul, srsran_dci_ul_nr_t *dci);
 bool ul_harq_proc_new_tx(ul_harq_proc       *h_ul,
 						slot_point          slot_tx,

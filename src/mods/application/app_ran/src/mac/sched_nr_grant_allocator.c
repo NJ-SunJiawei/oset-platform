@@ -294,7 +294,7 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 		}
 	}
 
-	//当前bwp_pdcch_slot最多处理MAX_GRANTS个msg2消息
+	// 当前bwp_pdcch_slot最多处理MAX_GRANTS个msg2消息
 	ASSERT_IF_NOT(!(MAX_GRANTS == cvector_size(bwp_pdcch_slot->dl.rar)), "[%5u]The #RARs should be below #PDSCHs", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 
 	if (!cvector_empty(bwp_pdcch_slot->dl.phy.ssb)) {
@@ -391,7 +391,7 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 		success = get_pusch_cfg(ue_carrier_params_phy(&slot_u->ue->bwp_cfg), &slot_cfg, &rar_grant.msg3_dci, &pusch->sch);
 		ASSERT_IF_NOT(success, "[%5u]Error converting DCI to PUSCH grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
 		pusch->sch.grant.tb[0].softbuffer.rx = &slot_u->h_ul->softbuffer->buffer;
-		ul_harq_proc_fill_dci(slot_u->h_ul, pusch->sch.grant.tb[0].tbs);//set harq tbs,并且清空soft buffer
+		ul_harq_proc_set_tbs(slot_u->h_ul, pusch->sch.grant.tb[0].tbs);//set harq tbs,并且清空soft buffer
 
 		cvector_push_back(rar_out.grants, rar_grant);
 
@@ -426,7 +426,7 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 
 	bwp_slot_grid *bwp_pdcch_slot = get_slot_grid(bwp_alloc, slot_u->pdcch_slot);
 	bwp_slot_grid *bwp_pdsch_slot = get_slot_grid(bwp_alloc, slot_u->pdsch_slot);
-	bwp_slot_grid *bwp_uci_slot   = get_slot_grid(bwp_alloc, slot_u->uci_slot);
+	bwp_slot_grid *bwp_uci_slot   = get_slot_grid(bwp_alloc, slot_u->uci_slot);//k1
 	// UCI(Uplink Control Information)是由PUCCH承载的上行控制信息；与DCI不同,UCI可以根据情况由PUCCH或PUSCH承载，而DCI只能由PDCCH承载。
 
 	// Verify there is space in PDSCH//确认是否有空间
@@ -466,7 +466,9 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 	//dai针对tdd1~6模式(对于fdd和tdd0上行一个子帧对应一个下行子帧ACK,不需要)
 	pdcch_dl_t *pdcch 	   = pdcch_result.res.val;
 	pdcch->dci_cfg 		   = ue_carrier_params_get_dci_cfg(&slot_u->ue->bwp_cfg);
-	pdcch->dci.pucch_resource = 0;//PUCCH resource indicator //UE收到format 1_0 或者format 1_1格式的DCI信息后，PUCCH发送HARQ-ACK信息的资源索引
+	pdcch->dci.pucch_resource = 0;//PUCCH resource indicator
+	// 公共PUCCH：PUCCH resource indicator计算rPUCCH, 用来计算uci频域信息
+	// 专用PUCCH：通过Ouci确定resourceSET,PUCCH resource indicator选择SET中资源resource
 	harq_ack_t *p = NULL;
 	cvector_for_each_in(p, bwp_uci_slot->pending_acks){
 		if(p->res.rnti == slot_u->ue->rnti){
@@ -641,7 +643,7 @@ alloc_result bwp_slot_allocator_alloc_pusch(bwp_slot_allocator *bwp_alloc,
 	static const srsran_rnti_type_t		rnti_type = srsran_rnti_type_c;
 
 	bwp_slot_grid *bwp_pdcch_slot = get_slot_grid(bwp_alloc, slot_u->pdcch_slot);//eg dci0_X 上行调度命令
-	bwp_slot_grid *bwp_pusch_slot = get_slot_grid(bwp_alloc, slot_u->pusch_slot);//eg msg4/bsr/上行数据grant预申请
+	bwp_slot_grid *bwp_pusch_slot = get_slot_grid(bwp_alloc, slot_u->pusch_slot);//k2 //eg msg4/bsr/上行数据grant预申请
 
 	//对于上行数据发送，如果需要重传，基站不向UE发送ACK/NACK信息，而是直接调度UE进行数据重传(PDCCH调度,通过NDI判断新传、重传)
 

@@ -108,8 +108,9 @@ void cc_worker_dl_rach_info(cc_worker *cc_w, rar_info_t *rar_info)
 	}
 }
 
-// ???记录上行uci配置(时频位置等)，用于上行解码
+// 超前预处理上行uci/pusch配置(时频位置等)，用于上行解码
 // 对pusch uci进行映射并计算新的tbs
+// ??? pucch和pdsch不会重叠，pucch位置由rrc配置位于资源两端边缘，pdsch位于中间，ue放置时候会注意
 static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator *bwp_alloc)
 {
 	srsran_slot_cfg_t slot_cfg = {0};
@@ -117,6 +118,9 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 	slot_point sl_point = get_pdcch_tti(bwp_alloc);
 	bwp_slot_grid *bwp_slot = get_slot_grid(bwp_alloc, sl_point);
 	slot_cfg.idx = count_idx(&sl_point);
+
+	// 当前发送为tx调度时刻,上行方向承载uci/pusch在work-dl预处理，记录tx时刻配置(uci tx-k1时刻预授权 pusch tx-k2时刻预授权)
+	// 当前接收为rx调度时刻, rx+delay=tx,当上行到达tx时刻，work-ul通过预存信息开始正式处理。
 
 	slot_ue **ue_pair = NULL;
 	cvector_for_each_in(ue_pair, cc_w->slot_ue_list){
@@ -139,18 +143,7 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 		// 如果UE还没有配置dedicated PUCCH resource时,初始接入对应的PUCCH 资源只能是PUCCH format 0/1,
 		// PUCCH-ConfigCommon 用于配置小区级PUCCH参数（common），用于初始接入
 
-
-		// PUCCH格式0可以传递1~2个bit的HARQ-ACK和／或l个bit的SR信息,当
-		// PDSCH使用l个TB时,HARQ-ACK是l个bit;当PDSCH使用2个TB时,HARQ-ACK是2个bit。
-		
-		// PUCCH格式0是通过不同的循环移位来传递信息，循环移位mCS有12种选择，
-		// 因此一个PUCCH格式0的PUCCH信道可以传递12个信号。
-		// 同一PUCCH信道可以被多个UE同时使用，通过m0来区分不同的用户，
-		// 同一个UE的信息通过mCS区分。
-
-		// PUCCH format 0 : 1~2 bit UCI信息， 频域占用1个RB的12个子载波。当承载1bit信息时，可以复用6个用户，承载2bit信息时，可以复用3个用户。
-
-		// 生成uci ack\sr\csi相关时频资源配置
+		// 获取uci ack\sr\csi相关时频资源配置
 		srsran_uci_cfg_nr_t uci_cfg = {0};
 		if (!get_uci_cfg(ue_carrier_params_phy(&ue->ue->bwp_cfg), &slot_cfg, &ack, &uci_cfg)) {
 			oset_error("Error getting UCI configuration");
@@ -168,7 +161,7 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 		// 因此每个UE的CQI/PMI/RI都可以和ACK/NACK一起,在同一个上行slot中发送给eNB
 		bool has_pusch = false;
 		pusch_t *pusch = NULL;
-		//bwp_slot->ul.pusch ~~ bwp_slot->puschs.puschs
+		// bwp_slot->ul.pusch ~~ bwp_slot->puschs.puschs
 		cvector_for_each_in(pusch, bwp_slot->ul.pusch){
 		  if (pusch->sch.grant.rnti == ue->ue->rnti) {
 		    // Put UCI configuration in PUSCH config
@@ -178,7 +171,8 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 		    // 因为已经存在PUSCH资源，不需要再通过SR发送新的资源请求，所以PUSCH携带的UCI信息里并不包括SR信息
 		    uci_cfg.o_sr = 0;
 
-			// 为PUSCH生成配置,并计算新的tbs
+			// UCI只能在非DMRS符号上发送，在发送UCI的符号上，映射方式取决于用于发送UCI的RE可用总数和UCI需要的RE总数。
+            // 如果剩余需要映射的UCI的RE总数大于可用RE总数的一般，那么是改符号上是连续映射的，否则均匀映射在改符号上以达到分集增益
 		    if (!get_pusch_uci_cfg(ue_carrier_params_phy(&ue->ue->bwp_cfg),  &uci_cfg, &pusch->sch)) {
 		      oset_error("Error setting UCI configuration in PUSCH");
 		      continue;
@@ -189,6 +183,14 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 
 		// PUCCH的资源是非常有限的，整个带宽一般只有几个RB分配给PUCCH使用，比如20MHz带宽有100个RB，供PUCCH使用的RB可能不到10个
 		// 必须让多个UE的UCI信息共用到相同的RE资源格中,同一个RE中复用的UE个数越多，eNB能够正确解码出各个UE的UCI的概率就越低
+
+		// SR                   HARQ-ACK             描述
+		// +                    PUCCH format 0       通过Mcs参数来区分 SR和HARQ
+		// -                    PUCCH format 0       通过Mcs参数来区分 SR和HARQ
+		// +/- PUCCH format 0   PUCCH format 1       Drop SR
+		// + PUCCH format 1     PUCCH format 1       使用SR resource发送HARQ-ACK
+		// - PUCCH format 1     PUCCH format 1       使用HAQK-ACK resource发送HARQ-ACK
+		// +/-                  PUCCH format 2/3/4   使用HAQK-ACK resource,追加ceil(log2(K+1))比特,K指的是与HARQ-ACK PUCCH resource有时域重叠的SR个数
 		if (!has_pusch) {
 		  // If any UCI information is triggered, schedule PUCCH
 		  //如果触发任何UCI信息，则安排PUCCH
@@ -207,15 +209,17 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 		  }
 		  cvector_push_back(pucch.candidates, candidates);
 
-		  // If this slot has a SR opportunity and the selected PUCCH format is 1, consider positive SR.
+		  // If this slot has a SR opportunity and the selected PUCCH format is 1, consider negative SR.
+		  // SR PUCCH format 1 + HARQ-ACK PUCCH format 1, 在positive SR下，使用SR的PUCCH资源发送HARQ-ACK
 		  if (uci_cfg.o_sr > 0 && uci_cfg.ack.count > 0 &&
 		      candidates.resource.format == SRSRAN_PUCCH_NR_FORMAT_1) {
-		    // Set SR negative设置SR负
+		    // Set SR negative
 		    if (uci_cfg.o_sr > 0) {
 		      uci_cfg.sr_positive_present = false;
 		    }
 
-		    // Append new resource追加新资源
+		    // Append new resource
+		    // 追加 在Format1下SR negative/harq-ack复用场景下的解析。使用harq-ack的PUCCH资源发送HARQ-ACK
 			pucch_candidate_t candidates_add = {0};
 			candidates_add.uci_cfg = uci_cfg;
 		    if (!get_pucch_uci_cfg(ue_carrier_params_phy(&ue->ue->bwp_cfg), &uci_cfg,  &candidates_add.resource)) {

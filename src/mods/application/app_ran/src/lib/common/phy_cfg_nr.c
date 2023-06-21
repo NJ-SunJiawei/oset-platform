@@ -98,11 +98,12 @@ bool get_uci_cfg(phy_cfg_nr_t *phy_cfg,
 					srsran_uci_cfg_nr_t   *uci_cfg)
 {
   // Generate configuration for HARQ feedback//为HARQ反馈生成配置
-  if (srsran_harq_ack_gen_uci_cfg(&harq_ack, pdsch_ack, uci_cfg) < SRSRAN_SUCCESS) {
+  if (srsran_harq_ack_gen_uci_cfg(&phy_cfg->harq_ack, pdsch_ack, uci_cfg) < SRSRAN_SUCCESS) {
     return false;
   }
 
   // Generate configuration for SR//生成SR资源配置
+  // 只有处于 RRC_CONNECTED 态且保持上行同步的 UE 才会发送 SR
   uint32_t sr_resource_id[SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES] = {0};
   int      n = srsran_ue_ul_nr_sr_send_slot(phy_cfg->pucch.sr_resources, slot_cfg->idx, sr_resource_id);
   if (n < SRSRAN_SUCCESS) {
@@ -113,10 +114,14 @@ bool get_uci_cfg(phy_cfg_nr_t *phy_cfg,
   if (n > 0) {
     uci_cfg->pucch.sr_resource_id = sr_resource_id[0];
     uci_cfg->o_sr                 = srsran_ra_ul_nr_nof_sr_bits((uint32_t)n);
+ 	// UE并不是一直有发送SR请求的需求，对于Positive SR即UE有SR请求发送，需要物理层发送SR/PUCCH，
+ 	// 而对于无SR发送请求的UE，在SR资源的时间点，则该SR为Negative SR
+ 	// sr使用pucch format0/1发送
     uci_cfg->sr_positive_present  = true;
   }
 
-  // Generate configuration for CSI reports //生成CSI报告的资源配置
+  // Generate configuration for CSI reports
+  // CSI包括在PUSCH信道上发送的非周期CSI，PUCCH信道上发送的周期CSI，以及在PUCCH信道或者PUSCH信道上发送给的semi-persistent CSI
   n = srsran_csi_reports_generate(&phy_cfg->csi, slot_cfg, uci_cfg->csi);
   if (n > SRSRAN_SUCCESS) {
     uci_cfg->nof_csi = (uint32_t)n;
@@ -155,6 +160,7 @@ bool get_pusch_uci_cfg(phy_cfg_nr_t *phy_cfg,
 							srsran_sch_cfg_nr_t *pusch_cfg)
 {
   // Generate configuration for PUSCH
+  // 根据harq-ack/sr/CSI复用情况，选择pucch资源
   if (srsran_ra_ul_set_grant_uci_nr(&phy_cfg->carrier, &phy_cfg->pusch, uci_cfg, pusch_cfg) < SRSRAN_SUCCESS) {
 	return false;
   }

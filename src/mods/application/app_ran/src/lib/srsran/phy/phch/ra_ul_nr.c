@@ -471,6 +471,7 @@ int srsran_ra_ul_nr_freq(const srsran_carrier_nr_t*    carrier,
     return ra_helper_freq_type1(carrier->nof_prb, 0, dci_ul->freq_domain_assigment, grant);
   }
 
+  //rbgs
   if (cfg->alloc == srsran_resource_alloc_type0) {
     return ra_helper_freq_type0(carrier, cfg, dci_ul->freq_domain_assigment, grant);
   }
@@ -669,6 +670,7 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
     // If a UE would transmit positive or negative SR in a resource using PUCCH format 0 and HARQ-ACK information bits
     // in a resource using PUCCH format 1 in a slot, the UE transmits only a PUCCH with the HARQ-ACK information bits
     // in the resource using PUCCH format 1.
+    // SR PUCCH format 0 + HARQ-ACK PUCCH format 1 ,这种场景下不发送SR请求， drop SR
     if (resource_sr.format == SRSRAN_PUCCH_NR_FORMAT_0 && resource_harq.format == SRSRAN_PUCCH_NR_FORMAT_1) {
       *resource = resource_harq;
       return SRSRAN_SUCCESS;
@@ -680,7 +682,11 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
     // negative SR in a resource using PUCCH format 1 and at most two HARQ-ACK information bits in a resource using
     // PUCCH format 1 in a slot, the UE transmits a PUCCH in the resource using PUCCH format 1 for HARQ-ACK
     // information as described in Clause 9.2.3.
-    if (resource_sr.format == SRSRAN_PUCCH_NR_FORMAT_1 && resource_harq.format == SRSRAN_PUCCH_NR_FORMAT_1) {
+
+	// SR PUCCH format 1 + HARQ-ACK PUCCH format 1 这种场景下选择的PUCCH resource取决于UE是否有SR请求，在positive SR下，使用SR的资源发送HARQ-ACK
+	// 网络并不知道UE何时会有SR请求，会在SR资源位置上检测UE是否有SR发送请求，对于何时反馈HARQ-ACK，由于PDSCH是网络调度的，网络知道接收UE反馈HARQ-ACK的时间位置。
+	// 因此这种配置下，如果先检测到有SR请求，则在SR资源位置同时也进行HARQ-ACK的处理。
+	if (resource_sr.format == SRSRAN_PUCCH_NR_FORMAT_1 && resource_harq.format == SRSRAN_PUCCH_NR_FORMAT_1) {
       *resource = resource_sr;
       return SRSRAN_SUCCESS;
     }
@@ -694,6 +700,8 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
   // - Irrelevant SR opportunities
   // - More than 2 HARQ-ACK
   // - No CSI report
+  // HARQ-ACK PUCCH format 2/3/4 这种场景下使用harq-ack resource，增加ceil(log2(K+1))比特，ceil(log2(K+1))中的K指的是与HARQ-ACK PUCCH resource有时域重叠的SR个数。
+  // 与HARQ-ACK PUCCH resource时域重叠的SR，不管Positive SR还是Negative SR，按照SchedulingRequestResourceId进行升序排序，那么使用ceil(log2(K+1))比特对SR进行编码，则可知道各个SR对应的编号。
   if (uci_cfg->o_sr > 0 && uci_cfg->ack.count > SRSRAN_PUCCH_NR_FORMAT1_MAX_NOF_BITS && uci_cfg->nof_csi == 0) {
     return ra_ul_nr_pucch_resource_hl(pucch_cfg, uci_cfg, uci_cfg->pucch.resource_id, resource);
   }
@@ -710,11 +718,14 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
   // If a UE does not have dedicated PUCCH resource configuration, provided by PUCCH-ResourceSet in PUCCH-Config,
   // a PUCCH resource set is provided by pucch-ResourceCommon through an index to a row of Table 9.2.1-1 for size
   // transmission of HARQ-ACK information on PUCCH in an initial UL BWP of N BWP PRBs.
+  // 公共pucch资源
   if (!pucch_cfg->enabled) {
     uint32_t N_cce   = SRSRAN_FLOOR(N_bwp_sz, 6);
     uint32_t r_pucch = ((2 * uci_cfg->pucch.n_cce_0) / N_cce) + 2 * uci_cfg->pucch.resource_id;
     return ra_ul_nr_pucch_resource_default(pucch_cfg->common.resource_common, N_bwp_sz, r_pucch, resource);
   }
+
+  //使用HARQ-ACK resource,resource_id由DCI中PUCCH resource indicator提供
   return ra_ul_nr_pucch_resource_hl(pucch_cfg, uci_cfg, uci_cfg->pucch.resource_id, resource);
 }
 

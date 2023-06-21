@@ -1055,9 +1055,20 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
   // Reset UCI PUSCH configuration
   SRSRAN_MEM_ZERO(&pusch_cfg->uci.pusch, srsran_uci_nr_pusch_cfg_t, 1);
 
+  //HARQ-ACK bit在第一个连续DM-RSOFDM符号后映射，CSI part 1或者CSI part2则从第一个未用于DM-RS的符号开始映射
+
+  // Step1：当HARQ-ACK的比特数小于等于2，找出reserved HARQ-ACK的位置
+  // Step2：当HARQ-ACK的比特数大于2，映射HARQ-ACK
+  // Step3：CSI Part 1和CSI Part 2映射
+  // Step4：映射UL-SCH
+  // Step5：当HARQ-ACK的比特数小于等于2，映射HARQ-ACK(HARQ-ACK所占的RE直接打掉了之前映射的CSI Part 2)
+  // Step6：形成codeword
+
+
   // Get DMRS symbol indexes
-  uint32_t nof_dmrs_l                          = 0;
-  uint32_t dmrs_l[SRSRAN_DMRS_SCH_MAX_SYMBOLS] = {};
+  // 获取DMRS symbol下标
+  uint32_t nof_dmrs_l                          = 0;// 存在dmrs symbol数量
+  uint32_t dmrs_l[SRSRAN_DMRS_SCH_MAX_SYMBOLS] = {};// 存在dmrs symbol下标
   int      n = srsran_dmrs_sch_get_symbols_idx(&pusch_cfg->dmrs, &pusch_cfg->grant, dmrs_l);
   if (n < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
@@ -1068,6 +1079,7 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
 
   // Find OFDM symbol index of the first OFDM symbol after the first set of consecutive OFDM symbol(s) carrying DMRS
   // Starts at first OFDM symbol carrying DMRS
+  // 查找第一个dmrs symbol下标之后的symbol下标
   for (uint32_t l = dmrs_l[0], dmrs_l_idx = 0; l < pusch_cfg->grant.S + pusch_cfg->grant.L; l++) {
     // Check if it is not carrying DMRS...
     if (l != dmrs_l[dmrs_l_idx]) {
@@ -1084,6 +1096,7 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
 
   // Find OFDM symbol index of the first OFDM symbol that does not carry DMRS
   // Starts at first OFDM symbol of the PUSCH transmission
+  // 查找第一个不携带DMRS symbol的下标
   for (uint32_t l = pusch_cfg->grant.S, dmrs_l_idx = 0; l < pusch_cfg->grant.S + pusch_cfg->grant.L; l++) {
     // Check if it is not carrying DMRS...
     if (l != dmrs_l[dmrs_l_idx]) {
@@ -1097,12 +1110,17 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
     }
   }
 
+  // Number of DMRS CDM groups without data 参数决定DMRS与Data是否在同一symbol内复用
+  // nof_dmrs_cdm_groups_without_data = 1 cdm0 RE不能复用数据
+  // nof_dmrs_cdm_groups_without_data = 2 cdm0 cdm1 RE不能复用数据
+
   // Number of DMRS per PRB
   uint32_t n_sc_dmrs = SRSRAN_DMRS_SCH_SC(pusch_cfg->grant.nof_dmrs_cdm_groups_without_data, pusch_cfg->dmrs.type);
 
   // Set UCI RE number of candidates per OFDM symbol according to TS 38.312 6.3.2.4.2.1
   for (uint32_t l = 0, dmrs_l_idx = 0; l < SRSRAN_NSYMB_PER_SLOT_NR; l++) {
     // Skip if OFDM symbol is outside of the PUSCH transmission
+    // 跳过不在pusch时频范围的资源
     if (l < pusch_cfg->grant.S || l >= (pusch_cfg->grant.S + pusch_cfg->grant.L)) {
       pusch_cfg->uci.pusch.M_pusch_sc[l] = 0;
       pusch_cfg->uci.pusch.M_uci_sc[l]   = 0;
@@ -1160,6 +1178,8 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
     return SRSRAN_ERROR;
   }
 
+  // 周期性CSI只在PUCCH传输，非周期性CSI只在PUSCH传输，半持续CSI可以在PUCCH或者由DCI激活的PUSCH传输。
+  // CSI包含两部分：CSI part 1和CSI part 2。CSI part 1的载荷大小固定，并用来确认CSI part 2的信息比特，因此CSI part 1总是先于CSI part 2传输。
   pusch_cfg->uci.pusch.beta_csi1_offset = ra_ul_beta_offset_csi_semistatic(&pusch_hl_cfg->beta_offsets, uci_cfg, false);
   if (!isnormal(pusch_cfg->uci.pusch.beta_csi1_offset)) {
     return SRSRAN_ERROR;
@@ -1194,6 +1214,7 @@ int srsran_ra_ul_set_grant_uci_nr(const srsran_carrier_nr_t*    carrier,
 
   // Update Number of TB encoded bits
   // 数据放置没有间隔这个放置规则，等导频，harq-ack csi-port1 csi-port2放置完了剩下什么位置就挨着放就行，这块特殊情况就是harq-ack的bit数小于等于2的时候，data也是可以占用之前需要的空间
+  // 重新计算tbs
   for (uint32_t i = 0; i < SRSRAN_MAX_TB; i++) {
     pusch_cfg->grant.tb[i].nof_bits =
         pusch_cfg->grant.tb[i].nof_re * srsran_mod_bits_x_symbol(pusch_cfg->grant.tb[i].mod) - Gack - Gcsi1 - Gcsi2;
