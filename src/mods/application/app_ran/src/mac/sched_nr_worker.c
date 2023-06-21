@@ -305,7 +305,9 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl, oset_list_t *ue_
 
 	// Post-processing of scheduling decisions
 	//调度决策的后处理
-	cc_worker_postprocess_decisions(cc_w, bwp_alloc);//为UCI的pusch和pucch申请资源（sr/ack/csi）
+	//为UCI复用pusch申请的资源
+	//为UCI预处理PUCCH配置，用于上行信道解析
+	cc_worker_postprocess_decisions(cc_w, bwp_alloc);
 
 	// Log CC scheduler result
 	log_sched_bwp_result(logger, bwp_alloc.get_pdcch_tti(), bwps[0].grid, slot_ues);
