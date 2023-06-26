@@ -65,7 +65,7 @@ int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t grant_size, cvect
 {
   //std::lock_guard<std::mutex> lock(mutex);
   if (mac_pdu_dl.init_tx(pdu, grant_size) != SRSRAN_SUCCESS) {
-    logger.error("Couldn't initialize MAC PDU buffer");
+    oset_error("Couldn't initialize MAC PDU buffer");
     return SRSRAN_ERROR;
   }
 
@@ -73,14 +73,14 @@ int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t grant_size, cvect
 
   int32_t remaining_len = mac_pdu_dl.get_remaing_len();
 
-  logger.debug("0x%x Generating MAC PDU (%d B)", rnti, remaining_len);
+  oset_debug("0x%x Generating MAC PDU (%d B)", ue->rnti, remaining_len);
 
   // First, add CEs as indicated by scheduler
   for (const auto& lcid : subpdu_lcids) {
-    logger.debug("adding lcid=%d", lcid);
-    if (lcid == srsran::mac_sch_subpdu_nr::CON_RES_ID) {//??? C-RNTI MAC CE (msg3)还不确定
-      if (last_msg3 != nullptr) {
-        srsran::mac_sch_subpdu_nr::ue_con_res_id_t id;
+    oset_debug("adding lcid=%d", lcid);
+    if (lcid == (mac_sch_subpdu_nr)CON_RES_ID) {//??? C-RNTI MAC CE (msg3)还不确定
+      if (last_msg3 != NULL) {
+        ue_con_res_id_t id = {0};
         memcpy(id.data(), last_msg3->msg, id.size());
         if (mac_pdu_dl.add_ue_con_res_id_ce(id) != SRSRAN_SUCCESS) {
           logger.error("0x%x Failed to add ConRes CE.", rnti);
