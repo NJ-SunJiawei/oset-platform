@@ -129,7 +129,7 @@ void mac_pcap_write_dl_crnti_nr(mac_pcap *pcap, uint8_t* pdu, uint32_t pdu_len_b
 	pack_and_queue_nr(pcap, pdu, pdu_len_bytes, tti, rnti, pcap->base.ue_id, harqid, DIRECTION_DOWNLINK, C_RNTI);
 }
 
-void mac_pcap_write_dl_crnti_nr(mac_pcap *pcap,
+void mac_pcap_write_ue_dl_crnti_nr(mac_pcap *pcap,
 									uint8_t* pdu,
 									uint32_t pdu_len_bytes,
 									uint16_t crnti,
@@ -145,7 +145,7 @@ void mac_pcap_write_ul_crnti_nr(mac_pcap *pcap, uint8_t* pdu, uint32_t pdu_len_b
 	pack_and_queue_nr(pcap, pdu, pdu_len_bytes, tti, rnti, pcap->base.ue_id, harqid, DIRECTION_UPLINK, C_RNTI);
 }
 
-void mac_pcap_write_ul_crnti_nr(mac_pcap *pcap,
+void mac_pcap_write_ue_ul_crnti_nr(mac_pcap *pcap,
 									uint8_t* pdu,
 									uint32_t pdu_len_bytes,
 									uint16_t rnti,

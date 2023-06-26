@@ -60,6 +60,96 @@ ue_nr *ue_nr_find_by_rnti(uint16_t rnti)
             mac_manager_self()->ue_db, &rnti, sizeof(rnti));
 }
 
+
+int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t grant_size, cvector_vector_t(uint32_t) subpdu_lcids)
+{
+  //std::lock_guard<std::mutex> lock(mutex);
+  if (mac_pdu_dl.init_tx(pdu, grant_size) != SRSRAN_SUCCESS) {
+    logger.error("Couldn't initialize MAC PDU buffer");
+    return SRSRAN_ERROR;
+  }
+
+  bool drb_activity = false; // inform RRC about user activity if true
+
+  int32_t remaining_len = mac_pdu_dl.get_remaing_len();
+
+  logger.debug("0x%x Generating MAC PDU (%d B)", rnti, remaining_len);
+
+  // First, add CEs as indicated by scheduler
+  for (const auto& lcid : subpdu_lcids) {
+    logger.debug("adding lcid=%d", lcid);
+    if (lcid == srsran::mac_sch_subpdu_nr::CON_RES_ID) {//??? C-RNTI MAC CE (msg3)还不确定
+      if (last_msg3 != nullptr) {
+        srsran::mac_sch_subpdu_nr::ue_con_res_id_t id;
+        memcpy(id.data(), last_msg3->msg, id.size());
+        if (mac_pdu_dl.add_ue_con_res_id_ce(id) != SRSRAN_SUCCESS) {
+          logger.error("0x%x Failed to add ConRes CE.", rnti);
+        }
+        last_msg3 = nullptr; // don't use this Msg3 again
+      } else {
+        logger.warning("0x%x Can't add ConRes CE. No Msg3 stored.", rnti);
+      }
+    } else {
+      // add SDUs for given LCID
+      while (remaining_len >= MIN_RLC_PDU_LEN) {
+        // clear read buffer
+        ue_rlc_buffer->clear();
+
+        // Determine space for RLC//2的8次方为256 <256Byte用8bit表示长度     ，>256Byte用16bit表示长度 ,去掉mac lcid头
+        //先写mac头
+        remaining_len -= remaining_len >= srsran::mac_sch_subpdu_nr::MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2;
+
+        // read RLC PDU
+        int pdu_len = rlc->read_pdu(rnti, lcid, ue_rlc_buffer->msg, remaining_len);//int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+
+        if (pdu_len > remaining_len) {
+          logger.error("Can't add SDU of %d B. Available space %d B", pdu_len, remaining_len);
+          break;
+        } else {
+          // Add SDU if RLC has something to tx
+          if (pdu_len > 0) {
+            ue_rlc_buffer->N_bytes = pdu_len;
+            logger.debug(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
+
+            // add to MAC PDU and pack
+            if (mac_pdu_dl.add_sdu(lcid, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes) != SRSRAN_SUCCESS) {
+              logger.error("Error packing MAC PDU");
+              break;
+            }
+
+            // set DRB activity flag but only notify RRC once
+            if (lcid > 3) {//lcid>3（srb0 srb1 srb2）的逻辑信道为drb类型信道
+              drb_activity = true;
+            }
+          } else {
+            break;
+          }
+
+          remaining_len -= pdu_len;
+          logger.debug("%d B remaining PDU", remaining_len);
+        }
+      }
+    }
+  }
+
+  mac_pdu_dl.pack();
+
+  if (drb_activity) {
+    // Indicate DRB activity in DL to RRC//向RRC说明DL中的DRB活动
+    rrc->set_activity_user(rnti);
+    logger.debug("DL activity rnti=0x%x", rnti);
+  }
+
+  if (logger.info.enabled()) {
+    fmt::memory_buffer str_buffer;
+    mac_pdu_dl.to_string(str_buffer);
+    logger.info("0x%x %s", rnti, srsran::to_c_str(str_buffer));
+  }
+  return SRSRAN_SUCCESS;
+}
+
+
+
 /******* METRICS interface ***************/
 void ue_nr_metrics_read(ue_nr *ue, mac_ue_metrics_t* metrics_)
 {
@@ -137,7 +227,7 @@ void ue_nr_metrics_dl_mcs(ue_nr *ue, uint32_t mcs)
 void ue_nr_metrics_ul_mcs(ue_nr *ue, uint32_t mcs)
 {
   //std::lock_guard<std::mutex> lock(metrics_mutex);
-  ue->ue_metrics.ul_mcs = SRSRAN_VEC_CMA((float)mcs, ue_metrics.ul_mcs, ue_metrics.ul_mcs_samples);
+  ue->ue_metrics.ul_mcs = SRSRAN_VEC_CMA((float)mcs, ue->ue_metrics.ul_mcs, ue->ue_metrics.ul_mcs_samples);
   ue->ue_metrics.ul_mcs_samples++;
 }
 

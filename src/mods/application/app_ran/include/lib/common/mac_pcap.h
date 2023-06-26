@@ -51,7 +51,7 @@ typedef struct {
 void mac_pcap_enable(mac_pcap *pcap, bool enable_);
 void mac_pcap_set_ue_id(mac_pcap *pcap, uint16_t ue_id_);
 void mac_pcap_write_dl_crnti_nr(mac_pcap *pcap, uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti);
-void mac_pcap_write_dl_crnti_nr(mac_pcap *pcap,
+void mac_pcap_write_ue_dl_crnti_nr(mac_pcap *pcap,
 									uint8_t* pdu,
 									uint32_t pdu_len_bytes,
 									uint16_t crnti,
@@ -59,7 +59,7 @@ void mac_pcap_write_dl_crnti_nr(mac_pcap *pcap,
 									uint8_t  harqid,
 									uint32_t tti);
 void mac_pcap_write_ul_crnti_nr(mac_pcap *pcap, uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti);
-void mac_pcap_write_ul_crnti_nr(mac_pcap *pcap,
+void mac_pcap_write_ue_ul_crnti_nr(mac_pcap *pcap,
 									uint8_t* pdu,
 									uint32_t pdu_len_bytes,
 									uint16_t rnti,

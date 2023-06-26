@@ -549,13 +549,13 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 	harq_proc_set_tbs(&slot_u->h_dl->proc, pdsch->sch.grant.tb[0].tbs);
 	// 软合并buffer地址，在物理层中使用
 	pdsch->sch.grant.tb[0].softbuffer.tx = &slot_u->h_dl->softbuffer->buffer;
-	// buffer地址，赋值需要下行传输的TB数据源 (从RLC获取,新传harq中会清空) ???重传数据是啥
+	// buffer地址，赋值需要下行传输的TB数据源 (从RLC获取,新传harq中会清空), 重传数据是上一次的
 	pdsch->data[0] = slot_u->h_dl->pdu;
 
 	// Select scheduled LCIDs and update UE buffer state
 	dl_pdu_t dl_pdu_data = {0};
 	// NOTE: ue.h_dl->tbs() has to be converted from bits to bytes
-	bool segmented_ccch_pdu = build_pdu(slot_u, TBS(slot_u->h_dl->proc.tb) / 8, &dl_pdu_data);
+	bool segmented_ccch_pdu = build_pdu(slot_u, TBS(slot_u->h_dl->proc.tb)/8, &dl_pdu_data);
 	if (false == segmented_ccch_pdu) {
 		oset_error("[%5u]SCHED: Insufficient resources to allocate SRB0/CCCH for rnti=0x%x", GET_RSLOT_ID(bwp_alloc->pdcch_slot), min_MCS_ccch, ue->rnti);
 	}

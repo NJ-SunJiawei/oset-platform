@@ -48,6 +48,126 @@ static void log_sched_slot_ues(slot_point pdcch_slot, cc_worker *cc_w)
 	oset_log_print(OSET_LOG2_DEBUG, "%s]", dumpstr);
 }
 
+static char* subpdus_to_string(bwp_slot_allocator *bwp_alloc, size_t data_count)
+{
+	char dumpstr[128] = {0};
+	char *p = NULL, *last = NULL;
+	char *use_comma = "";
+	bwp_slot_grid  *bwp_slot  = get_tx_slot_grid(bwp_alloc);
+
+	last = dumpstr + 128;
+	p = dumpstr;
+
+	uint32_t *lcid = NULL; 
+	cvector_for_each_in(bwp_slot->dl.data[data_count].subpdus){
+		p = oset_slprintf(p, last, "%s%d", use_comma, *lcid);
+		use_comma = ",";
+	}
+	return dumpstr;
+}
+
+static uint32_t find_start_idx(bool      prb_idx[SRSRAN_MAX_PRB_NR])
+{
+	uint32_t start_idx = 0;
+	for(int i = 0; i < SRSRAN_MAX_PRB_NR; ++i){
+		if(true == prb_idx[i]){
+			start_idx = i;
+			break;
+		}
+	}
+	return start_idx;
+}
+
+static void log_sched_bwp_result(bwp_slot_allocator *bwp_alloc,
+								bwp_res_grid    *res_grid,
+								cc_worker       *cc_w)
+{
+	slot_point     pdcch_slot = get_pdcch_tti(bwp_alloc);
+	bwp_slot_grid  *bwp_slot  = get_slot_grid(bwp_alloc, pdcch_slot);
+	size_t         rar_count = 0, si_count = 0, data_count = 0;
+
+	pdcch_dl_t **dl_node = NULL;
+	cvector_for_each_in(dl_node, bwp_slot->dl.phy.pdcch_dl){
+		pdcch_dl_t *pdcch = *dl_node;
+
+		if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
+			slot_ue *ue = oset_hash_get(cc_w->slot_ues, pdcch->dci.ctx.rnti, sizeof(pdcch->dci.ctx.rnti));
+			oset_assert(ue);
+			oset_info("[%5u] SCHED: DL %s, cc=%d, rnti=0x%x, pid=%d, coreset Id=%d, f=%s, prbs=[%d,%d), nrtx=%d, dai=%d, "
+			             "lcids=[%s], tbs=%d, buffer status=%d, pdsch_slot=%d, ack_slot=%d",
+			             GET_RSLOT_ID(pdcch_slot),
+			             nof_retx(&ue->h_dl->proc) == 0 ? "tx" : "retx",
+			             res_grid->cfg->cc,
+			             ue->ue->rnti,
+			             pdcch->dci.pid,
+			             pdcch->dci.ctx.coreset_id,
+			             srsran_dci_format_nr_string(pdcch->dci.ctx.format),
+			             ue->h_dl->proc.prbs_.alloc.interv.start_,ue.h_dl->proc.prbs_.alloc.interv.stop_,
+			             nof_retx(&ue->h_dl->proc),
+			             pdcch->dci.dai,
+			             subpdus_to_string(bwp_alloc, data_count++),
+			             TBS(ue.h_dl.proc.tb) / 8u,
+			             ue->dl_bytes,
+			             ue->pdsch_slot,
+			             ue->uci_slot);
+		} else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_ra) {
+			pdsch_t* pdsch = bwp_slot->dl.phy.pdsch[dl_node - bwp_slot.dl.phy.pdcch_dl];
+			uint32_t start_idx = find_start_idx(pdsch->sch.grant.prb_idx);
+			uint32_t end_idx   = start_idx + pdsch->sch.grant.nof_prb;
+			oset_info("[%5u] SCHED: RAR, cc=%d, ra-rnti=0x%x, prbs=[%d,%d), pdsch_slot=%d, msg3_slot=%d, nof_grants=%d",
+						GET_RSLOT_ID(pdcch_slot),
+						res_grid->cfg->cc,
+						pdcch->dci.ctx.rnti,
+						start_idx, end_idx,
+						pdcch_slot,
+						slot_point_add_jump(pdcch_slot + res_grid.cfg->pusch_ra_list[0].msg3_delay),
+						cvector_size(bwp_slot->dl.rar[rar_count++].grants));
+		} else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_si) {
+			pdsch_t* pdsch = bwp_slot->dl.phy.pdsch[dl_node - bwp_slot.dl.phy.pdcch_dl];
+			uint32_t start_idx = find_start_idx(pdsch->sch.grant.prb_idx);
+			uint32_t end_idx   = start_idx + pdsch->sch.grant.nof_prb;
+			oset_debug("[%5u] SCHED: SI%s, cc=%d, prbs=[%d,%d), pdsch_slot=%d",
+						GET_RSLOT_ID(pdcch_slot),
+						pdcch->dci.sii == 0 ? "B" : " message",
+						res_grid->cfg->cc,
+						start_idx, end_idx,
+						pdcch_slot);
+			si_count++;
+		}
+	}
+
+	pdcch_ul_t **ul_node = NULL;
+	cvector_for_each_in(ul_node, bwp_slot->dl.phy.pdcch_ul){
+		pdcch_ul_t *pdcch = *ul_node;
+		slot_ue *ue = oset_hash_get(cc_w->slot_ues, pdcch->dci.ctx.rnti, sizeof(pdcch->dci.ctx.rnti));
+		oset_assert(ue);
+
+		if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
+			oset_info("[%5u] SCHED: UL %s, cc=%d, rnti=0x%x, pid=%d, coreset Id=%d, f=%s, nrtx=%d, tbs=%d, buffer status=%d, pusch_slot=%d",
+						GET_RSLOT_ID(pdcch_slot),
+						nof_retx(&ue->h_ul->proc) == 0 ? "tx" : "retx",
+						res_grid->cfg->cc,
+						ue->ue->rnti,
+						pdcch->dci.pid,
+						pdcch->dci.ctx.coreset_id,
+						srsran_dci_format_nr_string(pdcch->dci.ctx.format),
+						nof_retx(&ue->h_ul->proc),
+						TBS(ue->h_ul->proc.tb) / 8u,
+						ue->ul_bytes,
+						ue->pusch_slot);
+		} else if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_tc) {
+		  oset_info("[%5u] SCHED: UL Msg3, cc=%d, tc-rnti=0x%x, pid=%d, nrtx=%d, f=%s, tti_pusch=%d",
+		                 res_grid->cfg->cc,
+		                 ue->ue->rnti,
+		                 pdcch->dci.pid,
+		                 nof_retx(&ue->h_ul->proc),
+		                 srsran_dci_format_nr_string(pdcch.dci.ctx.format),
+		                 ue->pusch_slot);
+		}
+	}
+}
+
+
 static void cc_worker_alloc_dl_ues(cc_worker *cc_w, bwp_slot_allocator *bwp_alloc)
 {
 	if (!cc_w->cfg->sched_args->pdsch_enabled) {
@@ -310,7 +430,7 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl, oset_list_t *ue_
 	cc_worker_postprocess_decisions(cc_w, bwp_alloc);
 
 	// Log CC scheduler result
-	log_sched_bwp_result(get_pdcch_tti(bwp_alloc), cc_w->bwps[0].grid, cc_w->slot_ue_list);
+	log_sched_bwp_result(bwp_alloc, cc_w->bwps[0].grid, cc_w);
 
 	// releases UE resources
 	slot_ue_clear(cc_w->cfg->cc);
