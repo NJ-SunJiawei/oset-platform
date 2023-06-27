@@ -93,6 +93,8 @@ typedef struct {
 }mac_sch_pdu_nr;
 
 uint32_t mac_sch_subpdu_nr_sizeof_ce(uint32_t lcid, bool is_ul);
+int mac_sch_pdu_nr_init_tx(mac_sch_pdu_nr	*mac_pdu_dl, byte_buffer_t* buffer_, uint32_t pdu_len_, bool ulsch_);
+uint32_t mac_sch_pdu_nr_add_ue_con_res_id_ce(mac_sch_pdu_nr	*mac_pdu_dl, ue_con_res_id_t id);
 
 #ifdef __cplusplus
 }

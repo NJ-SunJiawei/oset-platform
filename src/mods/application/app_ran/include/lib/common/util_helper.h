@@ -27,7 +27,7 @@ extern "C" {
 	  do { \
 		if (oset_likely(x)); \
 		else{ \
-		  oset_error(##__VA_ARGS__); \
+		  oset_error(__VA_ARGS__); \
 		  return OSET_ERROR; \
 		} \
 	  } while (0)
@@ -36,7 +36,7 @@ extern "C" {
 	  do { \
 		if (oset_likely(x)); \
 		else{ \
-		  oset_error(##__VA_ARGS__); \
+		  oset_error(__VA_ARGS__); \
 		  return; \
 		} \
 	  } while (0)
@@ -46,7 +46,7 @@ extern "C" {
 	  do { \
 		if (oset_likely(x)); \
 		else{ \
-		  oset_error(##__VA_ARGS__); \
+		  oset_error(__VA_ARGS__); \
           oset_abort(); \
 		} \
 	  } while (0)

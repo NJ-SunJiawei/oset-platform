@@ -381,7 +381,7 @@ int rrc_add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer)
   if (NULL == rrc_nr_ue_find_by_rnti(rnti)) {
     // If in the ue ctor, "start_msg3_timer" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
 	rrc_nr_ue_add(rnti, pcell_cc_idx, start_msg3_timer);
-    rlc->add_user(rnti);
+    rlc_add_user(rnti);
     pdcp->add_user(rnti);
     oset_info("Added new user rnti=0x%x", rnti);
     return OSET_OK;

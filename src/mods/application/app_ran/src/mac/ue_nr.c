@@ -22,6 +22,7 @@ ue_nr *ue_nr_add(uint16_t rnti)
     memset(ue, 0, sizeof(ue_nr));
 
 	ue->ue_rlc_buffer = byte_buffer_init();
+	//ue->last_msg3 = byte_buffer_init();
 
 	ue_nr_set_rnti(rnti, ue);
     oset_list_add(&mac_manager_self()->mac_ue_list, ue);
@@ -37,6 +38,9 @@ void ue_nr_remove(ue_nr *ue)
     oset_assert(ue);
 
     oset_free(ue->ue_rlc_buffer);
+    //oset_free(ue->last_msg3);
+	cvector_free(ue->mac_pdu_dl.subpdus);
+	cvector_free(ue->mac_pdu_ul.subpdus);
 
     oset_list_remove(&mac_manager_self()->mac_ue_list, ue);
     oset_hash_set(mac_manager_self()->ue_db, &ue->rnti, sizeof(ue->rnti), NULL);
@@ -60,65 +64,66 @@ ue_nr *ue_nr_find_by_rnti(uint16_t rnti)
             mac_manager_self()->ue_db, &rnti, sizeof(rnti));
 }
 
-
 int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t grant_size, cvector_vector_t(uint32_t) subpdu_lcids)
 {
   //std::lock_guard<std::mutex> lock(mutex);
-  if (mac_pdu_dl.init_tx(pdu, grant_size) != SRSRAN_SUCCESS) {
+  if (mac_sch_pdu_nr_init_tx(&ue->mac_pdu_dl, pdu, grant_size, false) != OSET_OK) {
     oset_error("Couldn't initialize MAC PDU buffer");
-    return SRSRAN_ERROR;
+    return OSET_ERROR;
   }
 
   bool drb_activity = false; // inform RRC about user activity if true
 
-  int32_t remaining_len = mac_pdu_dl.get_remaing_len();
+  int32_t remaining_len = ue->mac_pdu_dl.remaining_len;
 
   oset_debug("0x%x Generating MAC PDU (%d B)", ue->rnti, remaining_len);
 
   // First, add CEs as indicated by scheduler
-  for (const auto& lcid : subpdu_lcids) {
-    oset_debug("adding lcid=%d", lcid);
-    if (lcid == (mac_sch_subpdu_nr)CON_RES_ID) {//??? C-RNTI MAC CE (msg3)还不确定
-      if (last_msg3 != NULL) {
+  uint32_t *lcid = NULL;
+  cvector_for_each_in(lcid, subpdu_lcids){
+    oset_debug("adding lcid=%d", *lcid);
+	// Msg4中的Contention Resolution Identity MAC CE
+    if (*lcid == (mac_sch_subpdu_nr)CON_RES_ID) {
+      if (ue->last_msg3 != NULL) {//get from mac ul
         ue_con_res_id_t id = {0};
-        memcpy(id.data(), last_msg3->msg, id.size());
-        if (mac_pdu_dl.add_ue_con_res_id_ce(id) != SRSRAN_SUCCESS) {
-          logger.error("0x%x Failed to add ConRes CE.", rnti);
+        memcpy(id, ue->last_msg3->msg, sizeof(id));
+        if (mac_sch_pdu_nr_add_ue_con_res_id_ce(&ue->mac_pdu_dl, id) != OSET_OK) {
+          oset_error("0x%x Failed to add ConRes CE", ue->rnti);
         }
-        last_msg3 = nullptr; // don't use this Msg3 again
+        ue->last_msg3 = NULL; // don't use this Msg3 again
       } else {
-        logger.warning("0x%x Can't add ConRes CE. No Msg3 stored.", rnti);
+        oset_warn("0x%x Can't add ConRes CE. No Msg3 stored", ue->rnti);
       }
     } else {
       // add SDUs for given LCID
       while (remaining_len >= MIN_RLC_PDU_LEN) {
         // clear read buffer
-        ue_rlc_buffer->clear();
+        byte_buffer_clear(ue->ue_rlc_buffer);
 
-        // Determine space for RLC//2的8次方为256 <256Byte用8bit表示长度     ，>256Byte用16bit表示长度 ,去掉mac lcid头
-        //先写mac头
-        remaining_len -= remaining_len >= srsran::mac_sch_subpdu_nr::MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2;
+        // Determine space for RLC
+        // 2^8为256 <8bit表示长度最大值为256> ,去掉mac subheader头
+        remaining_len -= (remaining_len >= MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2);
 
-        // read RLC PDU
-        int pdu_len = rlc->read_pdu(rnti, lcid, ue_rlc_buffer->msg, remaining_len);//int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+        // read RLC PDU API
+        int pdu_len = rlc_read_pdu_api(ue->rnti, *lcid, ue->ue_rlc_buffer->msg, remaining_len);
 
         if (pdu_len > remaining_len) {
-          logger.error("Can't add SDU of %d B. Available space %d B", pdu_len, remaining_len);
+          oset_error("Can't add SDU of %d B. Available space %d B", pdu_len, remaining_len);
           break;
         } else {
           // Add SDU if RLC has something to tx
           if (pdu_len > 0) {
-            ue_rlc_buffer->N_bytes = pdu_len;
-            logger.debug(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
+            ue->ue_rlc_buffer->N_bytes = pdu_len;
+            oset_debug("Read %d B from RLC", ue->ue_rlc_buffer->N_bytes);
 
             // add to MAC PDU and pack
-            if (mac_pdu_dl.add_sdu(lcid, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes) != SRSRAN_SUCCESS) {
-              logger.error("Error packing MAC PDU");
+            if (mac_pdu_dl.add_sdu(*lcid, ue->ue_rlc_buffer->msg, ue->ue_rlc_buffer->N_bytes) != SRSRAN_SUCCESS) {
+              oset_error("Error packing MAC PDU");
               break;
             }
 
             // set DRB activity flag but only notify RRC once
-            if (lcid > 3) {//lcid>3（srb0 srb1 srb2）的逻辑信道为drb类型信道
+            if (*lcid > 3) {//lcid>3（srb0 srb1 srb2）的逻辑信道为drb类型信道
               drb_activity = true;
             }
           } else {
@@ -126,28 +131,28 @@ int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t grant_size, cvect
           }
 
           remaining_len -= pdu_len;
-          logger.debug("%d B remaining PDU", remaining_len);
+          oset_debug("%d B remaining PDU", remaining_len);
         }
       }
     }
   }
 
-  mac_pdu_dl.pack();
+  ue->mac_pdu_dl.pack();
 
   if (drb_activity) {
-    // Indicate DRB activity in DL to RRC//向RRC说明DL中的DRB活动
-    rrc->set_activity_user(rnti);
-    logger.debug("DL activity rnti=0x%x", rnti);
+    // Indicate DRB activity in DL to RRC
+    // 向RRC说明DL中的DRB活动
+    rrc->set_activity_user(ue->rnti);
+    oset_debug("DL activity rnti=0x%x", ue->rnti);
   }
 
   if (logger.info.enabled()) {
     fmt::memory_buffer str_buffer;
     mac_pdu_dl.to_string(str_buffer);
-    logger.info("0x%x %s", rnti, srsran::to_c_str(str_buffer));
+    logger.info("0x%x %s", ue->rnti, srsran::to_c_str(str_buffer));
   }
-  return SRSRAN_SUCCESS;
+  return OSET_OK;
 }
-
 
 
 /******* METRICS interface ***************/

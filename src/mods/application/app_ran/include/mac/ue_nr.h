@@ -42,7 +42,7 @@ typedef struct {
 	mac_sch_pdu_nr	mac_pdu_dl;
 	mac_sch_pdu_nr	mac_pdu_ul;
 
-	byte_buffer_t    *ue_rlc_buffer;//oset_pkbuf_t??
+	byte_buffer_t    *ue_rlc_buffer;//get RLC buffer
 	byte_buffer_t    *last_msg3; ///< holds UE ID received in Msg3 for ConRes CE
 }ue_nr;//user xontext
 

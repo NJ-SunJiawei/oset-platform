@@ -467,6 +467,7 @@ bool get_pending_bytes(slot_ue *slot_u, uint32_t lcid)
 /// Build PDU with MAC CEs and MAC SDUs
 bool build_pdu(slot_ue *slot_u, uint32_t rem_bytes, dl_pdu_t *pdu)
 {
+	// 根据tbs粗略估计,获取lcid合集
 	return pdu_builder_alloc_subpdus(&slot_u->ue->pdu_builders, rem_bytes, pdu);
 }
 

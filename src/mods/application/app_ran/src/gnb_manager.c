@@ -14,6 +14,8 @@
 #include "phy/prach_worker.h"
 #include "phy/txrx.h"
 #include "mac/mac.h"
+#include "rlc/rlc.h"
+#include "pdcp/pdcp.h"
 #include "rrc/rrc.h"
 
 
@@ -341,6 +343,9 @@ int gnb_layer_tasks_create(void)
 	  return OSET_ERROR;
 	}
 
+	pdcp_init();
+	rlc_init();
+
 	if (OSET_ERROR == task_thread_create(TASK_MAC, NULL)) {
 	  oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "Create task for gNB MAC failed");
 	  return OSET_ERROR;
@@ -356,6 +361,8 @@ void gnb_layer_tasks_destory(void)
 	phy_destory();
 	rf_destory();
 	oset_threadplus_destroy(task_map_self(TASK_MAC)->thread, 1);
+	pdcp_destory();
+	rlc_destory();
 	oset_threadplus_destroy(task_map_self(TASK_RRC)->thread, 1);
 	oset_threadplus_destroy(task_map_self(TASK_METRICS)->thread, 1);
 	oset_threadplus_destroy(task_map_self(TASK_TIMER)->thread, 1);

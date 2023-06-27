@@ -925,7 +925,7 @@ OSET_DECLARE(void) cp_order_deal(uint32_t id, oset_sock_t *omc_sock, oset_sockad
 			session->omc_sock = omc_sock;
 			session->omc_from = omc_from;
 			om_udp_sendto(session->pod_sock, &session->pod_from, (void *)cp_order, sizeof(om_transfer_order_c_t));
-			//oset_log_hexdump(OSET_LOG_INFO, (unsigned char *)cp_order, sizeof(om_transfer_order_c_t));
+			oset_hex_print(OSET_LOG2_DEBUG, (unsigned char *)cp_order, sizeof(om_transfer_order_c_t));
 			oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "thread[%u]:cp_order_deal() send cp_order success, dest pod_id[%s], addr[%s:%d]", id, session->p->pod_id, OSET_ADDR(&session->pod_from, buf), OSET_PORT(&session->pod_from)); 
 		}
 		oset_free(new_key);
@@ -946,7 +946,7 @@ OSET_DECLARE(void) cp_order_deal(uint32_t id, oset_sock_t *omc_sock, oset_sockad
 					node->omc_sock = omc_sock;
 					node->omc_from = omc_from;
 					om_udp_sendto(node->pod_sock, &node->pod_from, (void *)cp_order, sizeof(om_transfer_order_c_t));
-					//oset_log_hexdump(OSET_LOG_INFO, (unsigned char *)cp_order, sizeof(om_transfer_order_c_t));
+					oset_hex_print(OSET_LOG2_DEBUG, (unsigned char *)cp_order, sizeof(om_transfer_order_c_t));
 					oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "thread[%u]:cp_order_deal() broadcast cp_order success, dest pod_id[%s], addr[%s:%d]", id, node->p->pod_id, OSET_ADDR(&node->pod_from, buf), OSET_PORT(&node->pod_from));
 				    oset_msleep(50);
 				}
@@ -962,7 +962,7 @@ OSET_DECLARE(void) cp_report_deal(uint32_t id, oset_sock_t *pod_sock, oset_socka
     char *context = NULL;
 
     oset_sys_assert(pod_cp_rpt);
-	//oset_log_hexdump(OSET_LOG_INFO, (unsigned char *)pod_cp_rpt, len);
+	oset_hex_print(OSET_LOG2_DEBUG, (unsigned char *)pod_cp_rpt, len);
 	context = omc_json_cp_report_encode(pod_cp_rpt);
 	sendProbeMessage(om_self()->mq_producer, OM_C_REPORT, pod_cp_rpt->header.system_id, pod_cp_rpt->header.pod_id, context);
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "thread[%u]:om->omc cp_report_deal() sendProbeMessage success", id); 
@@ -1220,6 +1220,7 @@ OSET_DECLARE(void) up_order_deal(uint32_t id, oset_sock_t *omc_sock, oset_sockad
 	oset_log2_printf(OSET_CHANNEL_LOG_CLEAN, OSET_LOG2_DEBUG, "up_order decode :%s\n", up_order->u_order.src_dir_path);
 	oset_log2_printf(OSET_CHANNEL_LOG_CLEAN, OSET_LOG2_DEBUG, "up_order decode :%s\n", up_order->u_order.target_dir_path);
 	oset_log2_printf(OSET_CHANNEL_LOG_CLEAN, OSET_LOG2_DEBUG, "up_order decode :%d\n", up_order->u_order.order);
+	//oset_hex_print(OSET_LOG2_DEBUG, (unsigned char *)up_order, sizeof(om_transfer_order_u_t));
 
 	oset_sys_assert(up_order->header.system_id);
 
@@ -1244,7 +1245,7 @@ OSET_DECLARE(void) up_order_deal(uint32_t id, oset_sock_t *omc_sock, oset_sockad
 			session->omc_sock = omc_sock;
 			session->omc_from = omc_from;
 			om_udp_sendto(session->pod_sock, &session->pod_from, (void *)up_order, sizeof(om_transfer_order_u_t));
-			//oset_log_hexdump(OSET_LOG_INFO, (unsigned char *)up_order, sizeof(om_transfer_order_u_t));
+			oset_hex_print(OSET_LOG2_DEBUG, (unsigned char *)up_order, sizeof(om_transfer_order_u_t));
 			oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "thread[%u]:up_order_deal() send up_order success, dest pod_id[%s], addr[%s:%d]", id, session->p->pod_id, OSET_ADDR(&session->pod_from, buf), OSET_PORT(&session->pod_from)); 
 		}
 		oset_free(new_key);
@@ -1265,7 +1266,7 @@ OSET_DECLARE(void) up_order_deal(uint32_t id, oset_sock_t *omc_sock, oset_sockad
 					node->omc_sock = omc_sock;
 					node->omc_from = omc_from;
 					om_udp_sendto(node->pod_sock, &node->pod_from, (void *)up_order, sizeof(om_transfer_order_u_t));
-					//oset_log_hexdump(OSET_LOG_INFO, (unsigned char *)up_order, sizeof(om_transfer_order_u_t));
+					oset_hex_print(OSET_LOG2_DEBUG, (unsigned char *)up_order, sizeof(om_transfer_order_u_t));
 					oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "thread[%u]:cp_order_deal() broadcast up_order success, dest pod_id[%s], addr[%s:%d]", id, node->p->pod_id, OSET_ADDR(&node->pod_from, buf), OSET_PORT(&node->pod_from));
 				    oset_msleep(100);
 				}
@@ -1281,7 +1282,7 @@ OSET_DECLARE(void) up_report_deal(uint32_t id, oset_sock_t *pod_sock, oset_socka
     char *context = NULL;
 
     oset_sys_assert(pod_up_rpt);
-	//oset_log_hexdump(OSET_LOG_INFO, (unsigned char *)pod_up_rpt, len);
+	oset_hex_print(OSET_LOG2_DEBUG, (unsigned char *)pod_up_rpt, len);
 	context = omc_json_up_report_encode(pod_up_rpt);
 	sendProbeMessage(om_self()->mq_producer, OM_U_REPORT, pod_up_rpt->header.system_id, pod_up_rpt->header.pod_id, context);
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "thread[%u]:om->omc up_report_deal() sendProbeMessage success", id); 

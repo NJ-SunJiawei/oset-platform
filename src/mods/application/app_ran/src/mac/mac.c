@@ -307,7 +307,7 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 		  	//pdsch->data[0] = slot_u->h_dl->pdu;
 		  	byte_buffer_t *tb_data = pdsch->data[i];
 		    if (tb_data != NULL && tb_data->N_bytes == 0) {
-			  // TODO: exclude retx from packing
+			  // TODO: exclude rlc retx from packing
 			  ue_nr *mac_ue = ue_nr_find_by_rnti(rnti);
 			  oset_assert(mac_ue);
 		      // lcid sdu
@@ -321,9 +321,9 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 		    }
 		  }
 		} else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_ra) {
-		  sched_nr_interface::rar_t& rar = dl_res->rar[rar_count++];
+		  rar_t *rar = dl_res->rar[rar_count++];
 		  // for RARs we could actually move the byte_buffer to the PHY, as there are no retx
-		  pdsch.data[0] = assemble_rar(rar.grants);
+		  pdsch.data[0] = assemble_rar(rar->grants);
 		} else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_si) {
 		  uint32_t sib_idx = dl_res->sib_idxs[si_count++];
 		  pdsch.data[0]    = bcch_dlsch_payload[sib_idx].payload.get();//bcch_dlsch_payload.push_back(std::move(sib))

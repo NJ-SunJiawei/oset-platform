@@ -13,6 +13,7 @@ byte_buffer_t* byte_buffer_init(void)
 {
 	byte_buffer_t *p = oset_malloc(sizeof(byte_buffer_t));
 	oset_assert(p);
+	memset(p, 0, sizeof(byte_buffer_t));
 	p->msg     = &p->buffer[SRSRAN_BUFFER_HEADER_OFFSET];
 	p->N_bytes = 0;
 	p->md	   = {0};
@@ -23,6 +24,7 @@ byte_buffer_t* byte_buffer_init(byte_buffer_t *buf)
 {
 	byte_buffer_t *p = oset_malloc(sizeof(byte_buffer_t));
 	oset_assert(p);
+	memset(p, 0, sizeof(byte_buffer_t));
 	p->msg     = &p->buffer[SRSRAN_BUFFER_HEADER_OFFSET];
 	p->N_bytes = buf->N_bytes;
 	p->md	   = buf->md;
@@ -46,6 +48,7 @@ byte_buffer_t* byte_buffer_copy(byte_buffer_t *p, byte_buffer_t *other)
 
 void byte_buffer_clear(byte_buffer_t *p)
 {
+	memset(p, 0, sizeof(byte_buffer_t));
 	p->msg	   = &p->buffer[SRSRAN_BUFFER_HEADER_OFFSET];
 	p->N_bytes = 0;
 	p->md	   = {0};

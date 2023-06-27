@@ -105,6 +105,16 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 		// 目前只循环一次,
 		// msg2 prb = 4 ===> 4*12*(14-2)*2*379/1024*1 = 426bit/8 = 53byte
 		// RAR payload size in bytes as per TS38.321, 6.1.5 and 6.2.3.
+
+		// |E|T|R|R|   BI  | OCT1   MAC sub header
+		// |E|T      PAPID | OCT1   MAC sub header
+		// |R|R|R|   TA    | OCT1
+		// | TA   |UL Grant| OCT2
+		// |    UL Grant   | OCT3
+		// |    UL Grant   | OCT4
+		// |    UL Grant   | OCT5
+		// |    TC-RNTI    | OCT6
+		// |    TC-RNTI    | OCT7
         // rar_payload_size_bytes = 7, rar_subheader_size_bytes = 1  ====》 4*8 = 32byte
 		uint32_t nprb = 4;
 		prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
