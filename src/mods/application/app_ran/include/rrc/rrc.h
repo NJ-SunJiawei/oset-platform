@@ -14,6 +14,7 @@
 #include "lib/common/bearer_manager.h"
 #include "rrc/rrc_du_manager.h"
 #include "rrc/rrc_nr_ue.h"
+#include "rrc/rrc_cell_asn_fill_inner.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,11 +58,10 @@ typedef struct rrc_manager_s{
 
 rrc_manager_t *rrc_manager_self(void);
 
-/**********************mac callback***********************************/
-int rrc_add_user_callback(uint16_t rnti, uint32_t pcell_cc_idx);
-int rrc_read_pdu_bcch_dlsch_callback(uint32_t sib_index, oset_pkbuf_t *buffer);
+/**********************mac api****************************************/
+int API_rrc_mac_add_user(uint16_t rnti, uint32_t pcell_cc_idx);
+int API_rrc_mac_read_pdu_bcch_dlsch(uint32_t sib_index, oset_pkbuf_t *buffer);
 /*********************************************************************/
-
 int rrc_add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer);
 void rrc_rem_user(uint16_t rnti);
 void rrc_remove_user_all(void);

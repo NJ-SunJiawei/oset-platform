@@ -674,7 +674,7 @@ static bool make_phy_zp_csi_rs_resource(struct zp_csi_rs_res_s *zp_csi_rs_res,
 }
 
 
-bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl)
+bool API_make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl)
 {
   if (serv_cell->csi_meas_cfg_present && serv_cell->csi_meas_cfg.type_ == (enum setup_release_e)setup) {
     struct csi_meas_cfg_s *setup = &serv_cell->csi_meas_cfg.c;
@@ -695,7 +695,7 @@ bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_
     }
   }
 
-  if (serv_cell.init_dl_bwp.pdsch_cfg_present && serv_cell.init_dl_bwp.pdsch_cfg.type_ == (enum setup_release_e)setup) {
+  if (serv_cell->init_dl_bwp.pdsch_cfg_present && serv_cell->init_dl_bwp.pdsch_cfg.type_ == (enum setup_release_e)setup) {
     struct pdsch_cfg_s *setup = serv_cell->init_dl_bwp.pdsch_cfg.c;
     if (setup->p_zp_csi_rs_res_set_present) {
       struct zp_csi_rs_res_set_s *setup_set  = setup->p_zp_csi_rs_res_set.c;
@@ -909,7 +909,7 @@ static bool make_phy_res_config(const pucch_res_s     	   *pucch_res,
 }
 
 
-bool make_csi_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_csi_hl_cfg_t* csi_hl)
+bool API_make_csi_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_csi_hl_cfg_t* csi_hl)
 {
 	if (serv_cell->csi_meas_cfg_present && serv_cell->csi_meas_cfg.type_ == (enum setup_release_e)setup) {
 		struct csi_meas_cfg_s *setup = &serv_cell->csi_meas_cfg.c;

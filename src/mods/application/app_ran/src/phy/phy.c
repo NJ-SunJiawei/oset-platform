@@ -122,8 +122,8 @@ static int init_nr(const phy_args_t& args, const phy_cfg_t& cfg)
 
 	if(!slot_worker_init(&phy_manager.slot_args)) return OSET_ERROR;
 
-	/*phy_manager.common_cfg receive from rrc config  rrc_config_phy()*/
-	if (set_common_cfg_from_rrc(&phy_manager.common_cfg)) {
+	/*phy_manager.API_common_cfg receive from rrc config  rrc_config_phy()*/
+	if (set_common_cfg_from_rrc(&phy_manager.API_common_cfg)) {
 		oset_error("Couldn't set common PHY config");
 		return OSET_ERROR;
 	}

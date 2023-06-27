@@ -9,6 +9,7 @@
 #include "gnb_common.h"
 #include "mac/ue_nr.h"
 #include "mac/mac.h"
+#include "rlc/rlc.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-ue_nr"
@@ -105,7 +106,7 @@ int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t grant_size, cvect
         remaining_len -= (remaining_len >= MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2);
 
         // read RLC PDU API
-        int pdu_len = rlc_read_pdu_api(ue->rnti, *lcid, ue->ue_rlc_buffer->msg, remaining_len);
+        int pdu_len = API_rlc_mac_read_pdu(ue->rnti, *lcid, ue->ue_rlc_buffer->msg, remaining_len);
 
         if (pdu_len > remaining_len) {
           oset_error("Can't add SDU of %d B. Available space %d B", pdu_len, remaining_len);

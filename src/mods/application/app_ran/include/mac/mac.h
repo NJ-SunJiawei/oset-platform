@@ -60,9 +60,12 @@ typedef struct mac_manager_s{
 mac_manager_t *mac_manager_self(void);
 
 ///////////////////////////////////rrc/////////////////////////////////////////////////
-int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells);
-void mac_remove_ue(uint16_t rnti);
-int mac_ue_cfg(uint16_t rnti, sched_nr_ue_cfg_t *ue_cfg);//rrc_nr::ue::update_mac
+int API_mac_rrc_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells);
+int API_mac_rrc_api_ue_cfg(uint16_t rnti, sched_nr_ue_cfg_t *ue_cfg);
+int API_mac_rrc_remove_ue(uint16_t rnti);
+///////////////////////////////////rlc/////////////////////////////////////////////////
+int API_mac_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
+
 /////////////////////////////////prach phy/////////////////////////////////////////////
 //void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv);
 
@@ -71,6 +74,7 @@ int mac_slot_indication(srsran_slot_cfg_t *slot_cfg);
 dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg);
 ///////////////////////////////////////////////////////////////////////////////////////
 void mac_get_metrics(mac_metrics_t *metrics);
+void mac_remove_ue(uint16_t rnti);
 void mac_remove_ue_all(void);
 void *gnb_mac_task(oset_threadplus_t *thread, void *data);
 

@@ -42,7 +42,7 @@ typedef struct phy_manager_s{
 
 	//txrx				   tx_rx;
 	//srsran_prach_cfg_t     prach_cfg; //???4G
-	common_cfg_t	       common_cfg;  //from rrc layer config
+	common_cfg_t	       API_common_cfg;  //from rrc layer config
 	phy_common			   workers_common;
 	phy_work_args_t        worker_args;
 	slot_worker_args_t     slot_args;

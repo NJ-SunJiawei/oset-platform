@@ -54,7 +54,7 @@ typedef struct {
   cvector_vector_t(byte_buffer_t)      nas_pdu_queue;//std::vector<srsran::unique_byte_buffer_t>
 
   // MAC controller
-  sched_nr_ue_cfg_t  uecfg;//mac_ue_cfg()
+  sched_nr_ue_cfg_t  uecfg;//API_mac_rrc_api_ue_cfg()
 
   uint32_t           drb1_five_qi; /// selected by 5GC
 

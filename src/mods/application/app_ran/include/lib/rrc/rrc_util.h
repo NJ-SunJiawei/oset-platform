@@ -17,7 +17,6 @@ extern "C" {
 #include "lib/common/asn_interface.h"
 #include "lib/srsran/srsran.h"
 
-int rrc_read_pdu_bcch_dlsch(uint32_t sib_index, oset_pkbuf_t *buffer);
 bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl);
 bool make_csi_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_csi_hl_cfg_t* csi_hl);
 

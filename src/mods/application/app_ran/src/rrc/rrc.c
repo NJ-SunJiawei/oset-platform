@@ -8,7 +8,6 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "lib/common/phy_cfg_nr_default.h"
-//#include "lib/mac/mac_util.h"
 #include "lib/mac/sched_nr_util.h"
 #include "rrc/rrc_cell_asn_fill.h"
 #include "rrc/rrc_cell_asn_fill_inner.h"
@@ -83,7 +82,7 @@ int32_t rrc_generate_sibs(uint32_t cc)
 
 void rrc_config_phy(uint32_t cc)
 {
-	common_cfg_t *common_cfg = &phy_manager_self()->common_cfg;
+	common_cfg_t *common_cfg = &phy_manager_self()->API_common_cfg;
 	oset_assert(common_cfg);
 	rrc_cell_cfg_nr_t *rrc_cell_cfg = &rrc_manager.cfg.cell_list[cc];
 	oset_assert(rrc_cell_cfg);
@@ -202,7 +201,7 @@ void rrc_config_mac(uint32_t cc)
 	cell.dl_cfg_common       = &serv_cell->dl_cfg_common;
 	cell.ul_cfg_common       = &serv_cell->ul_cfg_common;
 	cell.ss_pbch_block_power = serv_cell->ss_pbch_block_pwr;
-	bool valid_cfg = make_pdsch_cfg_from_serv_cell(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded,
+	bool valid_cfg = API_make_pdsch_cfg_from_serv_cell(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded,
 	                                               &cell.bwps[0].pdsch);
 	ASSERT_IF_NOT(valid_cfg, "Invalid NR cell configuration.");
 	cell.ssb_positions_in_burst = &serv_cell->ssb_positions_in_burst;
@@ -239,7 +238,7 @@ void rrc_config_mac(uint32_t cc)
 	cvector_push_back(sched_cells_cfg, cell);
 
 	// Configure MAC/scheduler
-	mac_cell_cfg(sched_cells_cfg);
+	API_mac_rrc_cell_cfg(sched_cells_cfg);
 }
 
 static int rrc_init(void)
@@ -353,7 +352,7 @@ void rrc_rem_user(uint16_t rnti)
   rrc_nr_ue *ue = rrc_nr_ue_find_by_rnti(rnti);
   if (ue) {
     // First remove MAC and GTPU to stop processing DL/UL traffic for this user
-    mac_remove_ue(rnti); // MAC handles PHY
+    API_mac_rrc_remove_ue(rnti);
     rlc->rem_user(rnti);
     pdcp->rem_user(rnti);
 	rrc_nr_ue_remove(ue);
@@ -381,35 +380,13 @@ int rrc_add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer)
   if (NULL == rrc_nr_ue_find_by_rnti(rnti)) {
     // If in the ue ctor, "start_msg3_timer" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
 	rrc_nr_ue_add(rnti, pcell_cc_idx, start_msg3_timer);
-    rlc_add_user(rnti);
+    API_rlc_rrc_add_user(rnti);
     pdcp->add_user(rnti);
     oset_info("Added new user rnti=0x%x", rnti);
     return OSET_OK;
   }
   oset_error("Adding user rnti=0x%x (already exists)", rnti);
   return OSET_ERROR;
-}
-
-/* @brief PUBLIC function, gets called by mac_nr::rach_detected
- *
- * This function is called from PRACH worker (can wait) and WILL TRIGGER the RX MSG3 activity timer
- */
-int rrc_add_user_callback(uint16_t rnti, uint32_t pcell_cc_idx)
-{
-  // Set "triggered_by_rach" to true to start the MSG3 RX TIMEOUT
-  return rrc_add_user(rnti, pcell_cc_idx, true);
-}
-
-
-int rrc_read_pdu_bcch_dlsch_callback(uint32_t sib_index, oset_pkbuf_t *buffer)
-{
-	if (sib_index >= cvector_size(rrc_manager.cell_ctxt->sib_buffer)) {
-		oset_error("SI%s%d is not a configured SIB.", sib_index == 0 ? "B" : "", sib_index + 1);
-		return OSET_ERROR;
-	}
-
-	buffer = rrc_manager.cell_ctxt->sib_buffer[sib_index];
-	return OSET_OK;
 }
 
 void rrc_get_metrics(rrc_metrics_t *m)
@@ -470,4 +447,25 @@ void *gnb_rrc_task(oset_threadplus_t *thread, void *data)
 	rrc_destory();
 }
 
+/* @brief PUBLIC function, gets called by mac_nr::rach_detected
+ *
+ * This function is called from PRACH worker (can wait) and WILL TRIGGER the RX MSG3 activity timer
+ */
+int API_rrc_mac_add_user(uint16_t rnti, uint32_t pcell_cc_idx)
+{
+  // Set "triggered_by_rach" to true to start the MSG3 RX TIMEOUT
+  return rrc_add_user(rnti, pcell_cc_idx, true);
+}
+
+
+int API_rrc_mac_read_pdu_bcch_dlsch(uint32_t sib_index, oset_pkbuf_t *buffer)
+{
+	if (sib_index >= cvector_size(rrc_manager.cell_ctxt->sib_buffer)) {
+		oset_error("SI%s%d is not a configured SIB.", sib_index == 0 ? "B" : "", sib_index + 1);
+		return OSET_ERROR;
+	}
+
+	buffer = rrc_manager.cell_ctxt->sib_buffer[sib_index];
+	return OSET_OK;
+}
 

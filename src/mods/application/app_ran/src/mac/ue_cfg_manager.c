@@ -8,8 +8,7 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "mac/ue_cfg_manager.h"
-//#include "lib/rrc/rrc_util.h"
-#include "rrc/rrc.h"//tochange
+#include "rrc/rrc.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-uecfg"
@@ -33,8 +32,8 @@ int ue_cfg_manager_apply_config_request(ue_cfg_manager *ue_cfg, sched_nr_ue_cfg_
 	ue_cfg->phy_cfg    = cfg_req->phy_cfg;
 
 	if (cfg_req->sp_cell_cfg) {
-		make_pdsch_cfg_from_serv_cell(&cfg_req->sp_cell_cfg->sp_cell_cfg_ded, &ue_cfg->phy_cfg.pdsch);//cfg->bwps[0].pdsch;
-		make_csi_cfg_from_serv_cell(&cfg_req->sp_cell_cfg->sp_cell_cfg_ded, &ue_cfg->phy_cfg.csi);
+		API_make_pdsch_cfg_from_serv_cell(&cfg_req->sp_cell_cfg->sp_cell_cfg_ded, &ue_cfg->phy_cfg.pdsch);//cfg->bwps[0].pdsch;
+		API_make_csi_cfg_from_serv_cell(&cfg_req->sp_cell_cfg->sp_cell_cfg_ded, &ue_cfg->phy_cfg.csi);
 	}
 
 	uint32_t *lcid = NULL;

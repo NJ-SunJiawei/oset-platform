@@ -7,8 +7,7 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-//#include "lib/rrc/rrc_util.h"
-#include "rrc/rrc.h"//tochange
+#include "rrc/rrc.h"
 #include "lib/mac/sched_nr_util.h"
 #include "mac/mac.h"
 
@@ -97,41 +96,6 @@ static int mac_destory(void)
 	mac_manager_destory();
 	return OSET_OK;
 }
-
-int mac_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells)
-{
-	cvector_copy(sched_cells, mac_manager.cell_config);
-	sched_nr_config(&mac_manager.sched, &mac_manager.args->sched_cfg, mac_manager.cell_config);
-	cvector_reserve(mac_manager.detected_rachs, cvector_size(mac_manager.cell_config));
-
-	//cell 0
-	sched_nr_cell_cfg_t *sched_nr_cell_cfg = &mac_manager.cell_config[0];
-	oset_assert(sched_nr_cell_cfg);
-	// read SIBs from RRC (SIB1 for now only)
-	for (uint32_t i = 0; i < cvector_size(sched_nr_cell_cfg->sibs); i++) {
-		sib_info_t sib  = {0};
-		sib.index       = i;
-		sib.periodicity = 160; // TODO: read period_rf from config
-		if (rrc_read_pdu_bcch_dlsch_callback(sib.index, sib.payload) != OSET_OK) {
-		  oset_error("Couldn't read SIB %d from RRC", sib.index);
-		}
-
-		oset_info("Including SIB %d into SI scheduling", sib.index + 1);
-		cvector_push_back(mac_manager.bcch_dlsch_payload, sib);
-	}
-	
-	//mac_manager.rx = new mac_nr_rx; ???callback func
-	//mac_manager.default_ue_phy_cfg = get_common_ue_phy_cfg(sched_nr_cell_cfg);
-
-	return OSET_OK;
-}
-
-int mac_ue_cfg(uint16_t rnti, sched_nr_ue_cfg_t *ue_cfg)
-{
-	sched_nr_ue_cfg(&mac_manager.sched,rnti, ue_cfg);
-	return OSET_OK;
-}
-
 static bool is_rnti_valid(uint16_t rnti)
 {
 	if (!mac_manager.started) {
@@ -219,7 +183,7 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 	slot_point_init(&rar_info.prach_slot, NUMEROLOGY_IDX, rach_info->slot_index);
 
 	sched_nr_dl_rach_info(&mac_manager.sched, &rar_info);
-	rrc_add_user_callback(rnti, rach_info->enb_cc_idx);//todo
+	API_rrc_mac_add_user(rnti, rach_info->enb_cc_idx);//todo
 
 	oset_info("[%5u] RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
 				rach_info->slot_index,
@@ -394,4 +358,50 @@ void *gnb_mac_task(oset_threadplus_t *thread, void *data)
 	mac_destory();
 }
 
+int API_mac_rrc_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells)
+{
+	cvector_copy(sched_cells, mac_manager.cell_config);
+	sched_nr_config(&mac_manager.sched, &mac_manager.args->sched_cfg, mac_manager.cell_config);
+	cvector_reserve(mac_manager.detected_rachs, cvector_size(mac_manager.cell_config));
+
+	//cell 0
+	sched_nr_cell_cfg_t *sched_nr_cell_cfg = &mac_manager.cell_config[0];
+	oset_assert(sched_nr_cell_cfg);
+	// read SIBs from RRC (SIB1 for now only)
+	for (uint32_t i = 0; i < cvector_size(sched_nr_cell_cfg->sibs); i++) {
+		sib_info_t sib  = {0};
+		sib.index       = i;
+		sib.periodicity = 160; // TODO: read period_rf from config
+		if (API_rrc_mac_read_pdu_bcch_dlsch(sib.index, sib.payload) != OSET_OK) {
+		  oset_error("Couldn't read SIB %d from RRC", sib.index);
+		}
+
+		oset_info("Including SIB %d into SI scheduling", sib.index + 1);
+		cvector_push_back(mac_manager.bcch_dlsch_payload, sib);
+	}
+	
+	//mac_manager.rx = new mac_nr_rx; ???callback func
+	//mac_manager.default_ue_phy_cfg = get_common_ue_phy_cfg(sched_nr_cell_cfg);
+
+	return OSET_OK;
+}
+
+//mac_ue_cfg
+int API_mac_rrc_api_ue_cfg(uint16_t rnti, sched_nr_ue_cfg_t *ue_cfg)
+{
+	sched_nr_ue_cfg(&mac_manager.sched, rnti, ue_cfg);
+	return OSET_OK;
+}
+
+int API_mac_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
+{
+	sched_nr_dl_buffer_state(&mac_manager.sched, rnti, lc_id, tx_queue, retx_queue);
+	return OSET_OK;
+}
+
+int API_mac_rrc_remove_ue(uint16_t rnti)
+{
+	mac_remove_ue(rnti);
+	return OSET_OK;
+}
 
