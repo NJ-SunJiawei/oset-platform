@@ -49,7 +49,6 @@ typedef struct rrc_manager_s{
 	cell_ctxt_t	              *cell_ctxt;
 
 	// UE Database
-	OSET_POOL(ue_pool, rrc_nr_ue);
 	oset_list_t 			  rrc_ue_list;
 	oset_hash_t               *users;//<uint16_t, rrc_nr_ue, SRSENB_MAX_UES>
 
@@ -58,14 +57,16 @@ typedef struct rrc_manager_s{
 
 rrc_manager_t *rrc_manager_self(void);
 
-/**********************mac api****************************************/
-int API_rrc_mac_add_user(uint16_t rnti, uint32_t pcell_cc_idx);
-int API_rrc_mac_read_pdu_bcch_dlsch(uint32_t sib_index, oset_pkbuf_t *buffer);
 /*********************************************************************/
 int rrc_add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer);
 void rrc_rem_user(uint16_t rnti);
 void rrc_remove_user_all(void);
+void rrc_nr_ue_set_activity(rrc_nr_ue *ue, bool enabled);
 void *gnb_rrc_task(oset_threadplus_t *thread, void *data);
+/**********************mac api****************************************/
+int API_rrc_mac_add_user(uint16_t rnti, uint32_t pcell_cc_idx);
+int API_rrc_mac_read_pdu_bcch_dlsch(uint32_t sib_index, oset_pkbuf_t *buffer);
+void API_rrc_mac_set_activity_user(uint16_t rnti);
 
 #ifdef __cplusplus
 }

@@ -39,11 +39,13 @@ const uint32_t drb1_lcid = 4;
 
 typedef struct {
   oset_lnode_t          lnode;
+  oset_apr_memory_pool_t *usepool;
   uint16_t              rnti; // = SRSRAN_INVALID_RNTI
   // state
   rrc_nr_state_t        state; //= (rrc_nr_state_t)RRC_IDLE
   uint8_t               transaction_id;
   gnb_timer_t	        *activity_timer; // for basic DL/UL activity timeout//srsran::unique_timer
+  uint32_t              activity_timer_deadline_ms;
 
   // RRC configs for UEs
   struct cell_group_cfg_s              cell_group_cfg;
@@ -70,7 +72,7 @@ typedef struct {
   activity_timeout_type_t type;
 }rrc_nr_ue;
 
-void activity_timer_handle(rrc_nr_ue *ue);
+void activity_timer_expired(rrc_nr_ue *ue);
 void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer);
 void rrc_nr_ue_get_metrics(rrc_ue_metrics_t *metrics);
 

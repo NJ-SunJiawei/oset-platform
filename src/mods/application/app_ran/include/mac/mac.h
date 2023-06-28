@@ -46,7 +46,6 @@ typedef struct mac_manager_s{
 	sched_nr               sched;
 	cvector_vector_t(sched_nr_cell_cfg_t) cell_config;//std::vector<sched_nr_cell_cfg_t>
 	// Map of active UEs
-	OSET_POOL(ue_pool, ue_nr); //mac rnti user context
 	oset_hash_t            *ue_db;//static_circular_map<uint16_t, std::unique_ptr<ue_nr>, SRSENB_MAX_UES>
 	oset_list_t 		   mac_ue_list;
 	uint16_t               ue_counter;

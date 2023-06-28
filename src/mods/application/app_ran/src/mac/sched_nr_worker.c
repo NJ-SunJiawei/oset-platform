@@ -241,7 +241,6 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 
 	// 当前发送为tx调度时刻,上行方向承载uci/pusch在work-dl预处理，记录tx时刻配置(uci tx-k1时刻预授权 pusch tx-k2时刻预授权)
 	// 当前接收为rx调度时刻, rx+delay=tx,当上行到达tx时刻，work-ul通过预存信息开始正式处理。
-
 	slot_ue **ue_pair = NULL;
 	cvector_for_each_in(ue_pair, cc_w->slot_ue_list){
 		slot_ue *ue = *ue_pair;

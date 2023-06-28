@@ -15,7 +15,7 @@
  *      RLC Config
  **************************/
 typedef enum { tm, um, am, nulltype } rlc_mode_t;
-inline const char* rlc_mode_to_string(rlc_mode_t mode, bool long_txt = true)
+inline const char* rlc_mode_to_string(rlc_mode_t mode, bool long_txt)
 {
   static const char* long_options[]  = {"Transparent Mode", "Unacknowledged Mode", "Acknowledged Mode"};
   static const char* short_options[] = {"TM", "UM", "AM"};
@@ -156,5 +156,8 @@ typedef struct
   rlc_um_nr_config_t um_nr;
   uint32_t           tx_queue_length;
 }rlc_config_t;
+
+
+rlc_config_t default_rlc_config(void);
 
 #endif

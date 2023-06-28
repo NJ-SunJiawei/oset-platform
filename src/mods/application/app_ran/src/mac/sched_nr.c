@@ -489,9 +489,6 @@ static void process_common(sched_nr *scheluder, uint32_t slot_rx_id)
 void sched_nr_init(sched_nr *scheluder)
 {
 	oset_assert(scheluder);
-
-	// Initiate sched_nr_ue memory pool//最大调度64个用户
-	oset_pool_init(&scheluder->ue_pool, SRSENB_MAX_UES);
 	oset_list_init(&scheluder->sched_ue_list);
 	scheluder->ue_db = oset_hash_make();
 
@@ -541,7 +538,6 @@ void sched_nr_destory(sched_nr *scheluder)
 	sched_nr_ue_remove_all();
 	oset_hash_destroy(scheluder->ue_db);
 	oset_list_empty(&scheluder->sched_ue_list);
-	oset_pool_final(&scheluder->ue_pool);
 }
 
 int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector_t(sched_nr_cell_cfg_t) sched_cells)

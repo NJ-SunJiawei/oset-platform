@@ -13,7 +13,7 @@
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc-ue"
 
 //todo
-void activity_timer_handle(rrc_nr_ue *ue)
+void activity_timer_expired(rrc_nr_ue *ue)
 {
 	oset_assert(ue);
 	oset_info("Activity timer for rnti=0x%x expired", ue->rnti);
@@ -43,7 +43,7 @@ void activity_timer_handle(rrc_nr_ue *ue)
 }
 
 
-static void set_activity_timeout(rrc_nr_ue *ue)
+static void set_activity_timer(rrc_nr_ue *ue)
 {
 	oset_assert(ue);
 	uint32_t deadline_ms = 0;
@@ -68,12 +68,28 @@ static void set_activity_timeout(rrc_nr_ue *ue)
 	static const char* options[] = {"Msg3 reception", "UE inactivity", "Msg5 reception"};
 	oset_debug("Setting timer for %s for rnti=0x%x to %dms", options[ue->type]), ue->rnti, deadline_ms);
 
-	//ue->activity_timer = gnb_timer_add(gnb_manager_self()->app_timer, activity_timer_expired, ue);
-	ue->activity_timer = gnb_timer_add(gnb_manager_self()->app_timer, activity_timer_handle, ue);
-	gnb_timer_start(ue->activity_timer, deadline_ms);
+	ue->activity_timer_deadline_ms = deadline_ms;
+	ue->activity_timer = gnb_timer_add(gnb_manager_self()->app_timer, activity_timer_expired, ue);
+
+	rrc_nr_ue_set_activity(ue, true);
 	oset_debug("Activity registered for rnti=0x%x (timeout_value=%dms)", ue->rnti, deadline_ms);
 }
 
+// default true
+void rrc_nr_ue_set_activity(rrc_nr_ue *ue, bool enabled)
+{
+  if (!enabled) {
+    if (ue->activity_timer.running) {
+      oset_debug("Inactivity timer interrupted for rnti=0x%x", ue->rnti);
+    }
+	gnb_timer_stop(ue->activity_timer);
+    return;
+  }
+
+  // re-start activity timer with current timeout value
+  gnb_timer_start(ue->activity_timer, ue->activity_timer_deadline_ms);
+  oset_info("Activity registered for rnti=0x%x (timeout_value=%dms)", ue->rnti, ue->activity_timer_deadline_ms);
+}
 
 void rrc_nr_ue_remove(rrc_nr_ue *ue)
 {
@@ -84,7 +100,7 @@ void rrc_nr_ue_remove(rrc_nr_ue *ue)
 
     oset_list_remove(&rrc_manager_self()->rrc_ue_list, ue);
     oset_hash_set(rrc_manager_self()->users, &ue->rnti, sizeof(ue->rnti), NULL);
-    oset_pool_free(&rrc_manager_self()->ue_pool, ue);
+	oset_core_destroy_memory_pool(&ue->usepool);
 
     oset_info("[Removed] Number of RRC-UEs is now %d", oset_list_count(&rrc_manager_self()->rrc_ue_list));
 }
@@ -107,12 +123,15 @@ rrc_nr_ue *rrc_nr_ue_find_by_rnti(uint16_t rnti)
 void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer)
 {
 	rrc_nr_ue *ue = NULL;
-	oset_pool_alloc(&rrc_manager_self()->ue_pool, &ue);
+	oset_apr_memory_pool_t *usepool = NULL;
+	oset_core_new_memory_pool(&usepool);
+
+	ue = oset_core_alloc(usepool, sizeof(*ue));
 	ASSERT_IF_NOT(ue, "Could not allocate sched ue %d context from pool", rnti_);
 	memset(ue, 0, sizeof(rrc_nr_ue));
 
+	ue->usepool = usepool;
 	ue->rnti = rnti_;
-
 	// Set default MAC UE config
 	cvector_reserve(ue->uecfg.carriers, 1);
 	sched_nr_ue_cc_cfg_t cell = {0};
@@ -133,7 +152,7 @@ void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer)
 	ue->type = start_msg3_timer ? MSG3_RX_TIMEOUT : MSG5_RX_TIMEOUT;
 
 	// Set timer for MSG3_RX_TIMEOUT or UE_INACTIVITY_TIMEOUT
-	set_activity_timeout(ue);
+	set_activity_timer(ue);
 
 	rrc_nr_ue_set_rnti(rnti_, ue);
     oset_list_add(&rrc_manager_self()->rrc_ue_list, ue);

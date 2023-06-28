@@ -22,7 +22,7 @@ static void gnb_timer_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 		case TIMER_HAS_EXPIRED:
 			//rrc
 			if (TIMER_HAS_EXPIRED (msg_p).timer_id == RRC_TIMER_ACTIVITY) {
-				activity_timer_handle(TIMER_HAS_EXPIRED (msg_p).arg);
+				activity_timer_expired(TIMER_HAS_EXPIRED (msg_p).arg);
 			}
 
 			break;

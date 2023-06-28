@@ -69,7 +69,6 @@
 /*******************************************************************************
                               TYPEDEFS
 *******************************************************************************/
-typedef enum srsran_rat_e { lte, nr, nulltype } srsran_rat_t;
 // helper functions
 inline const char* enum_to_text(const char* const array[], uint32_t nof_types, uint32_t enum_val)
 {
@@ -81,6 +80,12 @@ inline uint16_t enum_to_number(uint16_t* array, uint32_t nof_types, uint32_t enu
   return enum_val >= nof_types ? -1 : array[enum_val];
 }
 
+typedef enum srsran_rat_e { lte, nr, nulltype } srsran_rat_t;
+inline char* rat_to_string(srsran_rat_t type)
+{
+  constexpr static const char* options[] = {"LTE", "NR"};
+  return enum_to_text(options, (srsran_rat_t)nulltype, (uint32_t)type);
+}
 
 #ifdef __cplusplus
 }

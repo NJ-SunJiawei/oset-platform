@@ -12,7 +12,18 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-librlc"
 
-static rlc_config_t mch_config()
+rlc_config_t default_rlc_config(void)
+{
+	rlc_config_t cfg          = {0};
+
+	cfg.rat                   = (srsran_rat_t)nr;
+	cfg.rlc_mode              = (rlc_mode_t)tm;
+	cfg.tx_queue_length       = RLC_TX_QUEUE_LEN;
+	return cfg;
+}
+
+
+rlc_config_t mch_config(void)
 {
 	rlc_config_t cfg          = {0};
 
@@ -29,7 +40,7 @@ static rlc_config_t mch_config()
 	return cfg;
 }
 
-static rlc_config_t srb_config(uint32_t idx)
+rlc_config_t srb_config(uint32_t idx)
 {
 	rlc_config_t rlc_cfg         = {0};
 
@@ -49,7 +60,7 @@ static rlc_config_t srb_config(uint32_t idx)
 	return rlc_cfg;
 }
 
-static rlc_config_t default_rlc_um_config(uint32_t sn_size = 10)
+rlc_config_t default_rlc_um_config(uint32_t sn_size = 10)
 {
 	rlc_config_t cnfg    = {0};
 
@@ -76,7 +87,7 @@ static rlc_config_t default_rlc_um_config(uint32_t sn_size = 10)
 	return cnfg;
 }
 
-static rlc_config_t default_rlc_am_config()
+rlc_config_t default_rlc_am_config()
 {
 	rlc_config_t rlc_cnfg         = {0};
 
@@ -92,7 +103,7 @@ static rlc_config_t default_rlc_am_config()
 	return rlc_cnfg;
 }
 
-static rlc_config_t default_rlc_am_nr_config(uint32_t sn_size = 12)
+rlc_config_t default_rlc_am_nr_config(uint32_t sn_size = 12)
 {
 	rlc_config_t rlc_cnfg = {0};
 
@@ -116,7 +127,7 @@ static rlc_config_t default_rlc_am_nr_config(uint32_t sn_size = 12)
 	return rlc_cnfg;
 }
 
-static rlc_config_t default_rlc_um_nr_config(uint32_t sn_size = 6)
+rlc_config_t default_rlc_um_nr_config(uint32_t sn_size = 6)
 {
 	rlc_config_t cnfg = {0};
 

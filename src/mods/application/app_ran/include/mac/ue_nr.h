@@ -21,6 +21,7 @@ extern "C" {
 
 typedef struct {
     oset_lnode_t         lnode;
+	oset_apr_memory_pool_t	*usepool;
 	uint64_t             conres_id;
 	uint16_t             rnti;
 	uint32_t             last_tti;

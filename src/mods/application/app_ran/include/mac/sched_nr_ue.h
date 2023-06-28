@@ -25,7 +25,7 @@ typedef struct {
 
 typedef struct {
 	base_ue_buffer_manager        base_ue;
-	oset_stl_queue_def(ce_t, ce)  pending_ces;//srsran::deque<ce_t>
+	cvector_vector_t(ce_t)        pending_ces;//srsran::deque<ce_t>
 }ue_buffer_manager;
 
 typedef struct  {
@@ -59,6 +59,7 @@ typedef struct {
 
 typedef struct {
     oset_lnode_t lnode;
+	oset_apr_memory_pool_t *usepool;
 	ue_carrier   *carriers[SCHED_NR_MAX_CARRIERS];//对应每个ue的小区配置和资源
 	uint16_t     rnti;
 

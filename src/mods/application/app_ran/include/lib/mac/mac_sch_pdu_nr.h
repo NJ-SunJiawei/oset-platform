@@ -72,7 +72,7 @@ typedef enum nr_lcid_sch_e {
 /// internal buffer, useful for storing very short SDUs.
 typedef struct {
 	uint8_t  ce_write_buffer[mac_ce_payload_len];//Buffer for CE payload
-	uint8_t  *sdu;
+	uint8_t  *sdu;// Point for ue->ue_rlc_buffer->msg/ce_write_buffer
 }sdu_buffer;
 
 
@@ -87,14 +87,19 @@ typedef struct {
 typedef struct {
   bool                  ulsch;
   cvector_vector_t(mac_sch_subpdu_nr)  subpdus;//std::vector<mac_sch_subpdu_nr>
-  byte_buffer_t         *buffer;
+  byte_buffer_t         *buffer;  // buffer === dl: pdsch->data[0] = slot_u->h_dl->pdu;
   uint32_t              pdu_len;
   uint32_t              remaining_len;
 }mac_sch_pdu_nr;
 
+///////////////////////////////////////////sch_subpdu/////////////////////////////////////////////////////////////////
 uint32_t mac_sch_subpdu_nr_sizeof_ce(uint32_t lcid, bool is_ul);
+///////////////////////////////////////////sch_pdu/////////////////////////////////////////////////////////////////
+uint32_t mac_sch_pdu_nr_size_header_sdu(mac_sch_pdu_nr	*mac_pdu_dl, uint32_t lcid, uint32_t nbytes);
 int mac_sch_pdu_nr_init_tx(mac_sch_pdu_nr	*mac_pdu_dl, byte_buffer_t* buffer_, uint32_t pdu_len_, bool ulsch_);
 uint32_t mac_sch_pdu_nr_add_ue_con_res_id_ce(mac_sch_pdu_nr	*mac_pdu_dl, ue_con_res_id_t id);
+uint32_t mac_sch_pdu_nr_add_sdu(mac_sch_pdu_nr	*mac_pdu_dl, uint32_t lcid_, uint8_t* payload_, uint32_t len_);
+void mac_sch_pdu_nr_pack(mac_sch_pdu_nr	*mac_pdu_dl);
 
 #ifdef __cplusplus
 }

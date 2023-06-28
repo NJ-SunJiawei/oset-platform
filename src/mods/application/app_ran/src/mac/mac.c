@@ -59,7 +59,6 @@ static int mac_init(void)
 		mac_pcap_open(&mac_manager.pcap, mac_manager.args->pcap.filename, 0);
 	}
 
-	oset_pool_init(&mac_manager.ue_pool, SRSENB_MAX_UES);
 	oset_list_init(&mac_manager.mac_ue_list);
 	mac_manager.ue_db = oset_hash_make();
 
@@ -78,7 +77,6 @@ static int mac_destory(void)
 	mac_remove_ue_all();
 	oset_list_empty(&mac_manager.mac_ue_list);
 	oset_hash_destroy(mac_manager.ue_db);
-	oset_pool_final(&mac_manager.ue_pool);
 
 	oset_apr_mutex_destroy(mac_manager.sched.mutex);
 
@@ -292,7 +290,7 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 		  uint32_t sib_idx = dl_res->sib_idxs[si_count++];
 		  pdsch.data[0]    = bcch_dlsch_payload[sib_idx].payload.get();//bcch_dlsch_payload.push_back(std::move(sib))
 #ifdef WRITE_SIB_PCAP
-		  if (pcap != nullptr) {
+		  if (pcap != NULL) {
 		    pcap->write_dl_si_rnti_nr(bcch_dlsch_payload[sib_idx].payload->msg,
 		                              bcch_dlsch_payload[sib_idx].payload->N_bytes,
 		                              SI_RNTI,

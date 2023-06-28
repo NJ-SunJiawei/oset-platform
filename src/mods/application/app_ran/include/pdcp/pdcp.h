@@ -19,6 +19,8 @@ extern "C" {
 
 typedef struct
 {
+    oset_lnode_t     lnode;
+	oset_apr_memory_pool_t	 *usepool;
 	uint16_t	rnti;
 	pdcp_t      pdcp;
 }pdcp_user_interface;
@@ -28,7 +30,6 @@ typedef struct pdcp_manager_s{
 	oset_apr_mutex_t         *mutex;
 	oset_apr_thread_cond_t   *cond;
 
-	OSET_POOL(ue_pool, pdcp_user_interface); //rnti user context
 	oset_hash_t            *users;//std::map<uint32_t, user_interface> users
 	oset_list_t 		   pdcp_ue_list;
 }pdcp_manager_t;

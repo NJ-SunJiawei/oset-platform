@@ -23,7 +23,7 @@ static int get_dl_tx_total(ue_buffer_manager *buffers)
 
 	//MAC Control Element消息
 	ce_t *ce = NULL;
-	oset_stl_queue_foreach(&buffers->pending_ces, ce){
+	cvector_for_each_in(ce, buffers->pending_ces){
 		total_bytes += mac_sch_subpdu_nr_sizeof_ce(ce->lcid, false);
 	}
 	return total_bytes;
@@ -62,8 +62,9 @@ bool pdu_builder_alloc_subpdus(pdu_builder           *pdu_builders, uint32_t rem
 	// 调度的是单个ue（rnti）的lcid资源
 	// rem_bytes tb传输块允许大小
 	// First step: allocate MAC CEs until resources allow
-	ce_t *ce = NULL;
-	oset_stl_queue_foreach(&pdu_builders->parent->pending_ces, ce){
+
+	for(int i = 0; i < cvector_size(pdu_builders->parent->pending_ces); ){
+		ce_t *ce = pdu_builders->parent->pending_ces[i];
 		if (ce->cc == pdu_builders->cc) {
 			// Note: This check also avoids thread collisions across UE carriers
 			uint32_t size_ce = mac_sch_subpdu_nr_sizeof_ce(ce->lcid, false);
@@ -72,7 +73,7 @@ bool pdu_builder_alloc_subpdus(pdu_builder           *pdu_builders, uint32_t rem
 			}
 			rem_bytes -= size_ce;
 			cvector_push_back(pdu->subpdus, ce->lcid);
-			oset_stl_queue_del_first(&pdu_builders->parent->pending_ces);
+			cvector_erase(pdu_builders->parent->pending_ces, i)
 		}
 	}
 
@@ -81,6 +82,7 @@ bool pdu_builder_alloc_subpdus(pdu_builder           *pdu_builders, uint32_t rem
 	for (uint32_t lcid = 0; rem_bytes > 0 && is_lcid_valid(lcid); ++lcid) {
 		uint32_t pending_lcid_bytes = get_dl_tx_total_inner(&pdu_builders->parent->base_ue, lcid);
 		// Return false if the TBS is too small to store the entire CCCH buffer without segmentation
+		// dl-ccch  rrc setup
 		if (lcid == (nr_lcid_sch_t)CCCH && pending_lcid_bytes > rem_bytes) {
 			cvector_push_back(pdu->subpdus, lcid);
 			return false;
@@ -100,9 +102,7 @@ static void ue_carrier_destory(ue_carrier *carrier)
 {
 	cvector_free(carrier->bwp_cfg.cce_positions_list);
 	harq_entity_destory(&carrier->harq_ent);
-	oset_free(carrier);
 }
-
 
 static ue_carrier* ue_carrier_init(sched_nr_ue       *u, uint32_t cc)
 {
@@ -110,8 +110,10 @@ static ue_carrier* ue_carrier_init(sched_nr_ue       *u, uint32_t cc)
 	ue_cfg_manager		*uecfg_ = &u->ue_cfg;
 	cell_config_manager *cell_params_ = &u->sched_cfg->cells[cc];
 
-	ue_carrier *carrier = oset_malloc(sizeof(ue_carrier));
+	ue_carrier *carrier = oset_core_alloc(u->usepool, sizeof(ue_carrier));
 	osset_assert(carrier);
+	memset(carrier, 0, sizeof(ue_carrier));
+	
 	carrier->rnti = u->rnti;
 	carrier->cc = cc;
 	ue_carrier_params_init(&carrier->bwp_cfg, u->rnti, &cell_params_->bwps[0], uecfg_);
@@ -203,15 +205,13 @@ void sched_nr_ue_remove(sched_nr_ue *u)
 
 	oset_info("SCHED: Removed sched user rnti=0x%x", u->rnti);
 
-	oset_stl_queue_term(&u->buffers.pending_ces);
-
+	cvector_free(u->buffers.pending_ces)
 	sched_nr_ue_cc_cfg_t *ue_cc_cfg = NULL;
 	cvector_for_each_in(ue_cc_cfg, u->ue_cfg.carriers){
 		ue_carrier_destory(u->carriers[ue_cc_cfg->cc]);
 	}
 	cvector_free(u->ue_cfg.carriers);
-
-	oset_pool_free(&mac_manager_self()->sched.sched_ue_list, u);
+	oset_core_destroy_memory_pool(&u->usepool);
     oset_info("[Removed] Number of SCHED-UEs is now %d", oset_list_count(&mac_manager_self()->sched.sched_ue_list));
 }
 
@@ -257,17 +257,17 @@ sched_nr_ue *sched_nr_ue_add(uint16_t rnti_, uint32_t cc, sched_params_t *sched_
 sched_nr_ue *sched_nr_ue_add_inner(uint16_t rnti_, sched_nr_ue_cfg_t *uecfg, sched_params_t *sched_cfg_)
 {
 	sched_nr_ue *u = NULL; 
+	oset_apr_memory_pool_t *usepool = NULL;
+	oset_core_new_memory_pool(&usepool);
 
-	// create user object outside of sched main thread
-	oset_pool_alloc(&mac_manager_self()->sched.ue_pool, &u);
+	u = oset_core_alloc(usepool, sizeof(*u));
 	ASSERT_IF_NOT(u, "Could not allocate sched ue %d context from pool", rnti_);
-
 	memset(u, 0, sizeof(sched_nr_ue));
 
+	u->usepool = usepool;
 	u->rnti = rnti_;
 	u->sched_cfg = sched_cfg_;
 	base_ue_buffer_manager_init(&u->buffers.base_ue, rnti_);
-	oset_stl_queue_init(&u->buffers.pending_ces);
 	ue_cfg_manager_init(&u->ue_cfg, uecfg->carriers[0].cc);//todo cc
 	sched_nr_ue_set_cfg(u, uecfg);//create carriers[cc]
 
@@ -347,7 +347,7 @@ void sched_nr_ue_add_dl_mac_ce(sched_nr_ue *ue, uint32_t ce_lcid, uint32_t nof_c
 		ce.lcid = ce_lcid;
 		//todo
 		ce.cc = ue->ue_cfg.carriers[0].cc;
-		oset_stl_queue_add_last(&ue->buffers.pending_ces, ce)
+		cvector_push_back(ue->buffers.pending_ces, ce)
 	}
 }
 
@@ -362,7 +362,7 @@ void sched_nr_ue_rlc_buffer_state(sched_nr_ue *ue, uint32_t lcid, uint32_t newtx
 	base_ue_buffer_manager_dl_buffer_state(&ue->buffers.base_ue, lcid, newtx, priotx);
 }
 
-static slot_ue* slot_ue_init(ue_carrier *ue_, slot_point slot_tx_, uint32_t cc)
+static slot_ue* slot_ue_create(ue_carrier *ue_, slot_point slot_tx_, uint32_t cc)
 {
 	slot_ue *slot_u = NULL; 
 	oset_pool_alloc(&mac_manager_self()->sched.cc_workers[cc].slot_ue_pool, &slot_u);
@@ -415,11 +415,11 @@ static void slot_ue_set_by_rnti(uint16_t rnti, slot_ue *u, uint32_t cc)
 
 void slot_ue_alloc(sched_nr_ue *ue, slot_point pdcch_slot, uint32_t cc)
 {
-  ASSERT_IF_NOT(ue->carriers[cc] != NULL, "make_slot_ue() called for unknown rnti=0x%x,cc=%d", ue->rnti, cc);
-  slot_ue* slot_u = slot_ue_init(ue->carriers[cc], pdcch_slot, cc);
-  oset_assert(slot_u);
-  slot_ue_set_by_rnti(ue->rnti, slot_u, cc);
-  cvector_push_back(mac_manager_self()->sched.cc_workers[cc].slot_ue_list, slot_u);
+	ASSERT_IF_NOT(ue->carriers[cc] != NULL, "make_slot_ue() called for unknown rnti=0x%x,cc=%d", ue->rnti, cc);
+	slot_ue* slot_u = slot_ue_create(ue->carriers[cc], pdcch_slot, cc);
+	oset_assert(slot_u);
+	slot_ue_set_by_rnti(ue->rnti, slot_u, cc);
+	cvector_push_back(mac_manager_self()->sched.cc_workers[cc].slot_ue_list, slot_u);
 }
 
 void slot_ue_clear(uint32_t cc)

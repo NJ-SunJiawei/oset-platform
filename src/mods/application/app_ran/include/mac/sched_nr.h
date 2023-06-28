@@ -155,7 +155,6 @@ typedef struct {
 
   cvector_vector_t(cc_worker) cc_workers; //std::vector<std::unique_ptr<sched_nr_impl::cc_worker> >
   // UE Database
-  OSET_POOL(ue_pool, sched_nr_ue);//sched rnti context 
   oset_list_t	              sched_ue_list;
   oset_hash_t			      *ue_db;//static_circular_map<uint16_t, std::unique_ptr<sched_nr_ue>, SRSENB_MAX_UES>
     // Feedback management

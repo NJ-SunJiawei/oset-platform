@@ -247,7 +247,6 @@ static int rrc_init(void)
 
 	rrc_manager_init();
 	//todo
-	oset_pool_init(&rrc_manager.ue_pool, SRSENB_MAX_UES);
 	oset_list_init(&rrc_manager.rrc_ue_list);
 	rrc_manager.users = oset_hash_make();
 	
@@ -342,7 +341,6 @@ static int rrc_destory(void)
 	rrc_remove_user_all();
 	oset_list_empty(&rrc_manager.rrc_ue_list);
     oset_hash_destroy(rrc_manager.users);
-	oset_pool_final(&rrc_manager.ue_pool);
 	rrc_manager_destory();
 	return OSET_OK;
 }
@@ -353,7 +351,7 @@ void rrc_rem_user(uint16_t rnti)
   if (ue) {
     // First remove MAC and GTPU to stop processing DL/UL traffic for this user
     API_mac_rrc_remove_ue(rnti);
-    rlc->rem_user(rnti);
+    API_rlc_rrc_rem_user(rnti);
     pdcp->rem_user(rnti);
 	rrc_nr_ue_remove(ue);
 
@@ -397,11 +395,22 @@ void rrc_get_metrics(rrc_metrics_t *m)
 	      rrc_ue_metrics_t ue_metrics = {0};
 	      rrc_nr_ue_get_metrics(&ue_metrics);
 		  cvector_push_back(m->ues, ue_metrics);
-
     }
   }
 }
 
+void rrc_nr_set_activity_user(uint16_t rnti)
+{
+	rrc_nr_ue *ue_ptr = rrc_nr_ue_find_by_rnti(rnti);
+	if (NULL == ue_ptr) {
+		oset_info("rnti=0x%x not found. Can't set activity", rnti);
+		return;
+	}
+
+	// Restart inactivity timer for RRC-NR
+	// 重新启动RRC-NR的非活动计时器
+	rrc_nr_ue_set_activity(ue_ptr, true);
+}
 
 static void gnb_rrc_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 {
@@ -467,5 +476,10 @@ int API_rrc_mac_read_pdu_bcch_dlsch(uint32_t sib_index, oset_pkbuf_t *buffer)
 
 	buffer = rrc_manager.cell_ctxt->sib_buffer[sib_index];
 	return OSET_OK;
+}
+
+void API_rrc_mac_set_activity_user(uint16_t rnti)
+{
+	return rrc_nr_set_activity_user(rnti);
 }
 

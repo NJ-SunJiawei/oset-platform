@@ -17,17 +17,20 @@
 ue_nr *ue_nr_add(uint16_t rnti)
 {
     ue_nr *ue = NULL;
-    oset_pool_alloc(&mac_manager_self()->ue_pool, &ue);
-	ASSERT_IF_NOT(ue, "Could not allocate sched ue %d context from pool", rnti);
+	oset_apr_memory_pool_t *usepool = NULL;
+	oset_core_new_memory_pool(&usepool);
 
+	ue = oset_core_alloc(usepool, sizeof(*ue));
+	ASSERT_IF_NOT(ue, "Could not allocate sched ue %d context from pool", rnti);
     memset(ue, 0, sizeof(ue_nr));
 
+	ue->usepool = usepool;
 	ue->ue_rlc_buffer = byte_buffer_init();
 	//ue->last_msg3 = byte_buffer_init();
 
 	ue_nr_set_rnti(rnti, ue);
     oset_list_add(&mac_manager_self()->mac_ue_list, ue);
-	oset_apr_mutex_init(&ue->metrics_mutex, OSET_MUTEX_NESTED, mac_manager_self()->app_pool);
+	oset_apr_mutex_init(&ue->metrics_mutex, OSET_MUTEX_NESTED, usepool);
 
     oset_info("[Added] Number of MAC-UEs is now %d", oset_list_count(&mac_manager_self()->mac_ue_list));
 
@@ -45,8 +48,8 @@ void ue_nr_remove(ue_nr *ue)
 
     oset_list_remove(&mac_manager_self()->mac_ue_list, ue);
     oset_hash_set(mac_manager_self()->ue_db, &ue->rnti, sizeof(ue->rnti), NULL);
-    oset_pool_free(&mac_manager_self()->ue_pool, ue);
 	oset_apr_mutex_destroy(ue->metrics_mutex);
+	oset_core_destroy_memory_pool(&ue->usepool);
 
     oset_info("[Removed] Number of MAC-UEs is now %d", oset_list_count(&mac_manager_self()->mac_ue_list));
 }
@@ -65,10 +68,10 @@ ue_nr *ue_nr_find_by_rnti(uint16_t rnti)
             mac_manager_self()->ue_db, &rnti, sizeof(rnti));
 }
 
-int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t grant_size, cvector_vector_t(uint32_t) subpdu_lcids)
+int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t tbs_len, cvector_vector_t(uint32_t) subpdu_lcids)
 {
   //std::lock_guard<std::mutex> lock(mutex);
-  if (mac_sch_pdu_nr_init_tx(&ue->mac_pdu_dl, pdu, grant_size, false) != OSET_OK) {
+  if (mac_sch_pdu_nr_init_tx(&ue->mac_pdu_dl, pdu, tbs_len, false) != OSET_OK) {
     oset_error("Couldn't initialize MAC PDU buffer");
     return OSET_ERROR;
   }
@@ -83,7 +86,7 @@ int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t grant_size, cvect
   uint32_t *lcid = NULL;
   cvector_for_each_in(lcid, subpdu_lcids){
     oset_debug("adding lcid=%d", *lcid);
-	// Msg4中的Contention Resolution Identity MAC CE
+	// 根据msg3组装 msg4中的Contention Resolution Identity MAC CE
     if (*lcid == (mac_sch_subpdu_nr)CON_RES_ID) {
       if (ue->last_msg3 != NULL) {//get from mac ul
         ue_con_res_id_t id = {0};
@@ -118,7 +121,7 @@ int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t grant_size, cvect
             oset_debug("Read %d B from RLC", ue->ue_rlc_buffer->N_bytes);
 
             // add to MAC PDU and pack
-            if (mac_pdu_dl.add_sdu(*lcid, ue->ue_rlc_buffer->msg, ue->ue_rlc_buffer->N_bytes) != SRSRAN_SUCCESS) {
+            if (mac_sch_pdu_nr_add_sdu(&ue->mac_pdu_dl, *lcid, ue->ue_rlc_buffer->msg, ue->ue_rlc_buffer->N_bytes) != OSET_OK) {
               oset_error("Error packing MAC PDU");
               break;
             }
@@ -138,20 +141,18 @@ int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t grant_size, cvect
     }
   }
 
-  ue->mac_pdu_dl.pack();
+  mac_sch_pdu_nr_pack(&ue->mac_pdu_dl);
 
   if (drb_activity) {
     // Indicate DRB activity in DL to RRC
-    // 向RRC说明DL中的DRB活动
-    rrc->set_activity_user(ue->rnti);
+    API_rrc_mac_set_activity_user(ue->rnti);
     oset_debug("DL activity rnti=0x%x", ue->rnti);
   }
+  
+  fmt::memory_buffer str_buffer;
+  mac_pdu_dl.to_string(str_buffer);
+  logger.info("0x%x %s", ue->rnti, srsran::to_c_str(str_buffer));
 
-  if (logger.info.enabled()) {
-    fmt::memory_buffer str_buffer;
-    mac_pdu_dl.to_string(str_buffer);
-    logger.info("0x%x %s", ue->rnti, srsran::to_c_str(str_buffer));
-  }
   return OSET_OK;
 }
 

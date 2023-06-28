@@ -24,6 +24,8 @@ typedef struct {
 
 typedef struct
 {
+    oset_lnode_t     lnode;
+	oset_apr_memory_pool_t	 *usepool;
 	uint16_t	rnti;
 	rlc_t       rlc;
 }rlc_user_interface;
@@ -34,7 +36,6 @@ typedef struct rlc_manager_s{
 	oset_apr_thread_cond_t   *cond;
 	oset_apr_thread_rwlock_t *rwlock;
 
-	OSET_POOL(ue_pool, rlc_user_interface); //rnti user context
 	oset_hash_t            *users;//std::map<uint32_t, user_interface> users
 	oset_list_t 		   rlc_ue_list;
 
@@ -49,6 +50,7 @@ rlc_user_interface *rlc_user_interface_find_by_rnti(uint16_t rnti);
 ////////////////////////////////////////////////////////////////////////////////////////////
 int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
 void API_rlc_rrc_add_user(uint16_t rnti);
+void API_rlc_rrc_rem_user(uint16_t rnti);
 
 
 #ifdef __cplusplus
