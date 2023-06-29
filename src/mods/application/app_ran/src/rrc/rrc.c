@@ -52,7 +52,9 @@ int32_t rrc_generate_sibs(uint32_t cc)
 	du_cell_config  *du_cell = rrc_manager.du_cfg.cells[cc];
 	oset_assert(du_cell);
 
-	cvector_push_back(rrc_manager.cell_ctxt->sib_buffer, du_cell->packed_sib1);
+	byte_buffer_t *sib1 = byte_buffer_init()
+
+	cvector_push_back(rrc_manager.cell_ctxt->sib_buffer, byte_buffer_change(du_cell->packed_sib1));
 
 	// SI messages packing
 	//cvector_reserve(rrc_manager.cell_ctxt->sibs, 1);
@@ -76,7 +78,7 @@ int32_t rrc_generate_sibs(uint32_t cc)
 
 	oset_pkbuf_t *packed_sib2 = oset_rrc_encode(&asn_DEF_ASN_RRC_BCCH_DL_SCH_Message, sib_pdu, asn_struct_free_all);
 	//oset_free(cell->packed_sib2);
-	cvector_push_back(rrc_manager.cell_ctxt->sib_buffer, packed_sib2);
+	cvector_push_back(rrc_manager.cell_ctxt->sib_buffer, byte_buffer_change(packed_sib2));
 	return OSET_OK;
 }
 
@@ -221,7 +223,7 @@ void rrc_config_mac(uint32_t cc)
 	cvector_reserve(cell.sibs, cvector_size(rrc_manager.cell_ctxt->sib_buffer));
 	for (uint32_t i = 0; i < cvector_size(rrc_manager.cell_ctxt->sib_buffer); i++) {
 		sched_nr_cell_cfg_sib_t sib = {0};
-		sib.len = rrc_manager.cell_ctxt->sib_buffer[i].len;
+		sib.len = rrc_manager.cell_ctxt->sib_buffer[i].N_bytes;
 		if (i == 0) {
 		  sib.period_rf       = 16; // SIB1 is always 16 rf
 		  sib.si_window_slots = 160;
@@ -323,8 +325,6 @@ static int rrc_destory(void)
     /****one cell****/
 	/*free cell_ctxt->sib_buffer*/
 	cvector_free_each_and_free(rrc_manager.cell_ctxt->sib_buffer, oset_free);
-	cvector_free(rrc_manager.cell_ctxt->sib_buffer);
-	//cvector_free(rrc_manager.cell_ctxt->sibs);
 
     /*free cell_ctxt->master_cell_group*/
 	free_master_cell_cfg_dyn_array(&rrc_manager.cell_ctxt->master_cell_group);
@@ -467,7 +467,7 @@ int API_rrc_mac_add_user(uint16_t rnti, uint32_t pcell_cc_idx)
 }
 
 
-int API_rrc_mac_read_pdu_bcch_dlsch(uint32_t sib_index, oset_pkbuf_t *buffer)
+int API_rrc_mac_read_pdu_bcch_dlsch(uint32_t sib_index, byte_buffer_t *buffer)
 {
 	if (sib_index >= cvector_size(rrc_manager.cell_ctxt->sib_buffer)) {
 		oset_error("SI%s%d is not a configured SIB.", sib_index == 0 ? "B" : "", sib_index + 1);

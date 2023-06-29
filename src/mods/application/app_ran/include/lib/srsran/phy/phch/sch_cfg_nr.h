@@ -48,6 +48,7 @@ typedef struct SRSRAN_API {
   uint32_t     nof_bits; ///< Number of available bits to send ULSCH
   uint32_t     cw_idx;
   bool         enabled;
+  uint32_t     pid;      ///< HARQ process number
 
   /// Soft-buffers pointers
   union {

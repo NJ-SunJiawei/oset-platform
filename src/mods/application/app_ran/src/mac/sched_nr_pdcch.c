@@ -264,18 +264,10 @@ void bwp_pdcch_allocator_cancel_last_pdcch(bwp_pdcch_allocator *pdcchs)
 void bwp_pdcch_allocator_destory(bwp_pdcch_allocator *pdcchs)
 {
     //pdcch_dl_list
-	pdcch_dl_t  **dl_node = NULL;
-	cvector_for_each_in(dl_node, pdcchs->pdcch_dl_list){
-		oset_free(*dl_node);
-	}
-	cvector_free(pdcchs->pdcch_dl_list);
+	cvector_free_each_and_free(pdcchs->pdcch_dl_list, oset_free);
 
 	//pdcch_ul_list
-	pdcch_ul_t  **ul_node = NULL;
-	cvector_for_each_in(ul_node, pdcchs->pdcch_ul_list){
-		oset_free(*ul_node);
-	}
-	cvector_free(pdcchs->pdcch_ul_list);
+	cvector_free_each_and_free(pdcchs->pdcch_ul_list, oset_free);
 
 	//pddchs
 	for (uint32_t cs_idx = 0; cs_idx < SRSRAN_UE_DL_NR_MAX_NOF_CORESET; ++cs_idx) {

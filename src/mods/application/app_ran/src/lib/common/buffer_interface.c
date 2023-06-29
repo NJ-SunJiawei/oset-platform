@@ -32,6 +32,19 @@ byte_buffer_t* byte_buffer_init(byte_buffer_t *buf)
 	return p;
 }
 
+byte_buffer_t* byte_buffer_change(oset_pkbuf_t *buf)
+{
+	byte_buffer_t *p = oset_malloc(sizeof(byte_buffer_t));
+	oset_assert(p);
+	memset(p, 0, sizeof(byte_buffer_t));
+	p->msg     = &p->buffer[SRSRAN_BUFFER_HEADER_OFFSET];
+	p->N_bytes = buf->len;
+	p->md	   = buf->0;
+	memcpy(p->msg, buf->data, p->N_bytes);
+	return p;
+}
+
+
 byte_buffer_t* byte_buffer_copy(byte_buffer_t *p, byte_buffer_t *other)
 {
 	// avoid self assignment

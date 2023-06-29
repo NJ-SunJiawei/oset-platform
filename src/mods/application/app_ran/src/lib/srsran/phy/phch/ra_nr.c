@@ -828,6 +828,7 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   pdsch_grant->tb[0].rv        = dci_dl->rv;
   pdsch_grant->tb[0].mcs       = dci_dl->mcs;
   pdsch_grant->tb[0].ndi       = dci_dl->ndi;
+  pdsch_grant->tb[0].pid       = dci_dl->pid;
   pdsch_cfg->sch_cfg.mcs_table = pdsch_hl_cfg->mcs_table;//暂时未使用好像
 
   // 5.1.4 PDSCH resource mapping PDSCH zp-csi/nzp-csi资源映射(周期性)
@@ -948,6 +949,7 @@ int srsran_ra_ul_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   pusch_grant->tb[0].rv        = dci_ul->rv;
   pusch_grant->tb[0].mcs       = dci_ul->mcs;
   pusch_grant->tb[0].ndi       = dci_ul->ndi;
+  pusch_grant->tb[0].pid       = dci_ul->pid;
   pusch_cfg->sch_cfg.mcs_table = pusch_hl_cfg->mcs_table;
 
   // 5.1.6.2 DM-RS reception procedure

@@ -15,6 +15,7 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-mac"
 
+#define WRITE_SIB_PCAP
 
 static mac_manager_t mac_manager = {0};
 
@@ -238,6 +239,55 @@ void mac_get_metrics(mac_metrics_t *metrics)
 	sched_nr_get_metrics(&mac_manager.sched.metrics_handler, metrics);
 }
 
+static byte_buffer_t* mac_assemble_rar(cvector_vector_t(msg3_grant_t) grants)
+{
+  mac_rar_pdu_nr rar_pdu = {0};
+
+  uint32_t pdsch_tbs = 10; // FIXME: how big is the PDSCH?
+  rar_pdu.init_tx(rar_pdu_buffer.get(), pdsch_tbs);
+
+  for (auto& rar_grant : grants) {
+    srsran::mac_rar_subpdu_nr& rar_subpdu = rar_pdu.add_subpdu();
+
+    // set values directly coming from scheduler
+    rar_subpdu.set_ta(rar_grant.data.ta_cmd);
+    rar_subpdu.set_rapid(rar_grant.data.preamble_idx);
+    rar_subpdu.set_temp_crnti(rar_grant.data.temp_crnti);
+
+    // convert Msg3 grant to raw UL grant
+    srsran_dci_nr_t     dci     = {};
+    srsran_dci_msg_nr_t dci_msg = {};
+    if (srsran_dci_nr_ul_pack(&dci, &rar_grant.msg3_dci, &dci_msg) != SRSRAN_SUCCESS) {
+      logger.error("Couldn't pack Msg3 UL grant");
+      return nullptr;
+    }
+
+    if (logger.info.enabled()) {
+      std::array<char, 512> str;
+      srsran_dci_ul_nr_to_str(&dci, &rar_grant.msg3_dci, str.data(), str.size());
+      logger.info("Setting RAR Grant %s", str.data());
+    }
+
+    // copy only the required bits
+    std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant = {};
+    std::copy(
+        std::begin(dci_msg.payload), std::begin(dci_msg.payload) + SRSRAN_RAR_UL_GRANT_NBITS, packed_ul_grant.begin());
+    rar_subpdu.set_ul_grant(packed_ul_grant);
+  }
+
+  if (rar_pdu.pack() != SRSRAN_SUCCESS) {
+    logger.error("Couldn't assemble RAR PDU");
+    return nullptr;
+  }
+
+  fmt::memory_buffer buff;
+  rar_pdu.to_string(buff);
+  logger.info("%s", srsran::to_c_str(buff));
+
+  return rar_pdu_buffer.get();
+}
+
+
 dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 {
 	slot_point pdsch_slot = {0};
@@ -276,7 +326,7 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 		      dl_pdu_t *pdu = dl_res->data[data_count++];
 		      ue_nr_generate_pdu(mac_ue, tb_data, pdsch->sch.grant.tb[i].tbs / 8, pdu->subpdus);
 		      if (mac_manager.pcap.pcap_file != NULL) {
-		      	uint32_t pid = 0; // TODO: get PID from PDCCH struct?
+		      	uint32_t pid = pdsch->sch.grant.tb[i].pid;
 		      	mac_pcap_write_dl_crnti_nr(&mac_manager.pcap, tb_data->msg, tb_data->N_bytes, rnti, pid, slot_cfg->idx);
 		      }
 		      ue_nr_metrics_dl_mcs(mac_ue, pdsch->sch.grant.tb[i].mcs);
@@ -285,17 +335,18 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 		} else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_ra) {
 		  rar_t *rar = dl_res->rar[rar_count++];
 		  // for RARs we could actually move the byte_buffer to the PHY, as there are no retx
-		  pdsch.data[0] = assemble_rar(rar->grants);
+		  pdsch.data[0] = mac_assemble_rar(rar->grants);
 		} else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_si) {
 		  uint32_t sib_idx = dl_res->sib_idxs[si_count++];
-		  pdsch.data[0]    = bcch_dlsch_payload[sib_idx].payload.get();//bcch_dlsch_payload.push_back(std::move(sib))
+		  pdsch.data[0]    = mac_manager.bcch_dlsch_payload[sib_idx].payload;
 #ifdef WRITE_SIB_PCAP
-		  if (pcap != NULL) {
-		    pcap->write_dl_si_rnti_nr(bcch_dlsch_payload[sib_idx].payload->msg,
-		                              bcch_dlsch_payload[sib_idx].payload->N_bytes,
-		                              SI_RNTI,
-		                              0,
-		                              slot_cfg->idx);
+		  if (mac_manager.pcap.pcap_file != NULL) {
+		    mac_pcap_write_dl_si_rnti_nr(&mac_manager.pcap, 
+										  mac_manager.bcch_dlsch_payload[sib_idx].payload->msg,
+			                              mac_manager.bcch_dlsch_payload[sib_idx].payload->N_bytes,
+			                              SI_RNTI,
+			                              0,
+			                              slot_cfg->idx);
 		  }
 #endif
 		}

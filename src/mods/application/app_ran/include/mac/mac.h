@@ -26,7 +26,7 @@ extern "C" {
 typedef struct sib_info_s {
   uint32_t			   index;
   uint32_t			   periodicity;
-  oset_pkbuf_t         *payload;
+  byte_buffer_t        *payload;
 }sib_info_t;
 
 

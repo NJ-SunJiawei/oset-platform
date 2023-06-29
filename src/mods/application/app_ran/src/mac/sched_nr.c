@@ -447,9 +447,12 @@ static void process_common(sched_nr *scheluder, uint32_t slot_rx_id)
 	event_manager *pending_events = &scheluder->pending_events;
 
 	{
+	    //todo need lock?
+    	//oset_apr_thread_rwlock_rdlock(pending_events->carriers[cc].event_cc_mutex);
 		cvector_clear(pending_events->carriers[cc].current_slot_ue_events);
 		cvector_copy(pending_events->carriers[cc].next_slot_ue_events, pending_events->carriers[cc].current_slot_ue_events);
 		cvector_clear(pending_events->carriers[cc].next_slot_ue_events);
+		//oset_apr_thread_rwlock_unlock(pending_events->carriers[cc].event_cc_mutex);
 	}
 
 	ue_event_t *u_ev = NULL;

@@ -46,7 +46,7 @@ typedef struct pdcch_ul_s {
 
 typedef struct pdsch_s {
   srsran_sch_cfg_nr_t	sch; ///< PDSCH configuration
-  byte_buffer_t         *data[SRSRAN_MAX_TB]; ///< Data pointer //harq pdu
+  byte_buffer_t         *data[SRSRAN_MAX_TB]; ///< Data pointer // dl: pdsch->data[0] = slot_u->h_dl->pdu; //用于存放打包好的mac pdu buffer
 }pdsch_t;
 
 typedef struct ssb_s {

@@ -247,11 +247,7 @@ void pdsch_allocator_reset(pdsch_allocator *pdsch_alloc)
 
 void pdsch_allocator_destory(pdsch_allocator *pdsch_alloc)
 {
-	pdsch_t  **pdsch_node = NULL;
-	cvector_for_each_in(pdsch_node, pdsch_alloc->pdschs){
-		oset_free(*pdsch_node);
-	}
-	cvector_free(pdsch_alloc->pdschs);
+	cvector_free_each_and_free(pdsch_alloc->pdschs, oset_free);
 }
 
 void pdsch_allocator_init(pdsch_allocator *pdsch_alloc, bwp_params_t *cfg_, uint32_t slot_index, cvector_vector_t(pdsch_t) pdsch_lst)
@@ -361,11 +357,7 @@ void pusch_allocator_reset(pusch_allocator *pusch_alloc)
 
 void pusch_allocator_destory(pusch_allocator *pusch_alloc)
 {
-	pusch_t  **pusch_node = NULL;
-	cvector_for_each_in(pusch_node, pusch_alloc->puschs){
-		oset_free(*pusch_node);
-	}
-	cvector_free(pusch_alloc->puschs);
+	cvector_free_each_and_free(pusch_alloc->puschs, oset_free);
 }
 void pusch_allocator_init(pusch_allocator *pusch_alloc, bwp_params_t *cfg_, uint32_t slot_index,  cvector_vector_t(pusch_t) pusch_lst)
 {

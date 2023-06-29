@@ -184,7 +184,7 @@ bool dl_harq_proc_new_tx(dl_harq_proc *h_dl,
 	const static uint32_t rv_idx[4] = {0, 2, 3, 1};
 
 	if (harq_proc_new_tx(&h_dl->proc, slot_tx, slot_ack, grant, mcs_, max_retx)) {
-		byte_buffer_clear(h_dl->pdu);
+		byte_buffer_clear(h_dl->pdu);// 新传才会清空，重传不清空
 		dl_harq_proc_fill_dci(h_dl, dci);
 		return true;
 	}
