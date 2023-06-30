@@ -128,7 +128,7 @@ typedef struct rar_info_s {
   uint32_t	 msg3_size;//7
   uint32_t	 cc;
   uint16_t	 temp_crnti;
-  slot_point prach_slot;
+  slot_point prach_slot; // slot_rx
   uint32_t	 ofdm_symbol_idx;
   uint32_t	 freq_idx;
   uint32_t	 preamble_idx;

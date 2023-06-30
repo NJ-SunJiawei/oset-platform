@@ -9,7 +9,7 @@
 #include "asn1c/util/message.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "asn1c-per"
+#define OSET_LOG2_DOMAIN   "app-gnb-asn1cPer"
 
 static oset_pkbuf_pool_t *asn_buffer_pool = NULL;
 

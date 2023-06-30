@@ -16,6 +16,7 @@
 #define OSET_LOG2_DOMAIN   "app-gnb-mac"
 
 #define WRITE_SIB_PCAP
+#define WRITE_RAR_PCAP
 
 static mac_manager_t mac_manager = {0};
 
@@ -239,52 +240,58 @@ void mac_get_metrics(mac_metrics_t *metrics)
 	sched_nr_get_metrics(&mac_manager.sched.metrics_handler, metrics);
 }
 
-static byte_buffer_t* mac_assemble_rar(cvector_vector_t(msg3_grant_t) grants)
+static byte_buffer_t* mac_assemble_rar(cvector_vector_t(msg3_grant_t) grants, uint32_t tbs_len)
 {
-  mac_rar_pdu_nr rar_pdu = {0};
+	mac_rar_pdu_nr rar_pdu = {0};
 
-  uint32_t pdsch_tbs = 10; // FIXME: how big is the PDSCH?
-  rar_pdu.init_tx(rar_pdu_buffer.get(), pdsch_tbs);
+	//uint32_t pdsch_tbs = 10;   // FIXME: how big is the PDSCH?
 
-  for (auto& rar_grant : grants) {
-    srsran::mac_rar_subpdu_nr& rar_subpdu = rar_pdu.add_subpdu();
+	// msg2 prb = 4 ===> 4*(12*(14-2)*2*379/1024*1) = 426bit/8 = 53byte
+	uint32_t pdsch_tbs = tbs_len;
+	mac_rar_pdu_nr_init_tx(&rar_pdu, mac_manager.rar_pdu_buffer, pdsch_tbs);
 
-    // set values directly coming from scheduler
-    rar_subpdu.set_ta(rar_grant.data.ta_cmd);
-    rar_subpdu.set_rapid(rar_grant.data.preamble_idx);
-    rar_subpdu.set_temp_crnti(rar_grant.data.temp_crnti);
+	msg3_grant_t *rar_grant = NULL;
+	cvector_for_each_in(rar_grant, grants){
+		mac_rar_subpdu_nr rar_subpdu = {0};
 
-    // convert Msg3 grant to raw UL grant
-    srsran_dci_nr_t     dci     = {};
-    srsran_dci_msg_nr_t dci_msg = {};
-    if (srsran_dci_nr_ul_pack(&dci, &rar_grant.msg3_dci, &dci_msg) != SRSRAN_SUCCESS) {
-      logger.error("Couldn't pack Msg3 UL grant");
-      return nullptr;
-    }
+		// set values directly coming from scheduler
+		rar_subpdu->type = (rar_subh_type_t)RAPID;
+		rar_subpdu->payload_length = MAC_RAR_NBYTES;
+		rar_subpdu->header_length = 1;
+		rar_subpdu->E_bit = true; // not last
+		rar_subpdu->rapid = rar_grant->data.preamble_idx;
+		rar_subpdu->ta = rar_grant->data.ta_cmd;
+		rar_subpdu->temp_crnti = rar_grant->data.temp_crnti;
 
-    if (logger.info.enabled()) {
-      std::array<char, 512> str;
-      srsran_dci_ul_nr_to_str(&dci, &rar_grant.msg3_dci, str.data(), str.size());
-      logger.info("Setting RAR Grant %s", str.data());
-    }
+		// convert Msg3 grant to raw UL grant
+		// msg3上行授权调度， ul_grant包含在mac rar中(27 bit)
+		srsran_dci_nr_t     dci     = {0};// 入参 rar不需要此入参
+		srsran_dci_msg_nr_t dci_msg = {0};// 出参
+		if (srsran_dci_nr_ul_pack(&dci, &rar_grant->msg3_dci, &dci_msg) != SRSRAN_SUCCESS) {
+			oset_error("Couldn't pack Msg3 UL grant");
+			return NULL;
+		}
 
-    // copy only the required bits
-    std::array<uint8_t, SRSRAN_RAR_UL_GRANT_NBITS> packed_ul_grant = {};
-    std::copy(
-        std::begin(dci_msg.payload), std::begin(dci_msg.payload) + SRSRAN_RAR_UL_GRANT_NBITS, packed_ul_grant.begin());
-    rar_subpdu.set_ul_grant(packed_ul_grant);
-  }
+		char str[512] = {0};
+		srsran_dci_ul_nr_to_str(&dci, &rar_grant->msg3_dci, str, sizeof(str));
+		oset_debug("Setting RAR Grant %s", str);
 
-  if (rar_pdu.pack() != SRSRAN_SUCCESS) {
-    logger.error("Couldn't assemble RAR PDU");
-    return nullptr;
-  }
+		// copy only the required bits
+		memcpy(rar_subpdu->ul_grant, dci_msg->payload, SRSRAN_RAR_UL_GRANT_NBITS);
 
-  fmt::memory_buffer buff;
-  rar_pdu.to_string(buff);
-  logger.info("%s", srsran::to_c_str(buff));
+		cvector_push_back(rar_pdu->subpdus, rar_subpdu);
+	}
 
-  return rar_pdu_buffer.get();
+	if (mac_rar_pdu_nr_pack(&rar_pdu) != OSET_OK) {
+		oset_error("Couldn't assemble RAR PDU");
+		return NULL;
+	}
+
+	mac_rar_pdu_nr_to_string(&rar_pdu);
+
+	cvector_free(rar_pdu->subpdus);
+
+	return mac_manager.rar_pdu_buffer;
 }
 
 
@@ -335,7 +342,36 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 		} else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_ra) {
 		  rar_t *rar = dl_res->rar[rar_count++];
 		  // for RARs we could actually move the byte_buffer to the PHY, as there are no retx
-		  pdsch.data[0] = mac_assemble_rar(rar->grants);
+
+		  // 如果UE收到了一个BI子头，则会保存一个backoff值，该值等于该subheader的BI值(其为一个backoff的索引值)所对应索引所对应的值；否则UE会将backoff值设为0。
+		  // BI(Backoff Indicator)指定了UE重发preamble前需要等待的时间范围(取值范围见38.321.的7.2节)。如果UE在RAR时间窗内没有接收到RAR，或接收到的RAR中没有一个preamble与自己的相符合，
+		  // 则认为此次RAR接收失败，此时UE需要等待一段时间后，再次发起随机接入请求。等待的时间为在0至BI值指定的等待时间区间内随机选取一个值。
+		  // BI的取值从侧面反映了小区的负载情况，如果接入的UE多，则该值可以设置得大些；如果接入的UE少，该值就可以设置得小一些，这由基站实现所决定。
+
+		  // |MAC subPDU 1(BI only)|MAC subPDU 2(RAPID only)|MAC subPDU 3(RAPID + RAR)|
+		  // |E|T|R|R|     BI      |E|T|     RAPID          |E|T|   RAPID|  MAC   RAR |
+
+		  // |E|T|R|R|	 BI  | OCT1   MAC sub header
+		  
+		  // |E|T	   PAPID | OCT1   MAC sub header
+		  // |R|R|R|   TA	 | OCT1
+		  // | TA	|UL Grant| OCT2
+		  // |	  UL Grant	 | OCT3
+		  // |	  UL Grant	 | OCT4
+		  // |	  UL Grant	 | OCT5
+		  // |	  TC-RNTI	 | OCT6
+		  // |	  TC-RNTI	 | OCT7
+		  pdsch.data[0] = mac_assemble_rar(rar->grants, pdsch->sch.grant.tb[0].tbs / 8);
+#ifdef WRITE_RAR_PCAP
+			if (mac_manager.pcap.pcap_file != NULL) {
+			  	mac_pcap_write_dl_ra_rnti_nr(&mac_manager.pcap,
+			  								mac_manager.rar_pdu_buffer.msg,
+			  								mac_manager.rar_pdu_buffer.N_bytes
+			  								pdsch->sch.grant.rnti,
+			  								pdsch->sch.grant.tb[0].pid,
+			  								slot_cfg->idx);
+			}
+#endif
 		} else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_si) {
 		  uint32_t sib_idx = dl_res->sib_idxs[si_count++];
 		  pdsch.data[0]    = mac_manager.bcch_dlsch_payload[sib_idx].payload;
@@ -354,7 +390,7 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 
 	ue_nr *ue = NULL, *next_ue = NULL;
 	oset_list_for_each_safe(&mac_manager.mac_ue_list, next_ue, ue){
-	  ue_nr_metrics_cnt(ue);
+		ue_nr_metrics_cnt(ue);
 	}
 
 	return &dl_res->phy;

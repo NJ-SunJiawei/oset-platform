@@ -10,7 +10,7 @@
 #include "mac/base_ue_buffer_manager.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-sched-baseUe"
+#define OSET_LOG2_DOMAIN   "app-gnb-baseUe"
 
 static bool is_lcid_valid(uint32_t lcid) { return lcid <= MAX_LC_ID;}
 static bool is_lcg_valid(uint32_t lcg) { return lcg <= MAX_LCG_ID;}

@@ -11,10 +11,11 @@
 #include "mac/mac.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-slot-worker"
+#define OSET_LOG2_DOMAIN   "app-gnb-slotWorker"
 
+#define DEBUG_WRITE_FILE
 
-#define SLOT_WORK_POOL_SIZE  (TX_ENB_DELAY*2)
+#define SLOT_WORK_POOL_SIZE  (TX_ENB_DELAY + 1)
 oset_stl_queue_def(slot_worker_t, slot_worker) slot_work_list = NULL;
 
 slot_worker_t* slot_worker_alloc(void)
@@ -107,9 +108,9 @@ bool slot_worker_init(slot_worker_args_t *args)
 	}
 
 #ifdef DEBUG_WRITE_FILE
-	//const char* filename = "nr_baseband.dat";
-	//oset_debug("Opening %s to dump baseband\n", filename);
-	//f = fopen(filename, "w");
+	const char* filename = "/tmp/nr_baseband.dat";
+	oset_debug("Opening %s to dump baseband", filename);
+	f = fopen(filename, "w");
 #endif
 
 	return true;
@@ -222,6 +223,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	const srsran_slot_cfg_t *dl_slot_cfg = &slot_w->dl_slot_cfg;
 	if (NULL == dl_slot_cfg) return false;
 
+	// 清空天线端口缓冲
 	if (srsran_gnb_dl_base_zero(gnb_dl) < SRSRAN_SUCCESS) {
 		oset_error("[%5u] Error zeroing RE grid", slot_w->context.sf_idx);
 		return false;
@@ -367,11 +369,11 @@ void* slot_worker_process(oset_threadplus_t *thread, void *data)
 
 #ifdef DEBUG_WRITE_FILE
 	if (num_slots++ < slots_to_dump) {
-	oset_info("[%5u] Writing slot %d", slot_w->context.sf_idx, slot_w->dl_slot_cfg.idx);
-	fwrite(tx_rf_buffer.get(0), tx_rf_buffer.get_nof_samples() * sizeof(cf_t), 1, f);
+		oset_info("[%5u] Writing slot %d", slot_w->context.sf_idx, slot_w->dl_slot_cfg.idx);
+		fwrite(tx_rf_buffer.get(0), tx_rf_buffer.get_nof_samples() * sizeof(cf_t), 1, f);
 	} else if (num_slots == slots_to_dump) {
-	oset_info("[%5u] Baseband signaled dump finished. Please close app", slot_w->context.sf_idx);
-	fclose(f);
+		oset_info("[%5u] Baseband signaled dump finished. Please close app", slot_w->context.sf_idx);
+		fclose(f);
 	}
 #endif
 

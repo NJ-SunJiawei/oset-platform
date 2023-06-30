@@ -12,7 +12,7 @@
 
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-lib-mac-sch"
+#define OSET_LOG2_DOMAIN   "app-gnb-libmacSch"
 
 
 uint32_t mac_sch_subpdu_nr_sizeof_ce(uint32_t lcid, bool is_ul)

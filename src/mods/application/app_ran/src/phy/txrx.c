@@ -150,8 +150,8 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		size_t task = oset_threadpool_tasks_count(phy_manager_self()->th_pools);
 		if(task > TX_ENB_DELAY)
 		{
-			//当进入该分支，当队列任务>TX_ENB_DELAY时,阻塞接收，可以控制任务队列<TX_ENB_DELAY ,这样会导致处理时间变长。
-			//若不进入该分支，若上层处理过慢，会导致任务队列很长。
+			//当进入该分支,当队列任务>TX_ENB_DELAY时,阻塞接收, 可以控制任务队列长度,这样会导致处理时间变长
+			//若不进入该分支,若上层处理过慢,会导致任务队列很长
 			oset_debug("[%5u] phy threadpool task %u > TX_ENB_DELAY, blocking!!!", realtime_tti, task);
 			oset_apr_mutex_lock(phy_manager_self()->mutex);
 			oset_apr_thread_cond_wait(phy_manager_self()->cond, phy_manager_self()->mutex);

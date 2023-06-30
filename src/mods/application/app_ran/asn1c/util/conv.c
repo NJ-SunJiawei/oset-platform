@@ -9,7 +9,7 @@
 #include "asn1c/util/conv.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "asn1c-conv"
+#define OSET_LOG2_DOMAIN   "app-gnb-asn1cConv"
 
 void oset_asn_uint8_to_OCTET_STRING(
         uint8_t uint8, OCTET_STRING_t *octet_string)

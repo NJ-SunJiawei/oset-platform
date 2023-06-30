@@ -11,7 +11,7 @@
 #include "rrc/rrc_cell_asn_fill_inner.h"
 			
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-rrc-inner"
+#define OSET_LOG2_DOMAIN   "app-gnb-rrcInner"
 
 bool make_phy_tdd_cfg_inner(srsran_duplex_config_nr_t	       	*srsran_duplex_config_nr,
 							        srsran_subcarrier_spacing_t	  scs,

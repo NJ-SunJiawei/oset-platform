@@ -9,7 +9,7 @@
 #include "lib/common/time.h"
 	
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-lib-time"
+#define OSET_LOG2_DOMAIN   "app-gnb-libtime"
 	
 static oset_time_t gnb_current_time = 0;
 static int		   gnb_current_time_last_frame = 0;

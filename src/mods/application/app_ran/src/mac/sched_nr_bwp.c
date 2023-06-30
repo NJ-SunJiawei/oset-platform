@@ -102,11 +102,14 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 		ret = (alloc_result)invalid_coderate;
 		uint32_t start_prb_idx = 0;
 
-		// 目前只循环一次,
 		// msg2 prb = 4 ===> 4*12*(14-2)*2*379/1024*1 = 426bit/8 = 53byte
 		// RAR payload size in bytes as per TS38.321, 6.1.5 and 6.2.3.
 
+		// |MAC subPDU 1(BI only)|MAC subPDU 2(RAPID only)|MAC subPDU 3(RAPID + RAR)|
+		// |E|T|R|R|	 BI 	 |E|T|	   RAPID		  |E|T|   RAPID|  MAC	RAR |
+
 		// |E|T|R|R|   BI  | OCT1   MAC sub header
+
 		// |E|T      PAPID | OCT1   MAC sub header
 		// |R|R|R|   TA    | OCT1
 		// | TA   |UL Grant| OCT2
@@ -116,15 +119,17 @@ static alloc_result ra_sched_allocate_pending_rar(ra_sched *ra,
 		// |    TC-RNTI    | OCT6
 		// |    TC-RNTI    | OCT7
         // rar_payload_size_bytes = 7, rar_subheader_size_bytes = 1  ====》 4*8 = 32byte
-		uint32_t nprb = 4;
-		prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
-		start_prb_idx 	  = interv.start_;
-		if (prb_interval_length(&interv) == nprb) {
-			span_t(dl_sched_rar_info_t) msg3_grant_tmp = {0};
-			subspan(msg3_grant_tmp, msg3_grants, 0, nof_grants_alloc);
-			ret = bwp_slot_allocator_alloc_rar_and_msg3(bwp_alloc, rar->ra_rnti, rar_aggr_level, &interv, &msg3_grant_tmp);
-		} else {
-			ret = (alloc_result)no_sch_space;
+        // 目前只循环一次,
+		for (uint32_t nprb = 4; nprb < ra->bwp_cfg->cfg.rb_width && ret == (alloc_result)invalid_coderate; ++nprb) {
+			prb_interval interv = find_empty_interval_of_length(prbs, nprb, start_prb_idx);
+			start_prb_idx 	  = interv.start_;
+			if (prb_interval_length(&interv) == nprb) {
+				span_t(dl_sched_rar_info_t) msg3_grant_tmp = {0};
+				subspan(msg3_grant_tmp, msg3_grants, 0, nof_grants_alloc);
+				ret = bwp_slot_allocator_alloc_rar_and_msg3(bwp_alloc, rar->ra_rnti, rar_aggr_level, &interv, &msg3_grant_tmp);
+			} else {
+				ret = (alloc_result)no_sch_space;
+			}
 		}
 
 		// If allocation was not successful because there were not enough RBGs, try allocating fewer Msg3 grants

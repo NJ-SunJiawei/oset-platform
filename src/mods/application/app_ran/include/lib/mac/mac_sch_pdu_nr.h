@@ -87,7 +87,7 @@ typedef struct {
 typedef struct {
   bool                  ulsch;
   cvector_vector_t(mac_sch_subpdu_nr)  subpdus;//std::vector<mac_sch_subpdu_nr>
-  byte_buffer_t         *buffer;  // dl: pdsch->data[0] = slot_u->h_dl->pdu; //存放打包好的mac pdu
+  byte_buffer_t         *buffer;  // dl: pdsch->data[0] = slot_u->h_dl->pdu; //存放打包好的mac pdu buffer
   uint32_t              pdu_len;
   uint32_t              remaining_len;
 }mac_sch_pdu_nr;

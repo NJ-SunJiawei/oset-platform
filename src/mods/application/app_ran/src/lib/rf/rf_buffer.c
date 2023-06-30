@@ -9,7 +9,7 @@
 #include "lib/rf/rf_buffer.h"
 	
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-librf-buf"
+#define OSET_LOG2_DOMAIN   "app-gnb-librfBuf"
 
 void set_nof_samples(rf_buffer_t *rfbuf, uint32_t n)
 {
