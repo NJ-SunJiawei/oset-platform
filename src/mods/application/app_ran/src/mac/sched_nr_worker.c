@@ -89,7 +89,6 @@ static void log_sched_bwp_result(bwp_slot_allocator *bwp_alloc,
 	pdcch_dl_t **dl_node = NULL;
 	cvector_for_each_in(dl_node, bwp_slot->dl.phy.pdcch_dl){
 		pdcch_dl_t *pdcch = *dl_node;
-
 		if (pdcch.dci.ctx.rnti_type == srsran_rnti_type_c) {
 			slot_ue *ue = oset_hash_get(cc_w->slot_ues, pdcch->dci.ctx.rnti, sizeof(pdcch->dci.ctx.rnti));
 			oset_assert(ue);
@@ -279,9 +278,10 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 		// 由于DCI_ul的分配,每个UE的PUSCH信道所占用的RB是不重叠的,各个UE之间的UCI信息并不会互相干扰,
 		// 因此每个UE的CQI/PMI/RI都可以和ACK/NACK一起,在同一个上行slot中发送给eNB
 		bool has_pusch = false;
-		pusch_t *pusch = NULL;
+		pusch_t **pusch_node = NULL;
 		// bwp_slot->ul.pusch ~~ bwp_slot->puschs.puschs
-		cvector_for_each_in(pusch, bwp_slot->ul.pusch){
+		cvector_for_each_in(pusch_node, bwp_slot->ul.pusch){
+		  pusch_t *pusch = *pusch_node;
 		  if (pusch->sch.grant.rnti == ue->ue->rnti) {
 		    // Put UCI configuration in PUSCH config
 		    has_pusch = true;
@@ -347,8 +347,6 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 		    }
 			cvector_push_back(pucch.candidates, candidates_add);
 		  }
-
-		  cvector_push_back(bwp_slot->ul.pucch, pucch);
 		}
 	}
 }

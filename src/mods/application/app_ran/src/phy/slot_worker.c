@@ -223,93 +223,94 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	const srsran_slot_cfg_t *dl_slot_cfg = &slot_w->dl_slot_cfg;
 	if (NULL == dl_slot_cfg) return false;
 
-	// 清空天线端口缓冲
+	// 清空天线端口缓冲 fft_cfg.in_buffer
 	if (srsran_gnb_dl_base_zero(gnb_dl) < SRSRAN_SUCCESS) {
 		oset_error("[%5u] Error zeroing RE grid", slot_w->context.sf_idx);
 		return false;
 	}
 
 	// Encode PDCCH for DL transmissions
-	for (pdcch_dl_t& pdcch : dl_sched_ptr->pdcch_dl) {
+	pdcch_dl_t **pdcch_dl_node = NULL;
+	cvector_for_each_in(pdcch_dl_node, dl_sched_ptr->pdcch_dl){
+		pdcch_dl_t *pdcch = *pdcch_dl_node;
 		// Set PDCCH configuration, including DCI dedicated
-		if (srsran_gnb_dl_set_pdcch_config(gnb_dl, &pdcch_cfg, &pdcch.dci_cfg) < SRSRAN_SUCCESS) {//配置dci coreset和namespace
+		if (srsran_gnb_dl_set_pdcch_config(gnb_dl, &slot_w->pdcch_cfg, &pdcch->dci_cfg) < SRSRAN_SUCCESS) {
 			oset_error("[%5u] PDCCH: Error setting DL configuration", slot_w->context.sf_idx);
 			return false;
 		}
 
 		// Put PDCCH message
-		if (srsran_gnb_dl_pdcch_put_dl(gnb_dl, dl_slot_cfg, &pdcch.dci) < SRSRAN_SUCCESS) {//编码dci
+		if (srsran_gnb_dl_pdcch_put_dl(gnb_dl, dl_slot_cfg, &pdcch->dci) < SRSRAN_SUCCESS) {
 			oset_error("[%5u] PDCCH: Error putting DL message", slot_w->context.sf_idx);
 			return false;
 		}
 
 		// Log PDCCH information
-		if (oset_runtime()->hard_log_level >= OSET_LOG2_INFO) {
-			char str[512] = {0};
-			srsran_gnb_dl_pdcch_dl_info(gnb_dl, &pdcch.dci, str, 512);
-			oset_info("[%5u] PDCCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg->idx);
-		}
+		char str[512] = {0};
+		srsran_gnb_dl_pdcch_dl_info(gnb_dl, &pdcch.dci, str, sizeof(str));
+		oset_info("[%5u] PDCCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg->idx);
 	}
 
 	// Encode PDCCH for UL transmissions
-	for (const stack_interface_phy_nr::pdcch_ul_t& pdcch : dl_sched_ptr->pdcch_ul) {
+	pdcch_ul_t **pdcch_ul_node = NULL;
+	cvector_for_each_in(pdcch_ul_node, dl_sched_ptr->pdcch_ul){
+		pdcch_ul_t *pdcch = *pdcch_ul_node;
 		// Set PDCCH configuration, including DCI dedicated
-		if (srsran_gnb_dl_set_pdcch_config(gnb_dl, &pdcch_cfg, &pdcch.dci_cfg) < SRSRAN_SUCCESS) {
+		if (srsran_gnb_dl_set_pdcch_config(gnb_dl,  &slot_w->pdcch_cfg, &pdcch->dci_cfg) < SRSRAN_SUCCESS) {
 			oset_error("[%5u] PDCCH: Error setting DL configuration", slot_w->context.sf_idx);
 			return false;
 		}
 
 		// Put PDCCH message
-		if (srsran_gnb_dl_pdcch_put_ul(gnb_dl, dl_slot_cfg, &pdcch.dci) < SRSRAN_SUCCESS) {
+		if (srsran_gnb_dl_pdcch_put_ul(gnb_dl, dl_slot_cfg, &pdcch->dci) < SRSRAN_SUCCESS) {
 			oset_error("[%5u] PDCCH: Error putting DL message", slot_w->context.sf_idx);
 			return false;
 		}
 
 		// Log PDCCH information
-		if (oset_runtime()->hard_log_level >= OSET_LOG2_INFO) {
-			char str[512] = {0};
-			srsran_gnb_dl_pdcch_ul_info(gnb_dl, &pdcch.dci, str, 512);
-			oset_info("[%5u] PDCCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg->idx);
-		}
+		char str[512] = {0};
+		srsran_gnb_dl_pdcch_ul_info(gnb_dl, &pdcch.dci, str, sizeof(str));
+		oset_info("[%5u] PDCCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg->idx);
 	}
 
 	// Encode PDSCH
-	for (pdsch_t& pdsch : dl_sched_ptr->pdsch) {
+	pdsch_t **pdsch_node = NULL;
+	cvector_for_each_in(pdsch_node, dl_sched_ptr->pdsch){
+		pdsch_t *pdsch = *pdsch_node;
 		// convert MAC to PHY buffer data structures
 		//一个码字（codeword）是对在一个TTI上发送的一个TB进行CRC插入、码块分割并为每个码块插入CRC、信道编码、速率匹配之后，得到的数据码流
 		//每个码字与一个TB相对应，因此一个UE在一个TTI至多发送2个码字。码字可以看作是带出错保护的TB
-		uint8_t* data[SRSRAN_MAX_TB] = {};
+		uint8_t* data[SRSRAN_MAX_TB] = {0};
 		for (uint32_t i = 0; i < SRSRAN_MAX_TB; ++i) {
-			if (pdsch.data[i] != nullptr) {
+			if (pdsch->data[i] != nullptr) {
 				//存放gnb下行组装好mac数据
-				data[i] = pdsch.data[i]->msg;
+				data[i] = pdsch->data[i]->msg;
 			}
 		}
 
-		// Put PDSCH message//重传也在该模块
-		if (srsran_gnb_dl_pdsch_put(gnb_dl, dl_slot_cfg, &pdsch.sch, data) < SRSRAN_SUCCESS) {
+		// Put PDSCH message
+		if (srsran_gnb_dl_pdsch_put(gnb_dl, dl_slot_cfg, &pdsch->sch, data) < SRSRAN_SUCCESS) {
 			oset_error("[%5u] PDSCH: Error putting DL message", slot_w->context.sf_idx);
 			return false;
 		}
 
 		// Log PDSCH information
-		if (oset_runtime()->hard_log_level >= OSET_LOG2_INFO) {
-			std::array<char, 512> str = {};
-			srsran_gnb_dl_pdsch_info(gnb_dl, &pdsch.sch, str.data(), (uint32_t)str.size());
+		char str[512] = {0};
+		srsran_gnb_dl_pdsch_info(gnb_dl, &pdsch->sch, str, sizeof(str));
 
-			if (oset_runtime()->hard_log_level >= OSET_LOG2_DEBUG) {
-				std::array<char, 1024> str_extra = {};
-				srsran_sch_cfg_nr_info(&pdsch.sch, str_extra.data(), (uint32_t)str_extra.size());
-				oset_info("[%5u] PDSCH: cc=%d %s tti_tx=%d\n%s", slot_w->context.sf_idx, slot_w->cell_index, str.data(), dl_slot_cfg->idx, str_extra.data());
-			} else {
-				oset_info("[%5u] PDSCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str.data(), dl_slot_cfg->idx);
-			}
+		if (oset_runtime()->hard_log_level >= OSET_LOG2_DEBUG) {
+			char str_extra[1024] = {0};
+			srsran_sch_cfg_nr_info(&pdsch->sch, str_extra, sizeof(str_extra));
+			oset_debug("[%5u] PDSCH: cc=%d %s tti_tx=%d\n%s", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg->idx, str_extra);
+		} else {
+			oset_info("[%5u] PDSCH: cc=%d %s tti_tx=%d", slot_w->context.sf_idx, slot_w->cell_index, str, dl_slot_cfg->idx);
 		}
 	}
 
 	// Put NZP-CSI-RS
-	for (const srsran_csi_rs_nzp_resource_t& nzp_csi_rs : dl_sched_ptr->nzp_csi_rs) {
-		if (srsran_gnb_dl_nzp_csi_rs_put(gnb_dl, dl_slot_cfg, &nzp_csi_rs) < SRSRAN_SUCCESS) {
+	srsran_csi_rs_nzp_resource_t *nzp_csi_rs = NULL;
+	cvector_for_each_in(nzp_csi_rs, dl_sched_ptr->nzp_csi_rs){
+		if (srsran_gnb_dl_nzp_csi_rs_put(gnb_dl, dl_slot_cfg, nzp_csi_rs) < SRSRAN_SUCCESS) {
 			oset_error("[%5u] NZP-CSI-RS: Error putting signal", slot_w->context.sf_idx);
 			return false;
 		}
@@ -319,8 +320,9 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	srsran_gnb_dl_gen_signal(gnb_dl);
 
 	// Add SSB to the baseband signal
-	for (ssb_t& ssb : dl_sched_ptr->ssb) {
-		if (srsran_gnb_dl_add_ssb(gnb_dl, &ssb.pbch_msg, dl_slot_cfg->idx) < SRSRAN_SUCCESS) {
+	ssb_t *ssb = NULL;
+	cvector_for_each_in(ssb, dl_sched_ptr->ssb){
+		if (srsran_gnb_dl_add_ssb(gnb_dl, &ssb->pbch_msg, dl_slot_cfg->idx) < SRSRAN_SUCCESS) {
 			oset_error("[%5u] SSB: Error putting signal", slot_w->context.sf_idx);
 			return false;
 		}

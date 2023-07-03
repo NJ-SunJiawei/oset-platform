@@ -236,11 +236,7 @@ rbg_bitmap* pdsch_allocator_occupied_rbgs(pdsch_allocator *pdsch_alloc)
 
 void pdsch_allocator_reset(pdsch_allocator *pdsch_alloc)
 {
-	pdsch_t  **pdsch_node = NULL;
-	cvector_for_each_in(pdsch_node, pdsch_alloc->pdschs){
-		oset_free(*pdsch_node);
-	}
-	cvector_clear(pdsch_alloc->pdschs);
+	cvector_free_each_and_free(pdsch_alloc->pdschs, oset_free);
 
 	bwp_rb_bitmap_reset(&pdsch_alloc->dl_prbs);
 }
@@ -346,11 +342,7 @@ alloc_result pusch_allocator_has_grant_space(pusch_allocator *pusch_alloc, uint3
 
 void pusch_allocator_reset(pusch_allocator *pusch_alloc)
 {
-	pusch_t  **pusch_node = NULL;
-	cvector_for_each_in(pusch_node, pusch_alloc->puschs){
-		oset_free(*pusch_node);
-	}
-	cvector_clear(pusch_alloc->puschs);
+	cvector_free_each_and_free(pusch_alloc->puschs, oset_free);
 
 	bwp_rb_bitmap_reset(&pusch_alloc->ul_prbs);
 }

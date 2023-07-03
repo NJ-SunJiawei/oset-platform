@@ -49,8 +49,8 @@ typedef struct slot_worker_s{
 	srsran_slot_cfg_t	  dl_slot_cfg;
 	srsran_slot_cfg_t	  ul_slot_cfg;
 	worker_context_t      context;
-	cf_t                  **tx_buffer; ///< Baseband transmit buffers ~1 subframe len //[args->nof_tx_ports]
-	cf_t                  **rx_buffer; ///< Baseband receive buffers ~1 subframe len //[args->nof_rx_ports]
+	cf_t                  **tx_buffer; ///< Baseband transmit buffers ~1 subframe len //[args->nof_tx_ports] //rf buffer
+	cf_t                  **rx_buffer; ///< Baseband receive buffers ~1 subframe len //[args->nof_rx_ports]//rf buffer
 }slot_worker_t;
 
 //typedef struct slot_manager_s{

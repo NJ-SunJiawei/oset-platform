@@ -59,11 +59,13 @@ void bwp_slot_grid_destory(bwp_slot_grid *slot)
 	//dl
 	cvector_free(slot->dl.phy.ssb);
 	cvector_free(slot->dl.phy.nzp_csi_rs);
+
 	dl_pdu_t  *dl_pdu_node = NULL;
 	cvector_for_each_in(dl_pdu_node, slot->dl.data){
 		cvector_free(dl_pdu_node->subpdus);
 	}
 	cvector_free(slot->dl.data);
+
 	rar_t  *rar_node = NULL;
 	cvector_for_each_in(rar_node, slot->dl.rar){
 		cvector_free(rar_node->grants);
@@ -72,7 +74,12 @@ void bwp_slot_grid_destory(bwp_slot_grid *slot)
 
 	cvector_free(slot->dl.sib_idxs);
 
+	pucch_t  *pucch_node = NULL;
+	cvector_for_each_in(pucch_node, slot->ul.pucch){
+		cvector_free(pucch_node->candidates);
+	}
 	cvector_free(slot->ul.pucch);
+
 	//ack
 	cvector_free(slot->pending_acks);
 }
@@ -82,24 +89,29 @@ void bwp_slot_grid_reset(bwp_slot_grid *slot)
 	bwp_pdcch_allocator_reset(&slot->pdcchs);
 	pdsch_allocator_reset(&slot->pdschs);
 	pusch_allocator_reset(&slot->puschs);
-	cvector_clear(slot->dl.phy.ssb);
-	cvector_clear(slot->dl.phy.nzp_csi_rs);
+	cvector_free(slot->dl.phy.ssb);
+	cvector_free(slot->dl.phy.nzp_csi_rs);
+
 	dl_pdu_t  *dl_pdu_node = NULL;
 	cvector_for_each_in(dl_pdu_node, slot->dl.data){
 		cvector_clear(dl_pdu_node->subpdus);
 	}
 	cvector_clear(slot->dl.data);
+
 	rar_t  *rar_node = NULL;
 	cvector_for_each_in(rar_node, slot->dl.rar){
 		cvector_clear(rar_node->grants);
 	}
 	cvector_clear(slot->dl.rar);
+
 	cvector_clear(slot->dl.sib_idxs);
-	//pucch_t **ul_node = NULL;
-	//cvector_for_each_in(ul_node, slot->ul.pucch){
-	//	oset_free(*ul_node);
-	//}
+
+	pucch_t  *pucch_node = NULL;
+	cvector_for_each_in(pucch_node, slot->ul.pucch){
+		cvector_free(pucch_node->candidates);
+	}
 	cvector_clear(slot->ul.pucch);
+
 	cvector_clear(slot->pending_acks);
 }
 
@@ -669,7 +681,7 @@ alloc_result bwp_slot_allocator_alloc_pusch(bwp_slot_allocator *bwp_alloc,
 		return ret;
 	}
 
-	pdcch_ul_alloc_result pdcch_result = bwp_pdcch_allocator_alloc_ul_pdcch(&bwp_pdcch_slot->pdcchs, ss.id, aggr_idx, &slot_u->ue->bwp_cfg);
+	pdcch_ul_alloc_result pdcch_result = bwp_pdcch_allocator_alloc_ul_pdcch(&bwp_pdcch_slot->pdcchs, ss->id, aggr_idx, &slot_u->ue->bwp_cfg);
 	if (!pdcch_result.has_val) {
 		// Could not find space in PDCCH
 		return pdcch_result.res.unexpected;

@@ -154,6 +154,7 @@ typedef struct dl_pdu_s {
 /***sched_nr_interface***/
 typedef struct dl_res_s{
   dl_sched_t		         phy;
+  ///////////////////////////////////
   cvector_vector_t(dl_pdu_t) data; //bounded_vector<dl_pdu_t, MAX_GRANTS>
   cvector_vector_t(rar_t)	 rar; //bounsed_vector<rar_t, MAX_GRANTS>;
   cvector_vector_t(uint32_t) sib_idxs;//bounded_vector<uint32_t, MAX_GRANTS>//list of SI indexes

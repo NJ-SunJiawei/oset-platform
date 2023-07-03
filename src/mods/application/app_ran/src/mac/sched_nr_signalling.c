@@ -168,7 +168,7 @@ static void sched_ssb_basic(slot_point sl_point,
 		// Pack mib message to be sent to PHY(asn1c encode mib)
 		int packing_ret_code = srsran_pbch_msg_nr_mib_pack(&mib_msg, &ssb_msg.pbch_msg);
 		oset_assert(packing_ret_code == SRSRAN_SUCCESS, "[%5u] SSB packing returned en error", GET_RSLOT_ID(sl_point));
-		cvector_push_back(ssb_list, ssb_msg)
+		cvector_push_back(ssb_list, ssb_msg);
 	}
 }
 

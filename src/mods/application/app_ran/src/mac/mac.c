@@ -15,6 +15,7 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-mac"
 
+#define WRITE_MIB_PCAP
 #define WRITE_SIB_PCAP
 #define WRITE_RAR_PCAP
 
@@ -310,6 +311,20 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 		return NULL;
 	}
 
+	ssb_t *ssb = NULL;
+	cvector_for_each_in(ssb, dl_res->phy.ssb){
+#ifdef WRITE_SIB_PCAP
+	if (mac_manager.pcap.pcap_file != NULL) {
+		mac_pcap_write_dl_bch_nr(&mac_manager.pcap, 
+								  ssb->pbch_msg.payload,
+								  sizeof(ssb->pbch_msg.payload),
+								  NO_RNTI,
+								  0,
+								  slot_cfg->idx);
+	}
+#endif
+	}
+
 	// Generate MAC DL PDUs
 	uint32_t rar_count = 0, si_count = 0, data_count = 0;
 	//srsran::rwlock_read_guard rw_lock(rwmutex);
@@ -333,8 +348,12 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 		      dl_pdu_t *pdu = dl_res->data[data_count++];
 		      ue_nr_generate_pdu(mac_ue, tb_data, pdsch->sch.grant.tb[i].tbs / 8, pdu->subpdus);
 		      if (mac_manager.pcap.pcap_file != NULL) {
-		      	uint32_t pid = pdsch->sch.grant.tb[i].pid;
-		      	mac_pcap_write_dl_crnti_nr(&mac_manager.pcap, tb_data->msg, tb_data->N_bytes, rnti, pid, slot_cfg->idx);
+		      	mac_pcap_write_dl_crnti_nr(&mac_manager.pcap,
+									      	tb_data->msg,
+									      	tb_data->N_bytes,
+									      	rnti,
+									      	pdsch->sch.grant.tb[i].pid,
+									      	slot_cfg->idx);
 		      }
 		      ue_nr_metrics_dl_mcs(mac_ue, pdsch->sch.grant.tb[i].mcs);
 		    }
@@ -372,7 +391,7 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 			  								slot_cfg->idx);
 			}
 #endif
-		} else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_si) {
+		} else if (pdsch->sch.grant.rnti_type == srsran_rnti_type_si) {
 		  uint32_t sib_idx = dl_res->sib_idxs[si_count++];
 		  pdsch.data[0]    = mac_manager.bcch_dlsch_payload[sib_idx].payload;
 #ifdef WRITE_SIB_PCAP
