@@ -17,8 +17,8 @@ static void rrc_timer_event_send(rrc_timer_e timer_id, void *data)
 {
     oset_assert(data);
 
-	msg_def_t *msg_ptr = NULL;
-	msg_ptr = task_alloc_msg(TASK_RRC, TIMER_HAS_EXPIRED);
+	msg_def_t *msg_ptr = task_alloc_msg(TASK_RRC, TIMER_HAS_EXPIRED);
+	oset_assert(msg_ptr);
 
 	TIMER_HAS_EXPIRED(msg_ptr).timer_id = timer_id;
 	TIMER_HAS_EXPIRED(msg_ptr).arg = data;

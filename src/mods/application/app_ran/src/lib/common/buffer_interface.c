@@ -59,12 +59,13 @@ byte_buffer_t* byte_buffer_copy(byte_buffer_t *p, byte_buffer_t *other)
 }
 
 
-void byte_buffer_clear(byte_buffer_t *p)
+byte_buffer_t*  byte_buffer_clear(byte_buffer_t *p)
 {
 	memset(p, 0, sizeof(byte_buffer_t));
 	p->msg	   = &p->buffer[SRSRAN_BUFFER_HEADER_OFFSET];
 	p->N_bytes = 0;
 	p->md	   = {0};
+	return p;
 }
 
 uint32_t byte_buffer_get_headroom(byte_buffer_t *p)

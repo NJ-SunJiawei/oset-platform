@@ -81,16 +81,15 @@ void prach_worker_stop(uint32_t cc_idx)
 
 static void prach_worker_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
 {
-	rach_info_t rach_info = {0};
-	rach_info.enb_cc_idx	= enb_cc_idx;
-	rach_info.slot_index	= tti;
-	rach_info.preamble		= preamble_idx;
-	rach_info.time_adv		= time_adv;
+	msg_def_t *msg_ptr = task_alloc_msg(TASK_PRACH, RACH_MAC_DETECTED_INFO);
+	oset_assert(msg_ptr);
 
-	msg_def_t *msg_ptr = NULL;
-	msg_ptr = task_alloc_msg (TASK_PRACH, RACH_MAC_DETECTED_INFO);
 	RQUE_MSG_TTI(msg_ptr) = tti;
-	RACH_MAC_DETECTED_INFO(msg_ptr) = rach_info;
+	rach_info_t *rach_info = &RACH_MAC_DETECTED_INFO(msg_ptr);
+	rach_info->enb_cc_idx	= enb_cc_idx;
+	rach_info->slot_index	= tti;
+	rach_info->preamble		= preamble_idx;
+	rach_info->time_adv		= time_adv;
 	task_send_msg(TASK_MAC, msg_ptr);
 }
 

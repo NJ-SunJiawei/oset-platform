@@ -33,7 +33,7 @@ byte_buffer_t* byte_buffer_init(void);
 byte_buffer_t* byte_buffer_init(byte_buffer_t *buf);
 byte_buffer_t* byte_buffer_change(oset_pkbuf_t *buf);
 byte_buffer_t* byte_buffer_copy(byte_buffer_t *p, byte_buffer_t *other);
-void byte_buffer_clear(byte_buffer_t *p);
+byte_buffer_t*  byte_buffer_clear(byte_buffer_t *p);
 uint32_t byte_buffer_get_headroom(byte_buffer_t *p);
 uint32_t byte_buffer_get_tailroom(byte_buffer_t *p);
 

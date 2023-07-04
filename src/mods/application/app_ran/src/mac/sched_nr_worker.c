@@ -238,8 +238,9 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 	bwp_slot_grid *bwp_slot = get_slot_grid(bwp_alloc, sl_point);
 	slot_cfg.idx = count_idx(&sl_point);
 
-	// 当前发送为tx调度时刻,上行方向承载uci/pusch在work-dl预处理，记录tx时刻配置(uci tx-k1时刻预授权 pusch tx-k2时刻预授权)
-	// 当前接收为rx调度时刻, rx+delay=tx,当上行到达tx时刻，work-ul通过预存信息开始正式处理。
+	// 下行tx = rx + delay调度时刻,上行方向pucch/pusch承载uci在work_dl预处理并记录(uci在tx-k1时刻预授权 pusch在tx-k2时刻预授权)
+
+	// 当上行到达tx调度时刻, work_ul通过预处理配置开始正式处理ul信息
 	slot_ue **ue_pair = NULL;
 	cvector_for_each_in(ue_pair, cc_w->slot_ue_list){
 		slot_ue *ue = *ue_pair;
@@ -259,7 +260,7 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 		}
 
 		// 如果UE还没有配置dedicated PUCCH resource时,初始接入对应的PUCCH 资源只能是PUCCH format 0/1,
-		// PUCCH-ConfigCommon 用于配置小区级PUCCH参数（common），用于初始接入
+		// PUCCH-ConfigCommon 用于配置小区级PUCCH参数(common)，用于初始接入
 
 		// 获取uci ack\sr\csi相关时频资源配置
 		srsran_uci_cfg_nr_t uci_cfg = {0};
@@ -367,7 +368,7 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl, oset_list_t *ue_
 		cvector_for_each_in(bwp, cc_w->bwps){
 			//cc_w->bwps[0].grid.slots[SLOTS_IDX(old_slot)]
 			//slot resource reset
-			bwp_slot_grid_reset(bwp_res_grid_get_slot(&bwp->grid, old_slot)]);
+			bwp_slot_grid_reset(bwp_res_grid_get_slot(&bwp->grid, old_slot));
 		}
 	}
 
@@ -385,7 +386,7 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl, oset_list_t *ue_
 
 	// Create an BWP allocator object that will passed along to RA, SI, Data schedulers
 	// todo bwp=0
-	bwp_slot_allocator *bwp_alloc = bwp_slot_allocator_init(cc_w->bwps[0].grid, tx_sl);
+	bwp_slot_allocator *bwp_alloc = bwp_slot_allocator_init(&cc_w->bwps[0].grid, tx_sl);
 
 	// Log UEs state for slot
 	log_sched_slot_ues(tx_sl, cc_w);
@@ -427,11 +428,21 @@ dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl, oset_list_t *ue_
 	cc_worker_postprocess_decisions(cc_w, bwp_alloc);
 
 	// Log CC scheduler result
-	log_sched_bwp_result(bwp_alloc, cc_w->bwps[0].grid, cc_w);
+	log_sched_bwp_result(bwp_alloc, &cc_w->bwps[0].grid, cc_w);
 
 	// releases UE resources
 	slot_ue_clear(cc_w->cfg->cc);
 
-	return &(get_tx_slot_grid(bwp_alloc)->dl);
+	bwp_slot_grid *res_slot = get_tx_slot_grid(bwp_alloc);
+	oset_free(bwp_alloc);
+
+	return &res_slot->dl;
+}
+
+ul_sched_t* cc_worker_get_ul_sched(cc_worker *cc_w, slot_point rx_sl)
+{
+	bwp_slot_grid *res_slot = bwp_res_grid_get_slot(&cc_w->bwps[0].grid, rx_sl);
+
+	return &res_slot->ul;
 }
 

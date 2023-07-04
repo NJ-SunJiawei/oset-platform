@@ -104,7 +104,7 @@ typedef struct pusch_info_s {
   srsran_uci_cfg_nr_t	uci_cfg; ///< Provides UCI configuration, so stack does not need to keep the pending state
 
   // Actual SCH PDU
-  byte_buffer_t         *pdu;
+  byte_buffer_t         *pdu; // 存放上行ue mac源数据buffer
 
   // PUSCH signal measurements
   srsran_csi_trs_measurements_t csi; ///< DMRS based signal Channel State Information (CSI)

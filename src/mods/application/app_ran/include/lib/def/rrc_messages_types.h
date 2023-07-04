@@ -10,11 +10,16 @@
 #ifndef RRC_MESSAGES_TYPES_H_
 #define RRC_MESSAGES_TYPES_H_
 
-#include "rrc/rrc_timer.h"
-#include "rrc/rrc_nr_ue.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 //#define RRC_ACTIVITY_TIMER(msgPtr)             (msgPtr)->msg_body.rrc_activity_timer
 
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* RRC_MESSAGES_TYPES_H_ */

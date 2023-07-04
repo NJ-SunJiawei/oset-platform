@@ -206,7 +206,7 @@ void sched_dl_signalling(bwp_slot_allocator *bwp_alloc)
 	srsran_slot_cfg_t cfg = {0};
 	cfg.idx = count_idx(&sl_pdcch);
 
-	// Schedule SSB
+	// Schedule SSB 一个SSB由PSS、SSS和PBCH三部分组成
 	sched_ssb_basic(sl_pdcch, bwp_params->cell_cfg->ssb.periodicity_ms, &bwp_params->cell_cfg->mib, sl_grid->dl.phy.ssb);
 
 	// Mark SSB region as occupied

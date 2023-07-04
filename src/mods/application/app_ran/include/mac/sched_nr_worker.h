@@ -29,11 +29,11 @@ typedef struct {
 	slot_point     last_tx_sl;
 }cc_worker;
 
-
 void cc_worker_destoy(cc_worker *cc_w);
 void cc_worker_init(cc_worker *cc_w, cell_config_manager *params);
 void cc_worker_dl_rach_info(cc_worker *cc_w, rar_info_t *rar_info);
 dl_res_t* cc_worker_run_slot(cc_worker *cc_w, slot_point tx_sl, oset_list_t *ue_db);
+ul_sched_t* cc_worker_get_ul_sched(cc_worker *cc_w, slot_point rx_sl);
 
 
 #ifdef __cplusplus

@@ -9,9 +9,14 @@
 #include "gnb_common.h"
 #include "phy/phy.h"
 
-uint32_t get_nof_carriers_nr() { return cvector_size(phy_manager_self()->workers_common.cell_list_nr); }
-uint32_t get_nof_carriers() { return cvector_size(phy_manager_self()->workers_common.cell_list_nr); }
-
+uint32_t get_nof_carriers_nr(void)
+{
+	return cvector_size(phy_manager_self()->workers_common.cell_list_nr);
+}
+uint32_t get_nof_carriers(void)
+{
+	return cvector_size(phy_manager_self()->workers_common.cell_list_nr);
+}
 
 uint32_t get_nof_prb(uint32_t cc_idx)
 {

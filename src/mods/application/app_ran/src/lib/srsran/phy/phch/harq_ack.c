@@ -55,7 +55,9 @@ static int harq_ack_gen_ack_type2(const srsran_harq_ack_cfg_hl_t* cfg,
       const srsran_harq_ack_m_t* ack = &ack_info->cc[c].m[m];
 
       // Get DAI counter value
+      // 累计DAI信息(C-DAI，Counter DAI)：用于指示发送所述pdsch数据的pdsch的当前排序
       uint32_t V_DL_CDAI = ue_dl_nr_V_DL_DAI(ack->resource.v_dai_dl);
+	  // 总DAI信息（T-DAI，Total DAI）：到当前检测时机为止的PDSCH总个数
       uint32_t V_DL_TDAI = ack->resource.dci_format_1_1 ? ue_dl_nr_V_DL_DAI(ack->resource.v_dai_dl) : UINT32_MAX;
 
       // Get ACK values

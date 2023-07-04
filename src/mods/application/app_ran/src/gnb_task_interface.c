@@ -70,14 +70,14 @@ int task_queue_end(const task_info_t *tasks)
 msg_def_t *task_alloc_msg(task_id_t origin_task_id, msg_ids_t message_id)
 {
     int size = sizeof(msg_header_t) + messages_info[message_id].size;
-    msg_def_t *temp = (msg_def_t *)oset_malloc(size);
+    msg_def_t *node = (msg_def_t *)oset_malloc(size);
     oset_expect_or_return_val(temp, NULL);
-    temp->msg_header.message_id = message_id;
-    temp->msg_header.ori_task_id = origin_task_id;
-    temp->msg_header.det_task_id = TASK_UNKNOWN;
-    temp->msg_header.context = NULL;
-    temp->msg_header.tti = 0;
-    temp->msg_header.size = size;
+    node->msg_header.message_id = message_id;
+    node->msg_header.ori_task_id = origin_task_id;
+    node->msg_header.det_task_id = TASK_UNKNOWN;
+    node->msg_header.context = NULL;
+    node->msg_header.tti = 0;
+    node->msg_header.size = size;
     return temp;
 }
 

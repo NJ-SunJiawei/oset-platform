@@ -67,10 +67,10 @@ int API_mac_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, u
 
 /////////////////////////////////prach phy/////////////////////////////////////////////
 //void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv);
-
-///////////////////////////////////sched///////////////////////////////////////////////
-int mac_slot_indication(srsran_slot_cfg_t *slot_cfg);
-dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg);
+ul_sched_t* API_mac_phy_get_ul_sched(srsran_slot_cfg_t* slot_cfg, uint32_t cc_idx);
+dl_sched_t* API_mac_phy_get_dl_sched(srsran_slot_cfg_t *slot_cfg, uint32_t cc_idx);
+int API_mac_phy_pucch_info(pucch_info_t *pucch_info, uint32_t cc_idx);
+int API_mac_phy_pusch_info(srsran_slot_cfg_t *slot_cfg, pusch_info_t *pusch_info, uint32_t cc_idx);
 ///////////////////////////////////////////////////////////////////////////////////////
 void mac_get_metrics(mac_metrics_t *metrics);
 void mac_remove_ue(uint16_t rnti);

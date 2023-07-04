@@ -550,7 +550,7 @@ void srsran_ofdm_rx_slot_zerocopy(srsran_ofdm_t* q, cf_t* input, cf_t* output)
 
 void srsran_ofdm_rx_sf(srsran_ofdm_t* q)
 {
-  //q->cfg.in_buffer == rx_buffer输入，入参
+  // q->cfg.in_buffer == slot_work.rx_buffer[0],入参
   if (isnormal(q->cfg.freq_shift_f)) {
     srsran_vec_prod_ccc(q->cfg.in_buffer, q->shift_buffer, q->cfg.in_buffer, q->sf_sz);
   }

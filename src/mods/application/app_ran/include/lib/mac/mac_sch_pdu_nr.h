@@ -56,7 +56,7 @@ typedef enum nr_lcid_sch_e {
   CRNTI 		  = 0b111010,
   SHORT_TRUNC_BSR = 0b111011,
   LONG_TRUNC_BSR  = 0b111100,
-  CCCH_SIZE_48	  = 0b110100,
+  CCCH_SIZE_48	  = 0b110100, //ccch信道 rrc setup request\RRCReestablishmentRequest...
   CCCH_SIZE_64	  = 0b000000,
   SE_PHR		  = 0b111001, // Single Entry PHR
 
@@ -97,9 +97,11 @@ uint32_t mac_sch_subpdu_nr_sizeof_ce(uint32_t lcid, bool is_ul);
 ///////////////////////////////////////////sch_pdu/////////////////////////////////////////////////////////////////
 uint32_t mac_sch_pdu_nr_size_header_sdu(mac_sch_pdu_nr	*mac_pdu, uint32_t lcid, uint32_t nbytes);
 int mac_sch_pdu_nr_init_tx(mac_sch_pdu_nr	*mac_pdu, byte_buffer_t* buffer_, uint32_t pdu_len_, bool ulsch_);
+void mac_sch_pdu_nr_init_rx(mac_sch_pdu_nr	*mac_pdu, bool ulsch_);
 uint32_t mac_sch_pdu_nr_add_ue_con_res_id_ce(mac_sch_pdu_nr	*mac_pdu, ue_con_res_id_t id);
 uint32_t mac_sch_pdu_nr_add_sdu(mac_sch_pdu_nr	*mac_pdu, uint32_t lcid_, uint8_t* payload_, uint32_t len_);
 void mac_sch_pdu_nr_pack(mac_sch_pdu_nr	*mac_pdu);
+int mac_sch_pdu_nr_unpack(mac_sch_pdu_nr	*mac_pdu, uint8_t* payload, uint32_t len);
 void mac_sch_pdu_nr_to_string(mac_sch_pdu_nr *mac_pdu, uint16_t rnti);
 
 #ifdef __cplusplus

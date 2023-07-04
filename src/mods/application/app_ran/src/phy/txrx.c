@@ -204,7 +204,7 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 		set_slot_worker_context(slot_w, &context);
 		
 		// Feed PRACH detection before start processing 
-		prach_new_tti(0, slot_w->context.sf_idx, get_buffer_rx(slot_w, 0));
+		prach_new_tti(slot_w->cell_index, slot_w->context.sf_idx, get_buffer_rx(slot_w, 0));
 
 		// Start actual worker
 		// Process one at a time and hang it on the linked list in sequence

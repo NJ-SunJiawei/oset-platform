@@ -49,7 +49,7 @@
  * @brief Groups NR-PUSCH data for reception
  */
 typedef struct {
-  uint8_t* payload;  ///< SCH payload
+  uint8_t* payload;  ///< SCH payload //存放上行ue mac源数据buffer
   bool     crc;      ///< CRC match
   float    avg_iter; ///< Average iterations
 } srsran_sch_tb_res_nr_t;

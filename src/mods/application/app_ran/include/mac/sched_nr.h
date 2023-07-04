@@ -196,7 +196,7 @@ void sched_nr_destory(sched_nr *scheluder);
 int sched_nr_config(sched_nr *scheluder, sched_args_t *sched_cfg, cvector_vector_t(sched_nr_cell_cfg_t) sched_cells);
 void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx);
 dl_res_t* sched_nr_get_dl_sched(sched_nr *scheluder, slot_point pdsch_tti, uint32_t cc);
-
+ul_sched_t* sched_nr_get_ul_sched(sched_nr *scheluder, slot_point slot_ul, uint32_t cc);
 
 #ifdef __cplusplus
 }

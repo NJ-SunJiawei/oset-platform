@@ -198,10 +198,138 @@ cf_t* get_buffer_tx(slot_worker_t *slot_w, uint32_t antenna_idx)
 
 uint32_t get_buffer_len(slot_worker_t *slot_w)
 {
-return slot_w->sf_len;
+	return slot_w->sf_len;
 }
 
-static bool slot_worker_work_dl(slot_worker_t *slot_w)
+static bool slot_worker_work_ul(slot_worker_t *slot_w, uint32_t cc_idx)
+{
+	srsran_gnb_ul_t *gnb_ul = &slot_w->gnb_ul;
+	if (NULL == gnb_ul) return false;
+
+	//获取ul_slot_cfg时刻上行res预调度资源
+	ul_sched_t* ul_sched = API_mac_phy_get_ul_sched(&slot_w->ul_slot_cfg, cc_idx);
+	if (NULL == ul_sched) {
+		oset_error("[%5u] Error retrieving UL scheduling", slot_w->context.sf_idx);
+		return false;
+	}
+
+	if (cvector_empty(ul_sched->pucch) && cvector_empty(ul_sched->pusch)) {
+		// early exit if nothing has been scheduled
+		return true;
+	}
+
+	// Demodulate解调
+	if (srsran_gnb_ul_fft(gnb_ul) < SRSRAN_SUCCESS) {
+		oset_error("[%5u] Error in demodulation", slot_w->context.sf_idx);
+		return false;
+	}
+
+	// For each PUCCH
+	pucch_t *pucch = NULL;
+	cvector_for_each_in(pucch, ul_sched->pucch){
+		// pucch decode list
+		cvector_vector_t(pucch_info_t) pucch_info_list = NULL;
+		cvector_reserve(pucch_info_list, cvector_size(pucch->candidates));
+
+		// For each candidate decode PUCCH
+		for (uint32_t i = 0; i < (uint32_t)cvector_size(pucch->candidates); i++) {
+			pucch_info_t pucch_node = {0};
+			pucch_node.uci_data.cfg = pucch->candidates[i].uci_cfg;
+
+			// Decode PUCCH
+			if (srsran_gnb_ul_get_pucch(gnb_ul,
+			                          &slot_w->ul_slot_cfg,
+			                          &pucch->pucch_cfg,
+			                          &pucch->candidates[i].resource,
+			                          &pucch_node.uci_data.cfg,
+			                          &pucch_node.uci_data.value,
+			                          &pucch_node.csi) < SRSRAN_SUCCESS) {
+				oset_error("[%5u] Error getting PUCCH", slot_w->context.sf_idx);
+				cvector_free(pucch_info_list);
+				return false;
+			}
+			cvector_push_back(pucch_info_list, pucch_node);
+		}
+
+		// Find most suitable PUCCH candidate
+		uint32_t best_candidate = 0;
+		for (uint32_t i = 1; i < (uint32_t)cvector_size(pucch_info_list); i++) {
+			// Select candidate if exceeds the previous best candidate SNR
+			if (pucch_info_list[i].csi.snr_dB > pucch_info_list[best_candidate].csi.snr_dB) {
+				best_candidate = i;
+			}
+		}
+
+		// Inform stack
+		if (API_mac_phy_pucch_info(slot_w->cell_index, &pucch_info_list[best_candidate]) < OSET_OK) {
+			cvector_free(pucch_info_list);
+			return false;
+		}
+
+		// Log PUCCH decoding
+		char str[512] = {0};
+		srsran_gnb_ul_pucch_info(gnb_ul,
+		                       &pucch->candidates[0].resource,
+		                       &pucch_info_list[best_candidate].uci_data,
+		                       &pucch_info_list[best_candidate].csi,
+		                       str,
+		                       (uint32_t)sizeof(str));
+
+		oset_info("[%5u] PUCCH: %s", slot_w->context.sf_idx, str);
+		cvector_free(pucch_info_list);
+	}
+
+	// For each PUSCH
+	byte_buffer_t *pdu = byte_buffer_init();
+	pusch_t **pusch_node = NULL;
+	cvector_for_each_in(pusch_node, ul_sched->pusch){
+		pusch_t *pusch = *pusch_node;
+		// Prepare PUSCH
+		pusch_info_t pusch_info = {0};
+		pusch_info.uci_cfg = pusch->sch.uci;
+		pusch_info.pid     = pusch->pid;
+		pusch_info.rnti    = pusch->sch.grant.rnti;
+		pusch_info.pdu     = byte_buffer_clear(pdu);
+		if (NULL == pusch_info.pdu) {
+		  oset_error("[%5u] Couldn't allocate PDU", slot_w->context.sf_idx);
+		  return false;
+		}
+		pusch_info.pdu->N_bytes             = pusch->sch.grant.tb[0].tbs / 8;
+		pusch_info.pusch_data.tb[0].payload = pusch_info.pdu->msg; // 存放上行ue mac源数据buffer
+
+		// Decode PUSCH
+		if (srsran_gnb_ul_get_pusch(gnb_ul, &slot_w->ul_slot_cfg, &pusch->sch, &pusch->sch.grant, &pusch_info.pusch_data) < SRSRAN_SUCCESS) {
+		  oset_error("[%5u] Error getting PUSCH", slot_w->context.sf_idx);
+		  return false;
+		}
+
+		// Extract DMRS information
+		pusch_info.csi = gnb_ul->dmrs.csi;
+
+		// Inform stack
+		if (API_mac_phy_pusch_info(&slot_w->ul_slot_cfg, pusch_info, slot_w->cell_index) < OSET_OK) {
+		  oset_error("[%5u] Error pushing PUSCH information to stack", slot_w->context.sf_idx);
+		  return false;
+		}
+
+		// Log PUSCH decoding
+		char str[512] = {0};
+		srsran_gnb_ul_pusch_info(gnb_ul, &pusch->sch, &pusch_info.pusch_data, str, (uint32_t)sizeof(str));
+		if (oset_runtime()->hard_log_level >= OSET_LOG2_DEBUG) {
+			char str_extra[1024] = {0};
+			srsran_sch_cfg_nr_info(&pusch.sch, str_extra (uint32_t)sizeof(str_extra));
+			oset_debug("[%5u] PUSCH: %s %s", slot_w->context.sf_idx, str, str_extra);
+		} else {
+			oset_info("[%5u] PUSCH: %s", slot_w->context.sf_idx, str);
+		}
+	}
+	oset_free(pdu);
+
+	return true;
+}
+
+
+static bool slot_worker_work_dl(slot_worker_t *slot_w, uint32_t cc_idx)
 {
 	// The Scheduler interface needs to be called synchronously, wait for the sync to be available
 
@@ -213,7 +341,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w)
 	//todo need lock?
 	//oset_apr_mutex_lock(mac_manager_self()->sched.mutex);
 	// Retrieve Scheduling for the current processing DL slot
-	dl_sched_t* dl_sched_ptr = mac_get_dl_sched(&slot_w->dl_slot_cfg);
+	dl_sched_t* dl_sched_ptr = API_mac_phy_get_dl_sched(&slot_w->dl_slot_cfg, cc_idx);
 
 	//oset_apr_mutex_unlock(mac_manager_self()->sched.mutex);
 
@@ -337,9 +465,6 @@ void* slot_worker_process(oset_threadplus_t *thread, void *data)
 	slot_worker_t *slot_w = (slot_worker_t *)data;
 	if(NULL == slot_w) return NULL;
 
-	// Inform Scheduler about new slot
-	// mac_slot_indication(&slot_w->dl_slot_cfg);//do nothing
-
 	// Get Transmission buffer
 	uint32_t  nof_ant = phy_manager_self()->slot_args.nof_tx_ports;//get_nof_ports()
 
@@ -355,14 +480,14 @@ void* slot_worker_process(oset_threadplus_t *thread, void *data)
 
 	// Ensure sequence
 	// Process uplink
-	if (! work_ul()) {//phy up
+	if (!slot_worker_work_ul(slot_w, slot_w->cell_index)) {
 	// Wait and release synchronization
 		worker_end(context, false, tx_rf_buffer);
 		return NULL;
 	}
 
 	// Process downlink
-	if (!slot_worker_work_dl(slot_w)) {
+	if (!slot_worker_work_dl(slot_w, slot_w->cell_index)) {
 		worker_end(context, false, tx_rf_buffer);
 		return NULL;
 	}

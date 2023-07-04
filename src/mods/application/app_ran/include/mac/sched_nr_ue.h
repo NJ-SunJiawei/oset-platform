@@ -65,8 +65,8 @@ typedef struct {
 
 	sched_params_t    *sched_cfg;
 	ue_cfg_manager    ue_cfg;
-	slot_point        last_tx_slot;
-	slot_point        last_sr_slot;
+	slot_point        last_tx_slot;// tx slot
+	slot_point        last_sr_slot;// sr rx slot
 	ue_context_common common_ctxt;
 	ue_buffer_manager buffers;
 }sched_nr_ue;

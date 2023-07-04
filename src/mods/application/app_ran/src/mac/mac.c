@@ -15,8 +15,7 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-mac"
 
-#define WRITE_MIB_PCAP
-#define WRITE_SIB_PCAP
+#define WRITE_MIB_SIB_PCAP
 #define WRITE_RAR_PCAP
 
 static mac_manager_t mac_manager = {0};
@@ -163,55 +162,6 @@ void mac_remove_ue_all(void)
 		mac_remove_ue(ue);
 }
 
-static void mac_handle_rach_info(rach_info_t *rach_info)
-{
-	uint16_t rnti = FIRST_RNTI;
-
-	rnti = mac_alloc_ue(rach_info->enb_cc_idx);//alloc rnti
-	{
-		//srsran::rwlock_write_guard lock(rwmutex);
-		//oset_apr_mutex_lock(mac_manager.mutex);
-		++mac_manager.detected_rachs[rach_info->enb_cc_idx];
-		//oset_apr_mutex_unlock(mac_manager.mutex);
-	}
-	// Trigger scheduler RACH
-	rar_info_t rar_info = {0};
-	rar_info.msg3_size    = 7;//???todo
-	rar_info.cc			  = rach_info->enb_cc_idx;
-	rar_info.preamble_idx = rach_info->preamble;
-	rar_info.temp_crnti	  = rnti;
-	rar_info.ta_cmd		  = rach_info->time_adv;
-	slot_point_init(&rar_info.prach_slot, NUMEROLOGY_IDX, rach_info->slot_index);
-
-	sched_nr_dl_rach_info(&mac_manager.sched, &rar_info);
-	API_rrc_mac_add_user(rnti, rach_info->enb_cc_idx);//todo
-
-	oset_info("[%5u] RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
-				rach_info->slot_index,
-				rach_info->slot_index,
-				rach_info->enb_cc_idx,
-				rach_info->preamble,
-				rach_info->time_adv,
-				rnti);
-}
-
-//????prach_worker_rach_detected()
-/*void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
-{
-	rach_info_t rach_info = {0};
-	rach_info.enb_cc_idx	= enb_cc_idx;
-	rach_info.slot_index	= tti;
-	rach_info.preamble		= preamble_idx;
-	rach_info.time_adv		= time_adv;
-	mac_handle_rach_info(&rach_info);
-}*/
-
-int mac_slot_indication(srsran_slot_cfg_t *slot_cfg)
-{
-	//todo
-	return 0;
-}
-
 static void get_metrics_nolock(mac_metrics_t *metrics)
 {
 	//srsran::rwlock_read_guard lock(rwmutex);
@@ -295,8 +245,26 @@ static byte_buffer_t* mac_assemble_rar(cvector_vector_t(msg3_grant_t) grants, ui
 	return mac_manager.rar_pdu_buffer;
 }
 
+static ul_sched_t* mac_get_ul_sched(srsran_slot_cfg_t* slot_cfg, uint32_t cc_idx)
+{
+	slot_point pusch_slot = {0};
+	slot_point_init(&pusch_slot, NUMEROLOGY_IDX, slot_cfg->idx);
 
-dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
+	ul_sched_t* ul_sched = sched_nr_get_ul_sched(&mac_manager.sched, pusch_slot, cc_idx);
+
+	// srsran::rwlock_read_guard rw_lock(rwmutex);
+	pusch_t **sch_node = NULL;
+	cvector_for_each_in(sch_node, ul_sched->pusch){
+		pusch_t *pusch = *sch_node;
+		ue_nr *mac_ue = ue_nr_find_by_rnti(pusch->sch.grant.rnti);
+		oset_assert(mac_ue);
+		ue_nr_metrics_ul_mcs(mac_ue, pusch.sch.grant.tb[0].mcs);
+	}
+	return ul_sched;
+}
+
+
+static dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg, uint32_t cc_idx)
 {
 	slot_point pdsch_slot = {0};
 	slot_point_init(&pdsch_slot, NUMEROLOGY_IDX, slot_cfg->idx);
@@ -306,22 +274,22 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 
 	// Run DL Scheduler for CC
 	// todp cell=0
-	dl_res_t* dl_res = sched_nr_get_dl_sched(&mac_manager.sched, pdsch_slot, 0);
+	dl_res_t* dl_res = sched_nr_get_dl_sched(&mac_manager.sched, pdsch_slot, cc_idx);
 		if (NULL == dl_res) {
 		return NULL;
 	}
 
 	ssb_t *ssb = NULL;
 	cvector_for_each_in(ssb, dl_res->phy.ssb){
-#ifdef WRITE_SIB_PCAP
-	if (mac_manager.pcap.pcap_file != NULL) {
-		mac_pcap_write_dl_bch_nr(&mac_manager.pcap, 
-								  ssb->pbch_msg.payload,
-								  sizeof(ssb->pbch_msg.payload),
-								  NO_RNTI,
-								  0,
-								  slot_cfg->idx);
-	}
+#ifdef WRITE_MIB_SIB_PCAP
+		if (mac_manager.pcap.pcap_file != NULL) {
+			mac_pcap_write_dl_bch_nr(&mac_manager.pcap, 
+									  ssb->pbch_msg.payload,
+									  sizeof(ssb->pbch_msg.payload),
+									  NO_RNTI,
+									  0,
+									  slot_cfg->idx);
+		}
 #endif
 	}
 
@@ -394,7 +362,7 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 		} else if (pdsch->sch.grant.rnti_type == srsran_rnti_type_si) {
 		  uint32_t sib_idx = dl_res->sib_idxs[si_count++];
 		  pdsch.data[0]    = mac_manager.bcch_dlsch_payload[sib_idx].payload;
-#ifdef WRITE_SIB_PCAP
+#ifdef WRITE_MIB_SIB_PCAP
 		  if (mac_manager.pcap.pcap_file != NULL) {
 		    mac_pcap_write_dl_si_rnti_nr(&mac_manager.pcap, 
 										  mac_manager.bcch_dlsch_payload[sib_idx].payload->msg,
@@ -415,6 +383,277 @@ dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg)
 	return &dl_res->phy;
 }
 
+static bool mac_handle_uci_data(uint32_t cc_idx, uint16_t rnti, srsran_uci_cfg_nr_t *cfg_, srsran_uci_value_nr_t *value)
+{
+  // Process HARQ-ACK
+  for (uint32_t i = 0; i < cfg_->ack.count; i++) {
+    const srsran_harq_ack_bit_t* ack_bit = &cfg_->ack.bits[i];
+    bool                         is_ok   = (value->ack[i] == 1) && value->valid;
+  	sched_nr_dl_ack_info(&mac_manager.sched, rnti, cc_idx, ack_bit->pid, 0, is_ok);
+    //srsran::rwlock_read_guard rw_lock(rwmutex);
+	//ue_nr *mac_ue = ue_nr_find_by_rnti(rnti);
+	//if(mac_ue){
+		/*TODO get size of packet from scheduler somehow*/
+	//	 ue_nr_metrics_tx(mac_ue, is_ok, 0);
+	//}
+  }
+
+  // Process SR
+  if (value->valid && value->sr > 0) {
+    sched_nr_ul_sr_info(&mac_manager.sched, cfg_->pucch.rnti);
+  }
+
+  // Process CQI
+  for (uint32_t i = 0; i < cfg_->nof_csi; i++) {
+    // Skip if invalid or not supported CSI report
+    if (!value->valid || cfg_->csi[i].cfg.quantity != SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI ||
+        cfg_->csi[i].cfg.freq_cfg != SRSRAN_CSI_REPORT_FREQ_WIDEBAND || value->csi[i].wideband_cri_ri_pmi_cqi.cqi == 0) {
+      continue;
+    }
+
+    // 1. Pass CQI report to scheduler
+    sched_nr_dl_cqi_info(&mac_manager.sched, rnti, cc_idx, value->csi[i].wideband_cri_ri_pmi_cqi.cqi);
+
+    // 2. Save CQI report for metrics stats
+    // srsran::rwlock_read_guard rw_lock(rwmutex);
+    ue_nr *mac_ue = ue_nr_find_by_rnti(rnti);
+    if(mac_ue && value.valid){
+		ue_nr_metrics_dl_cqi(mac_ue, cfg_, value->csi[i].wideband_cri_ri_pmi_cqi.cqi);
+	}
+  }
+
+  return true;
+}
+
+
+static int mac_pucch_info(pucch_info_t *pucch_info, uint32_t cc_idx)
+{
+	if (!mac_handle_uci_data(cc_idx, pucch_info->uci_data.cfg.pucch.rnti, &pucch_info->uci_data.cfg, &pucch_info->uci_data.value)) {
+		oset_error("Error handling UCI data from PUCCH reception");
+		return OSET_ERROR;
+	}
+
+	// process PUCCH SNR
+	// srsran::rwlock_read_guard rw_lock(rwmutex);
+	ue_nr *mac_ue = ue_nr_find_by_rnti(pucch_info->uci_data.cfg.pucch.rnti);
+	if(mac_ue){
+		ue_nr_metrics_pucch_sinr(mac_ue, pucch_info->csi.snr_dB);
+	}
+	return OSET_OK;
+}
+
+static void mac_handle_pdu_rx(uint32_t tti, uint16_t rnti, byte_buffer_t *pdu)
+{
+	msg_def_t *msg_ptr = task_alloc_msg(TASK_PHY, PUSCH_MAC_PDU_INFO);
+	oset_assert(msg_ptr);
+
+	RQUE_MSG_TTI(msg_ptr) = tti;
+	pusch_mac_pdu_info_t  *pusch_pdu_info = &PUSCH_MAC_PDU_INFO(msg_ptr);
+	pusch_pdu_info->rnti = rnti;
+	pusch_pdu_info->pdu = oset_memdup(pdu, sizeof(byte_buffer_t));
+	task_send_msg(TASK_MAC, msg_ptr);
+}
+
+static int mac_pusch_info(srsran_slot_cfg_t *slot_cfg, pusch_info_t *pusch_info, uint32_t cc_idx)
+{
+	uint16_t rnti      = pusch_info->rnti;
+	uint32_t nof_bytes = pusch_info->pdu->N_bytes;
+
+	// Handle UCI data
+	if (!mac_handle_uci_data(cc_idx, rnti, &pusch_info->uci_cfg, &pusch_info->pusch_data.uci)) {
+		oset_error("Error handling UCI data from PUSCH reception");
+		return OSET_ERROR;
+	}
+
+	sched_nr_ul_crc_info(&mac_manager.sched, rnti, cc_idx, pusch_info->pid, pusch_info->pusch_data.tb[0].crc);
+
+	// process only PDUs with CRC=OK
+	if (pusch_info->pusch_data.tb[0].crc) {
+		if (mac_manager.pcap.pcap_file) {
+			mac_pcap_write_ul_crnti_nr(&mac_manager.pcap,
+										pusch_info->pdu->msg,
+										pusch_info->pdu->N_bytes,
+										pusch_info->rnti,
+										pusch_info->pid,
+										slot_cfg->idx);
+		}
+
+		// Decode and send PDU to upper layers
+		mac_handle_pdu_rx(rnti, pusch_info->pdu);
+	}
+	// srsran::rwlock_read_guard rw_lock(rwmutex);
+	ue_nr *mac_ue = ue_nr_find_by_rnti(rnti);
+	if(mac_ue){
+	  ue_nr_metrics_rx(mac_ue, pusch_info->pusch_data.tb[0].crc, nof_bytes); // 统计误码率
+	  ue_nr_metrics_pusch_sinr(mac_ue, pusch_info->csi.snr_dB); // 统计信噪比
+	}
+  return OSET_OK;
+}
+
+static void mac_handle_rach_info(rach_info_t *rach_info)
+{
+	uint16_t rnti = FIRST_RNTI;
+
+	rnti = mac_alloc_ue(rach_info->enb_cc_idx);//alloc rnti
+	{
+		//srsran::rwlock_write_guard lock(rwmutex);
+		//oset_apr_mutex_lock(mac_manager.mutex);
+		++mac_manager.detected_rachs[rach_info->enb_cc_idx];
+		//oset_apr_mutex_unlock(mac_manager.mutex);
+	}
+	// Trigger scheduler RACH
+	rar_info_t rar_info = {0};
+	rar_info.msg3_size    = 7;//???todo
+	rar_info.cc			  = rach_info->enb_cc_idx;
+	rar_info.preamble_idx = rach_info->preamble;
+	rar_info.temp_crnti	  = rnti;
+	rar_info.ta_cmd		  = rach_info->time_adv;
+	slot_point_init(&rar_info.prach_slot, NUMEROLOGY_IDX, rach_info->slot_index);
+
+	sched_nr_dl_rach_info(&mac_manager.sched, &rar_info);
+	API_rrc_mac_add_user(rnti, rach_info->enb_cc_idx);//todo
+
+	oset_info("[%5u] RACH:slot=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x",
+				rach_info->slot_index,
+				rach_info->slot_index,
+				rach_info->enb_cc_idx,
+				rach_info->preamble,
+				rach_info->time_adv,
+				rnti);
+}
+
+//????prach_worker_rach_detected()
+/*void mac_rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
+{
+	rach_info_t rach_info = {0};
+	rach_info.enb_cc_idx	= enb_cc_idx;
+	rach_info.slot_index	= tti;
+	rach_info.preamble		= preamble_idx;
+	rach_info.time_adv		= time_adv;
+	mac_handle_rach_info(&rach_info);
+}*/
+
+static int mac_process_ce_subpdu(uint16_t rnti, mac_sch_subpdu_nr *subpdu)
+{
+  // Handle MAC lcid
+  switch (subpdu->lcid) {
+	case CCCH_SIZE_48:
+	case CCCH_SIZE_64: {
+	  mac_sch_subpdu_nr *ccch_subpdu = const_cast<srsran::mac_sch_subpdu_nr&>(subpdu);
+	  rlc->write_pdu(rnti, 0, ccch_subpdu.get_sdu(), ccch_subpdu.get_sdu_length());
+	  // store content for ConRes CE and schedule CE accordingly
+	  mac.store_msg3(rnti,
+					 srsran::make_byte_buffer(ccch_subpdu.get_sdu(), ccch_subpdu.get_sdu_length(), __FUNCTION__));
+	  sched->dl_mac_ce(rnti, srsran::mac_sch_subpdu_nr::CON_RES_ID);//void sched_nr::dl_mac_ce(uint16_t rnti, uint32_t ce_lcid)
+	} break;
+	case CRNTI: {
+	  // 当 UE 处于 RRC_CONNECTED 态但上行不同步时，UE 有自己的 C-RNTI，在随机接入过程的
+      // Msg3 中，UE 会通过 C-RNTI MAC control element 将自己的 C-RNTI 告诉 eNodeB，eNodeB 在步骤
+      // 四中使用这个 C-RNTI 来解决冲突。
+
+	  // 上行Out of sync
+	  // UE在MAC层如何判断上行同步/失步（详见36.321的5.2节）：
+	  // eNB会通过RRC信令给UE配置一个timer（在MAC层，称为timeAlignmentTimer），UE使用该timier在MAC层确定上行是否同步。
+	  // 需要注意的是：该timer有Cell-specific级别和UE-specific级别之分。eNodeB通过SystemInformationBlockType2的timeAlignmentTimerCommon字段来配置的Cell-specific级别的timer；eNodeB通过MAC-MainConfig的timeAlignmentTimerDedicated字段来配置UE-specific级别的timer。
+	  // 如果UE配置了UE-specific的timer，则UE使用该timer值，否则UE使用Cell-specific的timer值。
+	  // 当UE收到Timing Advance Command（来自RAR或Timing Advance Command MAC controlelement），UE会启动或重启该timer。如果该timer超时，则认为上行失步，UE会清空HARQ buffer，通知RRC层释放PUCCH/SRS，并清空任何配置的DL assignment和UL grant。
+	  // 当该timer在运行时，UE认为上行是同步的；而当该timer没有运行，即上行失步时，UE在上行只能发送preamble。
+	  uint16_t ce_crnti  = subpdu.get_c_rnti();
+	  if (ce_crnti == SRSRAN_INVALID_RNTI) {
+		oset_error("Malformed C-RNTI CE detected. C-RNTI can't be 0x0.", subpdu->lcid);
+		return OSET_ERROR;
+	  }
+	  uint16_t prev_rnti = rnti;
+	  rnti				 = ce_crnti;
+	  rrc->update_user(prev_rnti, rnti);//int rrc_nr::update_user(uint16_t new_rnti, uint16_t old_rnti)
+	  sched->ul_sr_info(rnti); // provide UL grant regardless of other BSR content for UE to complete RA
+	} break;
+	case SHORT_BSR:
+	case SHORT_TRUNC_BSR: {
+	  lcg_bsr_t sbsr = subpdu.get_sbsr();
+	  uint32_t buffer_size_bytes = buff_size_field_to_bytes(sbsr.buffer_size, SHORT_BSR);
+	  // Assume all LCGs are 0 if reported SBSR is 0
+	  if (buffer_size_bytes == 0) {
+		for (uint32_t j = 0; j <= SCHED_NR_MAX_LC_GROUP; j++) {
+		  sched->ul_bsr(rnti, j, 0);
+		}
+	  } else {
+		sched->ul_bsr(rnti, sbsr.lcg_id, buffer_size_bytes);//void sched_nr::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)
+	  }
+	} break;
+	case LONG_BSR:
+	case LONG_TRUNC_BSR: {
+	  srsran::mac_sch_subpdu_nr::lbsr_t lbsr = subpdu.get_lbsr();
+	  for (auto& lb : lbsr.list) {
+		sched->ul_bsr(rnti, lb.lcg_id, buff_size_field_to_bytes(lb.buffer_size, LONG_BSR));
+	  }
+	} break;
+	case SE_PHR:
+	  // SE_PHR not implemented
+	  break;
+	case PADDING:
+	  break;
+	default:
+	  oset_error("Unhandled subPDU with LCID=%d", subpdu->lcid);
+  }
+
+  return OSET_OK;
+}
+
+
+static int mac_handle_pusch_pdu_info(pusch_mac_pdu_info_t *pdu_info)
+{
+	uint16_t rnti = pdu_info->rnti;
+	byte_buffer_t *pdu = pdu_info->pdu;
+	oset_assert(pdu);
+
+	ue_nr *mac_ue = ue_nr_find_by_rnti(rnti);
+	oset_assert(mac_ue);
+
+	mac_sch_pdu_nr_init_rx(&mac_ue->mac_pdu_ul, true);
+
+	// mac pdu decode
+	if (mac_sch_pdu_nr_unpack(&mac_ue->mac_pdu_ul, pdu->msg, pdu->N_bytes) != OSET_OK) {
+		return OSET_ERROR;
+	}
+
+	mac_sch_pdu_nr_to_string(&mac_ue->mac_pdu_ul, rnti);
+
+	// 下行(dl_sch)MAC PDU要求组装subPDU的时候，CEs优先于SDU，SDU优先于padding
+	// |Sub header 1|MAC CE 1|Sub header 2|MAC CE 2|Sub header 3|MAC SDU|Padding|
+
+	// 上行(ul_sch)MAC PDU要求组装subPDU的时候，SDU优先于CEs，CEs优先于padding
+	// |Sub header 1|MAC SDU|Sub header 2|MAC CE 1|Sub header 3|MAC MAC CE 2|Padding|
+
+	// Process MAC CRNTI CE first, if it exists
+	uint32_t crnti_ce_pos = cvector_size(&mac_ue->mac_pdu_ul.subpdus);
+	for (uint32_t n = cvector_size(&mac_ue->mac_pdu_ul.subpdus); n > 0; --n) {
+		mac_sch_subpdu_nr *subpdu = &mac_ue->mac_pdu_ul.subpdus[n-1];
+		if (subpdu->lcid == CRNTI) {
+		  if (mac_process_ce_subpdu(rnti, subpdu) != OSET_OK) {
+			return OSET_ERROR;
+		  }
+		  // 记录mac ce的边界
+		  crnti_ce_pos = n - 1;
+		}
+	}
+
+	// Process SDUs and remaining MAC CEs
+	for (uint32_t n = 0; n < pdu_ul.get_num_subpdus(); ++n) {
+		srsran::mac_sch_subpdu_nr& subpdu = pdu_ul.get_subpdu(n);
+		if (subpdu.is_sdu()) {
+			rrc->set_activity_user(rnti);//void rrc_nr::set_activity_user(uint16_t rnti)
+			rlc->write_pdu(rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());//void rlc::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+		} else if (n != crnti_ce_pos) {
+			if (mac_process_ce_subpdu(rnti, subpdu) != OSET_OK) {
+				return OSET_ERROR;
+			}
+		}
+	}
+
+	return OSET_OK;
+}
+
 
 static void gnb_mac_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 {
@@ -426,7 +665,12 @@ static void gnb_mac_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 			/*rach info handle*/
 			mac_handle_rach_info(&RACH_MAC_DETECTED_INFO(msg_p));
 			break;
-		
+
+		case PUSCH_MAC_PDU_INFO:
+			/*pusch info handle*/
+			mac_handle_pusch_pdu_info(&PUSCH_MAC_PDU_INFO(msg_p));
+			oset_free(PUSCH_MAC_PDU_INFO(msg_p).pdu);
+			break;		
 		default:
 			oset_error("Received unknown message: %d:%s",  RQUE_MSG_ID(msg_p), RQUE_MSG_NAME(msg_p));
 			break;
@@ -497,15 +741,35 @@ int API_mac_rrc_api_ue_cfg(uint16_t rnti, sched_nr_ue_cfg_t *ue_cfg)
 	return OSET_OK;
 }
 
+int API_mac_rrc_remove_ue(uint16_t rnti)
+{
+	mac_remove_ue(rnti);
+	return OSET_OK;
+}
+
 int API_mac_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
 	sched_nr_dl_buffer_state(&mac_manager.sched, rnti, lc_id, tx_queue, retx_queue);
 	return OSET_OK;
 }
 
-int API_mac_rrc_remove_ue(uint16_t rnti)
+ul_sched_t* API_mac_phy_get_ul_sched(srsran_slot_cfg_t* slot_cfg, uint32_t cc_idx)
 {
-	mac_remove_ue(rnti);
-	return OSET_OK;
+	return mac_get_ul_sched(slot_cfg, cc_idx);
+}
+
+dl_sched_t* API_mac_phy_get_dl_sched(srsran_slot_cfg_t *slot_cfg, uint32_t cc_idx)
+{
+	return mac_get_dl_sched(slot_cfg, cc_idx);
+}
+
+int API_mac_phy_pucch_info(pucch_info_t *pucch_info, uint32_t cc_idx)
+{
+	return mac_pucch_info(pucch_info, cc_idx);
+}
+
+int API_mac_phy_pusch_info(srsran_slot_cfg_t *slot_cfg, pusch_info_t *pusch_info, uint32_t cc_idx)
+{
+	return mac_pusch_info(slot_cfg, pusch_info, cc_idx);
 }
 

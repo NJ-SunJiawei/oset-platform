@@ -75,7 +75,7 @@ void dl_ack_info_callback(ue_carrier *carriers, void *argv)
 	dl_ack_info_argv_t *dl_ack_info_argv = (dl_ack_info_argv_t *)argv;
 	oset_assert(dl_ack_info_argv);
 
-	ue_carrier_dl_ack_info(carriers, dl_ack_info_argv->pid, dl_ack_info_argv->tb_idx, dl_ack_info_argv->ack);
+	int tbs = ue_carrier_dl_ack_info(carriers, dl_ack_info_argv->pid, dl_ack_info_argv->tb_idx, dl_ack_info_argv->ack);
 	oset_info("rnti=0x%x dl_ack_info(pid=%u, ack=%s)", carriers->rnti, dl_ack_info_argv->pid, dl_ack_info_argv->ack ? "OK" : "KO");
 }
 
@@ -423,21 +423,21 @@ static void process_common(sched_nr *scheluder, uint32_t slot_rx_id)
 	}
 
 	//handle ca()
-	ue_event_t *u_ev = NULL;
-	cvector_for_each_in(u_ev, pending_events->current_slot_ue_events){
-		sched_nr_ue *ue_it = sched_nr_ue_find_by_rnti(u_ev->rnti);
-		if (NULL == ue_it) {
-		  oset_warn("[5%lu] SCHED: %s called for unknown rnti=0x%x", slot_rx_id, u_ev->event_name, u_ev->rnti);
-		  u_ev->rnti = SRSRAN_INVALID_RNTI;
-		} else if (sched_nr_ue_has_ca(ue_it)) {
-			// events specific to existing UEs with CA
-			if(UL_SR_INFO == u_ev->event_name)      u_ev->callback(ue_it, NULL);
-			if(UL_BSR == u_ev->event_name)          u_ev->callback(ue_it, &u_ev->u.ul_bsr_argv);
-			if(DL_MAC_CE == u_ev->event_name)       u_ev->callback(ue_it, &u_ev->u.dl_mac_ce_argv);
-			if(DL_BUFFER_STATE == u_ev->event_name) u_ev->callback(ue_it, &u_ev->u.dl_buffer_state_argv);
-			u_ev->rnti = SRSRAN_INVALID_RNTI;
-		}
-	}
+	//ue_event_t *u_ev = NULL;
+	//cvector_for_each_in(u_ev, pending_events->current_slot_ue_events){
+	//	sched_nr_ue *ue_it = sched_nr_ue_find_by_rnti(u_ev->rnti);
+	//	if (NULL == ue_it) {
+	//	  oset_warn("[5%lu] SCHED: %s called for unknown rnti=0x%x", slot_rx_id, u_ev->event_name, u_ev->rnti);
+	//	  u_ev->rnti = SRSRAN_INVALID_RNTI;
+	//	} else if (sched_nr_ue_has_ca(ue_it)) {
+	//		// events specific to existing UEs with CA
+	//		if(UL_SR_INFO == u_ev->event_name)      u_ev->callback(ue_it, NULL);
+	//		if(UL_BSR == u_ev->event_name)          u_ev->callback(ue_it, &u_ev->u.ul_bsr_argv);
+	//		if(DL_MAC_CE == u_ev->event_name)       u_ev->callback(ue_it, &u_ev->u.dl_mac_ce_argv);
+	//		if(DL_BUFFER_STATE == u_ev->event_name) u_ev->callback(ue_it, &u_ev->u.dl_buffer_state_argv);
+	//		u_ev->rnti = SRSRAN_INVALID_RNTI;
+	//	}
+	//}
 }
 
 /// Process events synchronized during slot_indication() that are directed at non CA-enabled UEs
@@ -590,12 +590,12 @@ void sched_nr_slot_indication(sched_nr *scheluder, slot_point slot_tx)
 	// prepare CA-enabled UEs internal state for new slot
 	// Note: non-CA UEs are updated later in get_dl_sched, to leverage parallelism
 	// Find first available channel that supports this frequency and allocated it
-	sched_nr_ue *ue = NULL, *next_ue = NULL;
-	oset_list_for_each_safe(&scheluder->sched_ue_list, next_ue, ue){
-		if (sched_nr_ue_has_ca(ue)) {
-			sched_nr_ue_new_slot(ue, slot_tx);
-		}
-	}
+	//sched_nr_ue *ue = NULL, *next_ue = NULL;
+	//oset_list_for_each_safe(&scheluder->sched_ue_list, next_ue, ue){
+	//	if (sched_nr_ue_has_ca(ue)) {
+	//		sched_nr_ue_new_slot(ue, slot_tx);
+	//	}
+	//}
 
 	// If UE metrics were externally requested, store the current UE state
 	save_metrics(&scheluder->metrics_handler);
@@ -620,5 +620,11 @@ dl_res_t* sched_nr_get_dl_sched(sched_nr *scheluder, slot_point pdsch_tti, uint3
 	dl_res_t* ret = cc_worker_run_slot(&scheluder->cc_workers[cc], pdsch_tti, &scheluder->sched_ue_list);
 
   return ret;
+}
+
+/// Fetch {ul_slot,cc} UL scheduling decision
+ul_sched_t* sched_nr_get_ul_sched(sched_nr *scheluder, slot_point slot_ul, uint32_t cc)
+{
+	cc_worker_get_ul_sched(&scheluder->cc_workers[cc], slot_ul);
 }
 

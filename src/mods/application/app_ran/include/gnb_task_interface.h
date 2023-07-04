@@ -11,19 +11,9 @@
 
 #include <stdint.h>
 
-typedef struct msg_text_s  msg_text_t;
-typedef struct msg_empty_s msg_empty_t;
-typedef struct timer_expired_s timer_expired_t;
-typedef void* context_t;
-
 #include "gnb_interface.h"
-#include "phy/phy.h"
-#include "mac/mac.h"
-#include "rrc/rrc.h"
-
-
 /*L1/L2/L3 message types*/
-#include "def/phy_messages_types.h"
+//#include "def/phy_messages_types.h"
 #include "def/mac_messages_types.h"
 //#include "def/rlc_messages_types.h"
 //#include "def/pdcp_messages_types.h"
@@ -35,6 +25,11 @@ typedef void* context_t;
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct msg_text_s  msg_text_t;
+typedef struct msg_empty_s msg_empty_t;
+typedef struct timer_expired_s timer_expired_t;
+typedef void* context_t;
 
 /*************************************************************/
 typedef enum task_priorities_e {

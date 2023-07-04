@@ -719,13 +719,16 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
   // a PUCCH resource set is provided by pucch-ResourceCommon through an index to a row of Table 9.2.1-1 for size
   // transmission of HARQ-ACK information on PUCCH in an initial UL BWP of N BWP PRBs.
   // 公共pucch资源
+  // 在UE没有配置专用PUCCH资源（PUCCH-Config ->PUCCH-ResourceSet）时，就用PUCCH-ConfigCommon配置的公共资源，由DCI中PUCCH resource indicator计算r_pucch
   if (!pucch_cfg->enabled) {
     uint32_t N_cce   = SRSRAN_FLOOR(N_bwp_sz, 6);
     uint32_t r_pucch = ((2 * uci_cfg->pucch.n_cce_0) / N_cce) + 2 * uci_cfg->pucch.resource_id;
     return ra_ul_nr_pucch_resource_default(pucch_cfg->common.resource_common, N_bwp_sz, r_pucch, resource);
   }
 
-  //使用HARQ-ACK resource,resource_id由DCI中PUCCH resource indicator提供
+  // 专用PUCCH资源，要关注PUCCH-ResourceSet、PUCCH-Resource、PUCCH-FormatConfig这几个类型的配置参数
+  // PUCCH-Config中会配置多个PUCCH资源集，根据UE要传输的UCI信息的比特数Ouci以及其中包含的信息，来决定使用哪个PUCCH资源集
+  // resource_id由DCI中PUCCH resource indicator提供，选定PUCCH资源集中资源
   return ra_ul_nr_pucch_resource_hl(pucch_cfg, uci_cfg, uci_cfg->pucch.resource_id, resource);
 }
 
