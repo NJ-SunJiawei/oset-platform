@@ -138,14 +138,26 @@ int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_
 	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
 	if (user) {
 		if (rnti != SRSRAN_MRNTI) {
-			ret = rlc_manager.users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);
+			ret = users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);
 		} else {
-			ret = rlc_manager.users[rnti].rlc->read_pdu_mch(lcid, payload, nof_bytes);//mcch 多播控制信道
+			ret = users[rnti].rlc->read_pdu_mch(lcid, payload, nof_bytes);//mcch 多播控制信道
 		}
 	} else {
 		ret = OSET_ERROR;
 	}
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
   return ret;
+}
+
+void API_rlc_mac_write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+{
+	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
+
+	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
+
+	if (user) {
+		users[rnti].rlc->write_pdu(lcid, payload, nof_bytes);
+	}
+	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 }
 

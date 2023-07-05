@@ -15,7 +15,7 @@
 #define OSET_LOG2_DOMAIN   "app-gnb-libmacSch"
 
 
-uint32_t mac_sch_subpdu_nr_sizeof_ce(uint32_t lcid, bool is_ul)
+uint32_t sizeof_ce(uint32_t lcid, bool is_ul)
 {
   if (is_ul) {
     switch (lcid) {
@@ -70,7 +70,7 @@ static void set_ue_con_res_id_ce(mac_sch_pdu_nr	*mac_pdu, mac_sch_subpdu_nr	*ce,
 {
   ce->lcid          = CON_RES_ID;
   ce->header_length = 1; //sub header
-  ce->sdu_length    = mac_sch_subpdu_nr_sizeof_ce(ce->lcid, mac_pdu->ulsch);
+  ce->sdu_length    = sizeof_ce(ce->lcid, mac_pdu->ulsch);
   uint8_t* ptr  = use_internal_storage(ce);
   for (int32_t i = 0; i < ce->sdu_length; ++i) {
 	ptr[i] = id[i];
@@ -233,7 +233,7 @@ static int32_t read_subheader(mac_sch_pdu_nr	*mac_pdu, mac_sch_subpdu_nr *sch_pd
         sch_pdu->header_length++;
       }
     } else {
-      sch_pdu->sdu_length = mac_sch_subpdu_nr_sizeof_ce(sch_pdu->lcid, mac_pdu->ulsch);
+      sch_pdu->sdu_length = sizeof_ce(sch_pdu->lcid, mac_pdu->ulsch);
     }
     set_storage_to(sch_pdu, (uint8_t*)ptr);
   } else {
@@ -247,13 +247,13 @@ static int32_t read_subheader(mac_sch_pdu_nr	*mac_pdu, mac_sch_subpdu_nr *sch_pd
 static void set_sdu(mac_sch_pdu_nr	*mac_pdu, mac_sch_subpdu_nr *sch_pdu, uint32_t lcid_, uint8_t* payload_, const uint32_t len_)
 {
 	// Use CCCH_SIZE_48 when SDU len fits
-	sch_pdu->lcid = (lcid_ == CCCH_SIZE_64 && len_ == mac_sch_subpdu_nr_sizeof_ce(CCCH_SIZE_48, true)) ? CCCH_SIZE_48 : lcid_;
+	sch_pdu->lcid = (lcid_ == CCCH_SIZE_64 && len_ == sizeof_ce(CCCH_SIZE_48, true)) ? CCCH_SIZE_48 : lcid_;
 	set_storage_to(sch_pdu, payload_);
 	sch_pdu->header_length = is_ul_ccch(mac_pdu, sch_pdu) ? 1 : 2;
 	sch_pdu->sdu_length    = len_;
 	if (is_ul_ccch(mac_pdu, sch_pdu)) {
 		sch_pdu->F_bit      = false;
-		sch_pdu->sdu_length = mac_sch_subpdu_nr_sizeof_ce(lcid_, mac_pdu->ulsch);
+		sch_pdu->sdu_length = sizeof_ce(lcid_, mac_pdu->ulsch);
 		if (len_ != (uint32_t)(sch_pdu->sdu_length)) {
 			oset_warn("Invalid SDU length of UL-SCH SDU (%d != %d)", len_, sch_pdu->sdu_length);
 		}
@@ -273,8 +273,10 @@ static void set_padding(mac_sch_subpdu_nr *sch_pdu, uint32_t len_)
   sch_pdu->header_length = 1;
 }
 
-static uint16_t get_c_rnti(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
+uint16_t get_c_rnti(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
 {
+  // 网络字节顺序采用big endian（大端）排序方式, 低地址存高字节序，高地址低字节序
+  // 主机字节序和网络序刚好相反，其采用小端(little endian)模式存储存储
   if (mac_pdu->ulsch && sch_pdu->lcid == CRNTI) {
     const uint8_t* ptr = sch_pdu->sdu.sdu;
     return le16toh((uint16_t)ptr[0] << 8 | ptr[1]);
@@ -282,7 +284,7 @@ static uint16_t get_c_rnti(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
   return 0;
 }
 
-static ta_t get_ta(mac_sch_subpdu_nr *sch_pdu)
+ta_t get_ta(mac_sch_subpdu_nr *sch_pdu)
 {
   ta_t ta = {0};
   if (sch_pdu->lcid == TA_CMD) {
@@ -293,7 +295,7 @@ static ta_t get_ta(mac_sch_subpdu_nr *sch_pdu)
   return ta;
 }
 
-static ue_con_res_id_t get_ue_con_res_id_ce(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
+ue_con_res_id_t get_ue_con_res_id_ce(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
 {
   ue_con_res_id_t id = {0};
   if (!mac_pdu->ulsch && sch_pdu->lcid == CON_RES_ID) {
@@ -306,7 +308,7 @@ static ue_con_res_id_t get_ue_con_res_id_ce(mac_sch_pdu_nr *mac_pdu, mac_sch_sub
 // Short BSR 或 Truncated BSR 格式：只上报一个 LCG 的 BSR。其格式由一个 LCG ID 域和一个对应的 Buffer Size 域组成
 // |R|R|        LCID      |  OCT1
 // |LCG ID |   Buffer Size|  OCT2
-static lcg_bsr_t get_sbsr(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
+lcg_bsr_t get_sbsr(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
 {
   lcg_bsr_t sbsr = {0};
   if (mac_pdu->ulsch && (sch_pdu->lcid == SHORT_BSR || sch_pdu->lcid == SHORT_TRUNC_BSR)) {
@@ -326,7 +328,7 @@ static lcg_bsr_t get_sbsr(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
 // |    Buffer Size m    |
 
 // LCG ID 域长为 1 比特，指定了上报的 buffer 状态对应的 LCG，其值与 IE: LogicalChannelConfig的logicalChannelGroup 字段对应
-static lbsr_t get_lbsr(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
+lbsr_t get_lbsr(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
 {
   lbsr_t lbsr = {0};
   cvector_reserve(lbsr.list, max_num_lcg_lbsr)
@@ -364,7 +366,7 @@ static lbsr_t get_lbsr(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
   return lbsr;
 }
 
-static uint8_t get_phr(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
+uint8_t get_phr(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
 {
   if (mac_pdu->ulsch && sch_pdu->lcid == SE_PHR) {
     uint8_t* ptr = sch_pdu->sdu.sdu;
@@ -373,7 +375,7 @@ static uint8_t get_phr(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
   return 0;
 }
 
-static uint8_t get_pcmax(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
+uint8_t get_pcmax(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu)
 {
   if (mac_pdu->ulsch && sch_pdu->lcid == SE_PHR) {
     uint8_t* ptr = sch_pdu->sdu.sdu;

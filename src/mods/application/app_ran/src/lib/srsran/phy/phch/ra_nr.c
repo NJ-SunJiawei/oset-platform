@@ -832,7 +832,10 @@ int srsran_ra_dl_dci_to_grant_nr(const srsran_carrier_nr_t*    carrier,
   pdsch_cfg->sch_cfg.mcs_table = pdsch_hl_cfg->mcs_table;//暂时未使用好像
 
   // 5.1.4 PDSCH resource mapping PDSCH zp-csi/nzp-csi资源映射(周期性)
-  // 主要为计算TBS服务
+  // CSI-RS分为非零功率NZP CSI-RS和零功率ZP CSI-RS两种：
+  // Zero power CSI-RS（不需要产生并映射到RE上，用于PDSCH的速率匹配，不发东西）
+  // Non zero power CSI-RS（需要实际产生并映射到RE上）
+  // （1）主要的CSI report（2）TRS（3）LI-RSRP computation:参考信号接收功率（参数Repetition=on/off）（4）Mobility Management
   if (ra_dl_resource_mapping(carrier, slot, pdsch_hl_cfg, pdsch_cfg) < SRSRAN_SUCCESS) {
     ERROR("Error in resource mapping");
     return SRSRAN_ERROR;

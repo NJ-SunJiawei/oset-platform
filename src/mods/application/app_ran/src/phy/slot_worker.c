@@ -226,6 +226,7 @@ static bool slot_worker_work_ul(slot_worker_t *slot_w, uint32_t cc_idx)
 
 	// For each PUCCH
 	pucch_t *pucch = NULL;
+	// 不同ue的uci
 	cvector_for_each_in(pucch, ul_sched->pucch){
 		// pucch decode list
 		cvector_vector_t(pucch_info_t) pucch_info_list = NULL;
@@ -261,7 +262,7 @@ static bool slot_worker_work_ul(slot_worker_t *slot_w, uint32_t cc_idx)
 		}
 
 		// Inform stack
-		if (API_mac_phy_pucch_info(slot_w->cell_index, &pucch_info_list[best_candidate]) < OSET_OK) {
+		if (API_mac_phy_pucch_info(&pucch_info_list[best_candidate], slot_w->cell_index) < OSET_OK) {
 			cvector_free(pucch_info_list);
 			return false;
 		}

@@ -715,6 +715,8 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
     return SRSRAN_SUCCESS;
   }
 
+  // PDCCH format 2 上发送UCI（HARQ-ACK +SR+CSI）编码（速率适配）后的bits，要经过加扰，调制，最后再映射到物理资源上。由于 R16 可以配置occ 参数，支持UE复用，所以在调制之后也要进行spreading的操作。
+
   // If a UE does not have dedicated PUCCH resource configuration, provided by PUCCH-ResourceSet in PUCCH-Config,
   // a PUCCH resource set is provided by pucch-ResourceCommon through an index to a row of Table 9.2.1-1 for size
   // transmission of HARQ-ACK information on PUCCH in an initial UL BWP of N BWP PRBs.
@@ -728,7 +730,7 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
 
   // 专用PUCCH资源，要关注PUCCH-ResourceSet、PUCCH-Resource、PUCCH-FormatConfig这几个类型的配置参数
   // PUCCH-Config中会配置多个PUCCH资源集，根据UE要传输的UCI信息的比特数Ouci以及其中包含的信息，来决定使用哪个PUCCH资源集
-  // resource_id由DCI中PUCCH resource indicator提供，选定PUCCH资源集中资源
+  // resource_id由DCI中PUCCH resource indicator提供，选定PUCCH资源集中的资源
   return ra_ul_nr_pucch_resource_hl(pucch_cfg, uci_cfg, uci_cfg->pucch.resource_id, resource);
 }
 

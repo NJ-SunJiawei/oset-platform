@@ -42,7 +42,7 @@ void ue_nr_remove(ue_nr *ue)
     oset_assert(ue);
 
     oset_free(ue->ue_rlc_buffer);
-    //oset_free(ue->last_msg3);
+    oset_free(ue->last_msg3);
 	cvector_free(ue->mac_pdu_dl.subpdus);
 	cvector_free(ue->mac_pdu_ul.subpdus);
 
@@ -66,6 +66,13 @@ ue_nr *ue_nr_find_by_rnti(uint16_t rnti)
 {
     return (ue_nr *)oset_hash_get(
             mac_manager_self()->ue_db, &rnti, sizeof(rnti));
+}
+
+// Called from Stack thread when demuxing UL PDUs
+void ue_nr_store_msg3(ue_nr *ue, uint8 *sdu, int len)
+{
+	//std::lock_guard<std::mutex> lock(mutex);
+	ue->last_msg3 = byte_buffer_copy(sdu, len);
 }
 
 int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t tbs_len, cvector_vector_t(uint32_t) subpdu_lcids)
@@ -94,6 +101,7 @@ int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t tbs_len, cvector_
         if (mac_sch_pdu_nr_add_ue_con_res_id_ce(&ue->mac_pdu_dl, id) != OSET_OK) {
           oset_error("0x%x Failed to add ConRes CE", ue->rnti);
         }
+		oset_free(ue->last_msg3);
         ue->last_msg3 = NULL; // don't use this Msg3 again
       } else {
         oset_warn("0x%x Can't add ConRes CE. No Msg3 stored", ue->rnti);

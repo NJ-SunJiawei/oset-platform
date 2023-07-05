@@ -533,23 +533,50 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 	mac_handle_rach_info(&rach_info);
 }*/
 
-static int mac_process_ce_subpdu(uint16_t rnti, mac_sch_subpdu_nr *subpdu)
+void mac_store_msg3(uint16_t rnti, byte_buffer_t *pdu)
+{
+	//srsran::rwlock_read_guard rw_lock(rwmutex);
+	ue_nr *mac_ue = ue_nr_find_by_rnti(rnti);
+
+	if (mac_ue) {
+		ue_nr_store_msg3(mac_ue, pdu);
+	} else {
+		oset_error("User rnti=0x%x not found. Can't store Msg3", rnti);
+	}
+}
+
+static int mac_process_ce_subpdu(uint16_t rnti, mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *subpdu)
 {
   // Handle MAC lcid
   switch (subpdu->lcid) {
 	case CCCH_SIZE_48:
 	case CCCH_SIZE_64: {
-	  mac_sch_subpdu_nr *ccch_subpdu = const_cast<srsran::mac_sch_subpdu_nr&>(subpdu);
-	  rlc->write_pdu(rnti, 0, ccch_subpdu.get_sdu(), ccch_subpdu.get_sdu_length());
+	  mac_sch_subpdu_nr *ccch_subpdu = subpdu;
+	  API_rlc_mac_write_pdu(rnti, srb0, ccch_subpdu->sdu.sdu, ccch_subpdu->sdu_length);
 	  // store content for ConRes CE and schedule CE accordingly
-	  mac.store_msg3(rnti,
-					 srsran::make_byte_buffer(ccch_subpdu.get_sdu(), ccch_subpdu.get_sdu_length(), __FUNCTION__));
-	  sched->dl_mac_ce(rnti, srsran::mac_sch_subpdu_nr::CON_RES_ID);//void sched_nr::dl_mac_ce(uint16_t rnti, uint32_t ce_lcid)
+	  ue_nr_store_msg3(rnti, ccch_subpdu->sdu.sdu, ccch_subpdu->sdu_length);
+	  // add dl mac ce vector to handle
+	  sched_nr_dl_mac_ce(rnti, CON_RES_ID);
 	} break;
 	case CRNTI: {
+	  // 竞争型的场景包括：
+	  //（1）UE的初始接入
+	  //（2）UE的重建
+	  //（3）UE有上行数据发送，但检测到上行失步
+	  //（4）UE有上行数据发送，但没有SR资源
+	  // 非竞争型的场景:
+	  //（5）切换
+	  //（6）eNB有下行数据发送，但检测到上行失步
+	  //（7）定位过程。
+
 	  // 当 UE 处于 RRC_CONNECTED 态但上行不同步时，UE 有自己的 C-RNTI，在随机接入过程的
       // Msg3 中，UE 会通过 C-RNTI MAC control element 将自己的 C-RNTI 告诉 eNodeB，eNodeB 在步骤
       // 四中使用这个 C-RNTI 来解决冲突。
+
+	  // 基于非竞争的随机接入， preamble 是某个 UE 专用的，所以不存在冲突；又因为该 UE 已经拥有在接入小区内的唯一标志 C-RNTI
+	  // 所以也不需要 eNodeB 给它分配 C-RNTI。因此，只有基于竞的随机接入才需要msg3和msg4。
+	  // 注：（1）使用基于非竞争的随机接入的 UE 必定原本处于 RRC_CONNECTED 态；
+	  //     （2）handover 时，UE 在目标小区使用的 C-RNTI 是通过 RRCConnectionReconfiguration 中的MobilityControlInfo 的 newUE-Identity 来配置的。
 
 	  // 上行Out of sync
 	  // UE在MAC层如何判断上行同步/失步（详见36.321的5.2节）：
@@ -557,16 +584,20 @@ static int mac_process_ce_subpdu(uint16_t rnti, mac_sch_subpdu_nr *subpdu)
 	  // 需要注意的是：该timer有Cell-specific级别和UE-specific级别之分。eNodeB通过SystemInformationBlockType2的timeAlignmentTimerCommon字段来配置的Cell-specific级别的timer；eNodeB通过MAC-MainConfig的timeAlignmentTimerDedicated字段来配置UE-specific级别的timer。
 	  // 如果UE配置了UE-specific的timer，则UE使用该timer值，否则UE使用Cell-specific的timer值。
 	  // 当UE收到Timing Advance Command（来自RAR或Timing Advance Command MAC controlelement），UE会启动或重启该timer。如果该timer超时，则认为上行失步，UE会清空HARQ buffer，通知RRC层释放PUCCH/SRS，并清空任何配置的DL assignment和UL grant。
-	  // 当该timer在运行时，UE认为上行是同步的；而当该timer没有运行，即上行失步时，UE在上行只能发送preamble。
-	  uint16_t ce_crnti  = subpdu.get_c_rnti();
+	  // 当该timer在运行时，UE认为上行是同步的；而当该timer没有运行，即上行失步时，UE在上行只能发送preamble
+
+	  // 下行out of sync
+	  // ??? UE会不停的进行检测，通过检测门限Qin、Qout，上报高层启动定时器T311、T310，来进行判断是否是下行同步失步
+	  uint16_t ce_crnti  = get_c_rnti(mac_pdu, subpdu);
 	  if (ce_crnti == SRSRAN_INVALID_RNTI) {
 		oset_error("Malformed C-RNTI CE detected. C-RNTI can't be 0x0.", subpdu->lcid);
 		return OSET_ERROR;
 	  }
-	  uint16_t prev_rnti = rnti;
+	  uint16_t prev_rnti = rnti; //pusch grant中rnti
 	  rnti				 = ce_crnti;
 	  rrc->update_user(prev_rnti, rnti);//int rrc_nr::update_user(uint16_t new_rnti, uint16_t old_rnti)
-	  sched->ul_sr_info(rnti); // provide UL grant regardless of other BSR content for UE to complete RA
+	  // provide UL grant regardless of other BSR content for UE to complete RA
+	  sched_nr_ul_sr_info(rnti);
 	} break;
 	case SHORT_BSR:
 	case SHORT_TRUNC_BSR: {
@@ -626,11 +657,12 @@ static int mac_handle_pusch_pdu_info(pusch_mac_pdu_info_t *pdu_info)
 	// |Sub header 1|MAC SDU|Sub header 2|MAC CE 1|Sub header 3|MAC MAC CE 2|Padding|
 
 	// Process MAC CRNTI CE first, if it exists
+	// 优先处理mac ce
 	uint32_t crnti_ce_pos = cvector_size(&mac_ue->mac_pdu_ul.subpdus);
 	for (uint32_t n = cvector_size(&mac_ue->mac_pdu_ul.subpdus); n > 0; --n) {
 		mac_sch_subpdu_nr *subpdu = &mac_ue->mac_pdu_ul.subpdus[n-1];
 		if (subpdu->lcid == CRNTI) {
-		  if (mac_process_ce_subpdu(rnti, subpdu) != OSET_OK) {
+		  if (mac_process_ce_subpdu(rnti, &mac_ue->mac_pdu_ul, subpdu) != OSET_OK) {
 			return OSET_ERROR;
 		  }
 		  // 记录mac ce的边界
@@ -645,7 +677,7 @@ static int mac_handle_pusch_pdu_info(pusch_mac_pdu_info_t *pdu_info)
 			rrc->set_activity_user(rnti);//void rrc_nr::set_activity_user(uint16_t rnti)
 			rlc->write_pdu(rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());//void rlc::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 		} else if (n != crnti_ce_pos) {
-			if (mac_process_ce_subpdu(rnti, subpdu) != OSET_OK) {
+			if (mac_process_ce_subpdu(rnti, &mac_ue->mac_pdu_ul, subpdu) != OSET_OK) {
 				return OSET_ERROR;
 			}
 		}

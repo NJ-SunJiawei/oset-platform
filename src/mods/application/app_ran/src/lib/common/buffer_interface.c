@@ -32,18 +32,18 @@ byte_buffer_t* byte_buffer_init(byte_buffer_t *buf)
 	return p;
 }
 
-byte_buffer_t* byte_buffer_change(oset_pkbuf_t *buf)
+byte_buffer_t* byte_buffer_copy(uint8_t* payload, uint32_t len)
 {
-	byte_buffer_t *p = oset_malloc(sizeof(byte_buffer_t));
-	oset_assert(p);
-	memset(p, 0, sizeof(byte_buffer_t));
-	p->msg     = &p->buffer[SRSRAN_BUFFER_HEADER_OFFSET];
-	p->N_bytes = buf->len;
-	p->md	   = buf->0;
-	memcpy(p->msg, buf->data, p->N_bytes);
-	return p;
-}
+	byte_buffer_t *p = byte_buffer_init();
 
+	if (byte_buffer_get_tailroom(p) >= len) {
+	  memcpy(p->msg, payload, len);
+	  p->N_bytes = len;
+	  return p;
+	}
+	oset_free(p);
+	return NULL;
+}
 
 byte_buffer_t* byte_buffer_copy(byte_buffer_t *p, byte_buffer_t *other)
 {
@@ -58,6 +58,17 @@ byte_buffer_t* byte_buffer_copy(byte_buffer_t *p, byte_buffer_t *other)
 	return p;
 }
 
+byte_buffer_t* byte_buffer_change(oset_pkbuf_t *buf)
+{
+	byte_buffer_t *p = oset_malloc(sizeof(byte_buffer_t));
+	oset_assert(p);
+	memset(p, 0, sizeof(byte_buffer_t));
+	p->msg     = &p->buffer[SRSRAN_BUFFER_HEADER_OFFSET];
+	p->N_bytes = buf->len;
+	p->md	   = buf->0;
+	memcpy(p->msg, buf->data, p->N_bytes);
+	return p;
+}
 
 byte_buffer_t*  byte_buffer_clear(byte_buffer_t *p)
 {
@@ -77,5 +88,5 @@ uint32_t byte_buffer_get_headroom(byte_buffer_t *p)
 // Returns the remaining space from what is reported to be the length of msg
 uint32_t byte_buffer_get_tailroom(byte_buffer_t *p)
 {
-	return (sizeof(p->buffer) - (p->msg - p->buffer) - p->N_bytes);
+	return (sizeof(p->buffer) - byte_buffer_get_headroom(p) - p->N_bytes);
 }

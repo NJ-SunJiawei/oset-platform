@@ -24,7 +24,7 @@ static int get_dl_tx_total(ue_buffer_manager *buffers)
 	//MAC Control Element消息
 	ce_t *ce = NULL;
 	cvector_for_each_in(ce, buffers->pending_ces){
-		total_bytes += mac_sch_subpdu_nr_sizeof_ce(ce->lcid, false);
+		total_bytes += sizeof_ce(ce->lcid, false);
 	}
 	return total_bytes;
 }
@@ -67,7 +67,7 @@ bool pdu_builder_alloc_subpdus(pdu_builder           *pdu_builders, uint32_t rem
 		ce_t *ce = pdu_builders->parent->pending_ces[i];
 		if (ce->cc == pdu_builders->cc) {
 			// Note: This check also avoids thread collisions across UE carriers
-			uint32_t size_ce = mac_sch_subpdu_nr_sizeof_ce(ce->lcid, false);
+			uint32_t size_ce = sizeof_ce(ce->lcid, false);
 			if (size_ce > rem_bytes) {
 				break;
 			}

@@ -185,7 +185,12 @@ int srsran_gnb_ul_get_pusch(srsran_gnb_ul_t*             q,
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
-  //dmrs参考信号估计
+  // dmrs参考信号估计
+  // PUSCH DMRS和PDSCH DMRS内容基本一样
+  // 对于下行，UE通过PBCH的DMRS或者PDSCH的CSI-RS测量RSRP值。 而对于上行，gNB通过PUSCH的DMRS测量RSRP值
+  // 在生成SS-RSRP结果时，允许UE使用PBCH-DMRS的测量结果。DMRS和SS-Signal以相同的功率传输，因此结果可以直接平均。当UE向L1报告测量SS-RSRP时，可以配置UE使用CSI-RS测量作为额外的输入。与SS-Signal和PBCH DMRS相比，CSI-RS可能具有不同的发射功率
+
+  // RSRQ可以是 SS-Reference Siganls 和 CSI-Reference Siganls。SS-RSRQ测量可用于小区选择、小区重选和移动性，而CSI-RSRQ测量只能用于移动性
   if (srsran_dmrs_sch_estimate(&q->dmrs, slot_cfg, cfg, grant, q->sf_symbols[0], &q->chest_pusch) < SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }

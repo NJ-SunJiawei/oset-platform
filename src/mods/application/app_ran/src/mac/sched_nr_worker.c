@@ -303,6 +303,9 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 
 		// PUCCH的资源是非常有限的，整个带宽一般只有几个RB分配给PUCCH使用，比如20MHz带宽有100个RB，供PUCCH使用的RB可能不到10个
 		// 必须让多个UE的UCI信息共用到相同的RE资源格中,同一个RE中复用的UE个数越多，eNB能够正确解码出各个UE的UCI的概率就越低
+		// PUCCH 0最多支持1bit6个UE复用，2bit3个UE复用
+        // PUCCH 1最多支持12个用户复用,实际支持4~6个复用
+        // PUCCH 2不支持复用 
 
 		// SR                   HARQ-ACK             描述
 		// +                    PUCCH format 0       通过Mcs参数来区分 SR和HARQ
@@ -348,6 +351,7 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 		    }
 			cvector_push_back(pucch.candidates, candidates_add);
 		  }
+		  cvector_push_back(bwp_slot->ul.pucch, pucch);
 		}
 	}
 }

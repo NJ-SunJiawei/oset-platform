@@ -782,6 +782,7 @@ int srsran_dmrs_sch_estimate(srsran_dmrs_sch_t*           q,
 
   // Get symbols indexes
   uint32_t symbols[SRSRAN_DMRS_SCH_MAX_SYMBOLS] = {};
+  // 存在dmrs symbol数量
   int      nof_symbols                          = srsran_dmrs_sch_get_symbols_idx(&cfg->dmrs, grant, symbols);
   if (nof_symbols <= SRSRAN_SUCCESS) {
     ERROR("Error getting symbol indexes");

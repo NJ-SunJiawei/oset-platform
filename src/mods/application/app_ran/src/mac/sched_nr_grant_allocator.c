@@ -478,7 +478,7 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 	//dai针对tdd1~6模式(对于fdd和tdd0上行一个子帧对应一个下行子帧ACK,不需要)
 	pdcch_dl_t *pdcch 	   = pdcch_result.res.val;
 	pdcch->dci_cfg 		   = ue_carrier_params_get_dci_cfg(&slot_u->ue->bwp_cfg);
-	pdcch->dci.pucch_resource = 0;//PUCCH resource indicator
+	pdcch->dci.pucch_resource = 0;//PUCCH resource indicator //不同ue应该不一样
 	// 公共PUCCH：PUCCH resource indicator计算rPUCCH, 用来计算uci频域信息
 	// 专用PUCCH：通过Ouci确定resourceSET,PUCCH resource indicator选择SET中资源resource
 	harq_ack_t *p = NULL;
@@ -659,7 +659,7 @@ alloc_result bwp_slot_allocator_alloc_pusch(bwp_slot_allocator *bwp_alloc,
 
 	//对于上行数据发送，如果需要重传，基站不向UE发送ACK/NACK信息，而是直接调度UE进行数据重传(PDCCH调度,通过NDI判断新传、重传)
 
-	if (slot_u.h_ul == NULL) {
+	if (slot_u->h_ul == NULL) {
 		oset_warn("[%5u]SCHED: Trying to allocate rnti=0x%x with no available UL HARQs", GET_RSLOT_ID(bwp_alloc->pdcch_slot), slot_u->ue->rnti);
 		return (alloc_result)no_rnti_opportunity;
 	}

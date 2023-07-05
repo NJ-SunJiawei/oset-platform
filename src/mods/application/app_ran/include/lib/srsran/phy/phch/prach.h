@@ -148,11 +148,11 @@ typedef enum SRSRAN_API {
 
 typedef struct {
   bool                is_nr; // Set to true if NR
-  uint32_t            config_idx;
-  uint32_t            root_seq_idx;
+  uint32_t            config_idx; // prach时频资源索引
+  uint32_t            root_seq_idx;// prach-RootSequenceIndex 用于Preamble前导码计算
   uint32_t            zero_corr_zone;
   uint32_t            freq_offset;
-  uint32_t            num_ra_preambles;
+  uint32_t            num_ra_preambles;// 随机接入前导的数目,单小区最多64
   bool                hs_flag;
   srsran_tdd_config_t tdd_config;
   bool                enable_successive_cancellation;

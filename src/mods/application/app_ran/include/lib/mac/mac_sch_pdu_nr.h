@@ -93,7 +93,14 @@ typedef struct {
 }mac_sch_pdu_nr;
 
 ///////////////////////////////////////////sch_subpdu/////////////////////////////////////////////////////////////////
-uint32_t mac_sch_subpdu_nr_sizeof_ce(uint32_t lcid, bool is_ul);
+uint32_t sizeof_ce(uint32_t lcid, bool is_ul);
+uint16_t get_c_rnti(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu);
+ta_t get_ta(mac_sch_subpdu_nr *sch_pdu);
+ue_con_res_id_t get_ue_con_res_id_ce(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu);
+lcg_bsr_t get_sbsr(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu);
+lbsr_t get_lbsr(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu);
+uint8_t get_phr(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu);
+uint8_t get_pcmax(mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *sch_pdu);
 ///////////////////////////////////////////sch_pdu/////////////////////////////////////////////////////////////////
 uint32_t mac_sch_pdu_nr_size_header_sdu(mac_sch_pdu_nr	*mac_pdu, uint32_t lcid, uint32_t nbytes);
 int mac_sch_pdu_nr_init_tx(mac_sch_pdu_nr	*mac_pdu, byte_buffer_t* buffer_, uint32_t pdu_len_, bool ulsch_);

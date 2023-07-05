@@ -51,6 +51,7 @@ ue_nr *ue_nr_add(uint16_t rnti);
 void ue_nr_remove(ue_nr *ue);
 void ue_nr_set_rnti(uint16_t rnti, ue_nr *ue);
 ue_nr *ue_nr_find_by_rnti(uint16_t rnti);
+void ue_nr_store_msg3(ue_nr *ue, uint8 *sdu, int len);
 int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t grant_size, cvector_vector_t(uint32_t) subpdu_lcids);
 /******* METRICS interface ***************/
 void ue_nr_metrics_read(ue_nr *ue, mac_ue_metrics_t* metrics_);
