@@ -40,7 +40,7 @@ typedef struct rf_manager_s{
 	oset_apr_mutex_t	*tx_mutex;
 	oset_apr_mutex_t	*rx_mutex;
 	cf_t                *tx_buffer[SRSRAN_MAX_CHANNELS];
-	cf_t                *rx_buffer[SRSRAN_MAX_CHANNELS];
+	cf_t                *rx_buffer[SRSRAN_MAX_CHANNELS];//rf rx缓存中转(ratio > 1时候)
 	srsran_resampler_fft_t            interpolators[SRSRAN_MAX_CHANNELS];
 	srsran_resampler_fft_t            decimators[SRSRAN_MAX_CHANNELS];
 	bool         decimator_busy; ///< Indicates the decimator is changing the rate

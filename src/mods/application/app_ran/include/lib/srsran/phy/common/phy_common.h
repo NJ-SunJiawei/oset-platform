@@ -131,7 +131,7 @@ typedef enum { SRSRAN_SF_NORM = 0, SRSRAN_SF_MBSFN } srsran_sf_t;
   (SRSRAN_CP_LEN(symbol_sz, (SRSRAN_CP_ISNORM(cp) ? SRSRAN_CP_NORM_LEN : SRSRAN_CP_EXT_LEN)))
 #define SRSRAN_SYMBOL_SZ(symbol_sz, cp) (symbol_sz + SRSRAN_CP_SZ(symbol_sz, cp))
 #define SRSRAN_SLOT_LEN(symbol_sz) (symbol_sz * 15 / 2)
-#define SRSRAN_SF_LEN(symbol_sz) (symbol_sz * 15) //4G  1 slot=0.5ms=15360*Ts=((160+2048)+(144+2048)*6)*Ts  2slot = (2*7(symbol)+ 1(cp))*2048*Ts
+#define SRSRAN_SF_LEN(symbol_sz) (symbol_sz * 15)
 #define SRSRAN_SF_LEN_MAX (SRSRAN_SF_LEN(SRSRAN_SYMBOL_SZ_MAX))
 
 #define SRSRAN_SLOT_LEN_PRB(nof_prb) (SRSRAN_SLOT_LEN(srsran_symbol_sz(nof_prb)))

@@ -26,6 +26,8 @@ typedef struct rf_buffer_s{
 
 void set_nof_samples(rf_buffer_t *rfbuf, uint32_t n);
 uint32_t get_nof_samples(rf_buffer_t *rfbuf);
+void set_combine(rf_buffer_t *rfbuf, uint32_t channel_idx, cf_t* ptr);
+void set_combine_all(rf_buffer_t *rfbuf, rf_buffer_t* other);
 
 
 #ifdef __cplusplus

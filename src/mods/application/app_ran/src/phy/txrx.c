@@ -117,6 +117,12 @@ void txrx_task_init(void)
 	}
 }
 
+// 20M的LTE带宽(12*100prb = 1200子载波采样点)，经过快速傅里叶逆变换IFFT，生产的时域信号，只需要2048个采样点，采样带宽为15K * 2048
+// IFFT将时域转换到频域，所以时域上有2048个采样点
+// srate_hz = 15k*2048=30.72MHz
+// Ts       = 1/(15000HZ*2048)秒
+// 4G  1 slot=0.5ms=15360*Ts=((160+2048)+(144+2048)*6)*Ts  
+
 //default one cell  index = 0
 void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 {
@@ -126,7 +132,8 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
     int rv = 0;
 	rf_buffer_t    buffer	 = {0};
 	rf_timestamp_t timestamp = {0};
-	uint32_t	   sf_len	 = SRSRAN_SF_LEN_PRB(get_nof_prb(0));//15khz   5G 1slot
+	//15khz 1subframe = 1slot = 15khz*2048*0.1ms
+	uint32_t	   sf_len	 = SRSRAN_SF_LEN_PRB(get_nof_prb(0));
 	worker_context_t context = {0};
 	slot_worker_t  *slot_w   = NULL;
 
@@ -198,8 +205,6 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 	    // Set NR worker context and start
         memset(&context, 0,sizeof(worker_context_t));
 		context.sf_idx     = realtime_tti;
-		context.worker_ptr = phy_manager_self()->th_pools;
-		context.last	   = true;
 		context.tx_time    = timestamp;
 		set_slot_worker_context(slot_w, &context);
 		

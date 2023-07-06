@@ -1029,14 +1029,14 @@ static bool tx_dev(const uint32_t device_idx, rf_buffer_t *buffer, const srsran_
         gap_nsamples -= nzeros;
 
         // Increase timestamp
-        srsran_timestamp_add(&rf_manager.end_of_burst_time[device_idx], 0, (double)nzeros / cur_tx_srate);
+        srsran_timestamp_add(&rf_manager.end_of_burst_time[device_idx], 0, (double)nzeros / rf_manager.cur_tx_srate);
       }
     }
   }
 
   // Save possible end of burst time
   srsran_timestamp_copy(&rf_manager.end_of_burst_time[device_idx], &tx_time);
-  srsran_timestamp_add(&rf_manager.end_of_burst_time[device_idx], 0, (double)nof_samples / cur_tx_srate);
+  srsran_timestamp_add(&rf_manager.end_of_burst_time[device_idx], 0, (double)nof_samples / rf_manager.cur_tx_srate);
 
   void* radio_buffers[SRSRAN_MAX_CHANNELS] = {};
 

@@ -7,6 +7,7 @@
  *Date: 2023.04
 ************************************************************************/
 #include "gnb_common.h"
+#include "rf/radio.h"
 #include "phy/phy.h"
 #include "mac/mac.h"
 
@@ -17,6 +18,7 @@
 
 #define SLOT_WORK_POOL_SIZE  (TX_ENB_DELAY + 1)
 oset_stl_queue_def(slot_worker_t, slot_worker) slot_work_list = NULL;
+static rf_buffer_t  tx_buffer_final = {0};
 
 slot_worker_t* slot_worker_alloc(void)
 {
@@ -48,7 +50,9 @@ bool slot_worker_init(slot_worker_args_t *args)
 		slot_worker_t slot_work = {0};
 
 		// Calculate subframe length
-		slot_work.sf_len = (uint32_t)(args->srate_hz / 1000.0);//1/(15000*2048)~~~15symbol*2048FFT
+		// srate_hz = 15k*2048=30.72MHz
+		// sf时长1ms == srate_hz/1000
+		slot_work.sf_len = (uint32_t)(args->srate_hz / 1000.0);
 		
 		// Copy common configurations
 		slot_work.cell_index = args->cell_index;
@@ -108,7 +112,7 @@ bool slot_worker_init(slot_worker_args_t *args)
 	}
 
 #ifdef DEBUG_WRITE_FILE
-	const char* filename = "/tmp/nr_baseband.dat";
+	const char* filename = "/tmp/nr_slot_dump.dat";
 	oset_debug("Opening %s to dump baseband", filename);
 	f = fopen(filename, "w");
 #endif
@@ -460,6 +464,45 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w, uint32_t cc_idx)
 	return true;
 }
 
+/* The transmission of UL subframes must be in sequence. The correct sequence is guaranteed by a chain of N semaphores,
+ * one per TTI%nof_workers. Each threads waits for the semaphore for the current thread and after transmission allows
+ * next TTI to be transmitted
+ *
+ * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
+ * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
+ */
+static void slot_worker_work_end(slot_worker_t *slot_w, bool tx_enable, rf_buffer_t *buffer)
+{
+	// For combine buffer with previous buffers
+	// 用于将缓冲区与以前的缓冲区合并
+	if (tx_enable) {
+		set_nof_samples(&tx_buffer_final, get_nof_samples(buffer));
+		set_combine_all(&tx_buffer_final, buffer);
+	}
+
+	// Add current time alignment
+	rf_timestamp_t tx_time = slot_w->context.tx_time; // get transmit time from the last worker
+
+	// Run DL channel emulator if created
+	if (gnb_manager_self()->dl_channel) {
+		channel_run(gnb_manager_self()->dl_channel,
+					tx_buffer_final.sample_buffer,
+					tx_buffer_final.sample_buffer,
+					get_nof_samples(&tx_buffer_final),
+					get_timestamp(&tx_time, 0));
+	}
+
+	// Always transmit on single radio
+	tx(&tx_buffer_final, tx_time);
+
+	// Reset transmit buffer
+	tx_buffer_final = {0};
+
+	// Allow next TTI to transmit
+	oset_apr_mutex_lock(phy_manager_self()->mutex);
+	oset_apr_thread_cond_broadcast(phy_manager_self()->cond);
+	oset_apr_mutex_unlock(phy_manager_self()->mutex);
+}
 
 void* slot_worker_process(oset_threadplus_t *thread, void *data)
 {
@@ -476,29 +519,30 @@ void* slot_worker_process(oset_threadplus_t *thread, void *data)
 	uint32_t rf_port = get_rf_port(slot_w->cell_index);
 	//uint32_t rf_port = slot_w->rf_port;//one cell
 	for (uint32_t a = 0; a < nof_ant; a++) {
-		tx_rf_buffer.sample_buffer[rf_port * nof_ant + a] = get_buffer_tx(a);
+		// tx_rf_buffer.sample_buffer ~slot_w->tx_buffer~fft_cfg.out_buffer
+		tx_rf_buffer.sample_buffer[rf_port * nof_ant + a] = get_buffer_tx(slot_w, a);
 	}
 
 	// Ensure sequence
 	// Process uplink
 	if (!slot_worker_work_ul(slot_w, slot_w->cell_index)) {
 	// Wait and release synchronization
-		worker_end(context, false, tx_rf_buffer);
+		slot_worker_work_end(slot_w, false, &tx_rf_buffer);
 		return NULL;
 	}
 
 	// Process downlink
 	if (!slot_worker_work_dl(slot_w, slot_w->cell_index)) {
-		worker_end(context, false, tx_rf_buffer);
+		slot_worker_work_end(slot_w, false, &tx_rf_buffer);
 		return NULL;
 	}
 
-	worker_end(context, true, tx_rf_buffer);
+	slot_worker_work_end(slot_w, true, &tx_rf_buffer);
 
 #ifdef DEBUG_WRITE_FILE
 	if (num_slots++ < slots_to_dump) {
 		oset_info("[%5u] Writing slot %d", slot_w->context.sf_idx, slot_w->dl_slot_cfg.idx);
-		fwrite(tx_rf_buffer.get(0), tx_rf_buffer.get_nof_samples() * sizeof(cf_t), 1, f);
+		fwrite(tx_rf_buffer.sample_buffer[0], get_nof_samples(&tx_rf_buffer) * sizeof(cf_t), 1, f);
 	} else if (num_slots == slots_to_dump) {
 		oset_info("[%5u] Baseband signaled dump finished. Please close app", slot_w->context.sf_idx);
 		fclose(f);
@@ -507,11 +551,6 @@ void* slot_worker_process(oset_threadplus_t *thread, void *data)
 
    //todo put into  work end
 	slot_worker_free(slot_w);
-
-	oset_apr_mutex_lock(phy_manager_self()->mutex);
-	oset_apr_thread_cond_broadcast(phy_manager_self()->cond);
-	oset_apr_mutex_unlock(phy_manager_self()->mutex);
-
 	return NULL;
 }
 
