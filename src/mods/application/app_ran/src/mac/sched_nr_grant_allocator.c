@@ -478,7 +478,9 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 	//dai针对tdd1~6模式(对于fdd和tdd0上行一个子帧对应一个下行子帧ACK,不需要)
 	pdcch_dl_t *pdcch 	   = pdcch_result.res.val;
 	pdcch->dci_cfg 		   = ue_carrier_params_get_dci_cfg(&slot_u->ue->bwp_cfg);
-	pdcch->dci.pucch_resource = 0;//PUCCH resource indicator //??? todo不同的ue分配的应该不一样
+	pdcch->dci.pucch_resource = 0;//PUCCH resource indicator //??? todo不同的ue分配的应该不一样，时频区分
+	// 参考oran： reserve_next_harq_res_available函数
+
 	// 公共PUCCH：PUCCH resource indicator计算rPUCCH, 用来计算uci频域信息
 	// 专用PUCCH：通过Ouci确定resourceSET,PUCCH resource indicator选择SET中资源resource
 	harq_ack_t *p = NULL;

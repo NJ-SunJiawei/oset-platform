@@ -14,6 +14,9 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc"
 
+//todo 对于MasterCellConfig需要管理和分配。
+// pucch sr/csi的时频资源分配 ps:oran: du_pucch_resource_manager::alloc_resources函数
+
 void du_config_manager_release_buf(du_cell_config *du_cell)
 {
 	//free du->packed_mib
