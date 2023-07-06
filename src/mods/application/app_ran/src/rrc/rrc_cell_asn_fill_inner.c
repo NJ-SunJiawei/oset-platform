@@ -1671,7 +1671,8 @@ void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
   // If simul_harq_ack_csi_present = false, PUCCH might not be decoded properly when CSI is reported
   out->format2.c.simul_harq_ack_csi_present = true;
 
-  // SR resources
+  // SR resources 
+  // //??? todo不同的ue分配的sr_resource应该不一样
   cvector_reserve(out->sched_request_res_to_add_mod_list, 1);
   cvector_set_size(out->sched_request_res_to_add_mod_list, 1);
   out->sched_request_res_to_add_mod_list[0].sched_request_res_id              = 1;

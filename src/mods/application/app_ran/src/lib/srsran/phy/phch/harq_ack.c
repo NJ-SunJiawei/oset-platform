@@ -190,7 +190,7 @@ int srsran_harq_ack_resource(const srsran_harq_ack_cfg_hl_t* cfg,
   pdsch_ack_resource->v_dai_dl          = dci_dl->dai;
   pdsch_ack_resource->rnti              = dci_dl->ctx.rnti;
   pdsch_ack_resource->pucch_resource_id = dci_dl->pucch_resource;
-  pdsch_ack_resource->n_cce             = dci_dl->ctx.location.ncce;//pucch n_cce和pdcch一致
+  pdsch_ack_resource->n_cce             = dci_dl->ctx.location.ncce;
   pdsch_ack_resource->pid               = dci_dl->pid;
 
   return SRSRAN_SUCCESS;

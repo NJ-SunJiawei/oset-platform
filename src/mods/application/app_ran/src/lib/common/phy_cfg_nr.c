@@ -103,7 +103,7 @@ bool get_uci_cfg(phy_cfg_nr_t *phy_cfg,
   }
 
   // Generate configuration for SR//生成SR资源配置
-  // 只有处于 RRC_CONNECTED 态且保持上行同步的 UE 才会发送 SR
+  // 只有处于 RRC_CONNECTED 态且保持上行同步的 UE 才会发送 SR；且 SR只能用于请求新传数据（而不是重传数据）的 UL-SCH 资源
   uint32_t sr_resource_id[SRSRAN_PUCCH_MAX_NOF_SR_RESOURCES] = {0};
   int      n = srsran_ue_ul_nr_sr_send_slot(phy_cfg->pucch.sr_resources, slot_cfg->idx, sr_resource_id);
   if (n < SRSRAN_SUCCESS) {
@@ -111,8 +111,19 @@ bool get_uci_cfg(phy_cfg_nr_t *phy_cfg,
     return false;
   }
 
+  // UE 是因为没有上行 PUSCH 资源才发送 SR 的，所以 UE 只能在 PUCCH 上发送 SR
+
+  // 不同的UE的SR也可以在不同TTI和RB上发送，这是通过时分复用和频分复用来实现。
+  // 由于 SR 资源是 UE 专用且由 eNodeB 分配的，因此 SR 资源与 UE 一一对应且 eNodeB 知道具体
+  // 的对应关系。也就是说，UE 在发送 SR 信息时，并不需要指定自己的 ID（C-RNTI），eNodeB 通
+  // 过 SR 资源的时频位置，就知道是哪个 UE 请求上行资源。SR 资源是通过 IE：
+  // SchedulingRequestConfig 的 sr-PUCCH-ResourceIndex 字段配置的。
+
+  // *小区内的所有 UE 通常会配置相同的 SR 周期。SR 周期的值越小，SR 上报的延时就越小，但在
+  // *小区 SR 用户容量不变的情况下，每个子帧上需要预留给 SR 的 PUCCH 1 资源就越多。
+
   if (n > 0) {
-    uci_cfg->pucch.sr_resource_id = sr_resource_id[0];
+    uci_cfg->pucch.sr_resource_id = sr_resource_id[0];//??? todo不同的ue分配的sr_resource应该不一样
     uci_cfg->o_sr                 = srsran_ra_ul_nr_nof_sr_bits((uint32_t)n);
  	// UE并不是一直有发送SR请求的需求，对于Positive SR即UE有SR请求发送，需要物理层发送SR/PUCCH，
  	// 而对于无SR发送请求的UE，在SR资源的时间点，则该SR为Negative SR

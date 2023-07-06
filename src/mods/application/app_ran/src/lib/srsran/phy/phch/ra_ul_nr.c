@@ -715,13 +715,18 @@ int srsran_ra_ul_nr_pucch_resource(const srsran_pucch_nr_hl_cfg_t* pucch_cfg,
     return SRSRAN_SUCCESS;
   }
 
-  // PDCCH format 2 上发送UCI（HARQ-ACK +SR+CSI）编码（速率适配）后的bits，要经过加扰，调制，最后再映射到物理资源上。由于 R16 可以配置occ 参数，支持UE复用，所以在调制之后也要进行spreading的操作。
-
   // If a UE does not have dedicated PUCCH resource configuration, provided by PUCCH-ResourceSet in PUCCH-Config,
   // a PUCCH resource set is provided by pucch-ResourceCommon through an index to a row of Table 9.2.1-1 for size
   // transmission of HARQ-ACK information on PUCCH in an initial UL BWP of N BWP PRBs.
-  // 公共pucch资源
+
+  // PDCCH format 2 上发送UCI（HARQ-ACK +SR+CSI）编码（速率适配）后的bits，要经过加扰，调制，最后再映射到物理资源上。由于 R16 可以配置occ 参数，支持UE复用，所以在调制之后也要进行spreading的操作。
+
   // 在UE没有配置专用PUCCH资源（PUCCH-Config ->PUCCH-ResourceSet）时，就用PUCCH-ConfigCommon配置的公共资源，由DCI中PUCCH resource indicator计算r_pucch
+  // 在RRC建立之前，UE无法获取专用的PUSCH配置，所以只能使用配置在初始上行BWP内的小区级别PUCCH配置，一旦RRC连接建立，UE有了专有PUSCH，则使用专有PUSCH。
+  // 小区级别的PUCCH配置有如下特点：
+  // 由于此时UCI需要承载的信息很少，仅需要反馈建立RRC连接的信令的应答信息，所以只需要PUCCH格式0或格式1即可。
+  // 由于格式0和1通过序列循环移位来实现多用户复用，所以在指示配置参数时，除了时频域资源相关的参数外，还需要指示循环移位大小。
+
   if (!pucch_cfg->enabled) {
     uint32_t N_cce   = SRSRAN_FLOOR(N_bwp_sz, 6);
     uint32_t r_pucch = ((2 * uci_cfg->pucch.n_cce_0) / N_cce) + 2 * uci_cfg->pucch.resource_id;
