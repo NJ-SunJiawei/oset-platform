@@ -399,6 +399,7 @@ static bool mac_handle_uci_data(uint32_t cc_idx, uint16_t rnti, srsran_uci_cfg_n
   }
 
   // Process SR
+  // gnb 收到 SR 后，给 UE 分配多少上行资源取决于 gnb 的实现，通常的做法是至少分配足够 UE 发送 BSR 的资源
   if (value->valid && value->sr > 0) {
     sched_nr_ul_sr_info(&mac_manager.sched, cfg_->pucch.rnti);
   }
@@ -545,7 +546,45 @@ void mac_store_msg3(uint16_t rnti, byte_buffer_t *pdu)
 	}
 }
 
-static int mac_process_ce_subpdu(uint16_t rnti, mac_sch_pdu_nr *mac_pdu, mac_sch_subpdu_nr *subpdu)
+/** Converts the buffer size field of a BSR (5 or 8-bit Buffer Size field) into Bytes
+ * @param buff_size_field The buffer size field contained in the MAC PDU
+ * @param format		  The BSR format that determines the buffer size field length
+ * @return uint32_t 	  The actual buffer size level in Bytes
+ */
+static uint32_t buff_size_field_to_bytes(uint32_t buff_size_index, bsr_format_nr_t format)
+{
+  // early exit
+  if (buff_size_index == 0) {
+	return 0;
+  }
+
+  const uint32_t max_offset = 1; // make the reported value bigger than the 2nd biggest
+
+  switch (format) {
+	case SHORT_BSR:
+	case SHORT_TRUNC_BSR:
+	  if (buff_size_index >= buffer_size_levels_5bit_max_idx) {
+		return buffer_size_levels_5bit[buffer_size_levels_5bit_max_idx] + max_offset;
+	  } else {
+		return buffer_size_levels_5bit[buff_size_index];
+	  }
+	  break;
+	case LONG_BSR:
+	case LONG_TRUNC_BSR:
+	  if (buff_size_index > buffer_size_levels_8bit_max_idx) {
+		return buffer_size_levels_8bit[buffer_size_levels_8bit_max_idx] + max_offset;
+	  } else {
+		return buffer_size_levels_8bit[buff_size_index];
+	  }
+	  break;
+	default:
+	  break;
+  }
+  return 0;
+}
+
+
+static int mac_process_ce_subpdu(uint16_t rnti, mac_sch_pdu_nr *macpdu, mac_sch_subpdu_nr *subpdu)
 {
   // Handle MAC lcid
   switch (subpdu->lcid) {
@@ -556,27 +595,24 @@ static int mac_process_ce_subpdu(uint16_t rnti, mac_sch_pdu_nr *mac_pdu, mac_sch
 	  // store content for ConRes CE and schedule CE accordingly
 	  ue_nr_store_msg3(rnti, ccch_subpdu->sdu.sdu, ccch_subpdu->sdu_length);
 	  // add dl mac ce vector to handle
-	  sched_nr_dl_mac_ce(rnti, CON_RES_ID);
+	  sched_nr_dl_mac_ce(&mac_manager.sched, rnti, CON_RES_ID);
 	} break;
 	case CRNTI: {
 	  // 竞争型的场景包括：
-	  //（1）UE的初始接入
-	  //（2）UE的重建
-	  //（3）UE有上行数据发送，但检测到上行失步
-	  //（4）UE有上行数据发送，但没有SR资源
+	  //（1）UE的初始接入(rrc setup request)
+	  //（2）rrc connect态，上行失步，UE触发重建(rrc reestablishment)
+	  //（3）rrc inactive态eNB有下行数据发送，基站paging (msg3 rrc resume request)
+	  //（4）rrc inactive态ue有上行数据发送 (msg3 rrc resume request)
+	  //（3）rrc connect态UE有上行数据发送，但检测到上行失步(msg3 CRNIT) 基站重配(rrcReconfiguration)
+	  //（4）rrc connect态UE有上行数据发送，但没有SR资源(msg3 CRNIT)
+	  //（5）切换，ho ack未携带preamble(msg3 CRNIT)
+	  //（6）rrc connect态eNB有下行数据发送，但检测到上行失步(preamble = 0)(msg3 CRNIT) 基站重配(rrcReconfiguration)
+
 	  // 非竞争型的场景:
-	  //（5）切换
-	  //（6）eNB有下行数据发送，但检测到上行失步
+	  //（5）切换，ho ack携带preamble
+	  //（6）rrc connect态eNB有下行数据发送，但检测到上行失步(preamble != 0)
 	  //（7）定位过程。
 
-	  // 当 UE 处于 RRC_CONNECTED 态但上行不同步时，UE 有自己的 C-RNTI，在随机接入过程的
-      // Msg3 中，UE 会通过 C-RNTI MAC control element 将自己的 C-RNTI 告诉 eNodeB，eNodeB 在步骤
-      // 四中使用这个 C-RNTI 来解决冲突。
-
-	  // 基于非竞争的随机接入， preamble 是某个 UE 专用的，所以不存在冲突；又因为该 UE 已经拥有在接入小区内的唯一标志 C-RNTI
-	  // 所以也不需要 eNodeB 给它分配 C-RNTI。因此，只有基于竞的随机接入才需要msg3和msg4。
-	  // 注：（1）使用基于非竞争的随机接入的 UE 必定原本处于 RRC_CONNECTED 态；
-	  //     （2）handover 时，UE 在目标小区使用的 C-RNTI 是通过 RRCConnectionReconfiguration 中的MobilityControlInfo 的 newUE-Identity 来配置的。
 
 	  // 上行Out of sync
 	  // UE在MAC层如何判断上行同步/失步（详见36.321的5.2节）：
@@ -588,36 +624,38 @@ static int mac_process_ce_subpdu(uint16_t rnti, mac_sch_pdu_nr *mac_pdu, mac_sch
 
 	  // 下行out of sync
 	  // ??? UE会不停的进行检测，通过检测门限Qin、Qout，上报高层启动定时器T311、T310，来进行判断是否是下行同步失步
-	  uint16_t ce_crnti  = get_c_rnti(mac_pdu, subpdu);
+	  uint16_t ce_crnti  = get_c_rnti(macpdu, subpdu);
 	  if (ce_crnti == SRSRAN_INVALID_RNTI) {
 		oset_error("Malformed C-RNTI CE detected. C-RNTI can't be 0x0.", subpdu->lcid);
 		return OSET_ERROR;
 	  }
 	  uint16_t prev_rnti = rnti; //pusch grant中rnti
 	  rnti				 = ce_crnti;
-	  rrc->update_user(prev_rnti, rnti);//int rrc_nr::update_user(uint16_t new_rnti, uint16_t old_rnti)
+	  API_rrc_mac_update_user(prev_rnti, rnti);
 	  // provide UL grant regardless of other BSR content for UE to complete RA
-	  sched_nr_ul_sr_info(rnti);
+	  sched_nr_ul_sr_info(&mac_manager.sched, rnti);
 	} break;
 	case SHORT_BSR:
 	case SHORT_TRUNC_BSR: {
-	  lcg_bsr_t sbsr = subpdu.get_sbsr();
+	  lcg_bsr_t sbsr = get_sbsr(macpdu, subpdu);
 	  uint32_t buffer_size_bytes = buff_size_field_to_bytes(sbsr.buffer_size, SHORT_BSR);
 	  // Assume all LCGs are 0 if reported SBSR is 0
 	  if (buffer_size_bytes == 0) {
 		for (uint32_t j = 0; j <= SCHED_NR_MAX_LC_GROUP; j++) {
-		  sched->ul_bsr(rnti, j, 0);
+		  sched_nr_ul_bsr(&mac_manager.sched, rnti, j, 0);
 		}
 	  } else {
-		sched->ul_bsr(rnti, sbsr.lcg_id, buffer_size_bytes);//void sched_nr::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)
+		sched_nr_ul_bsr(&mac_manager.sched, rnti, sbsr.lcg_id, buffer_size_bytes);
 	  }
 	} break;
 	case LONG_BSR:
 	case LONG_TRUNC_BSR: {
-	  srsran::mac_sch_subpdu_nr::lbsr_t lbsr = subpdu.get_lbsr();
-	  for (auto& lb : lbsr.list) {
-		sched->ul_bsr(rnti, lb.lcg_id, buff_size_field_to_bytes(lb.buffer_size, LONG_BSR));
+	  lbsr_t lbsr = get_lbsr(macpdu, subpdu);
+	  lcg_bsr_t *lb = NULL;
+	  cvector_for_each_in(lb, lbsr.list){
+		sched_nr_ul_bsr(rnti, lb->lcg_id, buff_size_field_to_bytes(lb->buffer_size, LONG_BSR));
 	  }
+	  cvector_free(lbsr.list);
 	} break;
 	case SE_PHR:
 	  // SE_PHR not implemented
@@ -643,7 +681,7 @@ static int mac_handle_pusch_pdu_info(pusch_mac_pdu_info_t *pdu_info)
 
 	mac_sch_pdu_nr_init_rx(&mac_ue->mac_pdu_ul, true);
 
-	// mac pdu decode
+	// pdu decode to rlc/mac ce
 	if (mac_sch_pdu_nr_unpack(&mac_ue->mac_pdu_ul, pdu->msg, pdu->N_bytes) != OSET_OK) {
 		return OSET_ERROR;
 	}
@@ -657,7 +695,7 @@ static int mac_handle_pusch_pdu_info(pusch_mac_pdu_info_t *pdu_info)
 	// |Sub header 1|MAC SDU|Sub header 2|MAC CE 1|Sub header 3|MAC MAC CE 2|Padding|
 
 	// Process MAC CRNTI CE first, if it exists
-	// 优先处理mac ce
+	// 优先处理MAC CRNTI CE
 	uint32_t crnti_ce_pos = cvector_size(&mac_ue->mac_pdu_ul.subpdus);
 	for (uint32_t n = cvector_size(&mac_ue->mac_pdu_ul.subpdus); n > 0; --n) {
 		mac_sch_subpdu_nr *subpdu = &mac_ue->mac_pdu_ul.subpdus[n-1];
@@ -665,17 +703,17 @@ static int mac_handle_pusch_pdu_info(pusch_mac_pdu_info_t *pdu_info)
 		  if (mac_process_ce_subpdu(rnti, &mac_ue->mac_pdu_ul, subpdu) != OSET_OK) {
 			return OSET_ERROR;
 		  }
-		  // 记录mac ce的边界
+		  // 记录MAC CRNTI CE下标
 		  crnti_ce_pos = n - 1;
 		}
 	}
 
 	// Process SDUs and remaining MAC CEs
-	for (uint32_t n = 0; n < pdu_ul.get_num_subpdus(); ++n) {
-		srsran::mac_sch_subpdu_nr& subpdu = pdu_ul.get_subpdu(n);
-		if (subpdu.is_sdu()) {
-			rrc->set_activity_user(rnti);//void rrc_nr::set_activity_user(uint16_t rnti)
-			rlc->write_pdu(rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());//void rlc::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+	for (uint32_t n = 0; n < cvector_size(&mac_ue->mac_pdu_ul.subpdus); ++n) {
+		mac_sch_subpdu_nr *subpdu = &mac_ue->mac_pdu_ul.subpdus[n];
+		if (is_sdu(&mac_ue->mac_pdu_ul, subpdu)) {
+			API_rrc_mac_set_activity_user(rnti);
+			API_rlc_mac_write_pdu(rnti, subpdu->lcid, subpdu->sdu.sdu, subpdu->sdu_length);
 		} else if (n != crnti_ce_pos) {
 			if (mac_process_ce_subpdu(rnti, &mac_ue->mac_pdu_ul, subpdu) != OSET_OK) {
 				return OSET_ERROR;

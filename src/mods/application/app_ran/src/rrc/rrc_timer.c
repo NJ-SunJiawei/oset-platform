@@ -25,7 +25,7 @@ static void rrc_timer_event_send(rrc_timer_e timer_id, void *data)
 	task_send_msg(TASK_TIMER, msg_ptr);
 }
 
-void activity_timer_expired(void *data)
+void activity_timer_event(void *data)
 {
     rrc_timer_event_send(RRC_TIMER_ACTIVITY, data);
 }

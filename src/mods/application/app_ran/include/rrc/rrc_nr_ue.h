@@ -21,6 +21,9 @@
 extern "C" {
 #endif
 
+// ACTIVE (CONNECTED):    UE 和NG-RAN—connected     NG-RAN和5GC—connected
+// IDLE:                  UE 和NG-RAN—released      NG-RAN和5GC—released
+// INACTIVE:              UE 和NG-RAN—suspend       NG-RAN和5GC—connected
 typedef enum  { RRC_IDLE, RRC_INACTIVE, RRC_CONNECTED } rrc_nr_state_t;
 
 typedef enum activity_timeout_type_e {
@@ -72,7 +75,10 @@ typedef struct {
   activity_timeout_type_t type;
 }rrc_nr_ue;
 
+void rrc_rem_user_info(uint16_t rnti);
 void activity_timer_expired(rrc_nr_ue *ue);
+void rrc_nr_ue_deactivate_bearers(rrc_nr_ue *ue);
+void rrc_nr_ue_set_activity(rrc_nr_ue *ue, bool enabled);
 void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer);
 void rrc_nr_ue_get_metrics(rrc_ue_metrics_t *metrics);
 

@@ -58,8 +58,8 @@ void *gnb_timer_task(oset_threadplus_t *thread, void *data)
 			 gnb_timer_task_handle(received_msg, length);
 			 task_free_msg(RQUE_MSG_ORIGIN_ID(received_msg), received_msg);
 			 received_msg = NULL;
-			 length = 0;*/
-		}
+			 length = 0;
+		}*/
 	}
 }
 

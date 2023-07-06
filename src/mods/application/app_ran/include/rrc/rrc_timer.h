@@ -25,7 +25,7 @@ typedef enum {
 } rrc_timer_e;
 
 
-void activity_timer_expired(void *data);
+void activity_timer_event(void *data);
 
 #ifdef __cplusplus
 }

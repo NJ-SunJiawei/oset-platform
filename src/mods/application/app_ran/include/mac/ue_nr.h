@@ -12,6 +12,7 @@
 
 #include "lib/mac/mac_metrics.h"
 #include "lib/mac/mac_sch_pdu_nr.h"
+#include "lib/mac/bsr_nr.h"
 
 #ifdef __cplusplus
 extern "C" {

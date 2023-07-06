@@ -15,7 +15,14 @@ extern "C" {
 #endif
 
 
-//#define RRC_ACTIVITY_TIMER(msgPtr)             (msgPtr)->msg_body.rrc_activity_timer
+/*rrc<=======>rrc*/
+#define RRC_SELF_REM_USER_INFO(msgPtr)                  (msgPtr)->msg_body.rrc_self_rem_user_info
+
+
+typedef struct {
+	uint16_t rnti;
+}rrc_self_rem_user_info_t;
+
 
 
 #ifdef __cplusplus

@@ -298,7 +298,7 @@ static bool slot_worker_work_ul(slot_worker_t *slot_w, uint32_t cc_idx)
 		pusch_info.pdu->N_bytes             = pusch->sch.grant.tb[0].tbs / 8;
 		pusch_info.pusch_data.tb[0].payload = pusch_info.pdu->msg; // 存放上行ue mac源数据buffer
 
-		// Decode PUSCH
+		// Decode PUSCH to mac pdu
 		if (srsran_gnb_ul_get_pusch(gnb_ul, &slot_w->ul_slot_cfg, &pusch->sch, &pusch->sch.grant, &pusch_info.pusch_data) < SRSRAN_SUCCESS) {
 		  oset_error("[%5u] Error getting PUSCH", slot_w->context.sf_idx);
 		  return false;

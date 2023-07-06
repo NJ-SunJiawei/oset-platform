@@ -21,14 +21,14 @@ void ue_cfg_manager_init(ue_cfg_manager *ue_cfg, uint32_t enb_cc_idx)
 	carrier.active = true;
 	carrier.cc     = enb_cc_idx;
 	cvector_push_back(ue_cfg->carriers, carrier)
-	ue_cfg->ue_bearers[0].direction     = (direction_t)BOTH;
+	ue_cfg->ue_bearers[0].direction = (direction_t)BOTH;
 }
-
 
 int ue_cfg_manager_apply_config_request(ue_cfg_manager *ue_cfg, sched_nr_ue_cfg_t *cfg_req)
 {
 	ue_cfg->maxharq_tx = cfg_req->maxharq_tx;
 	cvector_copy(cfg_req->carriers, ue_cfg->carriers);
+	//ue_cfg->carriers = cfg_req->carriers;
 	ue_cfg->phy_cfg    = cfg_req->phy_cfg;
 
 	if (cfg_req->sp_cell_cfg) {

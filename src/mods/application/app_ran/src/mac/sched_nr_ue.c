@@ -152,7 +152,7 @@ int ue_carrier_ul_crc_info(ue_carrier *carrier, uint32_t pid, bool crc)
 }
 
 //////////////////////////////////////////sched_nr_ue////////////////////////////////////////////
-static void free_rach_ue_cfg_helper(sched_nr_ue_cfg_t *uecfg)
+static void free_rach_init_uecfg(sched_nr_ue_cfg_t *uecfg)
 {
 	cvector_free(uecfg->carriers);
 	cvector_free(uecfg->lc_ch_to_add);
@@ -160,7 +160,7 @@ static void free_rach_ue_cfg_helper(sched_nr_ue_cfg_t *uecfg)
 	oset_free(uecfg);
 }
 
-static sched_nr_ue_cfg_t* get_rach_ue_cfg_helper(uint32_t cc, sched_params_t *sched_params)
+static sched_nr_ue_cfg_t* get_rach_init_uecfg(uint32_t cc, sched_params_t *sched_params)
 {
 	sched_nr_ue_cfg_t *uecfg = oset_malloc(sizeof(sched_nr_ue_cfg_t));
 	uecfg->maxharq_tx = 4;
@@ -245,12 +245,12 @@ void sched_nr_ue_set_by_rnti(uint16_t rnti, sched_nr_ue *u)
 
 sched_nr_ue *sched_nr_ue_add(uint16_t rnti_, uint32_t cc, sched_params_t *sched_cfg_)
 {
-	//首次主要为了获得phy配置，rrc层会通过mac_ue_cfg二次更新高层信息。
-	sched_nr_ue_cfg_t *uecfg = get_rach_ue_cfg_helper(cc, sched_cfg_);
+	//首次主要为了获得phy配置，后续rrc层会通过mac_ue_cfg二次更新高层信息。
+	sched_nr_ue_cfg_t *uecfg = get_rach_init_uecfg(cc, sched_cfg_);
 
 	sched_nr_ue *u = sched_nr_ue_add_inner(rnti_, uecfg, sched_cfg_);
 
-	free_rach_ue_cfg_helper(uecfg);
+	free_rach_init_uecfg(uecfg);
 	return u;
 }
 

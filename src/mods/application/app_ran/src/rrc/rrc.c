@@ -338,7 +338,7 @@ static int rrc_destory(void)
 	cvector_free(sched_cells_cfg);
 
 	//todo
-	rrc_remove_user_all();
+	rrc_rem_user_all();
 	oset_list_empty(&rrc_manager.rrc_ue_list);
     oset_hash_destroy(rrc_manager.users);
 	rrc_manager_destory();
@@ -362,7 +362,7 @@ void rrc_rem_user(uint16_t rnti)
   }
 }
 
-void rrc_remove_user_all(void)
+void rrc_rem_user_all(void)
 {
 	rrc_nr_ue *ue = NULL, *next_ue = NULL;
 	oset_list_for_each_safe(rrc_manager.rrc_ue_list, next_ue, ue)
@@ -399,7 +399,36 @@ void rrc_get_metrics(rrc_metrics_t *m)
   }
 }
 
-void rrc_nr_set_activity_user(uint16_t rnti)
+/* Function called by MAC after the reception of a C-RNTI CE indicating that the UE still has a
+ * valid RNTI.
+ */
+static int rrc_update_user(uint16_t prev_rnti, uint16_t ce_rnti)
+{
+	if (prev_rnti == ce_rnti) {
+		oset_warn("rnti=0x%x received MAC CRNTI CE with same rnti", ce_rnti);
+		return OSET_ERROR;
+	}
+
+	// Remove prev_rnti
+	rrc_nr_ue *prev_ue_it = rrc_nr_ue_find_by_rnti(prev_rnti);
+	if (prev_ue_it) {
+		rrc_nr_ue_deactivate_bearers(prev_ue_it);
+		rrc_rem_user_info(prev_rnti);
+	}
+
+	// Send Reconfiguration to ce_rnti if is RRC_CONNECT or RRC Release if already released here
+	rrc_nr_ue *ue_ptr = rrc_nr_ue_find_by_rnti(ce_rnti);
+	if (NULL == ue_ptr) {
+		oset_info("rnti=0x%x received MAC CRNTI CE: 0x%x, but old context is unavailable", prev_rnti, ce_rnti);
+		return OSET_ERROR;
+	}
+
+	// todo  Send Reconfiguration
+	oset_info("Resuming rnti=0x%x RRC connection due to received C-RNTI CE from rnti=0x%x", ce_rnti, prev_rnti);
+	return OSET_OK;
+}
+
+static void rrc_set_activity_user(uint16_t rnti)
 {
 	rrc_nr_ue *ue_ptr = rrc_nr_ue_find_by_rnti(rnti);
 	if (NULL == ue_ptr) {
@@ -408,7 +437,6 @@ void rrc_nr_set_activity_user(uint16_t rnti)
 	}
 
 	// Restart inactivity timer for RRC-NR
-	// 重新启动RRC-NR的非活动计时器
 	rrc_nr_ue_set_activity(ue_ptr, true);
 }
 
@@ -418,8 +446,9 @@ static void gnb_rrc_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 	oset_assert(msg_l > 0);
 	switch (RQUE_MSG_ID(msg_p))
 	{	
-		case 1111:
+		case RRC_SELF_REM_USER_INFO:
 			/*info handle*/
+			rrc_rem_user(RRC_SELF_REM_USER_INFO(msg_p).rnti); 
 			break;
 
 		default:
@@ -478,8 +507,14 @@ int API_rrc_mac_read_pdu_bcch_dlsch(uint32_t sib_index, byte_buffer_t *buffer)
 	return OSET_OK;
 }
 
+// 保活rrc层
 void API_rrc_mac_set_activity_user(uint16_t rnti)
 {
-	return rrc_nr_set_activity_user(rnti);
+	return rrc_set_activity_user(rnti);
+}
+
+int API_rrc_mac_update_user(uint16_t prev_rnti, uint16_t rnti)
+{
+	return rrc_update_user(prev_rnti, rnti);
 }
 

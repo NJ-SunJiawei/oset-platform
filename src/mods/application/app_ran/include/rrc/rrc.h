@@ -60,13 +60,14 @@ rrc_manager_t *rrc_manager_self(void);
 /*********************************************************************/
 int rrc_add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer);
 void rrc_rem_user(uint16_t rnti);
-void rrc_remove_user_all(void);
+void rrc_rem_user_all(void);
 void rrc_nr_ue_set_activity(rrc_nr_ue *ue, bool enabled);
 void *gnb_rrc_task(oset_threadplus_t *thread, void *data);
 /**********************mac api****************************************/
 int API_rrc_mac_add_user(uint16_t rnti, uint32_t pcell_cc_idx);
 int API_rrc_mac_read_pdu_bcch_dlsch(uint32_t sib_index, byte_buffer_t *buffer);
 void API_rrc_mac_set_activity_user(uint16_t rnti);
+int API_rrc_mac_update_user(uint16_t prev_rnti, uint16_t rnti);
 
 #ifdef __cplusplus
 }
