@@ -42,7 +42,7 @@ static void mac_manager_destory(void)
 	mac_manager.app_pool = NULL; /*app_pool release by openset process*/
 }
 
-static int mac_init(void)
+int mac_init(void)
 {
 	mac_manager_init();
 	mac_manager.bcch_bch_payload = byte_buffer_init();
@@ -68,7 +68,7 @@ static int mac_init(void)
 	return OSET_OK;
 }
 
-static int mac_destory(void)
+int mac_destory(void)
 {
 	cvector_free(mac_manager.bcch_dlsch_payload);
 	cvector_free(mac_manager.detected_rachs);
@@ -754,7 +754,6 @@ void *gnb_mac_task(oset_threadplus_t *thread, void *data)
 	task_map_t *task = task_map_self(TASK_MAC);
 	int rv = 0;
 
-	mac_init();
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "Starting MAC layer thread");
 
 	 for ( ;; ){
@@ -773,7 +772,6 @@ void *gnb_mac_task(oset_threadplus_t *thread, void *data)
 		 received_msg = NULL;
 		 length = 0;
 	}
-	mac_destory();
 }
 
 int API_mac_rrc_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells)

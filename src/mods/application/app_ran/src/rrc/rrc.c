@@ -243,7 +243,7 @@ void rrc_config_mac(uint32_t cc)
 	API_mac_rrc_cell_cfg(sched_cells_cfg);
 }
 
-static int rrc_init(void)
+int rrc_init(void)
 {
 	int ret = OSET_ERROR;
 
@@ -309,7 +309,7 @@ static int rrc_init(void)
 	return OSET_OK;
 }
 
-static int rrc_destory(void)
+int rrc_destory(void)
 {	
 	int i = 0;
 
@@ -352,7 +352,7 @@ void rrc_rem_user(uint16_t rnti)
     // First remove MAC and GTPU to stop processing DL/UL traffic for this user
     API_mac_rrc_remove_ue(rnti);
     API_rlc_rrc_rem_user(rnti);
-    pdcp->rem_user(rnti);
+    API_pdcp_rrc_rem_user(rnti);
 	rrc_nr_ue_remove(ue);
 
     oset_warn("Disconnecting rnti=0x%x.\n", rnti);
@@ -379,7 +379,7 @@ int rrc_add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer)
     // If in the ue ctor, "start_msg3_timer" is set to true, this will start the MSG3 RX TIMEOUT at ue creation
 	rrc_nr_ue_add(rnti, pcell_cc_idx, start_msg3_timer);
     API_rlc_rrc_add_user(rnti);
-    pdcp->add_user(rnti);
+    API_pdcp_rrc_add_user(rnti);
     oset_info("Added new user rnti=0x%x", rnti);
     return OSET_OK;
   }
@@ -464,7 +464,6 @@ void *gnb_rrc_task(oset_threadplus_t *thread, void *data)
 	task_map_t *task = task_map_self(TASK_RRC);
 	int rv = 0;
 
-	rrc_init();
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "Starting RRC layer thread");
 	for ( ;; ){
 		rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
@@ -482,7 +481,6 @@ void *gnb_rrc_task(oset_threadplus_t *thread, void *data)
 		received_msg = NULL;
 		length = 0;
 	}
-	rrc_destory();
 }
 
 /* @brief PUBLIC function, gets called by mac_nr::rach_detected

@@ -58,6 +58,8 @@ typedef struct rrc_manager_s{
 rrc_manager_t *rrc_manager_self(void);
 
 /*********************************************************************/
+int rrc_init(void);
+int rrc_destory(void);
 int rrc_add_user(uint16_t rnti, uint32_t pcell_cc_idx, bool start_msg3_timer);
 void rrc_rem_user(uint16_t rnti);
 void rrc_rem_user_all(void);

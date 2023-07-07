@@ -213,8 +213,8 @@ void *gnb_txrx_task(oset_threadplus_t *thread, void *data)
 
 		// Start actual worker
 		// Process one at a time and hang it on the linked list in sequence
-		//当前线程池为单线程，可以保证处理slot顺序。
-		//若线程池为多线程，加锁会导致乱序，但是不加锁并发是否会导致数据混乱？？？
+		// 当前线程池为单线程，可以保证处理slot顺序。
+		// 若线程池为多线程，加锁会导致乱序，但是不加锁并发是否会导致数据混乱？？？
 		rv = oset_threadpool_push(phy_manager_self()->th_pools,
 									slot_worker_process,
 									slot_w,

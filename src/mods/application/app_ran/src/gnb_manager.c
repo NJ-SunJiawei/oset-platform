@@ -320,6 +320,13 @@ void gnb_layer_tasks_args_init(void)
 	task_map_self(TASK_PRACH)->info.func = gnb_prach_task;
 	task_map_self(TASK_MAC)->info.func = gnb_mac_task;
 	task_map_self(TASK_RRC)->info.func = gnb_rrc_task;
+
+	rrc_init();
+	pdcp_init();
+	rlc_init();
+	mac_init();
+	rf_init();
+	phy_init();
 }
 
 int gnb_layer_tasks_create(void)
@@ -343,28 +350,27 @@ int gnb_layer_tasks_create(void)
 	  return OSET_ERROR;
 	}
 
-	pdcp_init();
-	rlc_init();
-
 	if (OSET_ERROR == task_thread_create(TASK_MAC, NULL)) {
 	  oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "Create task for gNB MAC failed");
 	  return OSET_ERROR;
 	}
 
-	rf_init();
-	phy_init();
+
     return OSET_OK;
 }
 
 void gnb_layer_tasks_destory(void)
 {
-	phy_destory();
-	rf_destory();
 	oset_threadplus_destroy(task_map_self(TASK_MAC)->thread, 1);
-	pdcp_destory();
-	rlc_destory();
 	oset_threadplus_destroy(task_map_self(TASK_RRC)->thread, 1);
 	oset_threadplus_destroy(task_map_self(TASK_METRICS)->thread, 1);
 	oset_threadplus_destroy(task_map_self(TASK_TIMER)->thread, 1);
+
+	rf_destory();
+	phy_destory();
+	mac_destory();
+	pdcp_destory();
+	rlc_destory();
+	rrc_destory();
 }
 

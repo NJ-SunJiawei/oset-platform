@@ -96,7 +96,7 @@ static void rlc_add_user(uint16_t rnti)
 
 		// 将SRB1定为与基站联系的信令通道，把SRB2定为与MME联系的信令通道
 		// SRB2上传送的RRC信令非常少，只有两 种：UL information transfer以及DL information transfer消息，基站看到这两条信令，就知道不用处理，直接转发
-		rlc_init(&user->rlc, srb_to_lcid((nr_srb)srb0), rlc_update_bsr);
+		rlc_lib_init(&user->rlc, srb_to_lcid((nr_srb)srb0), rlc_update_bsr);
 		rlc_user_interface_set_rnti(rnti, user);
     	oset_list_add(&rlc_manager.rlc_ue_list, user);
 	}
@@ -110,7 +110,7 @@ static void rlc_rem_user(uint16_t rnti)
 	if (NULL == user) {
 		oset_error("Removing rnti=0x%x. Already removed", rnti);
 	}else{
-		rlc_stop(&user->rlc);
+		rlc_lib_stop(&user->rlc);
 		oset_list_remove(&rlc_manager.rlc_ue_list, user);
 		oset_hash_set(rlc_manager.users, &rnti, sizeof(rnti), NULL);
 		oset_core_destroy_memory_pool(&user->usepool);
@@ -133,9 +133,9 @@ void API_rlc_rrc_rem_user(uint16_t rnti)
 int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
 	int ret = OSET_ERROR;
-	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
 
 	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
+	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
 	if (user) {
 		if (rnti != SRSRAN_MRNTI) {
 			ret = users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);

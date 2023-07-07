@@ -72,6 +72,8 @@ dl_sched_t* API_mac_phy_get_dl_sched(srsran_slot_cfg_t *slot_cfg, uint32_t cc_id
 int API_mac_phy_pucch_info(pucch_info_t *pucch_info, uint32_t cc_idx);
 int API_mac_phy_pusch_info(srsran_slot_cfg_t *slot_cfg, pusch_info_t *pusch_info, uint32_t cc_idx);
 ///////////////////////////////////////////////////////////////////////////////////////
+int mac_init(void);
+int mac_destory(void);
 void mac_get_metrics(mac_metrics_t *metrics);
 void mac_remove_ue(uint16_t rnti);
 void mac_remove_ue_all(void);

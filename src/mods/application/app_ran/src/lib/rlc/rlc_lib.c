@@ -6,7 +6,7 @@
  *Author: create by sunjiawei
  *Date: 2023.06
 ************************************************************************/
-#include "lib/rlc/rlc.h"
+#include "lib/rlc/rlc_lib.h"
 	
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-librlc"
@@ -136,7 +136,7 @@ int rlc_add_bearer(rlc_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
   return OSET_ERROR;
 }
 
-static void rlc_lib_init(rlc_t *rlc, uint32_t lcid_)
+static void rlc_lib_init2(rlc_t *rlc, uint32_t lcid_)
 {
 	rlc->default_lcid = lcid_;
 
@@ -149,14 +149,17 @@ static void rlc_lib_init(rlc_t *rlc, uint32_t lcid_)
 }
 
 
-void rlc_init(rlc_t *rlc, uint32_t lcid_, bsr_callback_t bsr_callback_)
+void rlc_lib_init(rlc_t *rlc, uint32_t lcid_, bsr_callback_t bsr_callback_)
 {
 	oset_apr_thread_rwlock_create(&rlc->rwlock, rlc->usepool);
+	rlc->rlc_array = oset_hash_make();
+	rlc->rlc_array_mrb = oset_hash_make();
+
 	rlc->bsr_callback = bsr_callback_;
-	rlc_lib_init(rlc, lcid_);
+	rlc_lib_init2(rlc, lcid_);
 }
 
-void rlc_stop(rlc_t *rlc)
+void rlc_lib_stop(rlc_t *rlc)
 {
 	oset_hash_index_t *hi = NULL;
 	for (hi = oset_hash_first(rlc->rlc_array); hi; hi = oset_hash_next(hi)) {
@@ -175,5 +178,11 @@ void rlc_stop(rlc_t *rlc)
 	for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
 	it->second->stop();
 	}
+
+	rlc->bsr_callback = NULL;
+	oset_hash_destroy(rlc->rlc_array);
+	oset_hash_destroy(rlc->rlc_array_mrb);
+	oset_apr_thread_rwlock_destroy(rlc->rwlock);
+
 }
 

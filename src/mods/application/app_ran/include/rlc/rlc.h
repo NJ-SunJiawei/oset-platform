@@ -10,7 +10,7 @@
 #ifndef RRC_H_
 #define RRC_H_
 
-#include "lib/rlc/rlc.h"
+#include "lib/rlc/rlc_lib.h"
 
 #ifdef __cplusplus
 extern "C" {

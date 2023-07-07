@@ -10,8 +10,7 @@
 #ifndef PDCP_H_
 #define PDCP_H_
 
-#include "lib/pdcp/pdcp.h"
-#include "lib/pdcp/pdcp_interface_types.h"
+#include "lib/pdcp/pdcp_lib.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,7 +36,11 @@ typedef struct pdcp_manager_s{
 pdcp_manager_t *pdcp_manager_self(void);
 int pdcp_init(void);
 int pdcp_destory(void);
-
+void pdcp_user_interface_set_rnti(uint16_t rnti, pdcp_user_interface *user);
+pdcp_user_interface *pdcp_user_interface_find_by_rnti(uint16_t rnti);
+///////////////////////////////////////////////////////////////////////////////////////
+void API_pdcp_rrc_add_user(uint16_t rnti);
+void API_pdcp_rrc_rem_user(uint16_t rnti);
 
 #ifdef __cplusplus
 }
