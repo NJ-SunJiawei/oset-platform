@@ -149,6 +149,7 @@ int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_
   return ret;
 }
 
+// gnb mac====》rlc uplink
 void API_rlc_mac_write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
 	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
@@ -156,7 +157,7 @@ void API_rlc_mac_write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint3
 	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
 
 	if (user) {
-		users[rnti].rlc->write_pdu(lcid, payload, nof_bytes);
+		rlc_lib_write_pdu(&user->rlc, lcid, payload, nof_bytes);
 	}
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 }

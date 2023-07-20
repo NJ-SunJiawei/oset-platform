@@ -15,17 +15,13 @@ extern "C" {
 #endif
 
 #include "lib/rlc/rlc_common.h"
-#include "lib/rlc/rlc_interface_types.h"
-
-typedef void (*bsr_callback_t)(uint32_t, uint32_t, uint32_t, uint32_t);
-
 
 typedef struct {
   oset_apr_memory_pool_t   *usepool;
-  byte_buffer_t            *pool;
+  OSET_POOL(pool, byte_buffer_t);// 256
   oset_hash_t              *rlc_array; //std::map<uint16_t lcid, std::unique_ptr<rlc_common>>
   oset_hash_t              *rlc_array_mrb;// mrb 组播/多播技术
-  oset_apr_thread_rwlock_t *rwlock;
+  //oset_apr_thread_rwlock_t *rwlock;
   uint32_t                 default_lcid;
   bsr_callback_t           bsr_callback;
   // Timer needed for metrics calculation
@@ -37,6 +33,7 @@ bool rlc_valid_lcid(rlc_t *rlc, uint32_t lcid);
 void rlc_reset_metrics(rlc_t *rlc);
 void rlc_lib_init(rlc_t *rlc, uint32_t lcid_, bsr_callback_t bsr_callback_);
 void rlc_lib_stop(rlc_t *rlc);
+void rlc_lib_write_pdu(rlc_t *rlc, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
 
 #ifdef __cplusplus
 }

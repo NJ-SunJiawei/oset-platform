@@ -1,3 +1,11 @@
+oset_api_execute
+oset_core_session_execute_application
+switch_loadable_module_get_dialplan_interface
+
+oset_separate_string_string
+oset_separate_string
+oset_split
+
 strcmp
 strcasecmp（不区分大小写）
 
@@ -13,6 +21,9 @@ oset_core_memory_init        runtime.memory_pool
 oset_core_permanent_alloc
 oset_core_permanent_strdup
 
+oset_malloc
+oset_pkbuf_alloc
+
 
 oset_core_new_memory_pool
 oset_core_destroy_memory_pool
@@ -25,6 +36,8 @@ oset_core_strdup
 oset_sys_strdup
 oset_strdup
 
+oset_pkbuf_copy
+oset_memdup
 
 oset_session_set_variable
 oset_core_session_get_pool
@@ -100,6 +113,9 @@ session_manager.session_count++;
 oset_apr_mutex_unlock(runtime.session_hash_mutex);
 
 
+byte_buffer_t
+oset_pkbuf_t
+
 oai：
 oset_apr_mutex_lock(session->common->profile_mutex);
 oset_event_destroy(&session->common->variables);
@@ -116,6 +132,10 @@ oset_apr_mutex_unlock(session->common->profile_mutex);
       }
     }
 }
+
+
+  uint32_t sfn    = current_tti / SRSRAN_NOF_SF_X_FRAME;
+  uint32_t sf_idx = current_tti % SRSRAN_NOF_SF_X_FRAME;
 
 int nas_timer_init(void) 定时器 OAI5g
 
@@ -161,6 +181,10 @@ for (int slot = 0; slot < n; ++slot) {
 
 do_MIB_NR
 
+rx_rf
+
+pf_dl
+
 void gNB_dlsch_ulsch_scheduler(module_id_t module_idP,
                                frame_t frame,
                                sub_frame_t slot){
@@ -185,3 +209,7 @@ if (sl_tx.to_uint() % get_nof_slots_per_subframe(to_subcarrier_spacing(sl_tx.num
 // Handle slot indication in MAC & Scheduler.
 mac.get_slot_handler(to_du_cell_index(0)).handle_slot_indication(sl_tx);
 }
+void mac_cell_processor::handle_slot_indication_impl(slot_point sl_tx)
+const sched_result* scheduler_impl::slot_indication(slot_point sl_tx, du_cell_index_t cell_index)
+void cell_scheduler::run_slot(slot_point sl_tx)
+void prach_scheduler::run_slot(cell_resource_allocator& res_grid)

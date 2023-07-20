@@ -11,6 +11,8 @@
 #define RLC_COMMON_H_
 
 #include "lib/rlc/rlc_metrics.h"
+#include "lib/rlc/rlc_interface_types.h"
+#include "lib/common/buffer_interface.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -146,12 +148,18 @@ typedef struct {
  * RLC Common interface
  * Common interface for all RLC entities
  ***************************************************************************/
+#define	static_blocking_queue_size 256
+
 typedef struct {
 	char*    rb_name;
-	bool     suspended;
-	static_blocking_queue<unique_byte_buffer_t, 256> rx_pdu_resume_queue;
-	static_blocking_queue<unique_byte_buffer_t, 256> tx_sdu_resume_queue;
+	bool     suspended;// 暂停
+	rlc_mode_t mode;
+	oset_apr_memory_pool_t	 *usepool;
+	oset_ring_queue_t *rx_pdu_resume_queue;//static_blocking_queue<unique_byte_buffer_t, 256>
+	oset_ring_queue_t *tx_sdu_resume_queue;//static_blocking_queue<unique_byte_buffer_t, 256>
 }rlc_common;
+
+typedef void (*bsr_callback_t)(uint32_t, uint32_t, uint32_t, uint32_t);
 
 #ifdef __cplusplus
 }

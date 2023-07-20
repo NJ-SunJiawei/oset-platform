@@ -608,7 +608,7 @@ static int mac_process_ce_subpdu(uint16_t rnti, mac_sch_pdu_nr *macpdu, mac_sch_
 	  //（5）切换，ho ack未携带preamble(msg3 CRNIT)
 	  //（6）rrc connect态eNB有下行数据发送，但检测到上行失步(preamble = 0)(msg3 CRNIT) 基站重配(rrcReconfiguration)
 
-	  // 非竞争型的场景:
+	  // 非竞争型的场景:使用基于非竞争的随机接入的 UE 必定原本处于 RRC_CONNECTED 态
 	  //（5）切换，ho ack携带preamble
 	  //（6）rrc connect态eNB有下行数据发送，但检测到上行失步(preamble != 0)
 	  //（7）定位过程。
