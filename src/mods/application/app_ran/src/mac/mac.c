@@ -757,7 +757,7 @@ void *gnb_mac_task(oset_threadplus_t *thread, void *data)
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "Starting MAC layer thread");
 
 	 for ( ;; ){
-		 rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
+		 rv = oset_ring_queue_get(task->msg_queue, &received_msg, &length);
 		 if(rv != OSET_OK)
 		 {
 			if (rv == OSET_DONE)

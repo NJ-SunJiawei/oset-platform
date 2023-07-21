@@ -40,6 +40,7 @@ void gnb_timer_delete(gnb_timer_t *timer);
 void gnb_timer_start(gnb_timer_t *timer, oset_time_t duration);
 void gnb_timer_stop(gnb_timer_t *timer);
 
+oset_time_t gnb_timer_mgr_next(gnb_timer_mgr_t *manager);
 void gnb_timer_mgr_expire(gnb_timer_mgr_t *manager);
 void gnb_time_tick(int frame, int subframe);
 

@@ -199,7 +199,7 @@ int prach_new_tti(uint32_t cc_idx, uint32_t tti_rx, cf_t* buffer_rx)
 	 oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "Starting PHY prach thread");
  
 	  for ( ;; ){
-		  rv = oset_ring_queue_try_get(task_map_self(TASK_PRACH)->msg_queue, &current_buffer, &length);
+		  rv = oset_ring_queue_get(task_map_self(TASK_PRACH)->msg_queue, &current_buffer, &length);
 		  if(rv != OSET_OK)
 		  {
 			 if (rv == OSET_DONE)

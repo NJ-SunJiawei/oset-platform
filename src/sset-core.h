@@ -11,7 +11,7 @@
 
 #include "oset-core.h"
 
-#define OM_PREFIX_DIR "/usr/local/install/sset"
+#define OSET_PREFIX_DIR "/usr/local/install/sset"
 #define OSET_DEFAULT_DIR_PERMS OSET_FPROT_UREAD | OSET_FPROT_UWRITE | OSET_FPROT_UEXECUTE | OSET_FPROT_GREAD | OSET_FPROT_GEXECUTE
 
 #undef  OSET_LOG2_DOMAIN

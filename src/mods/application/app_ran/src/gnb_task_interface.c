@@ -128,7 +128,7 @@ int task_thread_create(task_id_t task_id, void *data)
 	attr = oset_threadattr_create();
 	oset_threadattr_detach_set(attr, 0);//JOINABLE
 	oset_threadattr_inheritsched_set(attr, 1);//PTHREAD_EXPLICIT_SCHED
-	//oset_threadattr_schedpolicy_set(attr, SCHEDPOLICY_RR);
+	oset_threadattr_schedpolicy_set(attr, SCHEDPOLICY_RR);
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_DEBUG,"task thread %s sched form: %s",get_task_name(task_id), oset_threadattr_schedpolicy_get(attr));
     if(!strcmp(oset_threadattr_schedpolicy_get(attr),"SCHED_FIFO")){
 		if(priority<oset_threadattr_getpriority_min(SCHEDPOLICY_FIFO)) priority=oset_threadattr_getpriority_min(SCHEDPOLICY_FIFO);

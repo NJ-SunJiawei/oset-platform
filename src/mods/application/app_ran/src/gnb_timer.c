@@ -40,10 +40,14 @@ void *gnb_timer_task(oset_threadplus_t *thread, void *data)
 	uint32_t length = 0;
 	task_map_t *task = taskmap[TASK_TIMER];
 	int rv = 0;
+	oset_time_t next_time = 0;
+
 	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "Starting Timer thread");
 
 	while(gnb_manager_self()->running){
-		 gnb_timer_mgr_expire(gnb_manager_self()->app_timer);		   
+		 gnb_timer_mgr_expire(gnb_manager_self()->app_timer);
+		 next_time = gnb_timer_mgr_next(gnb_manager_self()->app_timer);
+		 oset_usleep(next_time > 0 ? next_time : 500);
 		 /*for ( ;; ){
 			 rv = oset_ring_queue_try_get(task->msg_queue, &received_msg, &length);
 			 if(rv != OSET_OK)

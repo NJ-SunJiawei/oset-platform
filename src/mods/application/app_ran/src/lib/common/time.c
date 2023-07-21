@@ -128,6 +128,27 @@ void gnb_timer_stop(gnb_timer_t *timer)
 	oset_rbtree_delete(&manager->tree, timer);
 }
 
+oset_time_t gnb_timer_mgr_next(gnb_timer_mgr_t *manager)
+{
+    oset_time_t current;
+    oset_rbnode_t *rbnode = NULL;
+    oset_assert(manager);
+
+    current = oset_get_monotonic_time();
+    rbnode = oset_rbtree_first(&manager->tree);
+    if (rbnode) {
+        oset_timer_t *this = oset_rb_entry(rbnode, oset_timer_t, rbnode);
+        if (this->timeout > current) {
+            return (this->timeout - current);
+        } else {
+            return OSET_NO_WAIT_TIME;
+        }
+    }
+
+    return OSET_INFINITE_TIME;
+}
+
+
 void gnb_timer_mgr_expire(gnb_timer_mgr_t *manager)
 {
 	OSET_LIST(list);

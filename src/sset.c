@@ -27,8 +27,8 @@
 static char *pfile = PIDFILE;
 static int system_ready = 0;
 
-#ifndef OM_PREFIX_DIR
-#define OM_PREFIX_DIR "."
+#ifndef OSET_PREFIX_DIR
+#define OSET_PREFIX_DIR "."
 #endif
 
 
@@ -478,7 +478,8 @@ OSET_DECLARE(int32_t) sset_core_session_ctl(sset_session_ctl_t cmd, void *val)
 OSET_DECLARE(void) sset_core_set_globals(void)
 {
 #define BUFSIZE 1024
-	char base_dir[1024] = OM_PREFIX_DIR;
+	char base_dir[1024] = OSET_PREFIX_DIR;
+
 
 	if (!OSET_GLOBAL_dirs.mod_dir && (OSET_GLOBAL_dirs.mod_dir = (char *) malloc(BUFSIZE))) {
 		if (OSET_GLOBAL_dirs.base_dir)
@@ -559,14 +560,15 @@ OSET_DECLARE(void) sset_core_set_globals(void)
 
 	}
 
-	if (!OSET_GLOBAL_filenames.conf_name && (OSET_GLOBAL_filenames.conf_name = (char *) malloc(BUFSIZE))) {
-		oset_apr_snprintf(OSET_GLOBAL_filenames.conf_name, BUFSIZE, "%s", "sset.xml");
-	}
-
 	/* Do this last because it being empty is part of the above logic */
 	if (!OSET_GLOBAL_dirs.base_dir && (OSET_GLOBAL_dirs.base_dir = (char *) malloc(BUFSIZE))) {
 		oset_apr_snprintf(OSET_GLOBAL_dirs.base_dir, BUFSIZE, "%s", base_dir);
 	}
+
+	if (!OSET_GLOBAL_filenames.conf_name && (OSET_GLOBAL_filenames.conf_name = (char *) malloc(BUFSIZE))) {
+		oset_apr_snprintf(OSET_GLOBAL_filenames.conf_name, BUFSIZE, "%s", "sset.xml");
+	}
+
 
 	oset_sys_assert(OSET_GLOBAL_dirs.base_dir);
 	oset_sys_assert(OSET_GLOBAL_dirs.mod_dir);
