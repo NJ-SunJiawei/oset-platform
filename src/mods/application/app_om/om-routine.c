@@ -108,7 +108,7 @@ OSET_STANDARD_SCHED_FUNC(send_pod_timestep_msg)
 	}
 }
 
-OSET_DECLARE(void) om_get_system_by_uuid(uint32_t id, char* uuid)
+OSET_DECLARE(void) om_get_system_by_uuid(uint32_t id, char* uuid, oset_stream_handle_t *stream)
 {
 	om_system_t *system = NULL;
 	oset_lnode2_t *lnode = NULL;	
@@ -118,10 +118,10 @@ OSET_DECLARE(void) om_get_system_by_uuid(uint32_t id, char* uuid)
     system = oset_core_hash_find(om_self()->system_uuid_hashtable[id], uuid);
     if(system){
 		if(system->all_sess_list->count){
-			oset_log2_printf(OSET_CHANNEL_LOG_CLEAN, OSET_LOG2_INFO, "Session Number of the system is %ld:\n",system->all_sess_list->count);
+			stream->write_function(stream, "Session Number of the system is %ld:\n",system->all_sess_list->count);
 			oset_list2_for_each(system->all_sess_list, lnode) {
 				node = (om_session_t *)lnode->data;
-				oset_log2_printf(OSET_CHANNEL_LOG_CLEAN, OSET_LOG2_INFO, "pod_type[%d], pod_id[%s], addr[%s:%d]\n",node->pod_type ,node->p->pod_id, OSET_ADDR(&node->pod_from, buf), OSET_PORT(&node->pod_from));
+				stream->write_function(stream, "pod_type[%d], pod_id[%s], addr[%s:%d]\n",node->pod_type ,node->p->pod_id, OSET_ADDR(&node->pod_from, buf), OSET_PORT(&node->pod_from));
 			}
 		}
     }

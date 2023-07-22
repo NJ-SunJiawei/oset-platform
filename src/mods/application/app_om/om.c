@@ -142,13 +142,13 @@ static void om_load_core_config(const char *file)
 
 OSET_STANDARD_API(show_om_ring_status)
 {
-	oset_ring_queue_show(om_self()->listen_queue);
-	oset_ring_queue_show(om_self()->omc_queue);
-	oset_ring_queue_show(om_self()->pod_queue);
+	oset_ring_queue_show(om_self()->listen_queue, stream);
+	oset_ring_queue_show(om_self()->omc_queue, stream);
+	oset_ring_queue_show(om_self()->pod_queue, stream);
 
     for(int i = 0; i < om_self()->worker_thread_num; i++){
-	    oset_ring_queue_show(om_self()->worker_queue[i]);
-	    oset_ring_buf_show(om_self()->worker_buf[i]);		
+	    oset_ring_queue_show(om_self()->worker_queue[i], stream);
+	    oset_ring_buf_show(om_self()->worker_buf[i], stream);		
 	}
 
 
@@ -161,12 +161,12 @@ OSET_STANDARD_API(show_om_ring_status)
 OSET_STANDARD_API(show_om_status)
 {
 
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "[ALL][system]:All of system is now %d", session_manager.others_count[0]);
-	oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_NOTICE, "[ALL][session]:All of session is now %d", session_manager.session_count);
+	stream->write_function(stream, "[ALL][system]:All of system is now %d\n", session_manager.others_count[0]);
+	stream->write_function(stream, "[ALL][session]:All of session is now %d\n", session_manager.session_count);
 
     for(int i = 0;i < om_self()->worker_thread_num ;i ++){
-		oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "[Thread[%u]][system]:Number of system is now %d", i, oset_list_count(&om_self()->system_list[i]));
-		oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_INFO, "[Thread[%u]][session]:Number of session is now %d", i, oset_list_count(&om_self()->session_list[i]));
+		stream->write_function(stream, "[Thread[%u]][system]:Number of system is now %d\n", i, oset_list_count(&om_self()->system_list[i]));
+		stream->write_function(stream, "[Thread[%u]][session]:Number of session is now %d\n", i, oset_list_count(&om_self()->session_list[i]));
 	}
 
 	stream->write_function(stream, "+OK\n");
@@ -192,7 +192,7 @@ OSET_STANDARD_API(show_uuid_system_status)
 		return OSET_STATUS_SUCCESS;
 	}
 
-	om_get_system_by_uuid(atoi(argv[0]),argv[1]);
+	om_get_system_by_uuid(atoi(argv[0]), argv[1], stream);
 
 	stream->write_function(stream, "+OK\n");
 	oset_safe_free(mycmd);

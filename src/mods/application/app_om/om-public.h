@@ -197,7 +197,7 @@ OSET_DECLARE(void) om_session_destory_debug(_In_ om_session_t *session, _In_z_ c
 OSET_DECLARE(om_system_t *) om_create_system(uint32_t id, char* system_id, oset_apr_memory_pool_t **pool);
 OSET_DECLARE(om_session_t *) om_create_session(uint32_t id, oset_sock_t *sock, oset_sockaddr_t from, om_msg_header_t *p, int pod_type, om_system_t * system, oset_apr_memory_pool_t **pool);
 
-OSET_DECLARE(void) om_get_system_by_uuid(uint32_t id, char* uuid);
+OSET_DECLARE(void) om_get_system_by_uuid(uint32_t id, char* uuid, oset_stream_handle_t *stream);
 
 OSET_DECLARE(void) timer_msg_deal(uint32_t id, om_session_t *session);
 OSET_DECLARE(void) hb_msg_deal(uint32_t id, oset_sock_t *pod_sock, oset_sockaddr_t pod_from, pod_heartbeat_data_t *hb);

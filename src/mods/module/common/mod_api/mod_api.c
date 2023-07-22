@@ -1605,7 +1605,7 @@ OSET_STANDARD_JSON_API(json_api_function)
 
 OSET_STANDARD_API(show_pkbuf_status)
 {
-	oset_default_pkbuf_static();
+	oset_default_pkbuf_static(stream);
 
 	stream->write_function(stream, "+OK\n");
 	return OSET_STATUS_SUCCESS;
