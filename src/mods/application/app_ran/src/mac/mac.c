@@ -534,13 +534,13 @@ static void mac_handle_rach_info(rach_info_t *rach_info)
 	mac_handle_rach_info(&rach_info);
 }*/
 
-void mac_store_msg3(uint16_t rnti, byte_buffer_t *pdu)
+void mac_store_msg3(uint16_t rnti, uint8 *sdu, int len)
 {
 	//srsran::rwlock_read_guard rw_lock(rwmutex);
 	ue_nr *mac_ue = ue_nr_find_by_rnti(rnti);
 
 	if (mac_ue) {
-		ue_nr_store_msg3(mac_ue, pdu);
+		ue_nr_store_msg3(mac_ue, sdu, len);
 	} else {
 		oset_error("User rnti=0x%x not found. Can't store Msg3", rnti);
 	}
@@ -593,7 +593,7 @@ static int mac_process_ce_subpdu(uint16_t rnti, mac_sch_pdu_nr *macpdu, mac_sch_
 	  mac_sch_subpdu_nr *ccch_subpdu = subpdu;
 	  API_rlc_mac_write_pdu(rnti, srb0, ccch_subpdu->sdu.sdu, ccch_subpdu->sdu_length);
 	  // store content for ConRes CE and schedule CE accordingly
-	  ue_nr_store_msg3(rnti, ccch_subpdu->sdu.sdu, ccch_subpdu->sdu_length);
+	  mac_store_msg3(rnti, ccch_subpdu->sdu.sdu, ccch_subpdu->sdu_length);
 	  // add dl mac ce vector to handle
 	  sched_nr_dl_mac_ce(&mac_manager.sched, rnti, CON_RES_ID);
 	} break;

@@ -25,14 +25,14 @@ static void rlc_manager_init(void)
 	rlc_manager.app_pool = gnb_manager_self()->app_pool;
 	oset_apr_mutex_init(&rlc_manager.mutex, OSET_MUTEX_NESTED, rlc_manager.app_pool);
 	oset_apr_thread_cond_create(&rlc_manager.cond, rlc_manager.app_pool);
-	oset_apr_thread_rwlock_create(&rlc_manager.rwlock, rlc_manager.app_pool);
+	//oset_apr_thread_rwlock_create(&rlc_manager.rwlock, rlc_manager.app_pool);
 }
 
 static void rlc_manager_destory(void)
 {
 	oset_apr_mutex_destroy(rlc_manager.mutex);
 	oset_apr_thread_cond_destroy(rlc_manager.cond);
-	oset_apr_thread_rwlock_destroy(rlc_manager.rwlock);
+	//oset_apr_thread_rwlock_destroy(rlc_manager.rwlock);
 	rlc_manager.app_pool = NULL; /*app_pool release by openset process*/
 }
 
@@ -46,6 +46,7 @@ int rlc_init(void)
 
 int rlc_destory(void)
 {
+	rlc_rem_user_all();
 	oset_list_empty(&rlc_manager.rlc_ue_list);
 	oset_hash_destroy(rlc_manager.users);
 	rlc_manager_destory();
@@ -119,6 +120,14 @@ static void rlc_rem_user(uint16_t rnti)
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 }
 
+void rlc_rem_user_all(void)
+{
+	//oset_apr_thread_rwlock_wrlock(rlc_manager.rwlock);
+	rlc_user_interface *user = NULL, *next_user = NULL;
+	oset_list_for_each_safe(rlc_manager.rlc_ue_list, next_user, user)
+	  	rlc_rem_user(user->rnti);
+	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
+}
 
 void API_rlc_rrc_add_user(uint16_t rnti)
 {
@@ -152,9 +161,8 @@ int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_
 // gnb mac====》rlc uplink
 void API_rlc_mac_write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
-	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
-
 	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
+	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
 
 	if (user) {
 		rlc_lib_write_pdu(&user->rlc, lcid, payload, nof_bytes);

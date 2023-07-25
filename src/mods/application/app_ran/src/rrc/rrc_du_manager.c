@@ -45,7 +45,7 @@ int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node)
 
 	fill_mib_from_enb_cfg_inner(node, &cell->mib);
 	// fill MIB ASN.1
-	if (fill_mib_from_enb_cfg(node, mib) != OSET_OK) {
+	if (fill_mib_from_enb_cfg(node, &mib) != OSET_OK) {
 		oset_error("Couldn't generate MIB");
 		return OSET_ERROR;
 	}
@@ -54,7 +54,7 @@ int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node)
 
 	fill_sib1_from_enb_cfg_inner(node, &cell->sib1);
 	// fill SIB1 ASN.1
-	if (fill_sib1_from_enb_cfg(node, sib1) != OSET_OK) {
+	if (fill_sib1_from_enb_cfg(node, &sib1) != OSET_OK) {
 		oset_error("Couldn't generate SIB1");
 		return OSET_ERROR;
 	}

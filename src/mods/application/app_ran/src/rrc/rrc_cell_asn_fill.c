@@ -248,9 +248,10 @@ int fill_serv_cell_cfg_common_sib(rrc_cell_cfg_nr_t *cell_cfg, struct ASN_RRC_Se
 	return OSET_OK;
 }
 
-int fill_sib1_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_DL_SCH_Message_t *sib1_pdu)
+int fill_sib1_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_DL_SCH_Message_t **sib1_result)
 {
 	rrc_nr_cfg_t *cfg = rrc_manager_self()->cfg;
+	ASN_RRC_BCCH_DL_SCH_Message_t *sib1_pdu = NULL;
 
 	sib1_pdu = CALLOC(1,sizeof(ASN_RRC_BCCH_DL_SCH_Message_t));
 	sib1_pdu->message.present = ASN_RRC_BCCH_DL_SCH_MessageType_PR_c1;
@@ -330,12 +331,16 @@ int fill_sib1_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_DL_SCH_Mess
 	ue_timers->n311 = ASN_RRC_UE_TimersAndConstants__n311_n1;
 	ue_timers->t319 = ASN_RRC_UE_TimersAndConstants__t319_ms1000;
 
+	*sib1_result = sib1_pdu;
+
 	return OSET_OK;
 }
 
 
-int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_t *mib_pdu)
+int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_t **mib_result)
 {
+	ASN_RRC_BCCH_BCH_Message_t *mib_pdu = NULL;
+
 	mib_pdu =  CALLOC(1,sizeof(struct ASN_RRC_BCCH_BCH_Message_t));
 	mib_pdu->message.present = ASN_RRC_BCCH_BCH_MessageType_PR_mib;
 	mib_pdu->message.choice.mib = CALLOC(1,sizeof(struct ASN_RRC_MIB_t));
@@ -362,6 +367,8 @@ int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_
 	mib->cellBarred                 = ASN_RRC_MIB__cellBarred_notBarred;
 	mib->intraFreqReselection       = ASN_RRC_MIB__intraFreqReselection_allowed;
 	oset_asn_uint8_to_BIT_STRING(0, (8-1), &mib->spare);// This makes a spare of 1 bits
+
+	*mib_result = mib_pdu;
 
 	return OSET_OK;
 }

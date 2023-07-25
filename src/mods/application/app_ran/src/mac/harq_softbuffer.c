@@ -101,8 +101,10 @@ tx_harq_softbuffer *harq_softbuffer_pool_get_tx(harq_softbuffer_pool *harq_pool,
 	if (harq_pool->tx_pool[idx] == NULL) {
 		harq_softbuffer_pool_init(harq_pool, nof_prb, 4 * MAX_HARQ, 0);
 	}
+
+	oset_assert(harq_pool->tx_buffer_idnex[idx] < harq_pool->batch_size);
 	
-	tx_buffer = &harq_pool->tx_pool[idx][++harq_pool->tx_buffer_idnex[idx]];
+	tx_buffer = &harq_pool->tx_pool[idx][harq_pool->tx_buffer_idnex[idx]++];
 	srsran_softbuffer_tx_reset(&tx_buffer->buffer);
 
 	return tx_buffer;
@@ -119,8 +121,10 @@ rx_harq_softbuffer *harq_softbuffer_pool_get_rx(harq_softbuffer_pool *harq_pool,
 	if (harq_pool->rx_pool[idx] == NULL) {
 		harq_softbuffer_pool_init(harq_pool, nof_prb, 4 * MAX_HARQ, 0);
 	}
-	
-	rx_buffer = &harq_pool->rx_pool[idx][++harq_pool->rx_buffer_idnex[idx]];
+
+	oset_assert(harq_pool->rx_buffer_idnex[idx] < harq_pool->batch_size);
+
+	rx_buffer = &harq_pool->rx_pool[idx][harq_pool->rx_buffer_idnex[idx]++];
 	srsran_softbuffer_rx_reset(&rx_buffer->buffer);
 
 	return rx_buffer;
