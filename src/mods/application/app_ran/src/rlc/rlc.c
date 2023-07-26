@@ -86,9 +86,9 @@ static void rlc_add_user(uint16_t rnti)
 		ASSERT_IF_NOT(user, "Could not allocate rlc user %d context from pool", rnti);
 		memset(user, 0, sizeof(rlc_user_interface));
 
-		user->usepool = usepool;
 		user->rlc.usepool = usepool;
 		user->rnti = rnti;
+		user->rlc.rnti = rnti;
 
 		// SRB0没有加密和完整性保护。SRB0上承载的信令有：RRCConnectionRequest、RRCConnectionReject、RRCConnectionSetup和RRCConnectionReestablishmentRequest、RRCConnectionReestablishment、RRCConnectionReestablishmentReject。
 		// SRB0是用于传输RRC连接请求和RRC连接建立消息的承载，它不经过PDCP层，直接通过CCCH逻辑信道传输。
@@ -114,7 +114,7 @@ static void rlc_rem_user(uint16_t rnti)
 		rlc_lib_stop(&user->rlc);
 		oset_list_remove(&rlc_manager.rlc_ue_list, user);
 		oset_hash_set(rlc_manager.users, &rnti, sizeof(rnti), NULL);
-		oset_core_destroy_memory_pool(&user->usepool);
+		oset_core_destroy_memory_pool(&user->rlc.usepool);
 		user = NULL;
 	}
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
@@ -129,6 +129,10 @@ void rlc_rem_user_all(void)
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 }
 
+/*******************************************************************************
+RRC interface
+*******************************************************************************/
+
 void API_rlc_rrc_add_user(uint16_t rnti)
 {
 	rlc_add_user(rnti);
@@ -138,6 +142,10 @@ void API_rlc_rrc_rem_user(uint16_t rnti)
 {
 	rlc_rem_user(rnti);
 }
+
+/*******************************************************************************
+MAC interface
+*******************************************************************************/
 
 int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
@@ -158,14 +166,20 @@ int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_
   return ret;
 }
 
+
+
 // gnb mac====》rlc uplink
-void API_rlc_mac_write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+//--------------sdu-----------(服务数据)
+//--------------handle+-------
+//--------------pdu-----------(协议数据)
+void API_rlc_mac_write_ul_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
 	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
 	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
-
 	if (user) {
-		rlc_lib_write_pdu(&user->rlc, lcid, payload, nof_bytes);
+		rlc_lib_write_ul_pdu(&user->rlc, lcid, payload, nof_bytes);
+	}else{
+		oset_error("rnti=0x%x. API_rlc_mac_write_ul_pdu() fail", rnti);
 	}
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 }

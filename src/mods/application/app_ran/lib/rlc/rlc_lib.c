@@ -17,24 +17,11 @@ static void rlc_lib_write_pdu_suspended(rlc_common *rlc_entity, uint8_t* payload
   if (rlc_entity->suspended) {//suspended
 	rlc_common_queue_rx_pdu(rlc_entity, payload, nof_bytes);
   } else {
-	rlc_entity->func->_write_pdu(rlc_entity, payload, nof_bytes);
+	rlc_entity->func._write_ul_pdu(rlc_entity, payload, nof_bytes);
   }
 }
 
-
-static void rlc_lib_configure(rlc_common *rlc_entity, rlc_config_t *cnfg)
-{
-	if(rlc_entity->mode == (rlc_mode_t)tm){
-		// nothing
-	}else if(rlc_entity->mode == (rlc_mode_t)am){
-		//todo
-	}else if(rlc_entity->mode == (rlc_mode_t)um){
-		//todo
-	}
-}
-
-
-rlc_common * rlc_valid_lcid(rlc_t *rlc, uint32_t lcid)
+rlc_common * rlc_valid_lcid(rlc_lib_t *rlc, uint32_t lcid)
 {
   if (lcid >= SRSRAN_N_RADIO_BEARERS) {
     oset_error("Radio bearer id must be in [0:%d] - %d", SRSRAN_N_RADIO_BEARERS, lcid);
@@ -45,51 +32,38 @@ rlc_common * rlc_valid_lcid(rlc_t *rlc, uint32_t lcid)
 }
 
 
-void rlc_reset_metrics(rlc_t *rlc)
+void rlc_reset_metrics(rlc_lib_t *rlc)
 {
 	oset_hash_index_t *hi = NULL;
 	for (hi = oset_hash_first(rlc->rlc_array); hi; hi = oset_hash_next(hi)) {
 		uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
 		rlc_common  *it = oset_hash_this_val(hi);
-		if(it->mode == (rlc_mode_t)tm){
-			rlc_tm_reset_metrics((rlc_tm *)it);
-		}else if(it->mode == (rlc_mode_t)am){
-			//todo
-		}else if(it->mode == (rlc_mode_t)um){
-			//todo
-		}
+	    it->func._reset_metrics(it);
 	}
 
-	/*for (hi = oset_hash_first(rlc->rlc_array_mrb); hi; hi = oset_hash_next(hi)) {
+	for (hi = oset_hash_first(rlc->rlc_array_mrb); hi; hi = oset_hash_next(hi)) {
 		uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
 		rlc_common  *it = oset_hash_this_val(hi);
-		if(it->mode == (rlc_mode_t)tm){
-			rlc_tm_reset_metrics((rlc_tm *)it);
-		}else if(it->mode == (rlc_mode_t)am){
-			//todo
-		}else if(it->mode == (rlc_mode_t)um){
-			//todo
-		}
+	    it->func._reset_metrics(it);
+	}
 
-	}*/
-
-	rlc->metrics_tp = oset_micro_time_now();//oset_time_now()
+	rlc->metrics_tp = oset_micro_time_now();//oset_time_now()//???gnb_get_current_time();
 }
 
-void rlc_array_set_lcid(rlc_t *rlc, uint32_t lcid, rlc_common *rlc_entity)
+void rlc_array_set_lcid(rlc_lib_t *rlc, uint32_t lcid, rlc_common *rlc_entity)
 {
     oset_assert(rlc_entity);
 	oset_hash_set(rlc->rlc_array, &lcid, sizeof(lcid), NULL);
 	oset_hash_set(rlc->rlc_array, &lcid, sizeof(lcid), rlc_entity);
 }
 
-rlc_common *rlc_array_find_by_lcid(rlc_t *rlc, uint32_t lcid)
+rlc_common *rlc_array_find_by_lcid(rlc_lib_t *rlc, uint32_t lcid)
 {
     return (rlc_common *)oset_hash_get(rlc->rlc_array, &lcid, sizeof(lcid));
 }
 
 // Methods modifying the RLC array need to acquire the write-lock
-int rlc_add_bearer(rlc_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
+int rlc_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
 {
   //oset_apr_thread_rwlock_wrlock(rlc->rwlock);
   //oset_apr_thread_rwlock_unlock(rlc->rwlock);
@@ -103,7 +77,7 @@ int rlc_add_bearer(rlc_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
   // 初始默认 lcid=0(ccch), tm模式
   switch (cnfg->rlc_mode) {
     case (rlc_mode_t)tm:
-      rlc_entity = (rlc_common *)(rlc_tm_init(lcid, rlc->usepool));
+      rlc_entity = (rlc_common *)(rlc_tm_init(lcid, rlc->rnti, rlc->usepool));
       break;
     case (rlc_mode_t)am:
       switch (cnfg->rat) {
@@ -144,13 +118,13 @@ int rlc_add_bearer(rlc_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
 
   // configure entity
   if (cnfg->rlc_mode != (rlc_mode_t)tm) {
-    if (!rlc_entity->func->_configure(rlc_entity, cnfg)) {
+    if (!rlc_entity->func._configure(rlc_entity, cnfg)) {
       oset_error("Error configuring RLC entity.");
       return OSET_ERROR;
     }
   }
 
-  rlc_entity->func->_set_bsr_callback(rlc_entity, rlc->bsr_callback);
+  rlc_entity->func._set_bsr_callback(rlc_entity, rlc->bsr_callback);
 
   rlc_array_set_lcid(rlc, lcid, rlc_entity);
 
@@ -165,7 +139,7 @@ int rlc_add_bearer(rlc_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
   return OSET_ERROR;
 }
 
-static void rlc_lib_init2(rlc_t *rlc, uint32_t lcid_)
+static void rlc_lib_init2(rlc_lib_t *rlc, uint32_t lcid_)
 {
 	rlc->default_lcid = lcid_;
 
@@ -177,55 +151,44 @@ static void rlc_lib_init2(rlc_t *rlc, uint32_t lcid_)
 	rlc_add_bearer(rlc, rlc->default_lcid, &default_rlc_cfg);
 }
 
-
-void rlc_lib_init(rlc_t *rlc, uint32_t lcid_, bsr_callback_t bsr_callback_)
+// BCCH、PCCH 和CCCH 只采用 TM 模式,DCCH 只可采用 AM 模式,而 DTCH 既可以采用 UM模式又可以采用 AM 模式,具体由高层的 RRC 配置
+void rlc_lib_init(rlc_lib_t *rlc, uint32_t lcid_, bsr_callback_t bsr_callback_)
 {
 	//oset_apr_thread_rwlock_create(&rlc->rwlock, rlc->usepool);
-	oset_pool_init(&rlc->pool, static_pool_size);
+	//oset_pool_init(&rlc->pool, static_pool_size);
 	rlc->rlc_array = oset_hash_make();
 	rlc->rlc_array_mrb = oset_hash_make();
 
 	rlc->bsr_callback = bsr_callback_;
+	rlc->metrics_tp = 0;
 	rlc_lib_init2(rlc, lcid_);
 }
 
-void rlc_lib_stop(rlc_t *rlc)
+void rlc_lib_stop(rlc_lib_t *rlc)
 {
 	oset_hash_index_t *hi = NULL;
 	for (hi = oset_hash_first(rlc->rlc_array); hi; hi = oset_hash_next(hi)) {
 		uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
 		rlc_common  *it = oset_hash_this_val(hi);
-		if(it->mode == (rlc_mode_t)tm){
-			rlc_tm_stop((rlc_tm *)it);
-		}else if(it->mode == (rlc_mode_t)am){
-			//todo
-		}else if(it->mode == (rlc_mode_t)um){
-			//todo
-		}
+		it->func._stop(it);
 	}
 
-	/*for (hi = oset_hash_first(rlc->rlc_array_mrb); hi; hi = oset_hash_next(hi)) {
+	for (hi = oset_hash_first(rlc->rlc_array_mrb); hi; hi = oset_hash_next(hi)) {
 		uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
 		rlc_common  *it = oset_hash_this_val(hi);
-		if(it->mode == (rlc_mode_t)tm){
-			rlc_tm_stop((rlc_tm *)it);
-		}else if(it->mode == (rlc_mode_t)am){
-			//todo
-		}else if(it->mode == (rlc_mode_t)um){
-			//todo
-		}
-	}*/
+		it->func._stop(it);
+	}
 
 	rlc->bsr_callback = NULL;
 	oset_hash_destroy(rlc->rlc_array);
 	oset_hash_destroy(rlc->rlc_array_mrb);
-    oset_pool_final(&rlc->pool);
+    //oset_pool_final(&rlc->pool);
 	//oset_apr_thread_rwlock_destroy(rlc->rwlock);
 }
 
 
 // Write PDU methods are called from Stack thread context, no need to acquire the lock
-void rlc_lib_write_pdu(rlc_t *rlc, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+void rlc_lib_write_ul_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
 	rlc_common	*rlc_entity = rlc_valid_lcid(rlc, lcid);
 

@@ -92,3 +92,8 @@ uint32_t byte_buffer_get_tailroom(byte_buffer_t *p)
 	return (sizeof(p->buffer) - byte_buffer_get_headroom(p) - p->N_bytes);
 }
 
+void byte_buffer_set_timestamp(byte_buffer_t *p)
+{
+	p->md.tp = oset_micro_time_now();//oset_time_now();//???gnb_get_current_time();
+}
+

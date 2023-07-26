@@ -15,7 +15,7 @@ void gnb_session_common_create(oset_core_session_t           *common, oset_apr_m
 {
 	oset_uuid_t uuid;
 
-	common = oset_core_alloc(usepool, sizeof(oset_core_session_t));
+	//common = oset_core_alloc(usepool, sizeof(oset_core_session_t));
 	common->pool = usepool;
 
 	oset_apr_uuid_get(&uuid);

@@ -440,6 +440,50 @@ static void rrc_set_activity_user(uint16_t rnti)
 	rrc_nr_ue_set_activity(ue_ptr, true);
 }
 
+void rrc_log_rx_pdu_fail(uint16_t                rnti,
+                             uint32_t                lcid,
+                             srsran::const_byte_span pdu,
+                             const char*             cause_str,
+                             bool                    log_hex)
+{
+  if (log_hex) {
+    oset_error(
+        pdu.data(), pdu.size(), "Rx %s PDU, rnti=0x%x - Discarding. Cause: %s", get_rb_name(lcid), rnti, cause_str);
+  } else {
+    oset_error("Rx %s PDU, rnti=0x%x - Discarding. Cause: %s", get_rb_name(lcid), rnti, cause_str);
+  }
+}
+
+
+static void rrc_handle_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
+{
+  switch ((nr_srb)lcid) {
+    case srb0:
+      handle_ul_ccch(rnti, pdu);
+      break;
+    case srb1:
+    case srb2:
+    case srb3:
+      handle_ul_dcch(rnti, lcid, std::move(pdu));
+      break;
+    default:
+      std::string errcause = fmt::format("Invalid LCID=%d", lcid);
+      rrc_log_rx_pdu_fail(rnti, lcid, pdu, errcause.c_str());
+      break;
+  }
+}
+
+
+static void rrc_write_ul_pdu_interface(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
+{
+	if (pdu == NULL || pdu->N_bytes == 0) {
+		oset_error("Rx %s PDU, rnti=0x%x - Discarding. Cause: PDU is empty", get_rb_name(lcid), rnti);
+		return;
+	}
+	rrc_handle_pdu(rnti, lcid, pdu);
+}
+
+
 static void gnb_rrc_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 {
 	oset_assert(msg_p);
@@ -483,6 +527,10 @@ void *gnb_rrc_task(oset_threadplus_t *thread, void *data)
 	}
 }
 
+/*******************************************************************************
+MAC interface
+*******************************************************************************/
+
 /* @brief PUBLIC function, gets called by mac_nr::rach_detected
  *
  * This function is called from PRACH worker (can wait) and WILL TRIGGER the RX MSG3 activity timer
@@ -515,4 +563,13 @@ int API_rrc_mac_update_user(uint16_t prev_rnti, uint16_t rnti)
 {
 	return rrc_update_user(prev_rnti, rnti);
 }
+
+/*******************************************************************************
+RLC interface
+*******************************************************************************/
+void API_rrc_rlc_write_ul_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
+{
+	return rrc_write_ul_pdu_interface(rnti, lcid, pdu);
+}
+
 

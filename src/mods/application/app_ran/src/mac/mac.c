@@ -591,7 +591,7 @@ static int mac_process_ce_subpdu(uint16_t rnti, mac_sch_pdu_nr *macpdu, mac_sch_
 	case CCCH_SIZE_48:
 	case CCCH_SIZE_64: {
 	  mac_sch_subpdu_nr *ccch_subpdu = subpdu;
-	  API_rlc_mac_write_pdu(rnti, srb0, ccch_subpdu->sdu.sdu, ccch_subpdu->sdu_length);
+	  API_rlc_mac_write_ul_pdu(rnti, srb0, ccch_subpdu->sdu.sdu, ccch_subpdu->sdu_length);
 	  // store content for ConRes CE and schedule CE accordingly
 	  mac_store_msg3(rnti, ccch_subpdu->sdu.sdu, ccch_subpdu->sdu_length);
 	  // add dl mac ce vector to handle
@@ -713,7 +713,7 @@ static int mac_handle_pusch_pdu_info(pusch_mac_pdu_info_t *pdu_info)
 		mac_sch_subpdu_nr *subpdu = &mac_ue->mac_pdu_ul.subpdus[n];
 		if (is_sdu(&mac_ue->mac_pdu_ul, subpdu)) {
 			API_rrc_mac_set_activity_user(rnti);
-			API_rlc_mac_write_pdu(rnti, subpdu->lcid, subpdu->sdu.sdu, subpdu->sdu_length);
+			API_rlc_mac_write_ul_pdu(rnti, subpdu->lcid, subpdu->sdu.sdu, subpdu->sdu_length);
 		} else if (n != crnti_ce_pos) {
 			if (mac_process_ce_subpdu(rnti, &mac_ue->mac_pdu_ul, subpdu) != OSET_OK) {
 				return OSET_ERROR;

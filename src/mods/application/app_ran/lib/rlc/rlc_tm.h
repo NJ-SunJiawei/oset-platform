@@ -31,15 +31,17 @@ typedef struct{
 	rlc_bearer_metrics_t metrics;
 
 	// Thread-safe queues for MAC messages
-	OSET_POOL(pool, byte_buffer_t);// 256
+	OSET_POOL(tm_pool, byte_buffer_t);// 256
 	oset_queue_t    *ul_queue; // 128 // byte_buffer_queue
 }rlc_tm;
 
-void rlc_tm_init(rlc_tm *tm, uint32_t lcid_, oset_apr_memory_pool_t	*usepool);
-void rlc_tm_reset_metrics(rlc_tm *tm);
-void rlc_tm_reestablish(rlc_tm *tm);
-void rlc_tm_stop(rlc_tm *tm);
-void rlc_tm_set_bsr_callback(rlc_tm *tm, bsr_callback_t callback);
+rlc_tm *rlc_tm_init(uint32_t lcid_, 	uint16_t rnti_, oset_apr_memory_pool_t	*usepool);
+bool rlc_tm_configure(rlc_common *tm_common, rlc_config_t *cnfg);
+void rlc_tm_set_bsr_callback(rlc_common *tm_common, bsr_callback_t callback);
+void rlc_tm_reset_metrics(rlc_common *tm_common);
+void rlc_tm_reestablish(rlc_common *tm_common);
+void rlc_tm_stop(rlc_common *tm_common);
+
 
 #ifdef __cplusplus
 }

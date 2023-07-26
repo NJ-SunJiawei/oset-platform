@@ -18,10 +18,9 @@ extern "C" {
 
 typedef struct
 {
-    oset_lnode_t     lnode;
-	oset_apr_memory_pool_t	 *usepool;
-	uint16_t	rnti;
-	pdcp_t      pdcp;
+    oset_lnode_t    lnode;
+	uint16_t	    rnti;
+	pdcp_lib_t      pdcp;
 }pdcp_user_interface;
 
 typedef struct pdcp_manager_s{
@@ -38,9 +37,14 @@ int pdcp_init(void);
 int pdcp_destory(void);
 void pdcp_user_interface_set_rnti(uint16_t rnti, pdcp_user_interface *user);
 pdcp_user_interface *pdcp_user_interface_find_by_rnti(uint16_t rnti);
+void pdcp_rem_user_all(void);
+
 ///////////////////////////////////////////////////////////////////////////////////////
+/**********************rrc api****************************************/
 void API_pdcp_rrc_add_user(uint16_t rnti);
 void API_pdcp_rrc_rem_user(uint16_t rnti);
+/**********************rlc api****************************************/
+void API_pdcp_rlc_write_ul_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu);
 
 #ifdef __cplusplus
 }

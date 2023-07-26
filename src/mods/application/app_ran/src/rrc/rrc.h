@@ -70,6 +70,8 @@ int API_rrc_mac_add_user(uint16_t rnti, uint32_t pcell_cc_idx);
 int API_rrc_mac_read_pdu_bcch_dlsch(uint32_t sib_index, byte_buffer_t *buffer);
 void API_rrc_mac_set_activity_user(uint16_t rnti);
 int API_rrc_mac_update_user(uint16_t prev_rnti, uint16_t rnti);
+/**********************rlc api****************************************/
+void API_rrc_rlc_write_ul_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu);
 
 #ifdef __cplusplus
 }

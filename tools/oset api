@@ -1,3 +1,20 @@
+oset_time_now()
+oset_micro_time_now()
+oset_apr_time_exp_lt(&tm, oset_micro_time_now());
+oset_apr_strftime_nocheck(date, &retsize, sizeof(date), "%Y-%m-%d %T", &tm);
+
+oset_apr_time_exp_t tm;
+
+oset_apr_time_exp_lt(&tm, now);
+oset_apr_snprintf(date, sizeof(date), "%0.4d/%0.2d/%0.2d %0.2d:%0.2d:%0.2d.%0.6d %0.2f%%%%",
+				tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, tm.tm_usec, oset_core_idle_cpu());
+
+oset_gettimeofday(&tv);
+oset_localtime(tv.tv_sec, &tm);
+strftime(nowstr, sizeof nowstr, "%m/%d %H:%M:%S", &tm);
+
+cleanup_time = oset_micro_time_now() + (globals.limit_cleanup_interval_sec * 1000 * 1000);
+
 oset_api_execute
 oset_core_session_execute_application
 switch_loadable_module_get_dialplan_interface

@@ -156,25 +156,33 @@ typedef struct rlc_common_s rlc_common;
 typedef void (*bsr_callback_t)(uint32_t, uint32_t, uint32_t, uint32_t);
 
 typedef struct {
-	void (*_set_bsr_callback)(rlc_common *, bsr_callback_t);
 	void (*_configure)(rlc_common *, rlc_config_t *);
-	void (*_write_pdu)(rlc_common *, uint8_t*, uint32_t);
+	void (*_set_bsr_callback)(rlc_common *, bsr_callback_t);
+	void (*_reset_metrics)(rlc_common *);
+	void (*_reestablish)(rlc_common *);
+	void (*_write_ul_pdu)(rlc_common *, uint8_t*, uint32_t);
+	void (*_stop)(rlc_common *);
 }rlc_func_entity;
 
 typedef struct rlc_common_s{
-	char     *rb_name;
-	bool     suspended;// 暂停
-	rlc_mode_t mode;
 	oset_apr_memory_pool_t	 *usepool;
+	char       *rb_name;
+	bool       suspended;// 暂停
+	uint16_t   rnti;
+	rlc_mode_t mode;
+	OSET_POOL(resume_pool, byte_buffer_t);// 256
 	oset_queue_t *rx_pdu_resume_queue;//static_blocking_queue<unique_byte_buffer_t, 256>
 	oset_queue_t *tx_sdu_resume_queue;//static_blocking_queue<unique_byte_buffer_t, 256>
-	rlc_func_entity *func;
+	rlc_func_entity func;
 }rlc_common;
 
+#define RLC_BUFF_ALLOC(pool, _buf_) do{ \
+	oset_pool_alloc(pool, &_buf_);      \
+	byte_buffer_clear(_buf_);           \
+}while(0)
 
 
-
-void rlc_common_init(rlc_common *common, char *rb_name, rlc_mode_t mode, oset_apr_memory_pool_t *usepool);
+void rlc_common_init(rlc_common *common, char *rb_name, uint16_t rnti, rlc_mode_t mode, oset_apr_memory_pool_t *usepool);
 void rlc_common_destory(rlc_common *common);
 void rlc_common_queue_rx_pdu(rlc_common *common, uint8_t* payload, uint32_t nof_bytes);
 

@@ -43,6 +43,7 @@ int pdcp_init(void)
 
 int pdcp_destory(void)
 {
+	pdcp_rem_user_all();
 	oset_list_empty(&pdcp_manager.pdcp_ue_list);
 	oset_hash_destroy(pdcp_manager.users);
 	pdcp_manager_destory();
@@ -73,10 +74,11 @@ static void pdcp_add_user(uint16_t rnti)
 	  user = oset_core_alloc(usepool, sizeof(*user));
 	  ASSERT_IF_NOT(user, "Could not allocate pdcp user %d context from pool", rnti);
 	  memset(user, 0, sizeof(rlc_user_interface));
-	  
-	  user->usepool = usepool;
+
 	  user->pdcp.usepool = usepool;
 	  user->rnti = rnti;
+	  user->pdcp.rnti = rnti;
+	  
 	  pdcp_lib_init(&user->pdcp);
 	  pdcp_user_interface_set_rnti(rnti, user);
 	  oset_list_add(&pdcp_manager.pdcp_ue_list, user);
@@ -92,11 +94,29 @@ static void pdcp_rem_user(uint16_t rnti)
 		pdcp_lib_stop(&user->pdcp);
 		oset_list_remove(&pdcp_manager.pdcp_ue_list, user);
 		oset_hash_set(pdcp_manager.users, &rnti, sizeof(rnti), NULL);
-		oset_core_destroy_memory_pool(&user->usepool);
+		oset_core_destroy_memory_pool(&user->pdcp.usepool);
 		user = NULL;
 	}
 }
 
+void pdcp_rem_user_all(void)
+{
+	pdcp_user_interface *user = NULL, *next_user = NULL;
+	oset_list_for_each_safe(pdcp_manager.pdcp_ue_list, next_user, user)
+	  	pdcp_rem_user(user->rnti);
+}
+
+static void pdcp_write_ul_pdu_interface(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
+{
+  pdcp_user_interface *user = pdcp_user_interface_find_by_rnti(rnti);
+  if (user) {
+	  pdcp_lib_write_pdu(&user->pdcp, lcid, pdu);
+  }
+}
+
+/*******************************************************************************
+RRC interface
+*******************************************************************************/
 void API_pdcp_rrc_add_user(uint16_t rnti)
 {
 	pdcp_add_user(rnti);
@@ -107,4 +127,11 @@ void API_pdcp_rrc_rem_user(uint16_t rnti)
 	pdcp_rem_user(rnti);
 }
 
+/*******************************************************************************
+RLC interface
+*******************************************************************************/
+void API_pdcp_rlc_write_ul_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
+{
+	pdcp_write_ul_pdu_interface(rnti, lcid, pdu);
+}
 

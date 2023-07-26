@@ -18,7 +18,7 @@ extern "C" {
 
 struct  buffer_metadata_s{
   uint32_t			  pdcp_sn;
-  int64_t			  tp;//???//oset_time_t
+  oset_time_t         tp;//???//oset_time_t
 } buffer_metadata_t;
 
 typedef struct byte_buffer_s
@@ -37,6 +37,7 @@ byte_buffer_t* byte_buffer_copy(byte_buffer_t *p, byte_buffer_t *other);
 byte_buffer_t*  byte_buffer_clear(byte_buffer_t *p);
 uint32_t byte_buffer_get_headroom(byte_buffer_t *p);
 uint32_t byte_buffer_get_tailroom(byte_buffer_t *p);
+void byte_buffer_set_timestamp(byte_buffer_t *p);
 
 
 #ifdef __cplusplus
