@@ -75,12 +75,35 @@ typedef struct {
   activity_timeout_type_t type;
 }rrc_nr_ue;
 
-void rrc_rem_user_info(uint16_t rnti);
+void log_rx_pdu_fail(uint16_t           rnti,
+	                             uint32_t          lcid,
+	                             byte_buffer_t     *pdu,
+	                             const char        *cause_str);
+
+void log_rrc_message(const char               *source,
+						   const direction_t	   dir,
+						   byte_buffer_t		   *pdu,
+						   const char              *msg_type);
+
+
 void activity_timer_expired(rrc_nr_ue *ue);
+void rrc_rem_user_info(uint16_t rnti);
+////////////////////////////////////////////////////////////////////////
 void rrc_nr_ue_deactivate_bearers(rrc_nr_ue *ue);
 void rrc_nr_ue_set_activity(rrc_nr_ue *ue, bool enabled);
 void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer);
+void rrc_nr_ue_handle_rrc_setup_request(rrc_nr_ue *ue, ASN_RRC_RRCSetupRequest_t *msg);
 void rrc_nr_ue_get_metrics(rrc_ue_metrics_t *metrics);
+/*******************************************************************************
+send DL interface
+*******************************************************************************/
+void rrc_nr_ue_send_rrc_reject(rrc_nr_ue *ue, uint8_t reject_wait_time_secs);
+
+/*******************************************************************************
+handle UL interface
+*******************************************************************************/
+void rrc_nr_ue_handle_rrc_setup_request(rrc_nr_ue *ue, ASN_RRC_RRCSetupRequest_t *msg);
+
 
 #ifdef __cplusplus
 }

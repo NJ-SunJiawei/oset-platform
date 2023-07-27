@@ -51,6 +51,8 @@ void rlc_rem_user_all(void);
 /**********************mac api****************************************/
 void API_rlc_mac_write_ul_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
 int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
+void API_rlc_rrc_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu);
+
 /**********************rrc api****************************************/
 void API_rlc_rrc_add_user(uint16_t rnti);
 void API_rlc_rrc_rem_user(uint16_t rnti);

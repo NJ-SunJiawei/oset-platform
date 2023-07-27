@@ -54,7 +54,7 @@ int32_t rrc_generate_sibs(uint32_t cc)
 
 	byte_buffer_t *sib1 = byte_buffer_init()
 
-	cvector_push_back(rrc_manager.cell_ctxt->sib_buffer, byte_buffer_change(du_cell->packed_sib1));
+	cvector_push_back(rrc_manager.cell_ctxt->sib_buffer, du_cell->packed_sib1);
 
 	// SI messages packing
 	//cvector_reserve(rrc_manager.cell_ctxt->sibs, 1);
@@ -76,9 +76,9 @@ int32_t rrc_generate_sibs(uint32_t cc)
 	sib_msg->choice.sib2 = CALLOC(1,sizeof(struct ASN_RRC_SIB2));
 	sib_msg->choice.sib2->cellReselectionInfoCommon.q_Hyst = ASN_RRC_SIB2__cellReselectionInfoCommon__q_Hyst_dB5;
 
-	oset_pkbuf_t *packed_sib2 = oset_rrc_encode(&asn_DEF_ASN_RRC_BCCH_DL_SCH_Message, sib_pdu, asn_struct_free_all);
+	byte_buffer_t *packed_sib2 = oset_rrc_encode2(&asn_DEF_ASN_RRC_BCCH_DL_SCH_Message, sib_pdu, asn_struct_free_all);
 	//oset_free(cell->packed_sib2);
-	cvector_push_back(rrc_manager.cell_ctxt->sib_buffer, byte_buffer_change(packed_sib2));
+	cvector_push_back(rrc_manager.cell_ctxt->sib_buffer, packed_sib2);
 	return OSET_OK;
 }
 
@@ -350,7 +350,7 @@ void rrc_rem_user(uint16_t rnti)
   rrc_nr_ue *ue = rrc_nr_ue_find_by_rnti(rnti);
   if (ue) {
     // First remove MAC and GTPU to stop processing DL/UL traffic for this user
-    API_mac_rrc_remove_ue(rnti);
+    API_mac_rrc_remove_user(rnti);
     API_rlc_rrc_rem_user(rnti);
     API_pdcp_rrc_rem_user(rnti);
 	rrc_nr_ue_remove(ue);
@@ -440,37 +440,76 @@ static void rrc_set_activity_user(uint16_t rnti)
 	rrc_nr_ue_set_activity(ue_ptr, true);
 }
 
-void rrc_log_rx_pdu_fail(uint16_t                rnti,
-                             uint32_t                lcid,
-                             srsran::const_byte_span pdu,
-                             const char*             cause_str,
-                             bool                    log_hex)
+static void rrc_handle_rrc_setup_request(uint16_t rnti, ASN_RRC_RRCSetupRequest_t *msg)
 {
-  if (log_hex) {
-    oset_error(
-        pdu.data(), pdu.size(), "Rx %s PDU, rnti=0x%x - Discarding. Cause: %s", get_rb_name(lcid), rnti, cause_str);
-  } else {
-    oset_error("Rx %s PDU, rnti=0x%x - Discarding. Cause: %s", get_rb_name(lcid), rnti, cause_str);
-  }
+	oset_assert(msg);
+
+	rrc_nr_ue *ue = rrc_nr_ue_find_by_rnti(rnti);
+
+	// TODO: Defer creation of ue to this point
+	if (NULL == ue) {
+		oset_error("%s received for inexistent rnti=0x%x", "UL-CCCH", rnti);
+		return;
+	}
+	rrc_nr_ue_handle_rrc_setup_request(ue, msg);
+}
+
+
+static void rrc_handle_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
+{
+	// Parse UL-CCCH
+	ASN_RRC_UL_CCCH_Message ul_ccch_msg = {0};
+	if (OSET_OK != oset_rrc_decode2(&asn_DEF_ASN_RRC_UL_CCCH_Message, &ul_ccch_msg, pdu->msg, pdu->N_bytes) ||\
+		ASN_RRC_UL_CCCH_MessageType_PR_c1!= ul_ccch_msg.message.present ||\
+		NULL != ul_ccch_msg.message.choice.c1) {
+		log_rx_pdu_fail(rnti, srb_to_lcid(srb0), pdu, "Failed to unpack UL-CCCH message");
+		oset_rrc_free(&asn_DEF_ASN_RRC_UL_CCCH_Message, &ul_ccch_msg);
+		return;
+	}
+
+	// Log Rx message
+	char fmtbuf[64], fmtbuf2[64] = 0;
+	sprintf(fmtbuf, "rnti=0x%x, SRB0", rnti);
+	sprintf(fmtbuf2, "UL-CCCH.%s", #ASN_RRC_UL_CCCH_MessageType__c1_PR_rrcSetupRequest);
+	log_rrc_message(fmtbuf, Rx, pdu, fmtbuf2);
+
+
+	// Handle message
+	switch (ul_ccch_msg.message.choice.c1->present) {
+		case ASN_RRC_UL_CCCH_MessageType__c1_PR_rrcSetupRequest:
+			rrc_handle_rrc_setup_request(rnti, ul_ccch_msg.message.choice.c1->choice.rrcSetupRequest);
+		break;
+		case ASN_RRC_UL_CCCH_MessageType__c1_PR_rrcReestablishmentRequest:
+			handle_rrc_reest_request(rnti, ul_ccch_msg.message.choice.c1->choice.rrcReestablishmentRequest);
+			break;
+		default:
+			log_rx_pdu_fail(rnti, srb_to_lcid(srb0), pdu, "Unsupported UL-CCCH message type");
+			// TODO Remove user
+	}
+
+	oset_rrc_free(&asn_DEF_ASN_RRC_UL_CCCH_Message, &ul_ccch_msg);
 }
 
 
 static void rrc_handle_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
 {
-  switch ((nr_srb)lcid) {
-    case srb0:
-      handle_ul_ccch(rnti, pdu);
-      break;
-    case srb1:
-    case srb2:
-    case srb3:
-      handle_ul_dcch(rnti, lcid, std::move(pdu));
-      break;
-    default:
-      std::string errcause = fmt::format("Invalid LCID=%d", lcid);
-      rrc_log_rx_pdu_fail(rnti, lcid, pdu, errcause.c_str());
-      break;
-  }
+	char *errcause = NULL;
+
+	switch ((nr_srb)lcid) {
+  	  case srb0:
+  	    rrc_handle_ul_ccch(rnti, pdu);
+  	    break;
+	  case srb1:
+	  case srb2:
+	  case srb3:
+	    handle_ul_dcch(rnti, lcid, pdu);
+	    break;
+	  default:
+	    char errcause[64]= {0};
+		sprintf(errcause, "Invalid LCID=%d", lcid)
+	    log_rx_pdu_fail(rnti, lcid, pdu, errcause);
+	    break;
+	}
 }
 
 

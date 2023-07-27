@@ -143,10 +143,24 @@ void API_rlc_rrc_rem_user(uint16_t rnti)
 	rlc_rem_user(rnti);
 }
 
+void API_rlc_rrc_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu)
+{
+	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
+	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
+	if (user) {
+		if (rnti != SRSRAN_MRNTI) {
+			users[rnti].rlc->write_sdu(lcid, std::move(sdu));
+		} else {
+			users[rnti].rlc->write_sdu_mch(lcid, std::move(sdu));
+		}
+	}
+	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
+}
+
+
 /*******************************************************************************
 MAC interface
 *******************************************************************************/
-
 int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
 	int ret = OSET_ERROR;

@@ -61,7 +61,7 @@ mac_manager_t *mac_manager_self(void);
 ///////////////////////////////////rrc/////////////////////////////////////////////////
 int API_mac_rrc_cell_cfg(cvector_vector_t(sched_nr_cell_cfg_t) sched_cells);
 int API_mac_rrc_api_ue_cfg(uint16_t rnti, sched_nr_ue_cfg_t *ue_cfg);
-int API_mac_rrc_remove_ue(uint16_t rnti);
+int API_mac_rrc_remove_user(uint16_t rnti);
 ///////////////////////////////////rlc/////////////////////////////////////////////////
 int API_mac_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
 

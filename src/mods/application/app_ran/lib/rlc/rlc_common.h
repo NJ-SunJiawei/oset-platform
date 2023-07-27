@@ -181,6 +181,10 @@ typedef struct rlc_common_s{
 	byte_buffer_clear(_buf_);           \
 }while(0)
 
+#define RLC_BUFF_FREE(pool, _buf_) do{ \
+	byte_buffer_clear(_buf_);          \
+	oset_pool_free(pool, _buf_);     \
+}while(0)
 
 void rlc_common_init(rlc_common *common, char *rb_name, uint16_t rnti, rlc_mode_t mode, oset_apr_memory_pool_t *usepool);
 void rlc_common_destory(rlc_common *common);

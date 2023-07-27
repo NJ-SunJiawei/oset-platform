@@ -809,7 +809,7 @@ int API_mac_rrc_api_ue_cfg(uint16_t rnti, sched_nr_ue_cfg_t *ue_cfg)
 	return OSET_OK;
 }
 
-int API_mac_rrc_remove_ue(uint16_t rnti)
+int API_mac_rrc_remove_user(uint16_t rnti)
 {
 	mac_remove_ue(rnti);
 	return OSET_OK;

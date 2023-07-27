@@ -12,6 +12,38 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc-ue"
 
+void log_rx_pdu_fail(uint16_t           rnti,
+                         uint32_t          lcid,
+                         byte_buffer_t     *pdu,
+                         const char        *cause_str)
+{
+	oset_error("Rx %s PDU, rnti=0x%x - Discarding. Cause: %s", get_rb_name(lcid), rnti, cause_str);
+	oset_hex_print(OSET_LOG2_ERROR, pdu->msg, pdu->N_bytes)
+}
+
+void log_rrc_message(const char			   *source,
+						const direction_t		dir,
+						byte_buffer_t			*pdu,
+						const char				*msg_type)
+
+{
+	 oset_info("%s - %s %s (%d Byte)", source, (dir == Rx) ? "Rx" : "Tx", msg_type, pdu->N_bytes);
+	 oset_hex_print(OSET_LOG2_ERROR, pdu->msg, pdu->N_bytes);
+}
+
+
+static void log_rrc_ue_message(uint16_t rnti,
+									 nr_srb              srb,
+	                                 const direction_t   dir,
+	                                 byte_buffer_t       *pdu,
+	                                 const char          *msg_type)
+{
+	char strbuf[64] = {0};
+	sprintf(strbuf, "rnti=0x%x, %s", rnti, get_srb_name(srb));
+	log_rrc_message(strbuf, Tx, pdu, msg_type);
+}
+
+
 //todo
 void activity_timer_expired(rrc_nr_ue *ue)
 {
@@ -78,6 +110,31 @@ static void set_activity_timer(rrc_nr_ue *ue)
 	rrc_nr_ue_set_activity(ue, true);
 	oset_debug("Activity registered for rnti=0x%x (timeout_value=%dms)", ue->rnti, deadline_ms);
 }
+
+static bool init_pucch(void)
+{
+	// TODO: Allocate PUCCH resources
+
+	return true;
+}
+
+static int send_dl_ccch(rrc_nr_ue *ue, ASN_RRC_DL_CCCH_Message_t *dl_ccch_msg)
+{
+	// Allocate a new PDU buffer, pack the message and send to PDCP
+	byte_buffer_t *pdu = oset_rrc_encode2(&asn_DEF_ASN_RRC_DL_CCCH_Message, dl_ccch_msg, asn_struct_free_context);
+	if (pdu == NULL) {
+		oset_error("Failed to send DL-CCCH");
+		return OSET_ERROR;
+	}
+	char fmtbuf[64] = {0};
+	sprintf(fmtbuf, "DL-CCCH.%s", #ASN_RRC_DL_CCCH_MessageType__c1_PR_rrcReject);
+	log_rrc_ue_message(ue->rnti, srb0, Tx, pdu, fmtbuf);
+	API_rlc_rrc_write_dl_sdu(ue->rnti, srb_to_lcid(srb0), pdu);
+
+	oset_free(pdu);
+	return OSET_OK;
+}
+
 
 void rrc_rem_user_info(uint16_t rnti)
 {
@@ -193,6 +250,79 @@ void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer)
 	rrc_nr_ue_set_rnti(rnti_, ue);
     oset_list_add(&rrc_manager_self()->rrc_ue_list, ue);
     oset_info("[Added] Number of RRC-UEs is now %d", oset_list_count(&rrc_manager_self()->rrc_ue_list));
+}
+
+/*******************************************************************************
+send DL interface
+*******************************************************************************/
+/// TS 38.331, RRCReject message
+void rrc_nr_ue_send_rrc_reject(rrc_nr_ue *ue, uint8_t reject_wait_time_secs)
+{
+	ASN_RRC_DL_CCCH_Message_t msg = {0};
+
+	memset(&msg, 0, sizeof (ASN_RRC_DL_CCCH_Message_t));
+	msg.message.present = ASN_RRC_DL_CCCH_MessageType_PR_c1;
+	asn1cCalloc(msg.message.choice.c1, c1);
+	c1->present = ASN_RRC_DL_CCCH_MessageType__c1_PR_rrcReject;
+
+	asn1cCalloc(msg.message.choice.c1->choice.rrcReject, reject);
+	reject->criticalExtensions.present = ASN_RRC_RRCReject__criticalExtensions_PR_rrcReject;
+	asn1cCalloc(reject->criticalExtensions.choice.rrcReject, rrcReject);
+	rrcReject->waitTime = CALLOC(1, sizeof(ASN_RRC_RejectWaitTime_t));
+	rrcReject->waitTime = &reject_wait_time_secs;
+
+	// See TS 38.331, RejectWaitTime
+	if (reject_wait_time_secs > 0) {
+		asn1cCallocOne(rrcReject->waitTime, &reject_wait_time_secs);
+	}
+
+	if (send_dl_ccch(ue, &msg) != OSET_OK) {
+		// TODO: Handle
+		oset_error("rnti 0x%x:send_dl_ccch() rrc_reject fail", ue->rnti);
+	}
+
+	// TODO: remove user
+}
+
+
+/*******************************************************************************
+handle UL interface
+*******************************************************************************/
+void rrc_nr_ue_handle_rrc_setup_request(rrc_nr_ue *ue, ASN_RRC_RRCSetupRequest_t *msg)
+{
+	const uint8_t max_wait_time_secs = 16;
+	if (! parent->ngap->is_amf_connected()) {
+		oset_error("MME isn't connected. Sending Connection Reject");
+		rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
+		return;
+	}
+
+	// Allocate PUCCH resources and reject if not available
+	if (!init_pucch()) {
+		oset_warn("Could not allocate PUCCH resources for rnti=0x%x. Sending Connection Reject", rnti);
+		rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
+		return;
+	}
+
+	ASN_RRC_RRCSetupRequest_IEs_t *rrcSetupRequest = msg->rrcSetupRequest;
+
+	switch (rrcSetupRequest->ue_Identity.present) {
+	  case ASN_RRC_InitialUE_Identity_PR_ng_5G_S_TMSI_Part1:
+	  	oset_asn_BIT_STRING_to_uint64(rrcSetupRequest->ue_Identity.choice.ng_5G_S_TMSI_Part1, &ue->ctxt.setup_ue_id);
+	    break;
+	  case ASN_RRC_InitialUE_Identity_PR_randomValue:
+	  	oset_asn_BIT_STRING_to_uint64(rrcSetupRequest.ue_Identity.choice.randomValue, &ue->ctxt.setup_ue_id);
+	    // TODO: communicate with NGAP
+	    break;
+	  default:
+	    oset_error("Unsupported RRCSetupRequest");
+	    rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
+	    return;
+	}
+	ue->ctxt.connection_cause = rrcSetupRequest->establishmentCause;
+
+	send_rrc_setup();
+	set_activity_timeout(UE_INACTIVITY_TIMEOUT);
 }
 
 void rrc_nr_ue_get_metrics(rrc_ue_metrics_t *metrics)

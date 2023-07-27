@@ -23,11 +23,11 @@ typedef struct {
 
   //ASN_RRC_BCCH_BCH_Message_t  *mib;
   struct mib_s   mib;//inner
-  oset_pkbuf_t  *packed_mib;
+  byte_buffer_t  *packed_mib;
 
   //ASN_RRC_BCCH_DL_SCH_Message_t *sib1;
   struct sib1_s  sib1;//inner
-  oset_pkbuf_t  *packed_sib1;
+  byte_buffer_t  *packed_sib1;
 
   enum subcarrier_spacing_e          ssb_scs;
   srsran_ssb_pattern_t               ssb_pattern;

@@ -83,6 +83,7 @@ void rlc_tm_write_ul_pdu(rlc_common *tm_common, uint8_t* payload, uint32_t nof_b
 			/* RLC calls PDCP to push a PDCP PDU. */
 			API_pdcp_rlc_write_ul_pdu(tm_common->rnti, tm->lcid, sdu);
 		}
+		RLC_BUFF_FREE(&tm->tm_pool, sdu);
 	} else {
 		RlcError("Fatal Error: Couldn't allocate buffer in rlc_tm::write_pdu()");
 	}

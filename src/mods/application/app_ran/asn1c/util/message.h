@@ -34,12 +34,18 @@ void* oset_asn_new_buffer_per_encode(const asn_TYPE_descriptor_t *td, enum asn_t
 oset_pkbuf_t *oset_asn_per_encode(const asn_TYPE_descriptor_t *td, enum asn_transfer_syntax type, void *sptr, ASN_STRUCT_FREE_FLAG free_flag);
 int oset_asn_per_decode(const asn_TYPE_descriptor_t *td, enum asn_transfer_syntax type,
                                 void *struct_ptr, size_t struct_size, oset_pkbuf_t *pkbuf);
+int oset_asn_per_decode2(const asn_TYPE_descriptor_t *td, enum asn_transfer_syntax type,
+								void *struct_ptr, size_t struct_size, void *data, size_t len);
 oset_pkbuf_t *oset_asn_aper_encode(const asn_TYPE_descriptor_t *td, void *sptr, ASN_STRUCT_FREE_FLAG free_flag);
 int oset_asn_aper_decode(const asn_TYPE_descriptor_t *td,
                                  void *struct_ptr, size_t struct_size, oset_pkbuf_t *pkbuf);
+int oset_asn_aper_decode2(const asn_TYPE_descriptor_t *td,
+								void *struct_ptr, size_t struct_size, void *data, size_t len);
 oset_pkbuf_t *oset_asn_uper_encode(const asn_TYPE_descriptor_t *td, void *sptr, ASN_STRUCT_FREE_FLAG free_flag);
 int oset_asn_uper_decode(const asn_TYPE_descriptor_t *td,
 		                 void *struct_ptr, size_t struct_size, oset_pkbuf_t *pkbuf);
+int oset_asn_uper_decode2(const asn_TYPE_descriptor_t *td,
+						void *struct_ptr, size_t struct_size, void *data, size_t len);
 void oset_asn_free_contexts(const asn_TYPE_descriptor_t *td, void *sptr);
 void oset_asn_free_all(const asn_TYPE_descriptor_t *td, void *sptr);
 

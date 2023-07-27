@@ -176,6 +176,16 @@ void oset_asn_BIT_STRING_to_uint32(BIT_STRING_t *bit_string, uint32_t *uint32)
                     >> bit_string->bits_unused;
 }
 
+void oset_asn_BIT_STRING_to_uint64(BIT_STRING_t *bit_string, uint64_t *uint64)
+{
+    oset_assert(bit_string);
+    oset_assert(uint64);
+
+    *uint64 = oset_buffer_to_uint64(bit_string->buf, bit_string->size)
+                    >> bit_string->bits_unused;
+}
+
+
 int oset_asn_BIT_STRING_to_ip(BIT_STRING_t *bit_string, oset_ip_t *ip)
 {
     char buf[OSET_ADDRSTRLEN], buf2[OSET_ADDRSTRLEN];

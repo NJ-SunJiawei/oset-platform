@@ -19,6 +19,7 @@ int asn_buffer_pool_init(void)
     memset(&config, 0, sizeof config);
 
     config.cluster_8192_pool = 1024;
+    config.cluster_big_pool = 256;
     asn_buffer_pool = oset_pkbuf_pool_create(&config);
 
     return OSET_OK;
@@ -35,7 +36,8 @@ void* oset_asn_new_buffer_per_encode(const asn_TYPE_descriptor_t *td, enum asn_t
     oset_assert(td);
     oset_assert(sptr);
 
-    res = asn_encode_to_new_buffer(NULL, type, td, sptr)
+	// type=ATS_UNALIGNED_CANONICAL_PER/ATS_ALIGNED_CANONICAL_PER
+    res = asn_encode_to_new_buffer(NULL, type, td, sptr);
 
     if(free_flag == asn_struct_free_all){
 		oset_asn_free_all(td, sptr);
@@ -49,7 +51,7 @@ void* oset_asn_new_buffer_per_encode(const asn_TYPE_descriptor_t *td, enum asn_t
         return NULL;
     }
 
-    return res.buffer;
+    return res.buffer;//set_free(*)
 }
 
 
@@ -65,6 +67,7 @@ oset_pkbuf_t *oset_asn_per_encode(const asn_TYPE_descriptor_t *td, enum asn_tran
     oset_expect_or_return_val(pkbuf, NULL);
     oset_pkbuf_put(pkbuf, OSET_MAX_SDU_LEN);
 
+	// type=ATS_UNALIGNED_CANONICAL_PER/ATS_ALIGNED_CANONICAL_PER
     enc_ret = asn_encode_to_buffer(NULL, type, td, sptr, pkbuf->data, OSET_MAX_SDU_LEN)
 
     if(free_flag == asn_struct_free_all){
@@ -108,6 +111,28 @@ int oset_asn_per_decode(const asn_TYPE_descriptor_t *td, enum asn_transfer_synta
     return OSET_OK;
 }
 
+int oset_asn_per_decode2(const asn_TYPE_descriptor_t *td, enum asn_transfer_syntax type,
+		void *struct_ptr, size_t struct_size, void *data, size_t len)
+{
+	asn_dec_rval_t dec_ret = {0};
+
+	oset_assert(td);
+	oset_assert(struct_ptr);
+	oset_assert(struct_size);
+	oset_assert(data);
+	oset_assert(len);
+
+	memset(struct_ptr, 0, struct_size);
+	dec_ret = asn_decode(NULL, type, td, (void **)&struct_ptr, data, len);
+
+	if (dec_ret.code != RC_OK) {
+		oset_warn("Failed to decode ASN-PDU [code:%d,consumed:%d]",
+				dec_ret.code, (int)dec_ret.consumed);
+		return OSET_ERROR;
+	}
+
+	return OSET_OK;
+}
 
 oset_pkbuf_t *oset_asn_aper_encode(const asn_TYPE_descriptor_t *td, void *sptr, ASN_STRUCT_FREE_FLAG free_flag)
 {
@@ -165,6 +190,30 @@ int oset_asn_aper_decode(const asn_TYPE_descriptor_t *td,
     return OSET_OK;
 }
 
+int oset_asn_aper_decode2(const asn_TYPE_descriptor_t *td,
+		void *struct_ptr, size_t struct_size, void *data, size_t len)
+{
+	asn_dec_rval_t dec_ret = {0};
+
+	oset_assert(td);
+	oset_assert(struct_ptr);
+	oset_assert(struct_size);
+	oset_assert(data);
+	oset_assert(len);
+
+	memset(struct_ptr, 0, struct_size);
+	dec_ret = aper_decode(NULL, td, (void **)&struct_ptr, data, len, 0, 0);
+
+	if (dec_ret.code != RC_OK) {
+		oset_warn("Failed to decode ASN-PDU [code:%d,consumed:%d]",
+				dec_ret.code, (int)dec_ret.consumed);
+		return OSET_ERROR;
+	}
+
+	return OSET_OK;
+}
+
+
 oset_pkbuf_t *oset_asn_uper_encode(const asn_TYPE_descriptor_t *td, void *sptr, ASN_STRUCT_FREE_FLAG free_flag)
 {
 	asn_enc_rval_t enc_ret = {0};
@@ -211,6 +260,35 @@ int oset_asn_uper_decode(const asn_TYPE_descriptor_t *td,
 	memset(struct_ptr, 0, struct_size);
 	dec_ret = uper_decode(NULL, td, (void **)&struct_ptr,
 			pkbuf->data, pkbuf->len, 0, 0);
+
+	if (dec_ret.code != RC_OK) {
+		oset_warn("Failed to decode ASN-PDU [code:%d,consumed:%d]",
+				dec_ret.code, (int)dec_ret.consumed);
+		return OSET_ERROR;
+	}
+
+	return OSET_OK;
+}
+
+int oset_asn_uper_decode2(const asn_TYPE_descriptor_t *td,
+		void *struct_ptr, size_t struct_size, void *data, size_t len)
+{
+	asn_dec_rval_t dec_ret = {0};
+
+	oset_assert(td);
+	oset_assert(struct_ptr);
+	oset_assert(struct_size);
+	oset_assert(data);
+	oset_assert(len);
+
+	memset(struct_ptr, 0, struct_size);
+
+	// eg. for uper_decode
+	// ASN_RRC_UL_CCCH_Message ul_ccch_msg = {0};      oset_asn_free_contexts(&ul_ccch_msg)
+	// ASN_RRC_UL_CCCH_Message *ul_ccch_msg = NULL;    oset_asn_free_all(ul_ccch_msg)
+
+	
+	dec_ret = uper_decode(NULL, td, (void **)&struct_ptr, data, len, 0, 0);
 
 	if (dec_ret.code != RC_OK) {
 		oset_warn("Failed to decode ASN-PDU [code:%d,consumed:%d]",

@@ -49,7 +49,7 @@ int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node)
 		oset_error("Couldn't generate MIB");
 		return OSET_ERROR;
 	}
-	cell->packed_mib = oset_rrc_encode(&asn_DEF_ASN_RRC_BCCH_BCH_Message, mib, asn_struct_free_all);
+	cell->packed_mib = oset_rrc_encode2(&asn_DEF_ASN_RRC_BCCH_BCH_Message, mib, asn_struct_free_all);
 	//oset_free(cell->packed_mib);
 
 	fill_sib1_from_enb_cfg_inner(node, &cell->sib1);
@@ -58,7 +58,7 @@ int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node)
 		oset_error("Couldn't generate SIB1");
 		return OSET_ERROR;
 	}
-	cell->packed_sib1 = oset_rrc_encode(&asn_DEF_ASN_RRC_BCCH_DL_SCH_Message, sib1, asn_struct_free_all);
+	cell->packed_sib1 = oset_rrc_encode2(&asn_DEF_ASN_RRC_BCCH_DL_SCH_Message, sib1, asn_struct_free_all);
 	//oset_free(cell->packed_sib1);
 
 	// Generate SSB SCS
