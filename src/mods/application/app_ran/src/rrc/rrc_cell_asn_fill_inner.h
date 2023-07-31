@@ -33,6 +33,12 @@ void free_sib1_dyn_arrary(struct sib1_s *sib1);
 int fill_sib1_from_enb_cfg_inner(rrc_cell_cfg_nr_t *cell_cfg, struct sib1_s *sib1);
 void free_master_cell_cfg_dyn_array(struct cell_group_cfg_s *master_cell_group);
 int fill_master_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, struct cell_group_cfg_s *out);
+int fill_cellgroup_with_radio_bearer_cfg_inner(rrc_nr_cfg_t *              cfg,
+                                         uint32_t                  rnti,
+                                         enb_bearer_manager        *bearer_mapper,
+                                         struct radio_bearer_cfg_s *bearers,
+                                         struct cell_group_cfg_s   *out);
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 bool API_make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl);
 bool API_make_csi_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_csi_hl_cfg_t* csi_hl);

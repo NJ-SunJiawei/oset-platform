@@ -451,7 +451,7 @@ static void mac_handle_pdu_rx(uint32_t tti, uint16_t rnti, byte_buffer_t *pdu)
 	RQUE_MSG_TTI(msg_ptr) = tti;
 	pusch_mac_pdu_info_t  *pusch_pdu_info = &PUSCH_MAC_PDU_INFO(msg_ptr);
 	pusch_pdu_info->rnti = rnti;
-	pusch_pdu_info->pdu = oset_memdup(pdu, sizeof(byte_buffer_t));
+	pusch_pdu_info->pdu = byte_buffer_dup(pdu);//OSET_MEM_STORE
 	task_send_msg(TASK_MAC, msg_ptr);
 }
 

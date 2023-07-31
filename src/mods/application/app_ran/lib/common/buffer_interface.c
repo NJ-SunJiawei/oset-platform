@@ -20,7 +20,7 @@ byte_buffer_t* byte_buffer_init(void)
 	return p;
 }
 
-byte_buffer_t* byte_buffer_init(byte_buffer_t *buf)
+byte_buffer_t* byte_buffer_dup(byte_buffer_t *buf)
 {
 	byte_buffer_t *p = oset_malloc(sizeof(byte_buffer_t));
 	oset_assert(p);
@@ -32,7 +32,7 @@ byte_buffer_t* byte_buffer_init(byte_buffer_t *buf)
 	return p;
 }
 
-byte_buffer_t* byte_buffer_copy(uint8_t* payload, uint32_t len)
+byte_buffer_t* byte_buffer_dup_data(uint8_t* payload, uint32_t len)
 {
 	byte_buffer_t *p = byte_buffer_init();
 
@@ -52,9 +52,9 @@ byte_buffer_t* byte_buffer_copy(byte_buffer_t *p, byte_buffer_t *other)
 	if (0 == memcmp(p, other, sizeof(byte_buffer_t))){
 		return p;
 	}
-	p->msg	 = &p->buffer[SRSRAN_BUFFER_HEADER_OFFSET];
+	p->msg	   = &p->buffer[SRSRAN_BUFFER_HEADER_OFFSET];
 	p->N_bytes = other->N_bytes;
-	p->md 	 = other->md;
+	p->md 	   = other->md;
 	memcpy(p->msg, other->msg, p->N_bytes);
 	return p;
 }

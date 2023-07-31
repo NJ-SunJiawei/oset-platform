@@ -72,7 +72,7 @@ ue_nr *ue_nr_find_by_rnti(uint16_t rnti)
 void ue_nr_store_msg3(ue_nr *ue, uint8 *sdu, int len)
 {
 	//std::lock_guard<std::mutex> lock(mutex);
-	ue->last_msg3 = byte_buffer_copy(sdu, len);
+	ue->last_msg3 = byte_buffer_dup_data(sdu, len);
 }
 
 int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t tbs_len, cvector_vector_t(uint32_t) subpdu_lcids)

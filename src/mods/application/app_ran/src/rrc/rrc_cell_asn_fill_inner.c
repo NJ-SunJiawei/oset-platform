@@ -1225,6 +1225,32 @@ void fill_srb_inner(rrc_nr_cfg_t *cfg, nr_srb srb_id, struct rlc_bearer_cfg_s *o
 	out->mac_lc_ch_cfg.ul_specific_params.lc_ch_sr_delay_timer_applied = false;
 }
 
+/// Fill DRB with parameters derived from cfg
+void fill_drb_inner(rrc_nr_cfg_five_qi_t *cfg_five_qi, radio_bearer_t *rb, nr_drb drb_id, struct rlc_bearer_cfg_s *out)
+{
+	out->lc_ch_id                         = rb->lcid;
+	out->served_radio_bearer_present      = true;
+	out->served_radio_bearer.c            = (uint8_t)drb_id;
+
+	out->rlc_cfg_present = true;
+	out->rlc_cfg         = cfg_five_qi->rlc_cfg;
+
+	// MAC logical channel config
+	out->mac_lc_ch_cfg_present                    = true;
+	out->mac_lc_ch_cfg.ul_specific_params_present = true;
+	out->mac_lc_ch_cfg.ul_specific_params.prio    = 11; // TODO
+	out->mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate = (prioritised_bit_rate_opts)kbps0;
+	out->mac_lc_ch_cfg.ul_specific_params.bucket_size_dur = (bucket_size_dur_opts)ms100;
+	out->mac_lc_ch_cfg.ul_specific_params.lc_ch_group_present          = true;
+	out->mac_lc_ch_cfg.ul_specific_params.lc_ch_group                  = 3; // TODO
+	out->mac_lc_ch_cfg.ul_specific_params.sched_request_id_present     = true;
+	out->mac_lc_ch_cfg.ul_specific_params.sched_request_id             = 0; // TODO
+	out->mac_lc_ch_cfg.ul_specific_params.lc_ch_sr_mask                = false;
+	out->mac_lc_ch_cfg.ul_specific_params.lc_ch_sr_delay_timer_applied = false;
+  // TODO: add LC config to MAC
+}
+
+
 /// Fill csi-ResoureConfigToAddModList
 void fill_csi_resource_cfg_to_add_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, struct csi_meas_cfg_s *csi_meas_cfg)
 {
@@ -1802,6 +1828,7 @@ void free_master_cell_cfg_dyn_array(struct cell_group_cfg_s *master_cell_group)
 {
     //free rlc_bearer_to_add_mod_list
 	cvector_free(master_cell_group->rlc_bearer_to_add_mod_list);
+	cvector_free(master_cell_group->rlc_bearer_to_release_list);
 
     //free sched_request_to_add_mod_list
 	cvector_free(master_cell_group->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list);
@@ -2038,6 +2065,47 @@ int fill_mib_from_enb_cfg_inner(rrc_cell_cfg_nr_t *cell_cfg, struct mib_s *mib)
 	mib->cell_barred                      = (enum cell_barred_e_)not_barred;
 	mib->intra_freq_resel                 = (enum intra_freq_resel_e_)allowed;
 	bitstring_from_number(&mib->spare, 0, 1);
+	return OSET_OK;
+}
+
+
+int fill_cellgroup_with_radio_bearer_cfg_inner(rrc_nr_cfg_t *              cfg,
+                                         uint32_t                  rnti,
+                                         enb_bearer_manager        *bearer_mapper,
+                                         struct radio_bearer_cfg_s *bearers,
+                                         struct cell_group_cfg_s   *out)
+{
+	cvector_clear(out->rlc_bearer_to_add_mod_list);
+	cvector_clear(out->rlc_bearer_to_release_list);
+
+	struct srb_to_add_mod_s *srb = NULL;
+	cvector_for_each_in(srb, bearers->srb_to_add_mod_list){
+		// Add SRBs
+		struct rlc_bearer_cfg_s bearer_to_add_out= {0};
+		fill_srb_inner(cfg, srb->srb_id, &bearer_to_add_out);
+		cvector_push_back(out->rlc_bearer_to_add_mod_list, bearer_to_add_out);
+	}
+	// Add DRBs
+	struct drb_to_add_mod_s *drb = NULL;
+	cvector_for_each_in(drb, bearers->drb_to_add_mod_list){
+		struct rlc_bearer_cfg_s drb_to_add_out= {0};
+		uint32_t lcid        = drb->drb_id + (nr_srb)count - 1;
+		radio_bearer_t *rb   = get_lcid_bearer(bearer_mapper, rnti, lcid);
+		rrc_nr_cfg_five_qi_t *cfg_five_qi = oset_hash_get(cfg->five_qi_cfg, rb->five_qi, sizeof(uint32_t));
+		if (is_valid(rb) && NULL != cfg_five_qi) {
+	  		fill_drb_inner(cfg_five_qi, rb, (nr_drb)drb.drb_id, &drb_to_add_out);
+		} else {
+	 		return OSET_ERROR;
+		}
+		cvector_push_back(out->rlc_bearer_to_add_mod_list, drb_to_add_out);
+	}
+
+	// Release DRBs
+	uint8_t *drb_id = NULL;
+	cvector_for_each_in(drb_id, bearers->drb_to_release_list){
+		cvector_push_back(out->rlc_bearer_to_release_list, *drb_id)
+	}
+
 	return OSET_OK;
 }
 

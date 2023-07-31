@@ -181,7 +181,6 @@ void rrc_nr_ue_deactivate_bearers(rrc_nr_ue *ue)
 	API_mac_rrc_api_ue_cfg(ue->rnti, &ue->uecfg);
 }
 
-
 void rrc_nr_ue_remove(rrc_nr_ue *ue)
 {
     oset_assert(ue);
@@ -234,12 +233,12 @@ void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer)
 
 	ue->uecfg.phy_cfg  = rrc_manager_self()->cell_ctxt->default_phy_ue_cfg_nr;
 
-	if (! rrc_manager_self()->cfg.is_standalone) {
+	if (!rrc_manager_self()->cfg.is_standalone) {
 	// Add the final PDCCH config in case of NSA
 		fill_phy_pdcch_cfg(rrc_manager_self()->cfg.cell_list[pcell_cc_idx], &ue->uecfg.phy_cfg.pdcch);
 	} else {
 		ue->cell_group_cfg      = rrc_manager_self()->cell_ctxt->master_cell_group;
-		ue->next_cell_group_cfg = ue->cell_group_cfg;
+		//ue->next_cell_group_cfg = ue->cell_group_cfg;
 	}
 
 	ue->type = start_msg3_timer ? MSG3_RX_TIMEOUT : MSG5_RX_TIMEOUT;
@@ -284,6 +283,81 @@ void rrc_nr_ue_send_rrc_reject(rrc_nr_ue *ue, uint8_t reject_wait_time_secs)
 	// TODO: remove user
 }
 
+/// TS 38.331, RRCSetup
+void rrc_nr_ue_send_rrc_setup(rrc_nr_ue *ue)
+{
+	const uint8_t max_wait_time_secs = 16;
+
+	// Add SRB1 to UE context
+	// Note: See 5.3.5.6.3 - SRB addition/modification
+	struct srb_to_add_mod_s srb1 = {0};
+	srb1.srb_id            = 1;
+	cvector_push_back(ue->radio_bearer_cfg.srb_to_add_mod_list, srb1)
+
+	// - Setup masterCellGroup
+	// - Derive master cell group config bearers
+	if (fill_cellgroup_with_radio_bearer_cfg_inner(rrc_manager_self()->cfg,
+													ue->rnti,
+													&rrc_manager_self()->bearer_mapper,
+													ue->radio_bearer_cfg,
+													ue->cell_group_cfg) != OSET_OK) {
+		oset_error("Couldn't fill cellGroupCfg during RRC Setup");
+		rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
+		return;
+	}
+
+	////////////////////////////////////////////////////////////////////////////
+
+	// Generate RRC setup message
+	ASN_RRC_DL_CCCH_Message_t msg = {0};
+	msg.message.present = ASN_RRC_DL_CCCH_MessageType_PR_c1;
+	asn1cCalloc(msg.message.choice.c1, c1);
+	c1->present = ASN_RRC_DL_CCCH_MessageType__c1_PR_rrcSetup;
+
+	asn1cCalloc(msg.message.choice.c1->choice.rrcSetup, rrcsetup);
+	rrcsetup->rrc_TransactionIdentifier   = (uint8_t)((ue->transaction_id++) % 4);
+	rrcsetup->criticalExtensions.present  = ASN_RRC_RRCSetup__criticalExtensions_PR_rrcSetup;
+	asn1cCalloc(rrcsetup->criticalExtensions.choice.rrcSetup, rrcsetup_ies);
+
+	// Fill RRC Setup
+	// - Setup SRB1
+	rrcsetup_ies->radioBearerConfig.srb_ToAddModList = CALLOC(1,sizeof(struct ASN_RRC_SRB_ToAddModList));
+	asn1cSequenceAdd(rrcsetup_ies->radioBearerConfig.srb_ToAddModList->list, struct ASN_RRC_SRB_ToAddMod, SRB1_config);	
+	SRB1_config->srb_Identity = ue->next_radio_bearer_cfg.srb_to_add_mod_list[0].srb_id;
+
+
+
+
+	// - Pack masterCellGroup into container
+	srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(cell_group_cfg, __FUNCTION__);
+	if (pdu == NULL) {
+		rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
+		return;
+	}
+	setup_ies.master_cell_group.resize(pdu->N_bytes);
+	memcpy(setup_ies.master_cell_group.data(), pdu->data(), pdu->N_bytes);
+	if (logger.debug.enabled()) {
+		asn1::json_writer js;
+		next_cell_group_cfg.to_json(js);
+		logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
+	}
+
+	// add RLC bearers
+	update_rlc_bearers(ue->cell_group_cfg);
+
+	// add PDCP bearers
+	// this is done after updating the RLC bearers,
+	// so the PDCP can query the RLC mode
+	update_pdcp_bearers(ue->radio_bearer_cfg, ue->cell_group_cfg);
+
+	// add MAC bearers添加MAC承载
+	update_mac(ue->cell_group_cfg, false);
+
+	// Send RRC Setup message to UE
+	if (send_dl_ccch(msg) != OSET_OK) {
+		rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
+	}
+}
 
 /*******************************************************************************
 handle UL interface
@@ -321,8 +395,10 @@ void rrc_nr_ue_handle_rrc_setup_request(rrc_nr_ue *ue, ASN_RRC_RRCSetupRequest_t
 	}
 	ue->ctxt.connection_cause = rrcSetupRequest->establishmentCause;
 
-	send_rrc_setup();
-	set_activity_timeout(UE_INACTIVITY_TIMEOUT);
+	rrc_nr_ue_send_rrc_setup(ue);
+
+	ue->type = UE_INACTIVITY_TIMEOUT;
+	set_activity_timer(ue);
 }
 
 void rrc_nr_ue_get_metrics(rrc_ue_metrics_t *metrics)

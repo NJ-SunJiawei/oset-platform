@@ -24,7 +24,7 @@ typedef struct {
 	uint16_t		         rnti;
 	//OSET_POOL(pool, byte_buffer_t);// 256
 	oset_hash_t              *rlc_array; //std::map<uint16_t lcid, std::unique_ptr<rlc_common>>
-	oset_hash_t              *rlc_array_mrb;// mrb 组播/多播技术
+	//oset_hash_t              *rlc_array_mrb;// mrb 组播/多播技术
 	//oset_apr_thread_rwlock_t *rwlock;
 	uint32_t                 default_lcid;
 	bsr_callback_t           bsr_callback;

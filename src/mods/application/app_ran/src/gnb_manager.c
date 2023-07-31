@@ -296,7 +296,7 @@ void gnb_manager_destory(void)
 
 	band_helper_destory(gnb_manager.band_helper);//???
 
-	oset_list2_free(gnb_manager.rrc_nr_cfg.five_qi_cfg);
+	oset_hash_destroy(gnb_manager.rrc_nr_cfg.five_qi_cfg);
 
 	cvector_free(gnb_manager.phy_cfg->phy_cell_cfg_nr);
 

@@ -76,7 +76,7 @@ typedef struct rrc_nr_cfg_s{
 	bool               is_standalone;// SA mode.
 	srb_5g_cfg_t       srb1_cfg;
 	srb_5g_cfg_t       srb2_cfg;
-	oset_list2_t       *five_qi_cfg; //std::map<uint32_t, rrc_nr_cfg_five_qi_t>;
+	oset_hash_t        *five_qi_cfg; //std::map<uint32_t, rrc_nr_cfg_five_qi_t>;
 	uint8_t nea_preference_list[4];//CIPHERING_ALGORITHM_ID_NR_ENUM
 	uint8_t nia_preference_list[4];//INTEGRITY_ALGORITHM_ID_NR_ENUM
 }rrc_nr_cfg_t;

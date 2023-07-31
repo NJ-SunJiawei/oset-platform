@@ -41,6 +41,9 @@ oset_core_permanent_strdup
 oset_malloc
 oset_pkbuf_alloc
 
+OSET_MEM_STORE
+OSET_MEM_CLEAR
+oset_memdup
 
 oset_core_new_memory_pool
 oset_core_destroy_memory_pool

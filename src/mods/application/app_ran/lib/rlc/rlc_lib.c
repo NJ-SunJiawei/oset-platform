@@ -12,7 +12,7 @@
 #define OSET_LOG2_DOMAIN   "app-gnb-librlc"
 
 
-static void rlc_lib_write_pdu_suspended(rlc_common *rlc_entity, uint8_t* payload, uint32_t nof_bytes)
+static void rlc_lib_write_ul_pdu_suspended(rlc_common *rlc_entity, uint8_t* payload, uint32_t nof_bytes)
 {
   if (rlc_entity->suspended) {//suspended
 	rlc_common_queue_rx_pdu(rlc_entity, payload, nof_bytes);
@@ -31,6 +31,30 @@ rlc_common * rlc_valid_lcid(rlc_lib_t *rlc, uint32_t lcid)
   return rlc_array_find_by_lcid(rlc, lcid);
 }
 
+static void get_buffer_state(rlc_lib_t *rlc, uint32_t lcid, uint32_t *tx_queue, uint32_t *prio_tx_queue)
+{
+	//oset_apr_thread_rwlock_rdlock(rlc->rwlock);
+	rlc_common  *rlc_entity = rlc_valid_lcid(rlc, lcid);
+	if (rlc_entity) {
+		if (is_suspended(rlc_entity)) {
+			*tx_queue      = 0;
+			*prio_tx_queue = 0;
+		} else {
+			rlc_entity->func._get_buffer_state(rlc_entity, tx_queue, prio_tx_queue);
+		}
+	}
+	//oset_apr_thread_rwlock_unlock(rlc->rwlock);
+}
+
+
+static void rlc_lib_update_bsr(rlc_lib_t *rlc, uint32_t lcid)
+{
+	if (rlc->bsr_callback) {
+		uint32_t tx_queue = 0, prio_tx_queue = 0;
+		get_buffer_state(lcid, &tx_queue, &prio_tx_queue);
+	}
+}
+
 
 void rlc_reset_metrics(rlc_lib_t *rlc)
 {
@@ -41,11 +65,11 @@ void rlc_reset_metrics(rlc_lib_t *rlc)
 	    it->func._reset_metrics(it);
 	}
 
-	for (hi = oset_hash_first(rlc->rlc_array_mrb); hi; hi = oset_hash_next(hi)) {
-		uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
-		rlc_common  *it = oset_hash_this_val(hi);
-	    it->func._reset_metrics(it);
-	}
+	//for (hi = oset_hash_first(rlc->rlc_array_mrb); hi; hi = oset_hash_next(hi)) {
+	//	uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
+	//	rlc_common  *it = oset_hash_this_val(hi);
+	//    it->func._reset_metrics(it);
+	//}
 
 	rlc->metrics_tp = oset_micro_time_now();//oset_time_now()//???gnb_get_current_time();
 }
@@ -65,8 +89,6 @@ rlc_common *rlc_array_find_by_lcid(rlc_lib_t *rlc, uint32_t lcid)
 // Methods modifying the RLC array need to acquire the write-lock
 int rlc_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
 {
-  //oset_apr_thread_rwlock_wrlock(rlc->rwlock);
-  //oset_apr_thread_rwlock_unlock(rlc->rwlock);
   if (NULL != rlc_valid_lcid(rlc, lcid)) {
     oset_warn("LCID %d already exists", lcid);
     return OSET_ERROR;
@@ -147,8 +169,11 @@ static void rlc_lib_init2(rlc_lib_t *rlc, uint32_t lcid_)
 
 	rlc_config_t default_rlc_cfg = default_rlc_config();
 
+	//oset_apr_thread_rwlock_wrlock(rlc->rwlock);
 	// create default RLC_TM bearer for SRB0
 	rlc_add_bearer(rlc, rlc->default_lcid, &default_rlc_cfg);
+	//oset_apr_thread_rwlock_unlock(rlc->rwlock);
+
 }
 
 // BCCH、PCCH 和CCCH 只采用 TM 模式,DCCH 只可采用 AM 模式,而 DTCH 既可以采用 UM模式又可以采用 AM 模式,具体由高层的 RRC 配置
@@ -157,7 +182,7 @@ void rlc_lib_init(rlc_lib_t *rlc, uint32_t lcid_, bsr_callback_t bsr_callback_)
 	//oset_apr_thread_rwlock_create(&rlc->rwlock, rlc->usepool);
 	//oset_pool_init(&rlc->pool, static_pool_size);
 	rlc->rlc_array = oset_hash_make();
-	rlc->rlc_array_mrb = oset_hash_make();
+	//rlc->rlc_array_mrb = oset_hash_make();
 
 	rlc->bsr_callback = bsr_callback_;
 	rlc->metrics_tp = 0;
@@ -166,6 +191,7 @@ void rlc_lib_init(rlc_lib_t *rlc, uint32_t lcid_, bsr_callback_t bsr_callback_)
 
 void rlc_lib_stop(rlc_lib_t *rlc)
 {
+	//oset_apr_thread_rwlock_wrlock(rlc->rwlock);
 	oset_hash_index_t *hi = NULL;
 	for (hi = oset_hash_first(rlc->rlc_array); hi; hi = oset_hash_next(hi)) {
 		uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
@@ -173,16 +199,17 @@ void rlc_lib_stop(rlc_lib_t *rlc)
 		it->func._stop(it);
 	}
 
-	for (hi = oset_hash_first(rlc->rlc_array_mrb); hi; hi = oset_hash_next(hi)) {
-		uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
-		rlc_common  *it = oset_hash_this_val(hi);
-		it->func._stop(it);
-	}
+	//for (hi = oset_hash_first(rlc->rlc_array_mrb); hi; hi = oset_hash_next(hi)) {
+	//	uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
+	//	rlc_common  *it = oset_hash_this_val(hi);
+	//	it->func._stop(it);
+	//}
 
 	rlc->bsr_callback = NULL;
 	oset_hash_destroy(rlc->rlc_array);
-	oset_hash_destroy(rlc->rlc_array_mrb);
+	//oset_hash_destroy(rlc->rlc_array_mrb);
     //oset_pool_final(&rlc->pool);
+	//oset_apr_thread_rwlock_unlock(rlc->rwlock);
 	//oset_apr_thread_rwlock_destroy(rlc->rwlock);
 }
 
@@ -193,11 +220,30 @@ void rlc_lib_write_ul_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, uint3
 	rlc_common	*rlc_entity = rlc_valid_lcid(rlc, lcid);
 
 	if (NULL != rlc_entity) {
-		rlc_lib_write_pdu_suspended(rlc_entity, payload, nof_bytes);
-		rlc_lib_update_bsr(lcid);
+		rlc_lib_write_ul_pdu_suspended(rlc_entity, payload, nof_bytes);
+		rlc_lib_update_bsr(rlc, lcid);
 	} else {
 		oset_warn("LCID %d doesn't exist. Dropping PDU", lcid);
 	}
 }
 
+/*******************************************************************************
+  PDCP/rrc interface (called from Stack thread and therefore no lock required)
+*******************************************************************************/
+void rlc_lib_write_dl_sdu(rlc_lib_t *rlc, uint32_t lcid, byte_buffer_t *sdu)
+{
+  // TODO: rework build PDU logic to allow large SDUs (without concatenation)
+  if (sdu->N_bytes > RLC_MAX_SDU_SIZE) {
+    oset_warn("Dropping too long SDU of size %d B (Max. size %d B).", sdu->N_bytes, RLC_MAX_SDU_SIZE);
+    return;
+  }
+  rlc_common  *rlc_entity = rlc_valid_lcid(rlc, lcid);
+  
+  if (NULL != rlc_entity) {
+  	rlc_entity->func._write_dl_sdu(rlc_entity, sdu);
+    rlc_lib_update_bsr(rlc, lcid);
+  } else {
+    oset_warn("RLC LCID %d doesn't exist. Deallocating SDU", lcid);
+  }
+}
 

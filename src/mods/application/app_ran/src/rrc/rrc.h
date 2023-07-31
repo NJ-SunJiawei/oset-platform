@@ -40,7 +40,7 @@ typedef struct rrc_manager_s{
 
 	rrc_nr_cfg_t			  *cfg;
 	// interfaces
-	enb_bearer_manager        *bearer_mapper;
+	enb_bearer_manager        bearer_mapper;
 	// derived
 	uint32_t			      slot_dur_ms;
 	// vars

@@ -68,7 +68,7 @@ rlc_user_interface *rlc_user_interface_find_by_rnti(uint16_t rnti)
 
 // In the eNodeB, there is no polling for buffer state from the scheduler.
 // This function is called by UE RLC instance every time the tx/retx buffers are updated
-void rlc_update_bsr(uint32_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue)
+static void rlc_update_bsr(uint16_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t prio_tx_queue)
 {
 	oset_debug("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d, prio_tx_queue=%d", rnti, lcid, tx_queue, prio_tx_queue);
 	API_mac_rlc_buffer_state(rnti, lcid, tx_queue, prio_tx_queue);
@@ -143,24 +143,23 @@ void API_rlc_rrc_rem_user(uint16_t rnti)
 	rlc_rem_user(rnti);
 }
 
+// pdcp/rlc ====》gnb mac send downlink
 void API_rlc_rrc_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu)
 {
 	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
 	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
 	if (user) {
 		if (rnti != SRSRAN_MRNTI) {
-			users[rnti].rlc->write_sdu(lcid, std::move(sdu));
+			rlc_lib_write_dl_sdu(&user->rlc, lcid, sdu);
 		} else {
-			users[rnti].rlc->write_sdu_mch(lcid, std::move(sdu));
+			// todo
+			//rlc_lib_write_dl_sdu_mch;
 		}
 	}
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 }
 
-
-/*******************************************************************************
-MAC interface
-*******************************************************************************/
+// gnb mac《==== pdcp/rlc get downlink
 int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
 	int ret = OSET_ERROR;
@@ -182,7 +181,7 @@ int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_
 
 
 
-// gnb mac====》rlc uplink
+// gnb mac====》pdcp/rlc send uplink
 //--------------sdu-----------(服务数据)
 //--------------handle+-------
 //--------------pdu-----------(协议数据)

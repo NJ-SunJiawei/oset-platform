@@ -567,7 +567,7 @@ static void parse_srb(struct rlc_cfg_c* rlc_cfg)
 	dl_am_rlc.t_status_prohibit = (enum t_status_prohibit_opts)ms10;//ms10
 }
 
-static void parse_5qi(oset_list2_t     *five_qi_cfg_list)
+static void parse_5qi(oset_hash_t     *five_qi_cfg_map)
 {
     /********************7**************************/
 	rrc_nr_cfg_five_qi_t *five_qi_cfg1 = oset_core_alloc(gnb_manager_self()->app_pool, sizeof(rrc_nr_cfg_five_qi_t));
@@ -601,7 +601,8 @@ static void parse_5qi(oset_list2_t     *five_qi_cfg_list)
 	dl_um_cfg->sn_field_len_present = true;
 	dl_um_cfg->sn_field_len = (enum sn_field_len_um_opts)size12;//size12;
 	dl_um_cfg->t_reassembly = (enum t_reassembly_opts)ms50;//ms50
-	oset_list2_add(five_qi_cfg_list, five_qi_cfg1);
+	oset_hash_set(five_qi_cfg_map, &five_qi_cfg1->five_qi, sizeof(uint32_t), NULL);
+	oset_hash_set(five_qi_cfg_map, &five_qi_cfg1->five_qi, sizeof(uint32_t), five_qi_cfg1);
 
     /********************9**************************/
 	rrc_nr_cfg_five_qi_t *five_qi_cfg2 = oset_core_alloc(gnb_manager_self()->app_pool, sizeof(rrc_nr_cfg_five_qi_t));
@@ -639,7 +640,9 @@ static void parse_5qi(oset_list2_t     *five_qi_cfg_list)
 	dl_am_rlc->sn_field_len_present = true;
 	dl_am_rlc->t_reassembly = (enum t_reassembly_opts)ms50;//ms50
 	dl_am_rlc.t_status_prohibit = (enum t_status_prohibit_opts)ms50;//ms50
-	oset_list2_add(five_qi_cfg_list, five_qi_cfg2);
+	oset_hash_set(five_qi_cfg_map, &five_qi_cfg2->five_qi, sizeof(uint32_t), NULL);
+	oset_hash_set(five_qi_cfg_map, &five_qi_cfg2->five_qi, sizeof(uint32_t), five_qi_cfg2);
+
 }
 
 static int parse_rb(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_)
@@ -655,7 +658,7 @@ static int parse_rb(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_)
 	rrc_nr_cfg_->srb2_cfg.present = true;
 
     //five_qi_config
-	rrc_nr_cfg_->five_qi_cfg = oset_list2_create();
+	rrc_nr_cfg_->five_qi_cfg = oset_hash_make();
 	parse_5qi(rrc_nr_cfg_->five_qi_cfg);
    return OSET_OK; 
 }

@@ -66,5 +66,9 @@ void rlc_common_queue_rx_pdu(rlc_common *common, uint8_t* payload, uint32_t nof_
 	}
 }
 
+bool is_suspended(rlc_common *common)
+{
+	return common->suspended;
+}
 
 

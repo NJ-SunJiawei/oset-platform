@@ -52,9 +52,9 @@ typedef struct {
 
   // RRC configs for UEs
   struct cell_group_cfg_s              cell_group_cfg;
-  struct cell_group_cfg_s              next_cell_group_cfg;
+  //struct cell_group_cfg_s              next_cell_group_cfg;
   struct radio_bearer_cfg_s            radio_bearer_cfg;
-  struct radio_bearer_cfg_s            next_radio_bearer_cfg;
+  //struct radio_bearer_cfg_s            next_radio_bearer_cfg;
 
   cvector_vector_t(byte_buffer_t)      nas_pdu_queue;//std::vector<srsran::unique_byte_buffer_t>
 

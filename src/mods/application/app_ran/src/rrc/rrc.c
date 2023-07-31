@@ -289,12 +289,12 @@ int rrc_init(void)
 	rrc_config_phy(0); // if PHY is not yet initialized, config will be stored and applied on initialization
 	rrc_config_mac(0);
 
-	oset_info("Number of 5QI %d", rrc_manager.cfg->five_qi_cfg->count);
-	oset_lnode2_t *lnode = NULL;
-	oset_list2_for_each(rrc_manager.cfg->five_qi_cfg, lnode){
-		rrc_nr_cfg_five_qi_t* five_qi_cfg = (rrc_nr_cfg_five_qi_t*)lnode->data;
-		oset_info("5QI configuration. 5QI=%d", five_qi_cfg->five_qi);
-	}
+	oset_info("Number of 5QI %d", oset_hash_count(rrc_manager.cfg->five_qi_cfg));
+	oset_hash_index_t *hi = NULL;
+	for (hi = oset_hash_first(rrc_manager.cfg->five_qi_cfg); hi; hi = oset_hash_next(hi)) {
+		uint32_t five_qi = *(uint32_t *)oset_hash_this_key(hi);
+		oset_info("5QI configuration. 5QI=%d", five_qi);
+	}	
 
 	oset_info("NIA preference list: NIA%d, NIA%d, NIA%d",
 				rrc_manager.cfg.nia_preference_list[0],
