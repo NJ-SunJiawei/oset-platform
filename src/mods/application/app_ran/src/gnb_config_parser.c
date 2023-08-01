@@ -468,11 +468,11 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
 	switch (rrc_cfg_->antenna_info.tx_mode) {
 	  case tm1:
 	  case tm2:
-		rrc_cfg_->antenna_info.ue_tx_ant_sel.type = (enum setup_e)release;//release
+		rrc_cfg_->antenna_info.ue_tx_ant_sel.type = (enum setup_release_e)release;//release
 		rrc_cfg_->antenna_info.codebook_subset_restrict_present = false;
 		break;
 	  case tm3:
-		rrc_cfg_->antenna_info.ue_tx_ant_sel.type = (enum setup_e)setup;//setup
+		rrc_cfg_->antenna_info.ue_tx_ant_sel.type = (enum setup_release_e)setup;//setup
 		rrc_cfg_->antenna_info.ue_tx_ant_sel.c = (enum ue_tx_ant_sel_setup_opts)open_loop;//open_loop
 	
 		rrc_cfg_->antenna_info.codebook_subset_restrict_present = true;
@@ -480,7 +480,7 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
 		rrc_cfg_->antenna_info.codebook_subset_restrict.c = 0b11;
 		break;
 	  case tm4:
-		rrc_cfg_->antenna_info.ue_tx_ant_sel.type = (enum setup_e)setup;//setup
+		rrc_cfg_->antenna_info.ue_tx_ant_sel.type = (enum setup_release_e)setup;//setup
 		rrc_cfg_->antenna_info.ue_tx_ant_sel.c = (enum ue_tx_ant_sel_setup_opts)closed_loop;//closed_loop
 
 		rrc_cfg_->antenna_info.codebook_subset_restrict_present = true;
@@ -495,7 +495,7 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_nr_cfg_)
 	rrc_cfg_->pdsch_cfg = db_minus6; //args_->enb.p_a = 0
 
 	/* MAC config section */
-	rrc_cfg_->mac_cnfg.phr_cfg.types = (enum setup_e)release;//release // default is release if "phr_cnfg" is not found
+	rrc_cfg_->mac_cnfg.phr_cfg.types = (enum setup_release_e)release;//release // default is release if "phr_cnfg" is not found
 
 	rrc_cfg_->mac_cnfg.ul_sch_cfg.tti_bundling = false;
 	rrc_cfg_->mac_cnfg.ul_sch_cfg.max_harq_tx_present = true;

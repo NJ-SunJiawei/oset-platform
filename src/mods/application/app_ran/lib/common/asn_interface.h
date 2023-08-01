@@ -16,15 +16,12 @@
 extern "C" {
 #endif
 
-enum setup_release_e { release, setup, nulltype } ;
+enum setup_release_e {nothing, release, setup, nulltype } ;
 #define setup_release_c(T) \
 			struct { \
 				enum setup_release_e type_;\
 				T	  c;\
 			}
-
-enum setup_e { release, setup, nulltype };
-
 /**********************/
 enum reg_bundle_size_opts { n2, n3, n6, nulltype };
 enum interleaver_size_opts { n2, n3, n6, nulltype };
@@ -58,6 +55,7 @@ struct ctrl_res_set_s {
 };
 
 enum monitoring_slot_periodicity_and_offset_types_opts{
+  nothing,
   sl1,
   sl2,
   sl4,
@@ -156,7 +154,7 @@ struct ue_specific_s_ {
   // ...
 };
 
-enum search_space_types_opts { common, ue_specific, nulltype };
+enum search_space_types_opts {nothing, common, ue_specific, nulltype };
 struct search_space_type_c_ {
   enum search_space_types_opts types ;
   union{
@@ -296,7 +294,7 @@ struct srs_ul_cfg_common_lte_c {
 	enum srs_sf_cfg_opts srs_sf_cfg;
 	bool		  ack_nack_srs_simul_tx;
   }c;
-  enum setup_e		types;
+  enum setup_release_e		types;
 };
 
 /************/
@@ -460,7 +458,7 @@ struct phr_cfg_c_ {
 	enum prohibit_phr_timer_opts prohibit_phr_timer;
 	enum dl_pathloss_change_opts dl_pathloss_change;
   }c;
-  enum setup_e types;
+  enum setup_release_e types;
 };
 
 // TimeAlignmentTimer
@@ -1353,7 +1351,7 @@ struct codebook_subset_restrict_c_ {
 
 enum ue_tx_ant_sel_setup_opts { closed_loop, open_loop, nulltype };
 struct ue_tx_ant_sel_c_ {
-  enum setup_e    type;
+  enum setup_release_e    type;
   enum ue_tx_ant_sel_setup_opts    c;
 };
 
@@ -2428,8 +2426,9 @@ struct dynamic_bundling_s_ {
   enum bundle_size_set2_e_ bundle_size_set2;
 };
 
+enum prb_bundling_types { static_bundling, dynamic_bundling, nulltype };
 struct prb_bundling_type_c_ {
-  enum types { static_bundling, dynamic_bundling, nulltype }	type_;
+  enum prb_bundling_types type_;
   union {
 		 struct dynamic_bundling_s_ dynamic;
 		 struct static_bundling_s_ static;
@@ -2469,9 +2468,10 @@ struct dmrs_dl_cfg_s {
   setup_release_c(struct ptrs_dl_cfg_s)  phase_tracking_rs;
 };
 
-struct ref_sig_c_ {
-  enum types { csi_rs, ssb, nulltype }		type_;
-  int  c;//pod_choice_buffer_t
+enum qcl_ref_sig_types {nothing, csi_rs, ssb, nulltype };
+struct qcl_ref_sig_c_ {
+	enum qcl_ref_sig_types type_;
+ 	int  c;//pod_choice_buffer_t
 };
 
 enum qcl_type_e_{ type_a, type_b, type_c, type_d, nulltype };
@@ -2483,7 +2483,7 @@ struct qcl_info_s {
   bool        bwp_id_present;
   uint8_t     cell;
   uint8_t     bwp_id;
-  struct ref_sig_c_  ref_sig;
+  struct qcl_ref_sig_c_  ref_sig;
   enum qcl_type_e_   qcl_type;
 };
 
@@ -2510,7 +2510,7 @@ struct rate_match_pattern_group_item_c_ {
   void *c;//pod_choice_buffer_t
 };
 
-enum freq_domain_alloc_e_ { row1, row2, row4, other, nulltype };
+enum freq_domain_alloc_e_ {nothing, row1, row2, row4, other, nulltype };
 struct freq_domain_alloc_c_ {
   enum freq_domain_alloc_e_  type_;
   uint8_t c[2];//choice_buffer_t//fixed_bitstring<12>
@@ -2523,7 +2523,7 @@ struct freq_domain_alloc_c_ {
 enum nrof_ports_e_ { p1, p2, p4, p8, p12, p16, p24, p32, nulltype };
 enum cdm_type_e_ { no_cdm, fd_cdm2, cdm4_fd2_td2, cdm8_fd2_td4, nulltype };
 enum dot5_e_ { even_prbs, odd_prbs, nulltype };
-enum density_e_ { dot5, one, three, spare, nulltype };
+enum density_e_ { nothing, dot5, one, three, spare, nulltype };
 
 struct density_c_ {
   enum density_e_ type_;
@@ -2551,6 +2551,7 @@ struct csi_rs_res_map_s {
 };
 
 enum csi_res_periodicity_and_offset_type_e {
+  nothing,
   slots4,
   slots5,
   slots8,
@@ -2759,7 +2760,7 @@ struct pucch_format4_s {
   uint8_t    start_symbol_idx;
 };
 
-enum pucch_format_types { format0, format1, format2, format3, format4, nulltype };
+enum pucch_format_types {nothing, format0, format1, format2, format3, format4, nulltype };
 
 struct format_c_ {
   enum pucch_format_types type_;
@@ -2778,6 +2779,7 @@ struct pucch_res_s {
 };
 
 enum periodicity_and_offset_e_ {
+   nothing,
    sym2,
    sym6or7,
    sl1,
@@ -2916,7 +2918,6 @@ struct pucch_cfg_s {
 
 enum tx_cfg_e_ { codebook, non_codebook, nulltype };
 enum freq_hop_e_ { intra_slot, inter_slot, nulltype };
-enum res_alloc_e_ { res_alloc_type0, res_alloc_type1, dynamic_switch, nulltype };
 enum pusch_aggregation_factor_e_ { n2, n4, n8, nulltype };
 //enum mcs_table_e_ { qam256, qam64_low_se, nulltype };
 enum mcs_table_transform_precoder_e_ { qam256, qam64_low_se, nulltype };
@@ -2924,7 +2925,7 @@ enum transform_precoder_e_ { enabled, disabled, nulltype };
 enum codebook_subset_e_ { fully_and_partial_and_non_coherent, partial_and_non_coherent, non_coherent, nulltype };
 
 
-enum dmrs_add_position_e_ { pos0, pos1, pos3, nulltype };
+//enum dmrs_add_position_e_ { pos0, pos1, pos3, nulltype };
 struct transform_precoding_disabled_s_ {
   bool	   scrambling_id0_present;
   bool	   scrambling_id1_present;
@@ -3008,11 +3009,6 @@ struct p0_pusch_alpha_set_s {
   enum alpha_e alpha;
 };
 
-struct ref_sig_c_ {
-  enum types { ssb_idx, csi_rs_idx, nulltype } type_;
-  void	*c;//pod_choice_buffer_t
-};
-
 // PUSCH-PathlossReferenceRS ::= SEQUENCE
 struct pusch_pathloss_ref_rs_s {
   // member variables
@@ -3067,8 +3063,9 @@ struct beta_offsets_s {
   uint8_t beta_offset_csi_part2_idx2;
 };
 
+enum beta_offsets_types {nothing, dynamic_type, semi_static, nulltype };
 struct beta_offsets_c_ {
-  enum types { dynamic_type, semi_static, nulltype }	   type_;
+  enum beta_offsets_types 	 type_;
   union{
 		struct beta_offsets_s semi;
 		struct beta_offsets_s dynamic[4];//std::array<beta_offsets_s, 4>
@@ -3125,8 +3122,7 @@ struct pusch_cfg_s {
 
 enum freq_hop_e_ { intra_slot, inter_slot, nulltype };
 //enum mcs_table_e_ { qam256, qam64_low_se, nulltype };
-enum mcs_table_transform_precoder_e_ { qam256, qam64_low_se, nulltype };
-enum res_alloc_e_ { res_alloc_type0, res_alloc_type1, dynamic_switch, nulltype };
+//enum mcs_table_transform_precoder_e_ { qam256, qam64_low_se, nulltype };
 enum pwr_ctrl_loop_to_use_e_ { n0, n1, nulltype };
 enum transform_precoder_e_ { enabled, disabled, nulltype };
 enum rep_k_e_ { n1, n2, n4, n8, nulltype };
@@ -3358,11 +3354,6 @@ struct periodic_s_ {
 struct srs_s_ {
   uint8_t res_id;
   uint8_t ul_bwp;
-};
-
-struct ref_sig_c_ {
-  enum types { ssb_idx, csi_rs_idx, srs, nulltype }  type_;
-  struct srs_s_ c;//choice_buffer_t
 };
 
 // SRS-SpatialRelationInfo ::= SEQUENCE
@@ -3668,8 +3659,9 @@ struct pattern1_s_ {
   uint8_t					symbol_location_p1;
 };
 
+enum csi_im_res_elem_pattern_types {nothing, pattern0, pattern1, nulltype };
 struct csi_im_res_elem_pattern_c_ {
-  enum types { pattern0, pattern1, nulltype } type_;
+  enum csi_im_res_elem_pattern_types type_;
   union{
   	    struct pattern0_s_ pattern0;
 		struct pattern1_s_ pattern1;
@@ -3711,7 +3703,7 @@ struct nzp_csi_rs_ssb_s_ {
 };
 
 struct csi_rs_res_set_list_c_ {
-  enum types { nzp_csi_rs_ssb, csi_im_res_set_list, nulltype } type_;
+  enum types {nothing ,nzp_csi_rs_ssb, csi_im_res_set_list, nulltype } type_;
   union{
 		  cvector_vector_t(uint8_t) csi_im_res_set_list;//bounded_array<uint8_t, 16>
 		  struct nzp_csi_rs_ssb_s_ nzp_csi_rs_ssb;
@@ -3736,6 +3728,7 @@ struct pucch_csi_res_s {
 };
 
   enum csi_report_periodicity_and_offset_e_ {
+  nothing,
   slots4,
   slots5,
   slots8,
@@ -3779,7 +3772,7 @@ struct aperiodic_s_ {
   cvector_vector_t(uint8_t)   report_slot_offset_list;//bounded_array<uint8_t, 16>
 };
 
-enum report_cfg_type_e_ { periodic, semi_persistent_on_pucch, semi_persistent_on_pusch, aperiodic, nulltype };
+enum report_cfg_type_e_ {nothing, periodic, semi_persistent_on_pucch, semi_persistent_on_pusch, aperiodic, nulltype };
 
 struct report_cfg_type_c_ {
   enum report_cfg_type_e_ type_;
@@ -3799,6 +3792,7 @@ struct cri_ri_i1_cqi_s_ {
 };
 
 enum report_quant_e_ {
+	nothing,
 	none,
 	cri_ri_pmi_cqi,
 	cri_ri_i1,
@@ -3862,8 +3856,9 @@ struct disabled_s_ {
   enum nrof_reported_rs_e_ nrof_reported_rs;
 };
 
+enum group_based_beam_report_types {nothing, enabled, disabled, nulltype };
 struct group_based_beam_report_c_ {
-  enum types { enabled, disabled, nulltype }	 type_;
+  enum group_based_beam_report_types type_;
   struct disabled_s_ c;
 };
 
@@ -3952,8 +3947,9 @@ struct more_than_two_s_ {
   uint8_t             type_i_single_panel_codebook_subset_restrict_i2[2];//fixed_bitstring<16>
 };
 
+enum nr_of_ant_ports_types {nothing, two, more_than_two, nulltype };
 struct nr_of_ant_ports_c_ {
-  enum types { two, more_than_two, nulltype }	  type_;
+  enum nr_of_ant_ports_types 	  type_;
   union{struct more_than_two_s_ more_than_two; struct two_s_ two;}c;//choice_buffer_t
 };
 
@@ -3984,10 +3980,13 @@ struct type_i_multi_panel_s_ {
   uint8_t	   ri_restrict;//fixed_bitstring<4>
 };
 
+
+enum sub_types {nothing, type_i_single_panel, type_i_multi_panel, nulltype };
+
 struct type1_s_ {
   // member variables
   struct sub_type_c_ {
-	  enum types { type_i_single_panel, type_i_multi_panel, nulltype }		  type_;
+	  enum sub_types type_;
 	  union{struct type_i_multi_panel_s_ type_i_multi_panel; struct type_i_single_panel_s_ type_i_single_panel;} c;//choice_buffer_t
   } sub_type;
   uint8_t	  codebook_mode;//1
@@ -4041,8 +4040,10 @@ struct type2_s_ {
   enum nof_beams_e_			 nof_beams;
 };
 
+enum codebook_types {nothing, type1, type2, nulltype };
+
 struct codebook_type_c_ {
-  enum types { type1, type2, nulltype }   type_;
+  enum codebook_types type_;
   union{struct type1_s_ type1; struct type2_s_ type2;} c;//choice_buffer_t
 };
 
@@ -4117,6 +4118,8 @@ struct csi_semi_persistent_on_pusch_trigger_state_s {
 
 // CSI-MeasConfig ::= SEQUENCE
 struct csi_meas_cfg_s {
+  int	                                duplex_mode;
+
   // member variables
   bool                                  report_trigger_size_present;
   bool                                  aperiodic_trigger_state_list_present;
@@ -4163,6 +4166,7 @@ enum pathloss_ref_linking_e_ { sp_cell, scell, nulltype };
 
 // ServingCellConfig ::= SEQUENCE
 struct serving_cell_cfg_s {
+  int                                       duplex_mode;
   // member variables
   bool                                      tdd_ul_dl_cfg_ded_present;
   bool                                      init_dl_bwp_present;
@@ -5087,9 +5091,9 @@ struct cell_group_cfg_s {
   uint8_t                       cell_group_id;
   cvector_vector_t(struct rlc_bearer_cfg_s) rlc_bearer_to_add_mod_list;//dyn_array<rlc_bearer_cfg_s>
   cvector_vector_t(uint8_t)       rlc_bearer_to_release_list;//bounded_array<uint8_t, 32>
-  mac_cell_group_cfg_s          mac_cell_group_cfg;
-  phys_cell_group_cfg_s         phys_cell_group_cfg;
-  sp_cell_cfg_s                 sp_cell_cfg;
+  struct mac_cell_group_cfg_s     mac_cell_group_cfg;
+  struct phys_cell_group_cfg_s    phys_cell_group_cfg;
+  struct sp_cell_cfg_s            sp_cell_cfg;
   cvector_vector_t(struct scell_cfg_s)      scell_to_add_mod_list;//dyn_array<scell_cfg_s>
   cvector_vector_t(uint8_t)       scell_to_release_list;//bounded_array<uint8_t, 31>
 };

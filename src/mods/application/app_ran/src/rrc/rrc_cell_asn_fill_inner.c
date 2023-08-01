@@ -1255,6 +1255,7 @@ void fill_drb_inner(rrc_nr_cfg_five_qi_t *cfg_five_qi, radio_bearer_t *rb, nr_dr
 void fill_csi_resource_cfg_to_add_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, struct csi_meas_cfg_s *csi_meas_cfg)
 {
 	if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
+		csi_meas_cfg->duplex_mode = SRSRAN_DUPLEX_MODE_FDD;
 		cvector_reserve(csi_meas_cfg->csi_res_cfg_to_add_mod_list, 3);
 		cvector_set_size(csi_meas_cfg->csi_res_cfg_to_add_mod_list, 3);
 
@@ -1297,7 +1298,7 @@ void fill_nzp_csi_rs_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *ce
 			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].res_map.nrof_ports                 = (enum nrof_ports_e_)p1;
 			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].res_map.first_ofdm_symbol_in_time_domain = 4;
 			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].res_map.cdm_type                   = (enum cdm_type_e_)no_cdm;
-			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].res_map.density.type_          = 1;//one
+			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].res_map.density.type_          = (enum density_e_)one;//one
 			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].res_map.freq_band.start_rb     = 0;
 			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].res_map.freq_band.nrof_rbs     = cell_cfg->phy_cell.carrier.nof_prb;//52
 			csi_meas_cfg->nzp_csi_rs_res_to_add_mod_list[0].pwr_ctrl_offset                = 0;
@@ -1459,7 +1460,7 @@ void fill_csi_im_resource_cfg_to_add_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t 
 		csi_meas_cfg->csi_im_res_to_add_mod_list[0].csi_im_res_id                   = 0;
 		csi_meas_cfg->csi_im_res_to_add_mod_list[0].csi_im_res_elem_pattern_present = true;
 		// csi-im-resource pattern1
-		csi_meas_cfg->csi_im_res_to_add_mod_list[0].csi_im_res_elem_pattern.type_ = 1;//pattern1
+		csi_meas_cfg->csi_im_res_to_add_mod_list[0].csi_im_res_elem_pattern.type_ = (enum csi_im_res_elem_pattern_types)pattern1;//pattern1
 		struct pattern1_s_ *csi_res_pattern1 = &csi_meas_cfg->csi_im_res_to_add_mod_list[0].csi_im_res_elem_pattern.c.pattern1;
 		csi_res_pattern1->subcarrier_location_p1 = (enum subcarrier_location_p1_e_)s8;
 		csi_res_pattern1->symbol_location_p1 = 8;
@@ -1510,16 +1511,16 @@ int fill_csi_report_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
 		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].report_freq_cfg.pmi_format_ind = (enum pmi_format_ind_e_)wideband_pmi;
 		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].time_restrict_for_ch_meass = (enum time_restrict_for_ch_meass_e_)not_cfgured;
 		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].time_restrict_for_interference_meass = (enum time_restrict_for_interference_meass_e_)not_cfgured;
-		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].codebook_cfg_present = true;
-		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].codebook_cfg.codebook_type.type_ = 0;//type1
 
+		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].codebook_cfg_present = true;
+		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].codebook_cfg.codebook_type.type_ = (enum codebook_types)type1;//type1
 		struct type1_s_ *type1 = csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].codebook_cfg.codebook_type.c.type1;
-		type1->sub_type.type_ = 0;//type_i_single_panel
-		type1->sub_type.c.type_i_single_panel.nr_of_ant_ports.type_ = 0;//two
+		type1->sub_type.type_ = (enum sub_types)type_i_single_panel;//type_i_single_panel
+		type1->sub_type.c.type_i_single_panel.nr_of_ant_ports.type_ = (enum nr_of_ant_ports_types)two;//two
 		bitstring_from_number(&type1->sub_type.c.type_i_single_panel.nr_of_ant_ports.c.two.two_tx_codebook_subset_restrict, 0b111111, 6);
 		bitstring_from_number(&type1->sub_type.c.type_i_single_panel.type_i_single_panel_ri_restrict, 0x03, 8);
 		type1->codebook_mode = 1;
-		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].group_based_beam_report.type_ = 1;//disabled
+		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].group_based_beam_report.type_ = (enum group_based_beam_report_types)disabled;//disabled
 		// Skip CQI table (optional)
 		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].cqi_table_present = true;
 		csi_meas_cfg->csi_report_cfg_to_add_mod_list[0].cqi_table         = (enum cqi_table_e_)table1;
@@ -1560,7 +1561,7 @@ int fill_csi_meas_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_
   return OSET_OK;
 }
 
-void fill_pdsch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, pdsch_cfg_s *out)
+void fill_pdsch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cell_cfg, struct pdsch_cfg_s *out)
 {
   out->dmrs_dl_for_pdsch_map_type_a_present = true;
   out->dmrs_dl_for_pdsch_map_type_a.type_ = setup;
@@ -1570,32 +1571,33 @@ void fill_pdsch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
   cvector_reserve(out->tci_states_to_add_mod_list, 1);
   cvector_set_size(out->tci_states_to_add_mod_list, 1);
   out->tci_states_to_add_mod_list[0].tci_state_id = 0;
-  out->tci_states_to_add_mod_list[0].qcl_type1.ref_sig.type_ = 1;//ssb
+  out->tci_states_to_add_mod_list[0].qcl_type1.ref_sig.type_ = (enum qcl_ref_sig_types)ssb;//ssb
   out->tci_states_to_add_mod_list[0].qcl_type1.ref_sig.c = 0;
   out->tci_states_to_add_mod_list[0].qcl_type1.qcl_type  = (enum qcl_type_e_)type_d;
 
   out->res_alloc = (enum res_alloc_e_)res_alloc_type1;
   out->rbg_size  = (enum rbg_size_e_)cfg1;
-  out->prb_bundling_type.type_ = 0;//static_bundling
+
+  out->prb_bundling_type.type_ = (enum prb_bundling_types)static_bundling;//static_bundling
   out->prb_bundling_type.c.static.bundle_size_present = true;
   out->prb_bundling_type.c.static.bundle_size = (enum bundle_size_e_)wideband;
 
   // MCS Table
   // NOTE: For Table 1 or QAM64, set false and comment value
-  // out->mcs_table_present = true;
-  // out->mcs_table = qam256;
+  out->mcs_table_present = false;
+  out->mcs_table = (enum mcs_table_e_)qam256;
 
   // ZP-CSI
   cvector_reserve(out->zp_csi_rs_res_to_add_mod_list, 1);
   cvector_set_size(out->zp_csi_rs_res_to_add_mod_list, 1);
   out->zp_csi_rs_res_to_add_mod_list[0].zp_csi_rs_res_id = 0;
-  out->zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.type_ = 2;//row4
+  out->zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.type_ = (enum freq_domain_alloc_e_)row4;
   bitstring_from_number(&out->zp_csi_rs_res_to_add_mod_list[0].res_map.freq_domain_alloc.c, 0b100, 12);
   out->zp_csi_rs_res_to_add_mod_list[0].res_map.nrof_ports = (enum nrof_ports_e_)p4;
 
   out->zp_csi_rs_res_to_add_mod_list[0].res_map.first_ofdm_symbol_in_time_domain = 8;
   out->zp_csi_rs_res_to_add_mod_list[0].res_map.cdm_type = (enum cdm_type_e_)fd_cdm2;
-  out->zp_csi_rs_res_to_add_mod_list[0].res_map.density.type_ = 1;//one
+  out->zp_csi_rs_res_to_add_mod_list[0].res_map.density.type_ = (enum density_e_)one;
 
   out->zp_csi_rs_res_to_add_mod_list[0].res_map.freq_band.start_rb     = 0;
   out->zp_csi_rs_res_to_add_mod_list[0].res_map.freq_band.nrof_rbs     = cell_cfg->phy_cell.carrier.nof_prb;
@@ -1659,7 +1661,7 @@ void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
       out->res_to_add_mod_list[i].start_prb                         = cell_cfg->phy_cell.carrier.nof_prb - 1;//51
       out->res_to_add_mod_list[i].second_hop_prb_present            = true;
       out->res_to_add_mod_list[i].second_hop_prb                    = 0;
-	  out->res_to_add_mod_list[i].format.type_                      = 1;//format1
+	  out->res_to_add_mod_list[i].format.type_                      = (enum pucch_format_types)format1;
       out->res_to_add_mod_list[i].format.c.f1.init_cyclic_shift     = (4 * (j % 3));
       out->res_to_add_mod_list[i].format.c.f1.nrof_symbols          = 14;
       out->res_to_add_mod_list[i].format.c.f1.start_symbol_idx      = 0;
@@ -1669,7 +1671,7 @@ void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
       out->res_to_add_mod_list[i].start_prb                         = 1;
       out->res_to_add_mod_list[i].second_hop_prb_present            = true;
       out->res_to_add_mod_list[i].second_hop_prb                    = cell_cfg->phy_cell.carrier.nof_prb-2;//50
-      out->res_to_add_mod_list[i].format.type_                      = 2;//format2
+      out->res_to_add_mod_list[i].format.type_                      = (enum pucch_format_types)format2;
       out->res_to_add_mod_list[i].format.c.f2.nrof_prbs             = 1;
       out->res_to_add_mod_list[i].format.c.f2.nrof_symbols          = 2;
       out->res_to_add_mod_list[i].format.c.f2.start_symbol_idx      = 2 * (j2 % 7);
@@ -1678,7 +1680,7 @@ void fill_pucch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
       out->res_to_add_mod_list[i].start_prb                         = cell_cfg->phy_cell.carrier.nof_prb -2;//50
       out->res_to_add_mod_list[i].second_hop_prb_present            = true;
       out->res_to_add_mod_list[i].second_hop_prb                    = 1;
-      out->res_to_add_mod_list[i].format.type_                      = 2;//format2
+      out->res_to_add_mod_list[i].format.type_                      = (enum pucch_format_types)format2;
       out->res_to_add_mod_list[i].format.c.f2.nrof_prbs             = 1;
       out->res_to_add_mod_list[i].format.c.f2.nrof_symbols          = 2;
       out->res_to_add_mod_list[i].format.c.f2.start_symbol_idx      = 2 * (j2 % 7);
@@ -1739,8 +1741,7 @@ void fill_pusch_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, rrc_cell_cfg_nr_t *cel
   out->uci_on_pusch_present = true;
   out->uci_on_pusch.type_   = setup;
   out->uci_on_pusch.c.beta_offsets_present = true;
-  out->uci_on_pusch.c.beta_offsets.set_semi_static();
-  out->uci_on_pusch.c.beta_offsets.type_ = 1;//semi_static
+  out->uci_on_pusch.c.beta_offsets.type_ = (enum beta_offsets_types)semi_static;//semi_static
   struct beta_offsets_s *beta_offset_semi_static   = &out->uci_on_pusch.c.beta_offsets.c.semi;
   beta_offset_semi_static->beta_offset_ack_idx1_present       = true;
   beta_offset_semi_static->beta_offset_ack_idx1               = 9;
@@ -1793,6 +1794,7 @@ int fill_serv_cell_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, struct ser
 	fill_init_dl_bwp_from_enb_cfg_inner(cfg, cell_cfg, &serv_cell->init_dl_bwp);
 
 	serv_cell->first_active_dl_bwp_id_present = true;
+	serv_cell->duplex_mode = cell_cfg->duplex_mode;
 	if (cell_cfg->duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
 		serv_cell->first_active_dl_bwp_id = 0;
 	} else {
@@ -1943,6 +1945,47 @@ int fill_master_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, stru
   return OSET_OK;
 }
 
+int fill_cellgroup_with_radio_bearer_cfg_inner(rrc_nr_cfg_t *              cfg,
+                                         uint32_t                  rnti,
+                                         enb_bearer_manager        *bearer_mapper,
+                                         struct radio_bearer_cfg_s *bearers,
+                                         struct cell_group_cfg_s   *out)
+{
+	cvector_clear(out->rlc_bearer_to_add_mod_list);
+	cvector_clear(out->rlc_bearer_to_release_list);
+
+	struct srb_to_add_mod_s *srb = NULL;
+	cvector_for_each_in(srb, bearers->srb_to_add_mod_list){
+		// Add SRBs
+		struct rlc_bearer_cfg_s bearer_to_add_out= {0};
+		fill_srb_inner(cfg, srb->srb_id, &bearer_to_add_out);
+		cvector_push_back(out->rlc_bearer_to_add_mod_list, bearer_to_add_out);
+	}
+	// Add DRBs
+	struct drb_to_add_mod_s *drb = NULL;
+	cvector_for_each_in(drb, bearers->drb_to_add_mod_list){
+		struct rlc_bearer_cfg_s drb_to_add_out= {0};
+		uint32_t lcid        = drb->drb_id + (nr_srb)count - 1;
+		radio_bearer_t *rb   = get_lcid_bearer(bearer_mapper, rnti, lcid);
+		rrc_nr_cfg_five_qi_t *cfg_five_qi = oset_hash_get(cfg->five_qi_cfg, rb->five_qi, sizeof(uint32_t));
+		if (is_valid(rb) && NULL != cfg_five_qi) {
+	  		fill_drb_inner(cfg_five_qi, rb, (nr_drb)drb->drb_id, &drb_to_add_out);
+		} else {
+	 		return OSET_ERROR;
+		}
+		cvector_push_back(out->rlc_bearer_to_add_mod_list, drb_to_add_out);
+	}
+
+	// Release DRBs
+	uint8_t *drb_id = NULL;
+	cvector_for_each_in(drb_id, bearers->drb_to_release_list){
+		cvector_push_back(out->rlc_bearer_to_release_list, *drb_id)
+	}
+
+	return OSET_OK;
+}
+
+
 void free_sib1_dyn_arrary(struct sib1_s *sib1)
 {
 	//release plmn_id_list
@@ -2065,47 +2108,6 @@ int fill_mib_from_enb_cfg_inner(rrc_cell_cfg_nr_t *cell_cfg, struct mib_s *mib)
 	mib->cell_barred                      = (enum cell_barred_e_)not_barred;
 	mib->intra_freq_resel                 = (enum intra_freq_resel_e_)allowed;
 	bitstring_from_number(&mib->spare, 0, 1);
-	return OSET_OK;
-}
-
-
-int fill_cellgroup_with_radio_bearer_cfg_inner(rrc_nr_cfg_t *              cfg,
-                                         uint32_t                  rnti,
-                                         enb_bearer_manager        *bearer_mapper,
-                                         struct radio_bearer_cfg_s *bearers,
-                                         struct cell_group_cfg_s   *out)
-{
-	cvector_clear(out->rlc_bearer_to_add_mod_list);
-	cvector_clear(out->rlc_bearer_to_release_list);
-
-	struct srb_to_add_mod_s *srb = NULL;
-	cvector_for_each_in(srb, bearers->srb_to_add_mod_list){
-		// Add SRBs
-		struct rlc_bearer_cfg_s bearer_to_add_out= {0};
-		fill_srb_inner(cfg, srb->srb_id, &bearer_to_add_out);
-		cvector_push_back(out->rlc_bearer_to_add_mod_list, bearer_to_add_out);
-	}
-	// Add DRBs
-	struct drb_to_add_mod_s *drb = NULL;
-	cvector_for_each_in(drb, bearers->drb_to_add_mod_list){
-		struct rlc_bearer_cfg_s drb_to_add_out= {0};
-		uint32_t lcid        = drb->drb_id + (nr_srb)count - 1;
-		radio_bearer_t *rb   = get_lcid_bearer(bearer_mapper, rnti, lcid);
-		rrc_nr_cfg_five_qi_t *cfg_five_qi = oset_hash_get(cfg->five_qi_cfg, rb->five_qi, sizeof(uint32_t));
-		if (is_valid(rb) && NULL != cfg_five_qi) {
-	  		fill_drb_inner(cfg_five_qi, rb, (nr_drb)drb.drb_id, &drb_to_add_out);
-		} else {
-	 		return OSET_ERROR;
-		}
-		cvector_push_back(out->rlc_bearer_to_add_mod_list, drb_to_add_out);
-	}
-
-	// Release DRBs
-	uint8_t *drb_id = NULL;
-	cvector_for_each_in(drb_id, bearers->drb_to_release_list){
-		cvector_push_back(out->rlc_bearer_to_release_list, *drb_id)
-	}
-
 	return OSET_OK;
 }
 
