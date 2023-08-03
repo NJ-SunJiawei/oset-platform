@@ -438,7 +438,7 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 
 	bwp_slot_grid *bwp_pdcch_slot = get_slot_grid(bwp_alloc, slot_u->pdcch_slot);
 	bwp_slot_grid *bwp_pdsch_slot = get_slot_grid(bwp_alloc, slot_u->pdsch_slot);
-	bwp_slot_grid *bwp_uci_slot   = get_slot_grid(bwp_alloc, slot_u->uci_slot);//k1
+	bwp_slot_grid *bwp_uci_slot   = get_slot_grid(bwp_alloc, slot_u->uci_slot);//k1 ack
 	// UCI(Uplink Control Information)是由PUCCH承载的上行控制信息；与DCI不同,UCI可以根据情况由PUCCH或PUSCH承载，而DCI只能由PDCCH承载。
 
 	// Verify there is space in PDSCH//确认是否有空间
@@ -480,9 +480,9 @@ alloc_result bwp_slot_allocator_alloc_pdsch(bwp_slot_allocator *bwp_alloc,
 	pdcch->dci_cfg 		   = ue_carrier_params_get_dci_cfg(&slot_u->ue->bwp_cfg);
 	pdcch->dci.pucch_resource = 0;//PUCCH resource indicator //??? todo不同的ue分配的应该不一样，时频区分
 	// 参考oran： reserve_next_harq_res_available函数
-
 	// 公共PUCCH：PUCCH resource indicator计算rPUCCH, 用来计算uci频域信息
 	// 专用PUCCH：通过Ouci确定resourceSET,PUCCH resource indicator选择SET中资源resource
+
 	harq_ack_t *p = NULL;
 	cvector_for_each_in(p, bwp_uci_slot->pending_acks){
 		if(p->res.rnti == slot_u->ue->rnti){

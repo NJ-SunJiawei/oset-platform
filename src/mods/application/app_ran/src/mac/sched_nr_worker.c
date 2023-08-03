@@ -238,7 +238,7 @@ static void cc_worker_postprocess_decisions(cc_worker *cc_w, bwp_slot_allocator 
 	bwp_slot_grid *bwp_slot = get_slot_grid(bwp_alloc, sl_point);
 	slot_cfg.idx = count_idx(&sl_point);
 
-	// 下行tx = rx + delay调度时刻,上行方向pucch/pusch承载uci在work_dl预处理并记录(uci在tx-k1时刻预授权 pusch在tx-k2时刻预授权)
+	// 下行tx(rx + delay)调度时刻,上行方向pucch/pusch承载uci在work_dl预处理并记录(uci在tx-k1时刻预授权 pusch在tx-k2时刻预授权)
 
 	// 当上行到达tx调度时刻, work_ul通过预处理配置开始正式处理ul信息
 	slot_ue **ue_pair = NULL;

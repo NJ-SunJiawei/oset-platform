@@ -687,12 +687,12 @@ static int derive_phy_cell_freq_params(band_helper_t *band_helper, uint32_t dl_a
 }
 
 static int derive_ssb_params(bool                        is_sa,
-                      uint32_t                    dl_arfcn,
-                      uint32_t                    band,
-                      srsran_subcarrier_spacing_t pdcch_scs,
-                      uint32_t                    coreset0_idx,
-                      uint32_t                    nof_prb,
-                      rrc_cell_cfg_nr_t           *cell)
+		                      uint32_t                    dl_arfcn,
+		                      uint32_t                    band,
+		                      srsran_subcarrier_spacing_t pdcch_scs,
+		                      uint32_t                    coreset0_idx,
+		                      uint32_t                    nof_prb,
+		                      rrc_cell_cfg_nr_t           *cell)
 {
   // Verify essential parameters are specified and valid
   ERROR_IF_NOT(dl_arfcn > 0, "Invalid DL ARFCN=%d", dl_arfcn);
@@ -805,8 +805,8 @@ static int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t *cell)
   if (cell->ul_arfcn == 0) {
     // derive UL ARFCN from given DL ARFCN
     // 中心频点
-    cell->ul_arfcn = get_ul_arfcn_from_dl_arfcn_2c(band_helper, cell.dl_arfcn);
-    ERROR_IF_NOT(cell->ul_arfcn > 0, "Can't derive UL ARFCN from DL ARFCN %d", cell.dl_arfcn);
+    cell->ul_arfcn = get_ul_arfcn_from_dl_arfcn_2c(band_helper, cell->dl_arfcn);
+    ERROR_IF_NOT(cell->ul_arfcn > 0, "Can't derive UL ARFCN from DL ARFCN %d", cell->dl_arfcn);
   }
 
   // duplex mode

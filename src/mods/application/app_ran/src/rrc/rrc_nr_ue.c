@@ -190,6 +190,13 @@ void rrc_nr_ue_remove(rrc_nr_ue *ue)
 	cvector_free(ue->uecfg.lc_ch_to_add);
 	cvector_free(ue->uecfg.lc_ch_to_rem);
 
+	cvector_free(ue->radio_bearer_cfg.srb_to_add_mod_list);
+	cvector_free(ue->radio_bearer_cfg.drb_to_add_mod_list);
+	cvector_free(ue->radio_bearer_cfg.drb_to_release_list);
+
+	cvector_free(ue->cell_group_cfg.rlc_bearer_to_add_mod_list);
+	cvector_free(ue->cell_group_cfg.rlc_bearer_to_release_list);
+
     oset_list_remove(&rrc_manager_self()->rrc_ue_list, ue);
     oset_hash_set(rrc_manager_self()->users, &ue->rnti, sizeof(ue->rnti), NULL);
 	oset_core_destroy_memory_pool(&ue->usepool);
@@ -325,22 +332,15 @@ void rrc_nr_ue_send_rrc_setup(rrc_nr_ue *ue)
 	asn1cSequenceAdd(rrcsetup_ies->radioBearerConfig.srb_ToAddModList->list, struct ASN_RRC_SRB_ToAddMod, SRB1_config);	
 	SRB1_config->srb_Identity = ue->next_radio_bearer_cfg.srb_to_add_mod_list[0].srb_id;
 
+	// masterCellGroup
+	ASN_RRC_CellGroupConfig masterCellGroup = {0};
+	fill_master_cell_cfg(&ue->cell_group_cfg, &masterCellGroup);
+	byte_buffer_t *pdu = oset_rrc_encode2(&asn_DEF_ASN_RRC_CellGroupConfig, &masterCellGroup, asn_struct_free_context);
+	ASSERT_IF_NOT(pdu, "masterCellGroup encode failed!");
 
-
-
-	// - Pack masterCellGroup into container
-	srsran::unique_byte_buffer_t pdu = parent->pack_into_pdu(cell_group_cfg, __FUNCTION__);
-	if (pdu == NULL) {
-		rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
-		return;
-	}
-	setup_ies.master_cell_group.resize(pdu->N_bytes);
-	memcpy(setup_ies.master_cell_group.data(), pdu->data(), pdu->N_bytes);
-	if (logger.debug.enabled()) {
-		asn1::json_writer js;
-		next_cell_group_cfg.to_json(js);
-		logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
-	}
+    rrcsetup_ies->masterCellGroup.buf = CALLOC(pdu->N_bytes);
+    memcpy(rrcsetup_ies->masterCellGroup.buf, pdu->msg, pdu->N_bytes);
+    rrcsetup_ies->masterCellGroup.size = pdu->N_bytes;
 
 	// add RLC bearers
 	update_rlc_bearers(ue->cell_group_cfg);
@@ -357,6 +357,8 @@ void rrc_nr_ue_send_rrc_setup(rrc_nr_ue *ue)
 	if (send_dl_ccch(msg) != OSET_OK) {
 		rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
 	}
+
+	oset_free(pdu);
 }
 
 /*******************************************************************************

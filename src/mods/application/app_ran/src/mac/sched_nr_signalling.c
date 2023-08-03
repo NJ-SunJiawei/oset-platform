@@ -152,7 +152,7 @@ static void sched_ssb_basic(slot_point sl_point,
 	// 在每个周期内，多个SSB块被限制在某一个5ms的半帧内
 	// PBCH的信道编码采用Polar码,调制采用QPSK调制
 	// PBCH上承载着MIB消息，物理信道PBCH上的内容包括23bit MIB+8 bit additional PBCH payload,加上CRC一共56bit
-	// SFN低4位在additional PBCH payload,    SFN的高6位在MIB中（所以MIB数据80ms改变一次）
+	// SFN低4位在additional PBCH payload,    SFN的高6位在MIB中（所以MIB数据80ms/160ms改变一次）
 	if (sl_point_mod == 0) {
 		ssb_t           ssb_msg = {0};
 		srsran_mib_nr_t mib_msg = *mib;

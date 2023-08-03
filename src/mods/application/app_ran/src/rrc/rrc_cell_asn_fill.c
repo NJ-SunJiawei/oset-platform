@@ -1058,7 +1058,6 @@ int fill_sp_cell_cfg(struct sp_cell_cfg_s *sp_cell_cfg, ASN_RRC_SpCellConfig_t *
 /// Fill MasterCellConfig with gNB config
 int fill_master_cell_cfg(struct cell_group_cfg_s *cell_group_cfg, ASN_RRC_CellGroupConfig_t *out)
 {
-	out =  CALLOC(1,sizeof(ASN_RRC_CellGroupConfig_t));
 	out->cellGroupId = 0;
 
 	out->rlc_BearerToReleaseList = NULL;
