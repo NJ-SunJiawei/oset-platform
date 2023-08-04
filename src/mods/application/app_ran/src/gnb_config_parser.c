@@ -705,7 +705,7 @@ static int derive_ssb_params(bool                        is_sa,
 
   // 下行中心频率
   double   dl_freq_hz               = nr_arfcn_to_freq_2c(band_helper, dl_arfcn);
-  // 下行pointA
+  // 下行pointA中心频点
   uint32_t dl_absolute_freq_point_a = get_abs_freq_point_a_arfcn_2c(band_helper, nof_prb, dl_arfcn);
 
   // derive SSB pattern and scs
@@ -830,6 +830,7 @@ static int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t *cell)
                                  cell->phy_cell.carrier.nof_prb,
                                  cell) == 0, OSET_ERROR);
 
+  //// ssb中心频率
   cell->phy_cell.carrier.ssb_center_freq_hz = cell->ssb_freq_hz;
 
   // Derive remaining config params

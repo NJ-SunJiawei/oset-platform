@@ -33,7 +33,7 @@ typedef struct rrc_cell_cfg_nr_s{
   uint32_t                         num_ra_preambles;
   uint32_t                         coreset0_idx; // Table 13-{1,...15} row index
   srsran_duplex_mode_t             duplex_mode;
-  double                           ssb_freq_hz;
+  double                           ssb_freq_hz; //// ssb中心频率
   uint32_t                         ssb_absolute_freq_point; // derived from DL ARFCN (SSB arfcn)
   uint32_t                         ssb_offset;
   srsran_subcarrier_spacing_t      ssb_scs;
