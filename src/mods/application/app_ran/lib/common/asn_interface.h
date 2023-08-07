@@ -5053,8 +5053,11 @@ struct lc_ch_cfg_s {
   struct ul_specific_params_s_ ul_specific_params;
 };
 
+
+enum served_radio_bearer_types { srb_id, drb_id, nulltype };
+
 struct served_radio_bearer_c_ {
-  enum types { srb_id, drb_id, nulltype }  type_;
+  enum served_radio_bearer_types type_;
   uint8_t c;//pod_choice_buffer_t
 };
 

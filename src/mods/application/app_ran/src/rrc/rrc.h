@@ -13,7 +13,7 @@
 #include "lib/common/phy_cfg_nr.h"
 #include "lib/common/bearer_manager.h"
 #include "rrc/rrc_du_manager.h"
-#include "rrc/rrc_nr_ue.h"
+#include "rrc/rrc_ue.h"
 #include "rrc/rrc_cell_asn_fill_inner.h"
 
 #ifdef __cplusplus

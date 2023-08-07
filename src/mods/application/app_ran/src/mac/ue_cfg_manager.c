@@ -32,8 +32,8 @@ int ue_cfg_manager_apply_config_request(ue_cfg_manager *ue_cfg, sched_nr_ue_cfg_
 	ue_cfg->phy_cfg    = cfg_req->phy_cfg;
 
 	if (cfg_req->sp_cell_cfg) {
-		API_make_pdsch_cfg_from_serv_cell(&cfg_req->sp_cell_cfg->sp_cell_cfg_ded, &ue_cfg->phy_cfg.pdsch);//cfg->bwps[0].pdsch;
-		API_make_csi_cfg_from_serv_cell(&cfg_req->sp_cell_cfg->sp_cell_cfg_ded, &ue_cfg->phy_cfg.csi);
+		API_rrc_mac_make_pdsch_cfg_from_serv_cell(&cfg_req->sp_cell_cfg->sp_cell_cfg_ded, &ue_cfg->phy_cfg.pdsch);//cfg->bwps[0].pdsch;
+		API_rrc_mac_make_csi_cfg_from_serv_cell(&cfg_req->sp_cell_cfg->sp_cell_cfg_ded, &ue_cfg->phy_cfg.csi);
 	}
 
 	uint32_t *lcid = NULL;

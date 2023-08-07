@@ -11,7 +11,7 @@
 #define RRC_NR_DU_MANAGER_H_
 
 #include "lib/srsran/srsran.h"
-#include "rrc/rrc_nr_config.h"
+#include "rrc/rrc_config.h"
 
 #ifdef __cplusplus
 extern "C" {

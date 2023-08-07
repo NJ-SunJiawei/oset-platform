@@ -87,8 +87,11 @@ rlc_common *rlc_array_find_by_lcid(rlc_lib_t *rlc, uint32_t lcid)
 }
 
 // Methods modifying the RLC array need to acquire the write-lock
-int rlc_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
+int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
 {
+  //oset_apr_thread_rwlock_rdlock(rlc->rwlock);
+  //oset_apr_thread_rwlock_unlock(rlc->rwlock);
+
   if (NULL != rlc_valid_lcid(rlc, lcid)) {
     oset_warn("LCID %d already exists", lcid);
     return OSET_ERROR;
@@ -161,6 +164,21 @@ int rlc_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
   return OSET_ERROR;
 }
 
+void rlc_lib_del_bearer(rlc_lib_t *rlc, uint32_t lcid)
+{
+	//oset_apr_thread_rwlock_rdlock(rlc->rwlock);
+	if (rlc_valid_lcid(rlc, lcid)) {
+		rlc_common *it = rlc_array_find_by_lcid(rlc, lcid);
+		it->func._stop(it);
+		oset_hash_set(rlc->rlc_array, &lcid, sizeof(lcid), NULL);
+		oset_info("Deleted RLC bearer with LCID %d", lcid);
+	} else {
+		oset_error("Can't delete bearer with LCID %d. Bearer doesn't exist.", lcid);
+	}
+	//oset_apr_thread_rwlock_unlock(rlc->rwlock);
+}
+
+
 static void rlc_lib_init2(rlc_lib_t *rlc, uint32_t lcid_)
 {
 	rlc->default_lcid = lcid_;
@@ -171,7 +189,7 @@ static void rlc_lib_init2(rlc_lib_t *rlc, uint32_t lcid_)
 
 	//oset_apr_thread_rwlock_wrlock(rlc->rwlock);
 	// create default RLC_TM bearer for SRB0
-	rlc_add_bearer(rlc, rlc->default_lcid, &default_rlc_cfg);
+	rlc_lib_add_bearer(rlc, rlc->default_lcid, &default_rlc_cfg);
 	//oset_apr_thread_rwlock_unlock(rlc->rwlock);
 
 }

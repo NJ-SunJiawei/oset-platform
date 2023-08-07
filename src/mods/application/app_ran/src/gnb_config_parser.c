@@ -9,8 +9,8 @@
 
 #include "gnb_common.h"
 #include "gnb_config_parser.h"
-#include "rrc/rrc_nr_config.h"
-#include "phy/phy_nr_config.h"
+#include "rrc/rrc_config.h"
+#include "phy/phy_config.h"
 
 void gnb_arg_default(all_args_t      *args)
 {

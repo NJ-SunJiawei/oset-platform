@@ -14,7 +14,7 @@
 #include "lib/common/time.h"
 #include "lib/mac/sched_nr_interface.h"
 #include "rrc/rrc_security_context.h"
-#include "rrc/rrc_nr_config.h"
+#include "rrc/rrc_config.h"
 
 
 #ifdef __cplusplus

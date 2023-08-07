@@ -7,7 +7,7 @@
  *Date: 2023.04
 ************************************************************************/
 #include "gnb_common.h"
-#include "rrc/rrc_nr_ue.h"
+#include "rrc/rrc_ue.h"
 	
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc-ue"
@@ -133,6 +133,50 @@ static int send_dl_ccch(rrc_nr_ue *ue, ASN_RRC_DL_CCCH_Message_t *dl_ccch_msg)
 
 	oset_free(pdu);
 	return OSET_OK;
+}
+
+static int update_rlc_bearers(rrc_nr_ue *ue, struct cell_group_cfg_s *cell_group_diff)
+{
+	// Release RLC radio bearers
+	uint8_t *lcid = NULL;
+	cvector_for_each_in(cell_group_diff->rlc_bearer_to_release_list, lcid){
+		API_rlc_rrc_del_bearer(ue->rnti, *lcid);
+	}
+
+	// Add/Mod RLC radio bearers
+	struct rlc_bearer_cfg_s *rb = NULL;
+	cvector_for_each_in(cell_group_diff->rlc_bearer_to_add_mod_list, rb){
+		rlc_config_t         rlc_cfg = {0};
+		uint8_t              rb_id = 0;
+		if (rb->served_radio_bearer.type_.value == (served_radio_bearer_types)srb_id) {
+		  rb_id = rb->served_radio_bearer.c;
+		  if (! rb->rlc_cfg_present) {
+		  	uint32_t default_sn_size = 12;
+		    rlc_cfg = default_rlc_am_nr_config(default_sn_size);
+		  } else {
+		    if (make_rlc_config_t(rb->rlc_cfg, rb_id, &rlc_cfg) != OSET_OK) {
+		      oset_error("Failed to build RLC config");
+		      // TODO: HANDLE
+		      return OSET_ERROR;
+		    }
+		  }
+		} else {
+		  rb_id = rb->served_radio_bearer.c;
+		  if (! rb->rlc_cfg_present) {
+		    oset_error("No RLC config for DRB");
+		    // TODO: HANDLE
+		    return OSET_ERROR;
+		  }
+		  if (make_rlc_config_t(rb->rlc_cfg, rb_id, &rlc_cfg) != OSET_OK) {
+		    oset_error("Failed to build RLC config");
+		    // TODO: HANDLE
+		    return OSET_ERROR;
+		  }
+		}
+		parent->rlc->add_bearer(ue->rnti, rb->lc_ch_id, rlc_cfg);
+	}
+
+  return OSET_OK;
 }
 
 
@@ -343,7 +387,7 @@ void rrc_nr_ue_send_rrc_setup(rrc_nr_ue *ue)
     rrcsetup_ies->masterCellGroup.size = pdu->N_bytes;
 
 	// add RLC bearers
-	update_rlc_bearers(ue->cell_group_cfg);
+	update_rlc_bearers(ue, ue->cell_group_cfg);
 
 	// add PDCP bearers
 	// this is done after updating the RLC bearers,

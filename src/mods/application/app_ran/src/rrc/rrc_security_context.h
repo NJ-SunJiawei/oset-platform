@@ -11,7 +11,7 @@
 #define RRC_NR_SECURITY_CONTEXT_H
 
 #include "lib/common/security.h"
-#include "rrc/rrc_nr_config.h"
+#include "rrc/rrc_config.h"
 
 #ifdef __cplusplus
 extern "C" {

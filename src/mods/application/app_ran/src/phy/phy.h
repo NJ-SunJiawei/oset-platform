@@ -11,7 +11,7 @@
 #define PHY_H_
 
 #include "gnb_config_parser.h"
-#include "phy/phy_nr_config.h"
+#include "phy/phy_config.h"
 #include "phy/slot_worker.h"
 #include "phy/txrx.h"
 

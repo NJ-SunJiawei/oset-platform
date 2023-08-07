@@ -10,7 +10,7 @@
 #ifndef RRC_CELL_ASN_FILL_H_
 #define RRC_CELL_ASN_FILL_H_
 
-#include "rrc/rrc_nr_config.h"
+#include "rrc/rrc_config.h"
 
 #ifdef __cplusplus
 extern "C" {

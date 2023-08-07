@@ -56,6 +56,7 @@ void API_rlc_rrc_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu);
 /**********************rrc api****************************************/
 void API_rlc_rrc_add_user(uint16_t rnti);
 void API_rlc_rrc_rem_user(uint16_t rnti);
+void API_rlc_rrc_del_bearer(uint16_t rnti, uint32_t lcid);
 
 
 #ifdef __cplusplus

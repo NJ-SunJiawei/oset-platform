@@ -103,11 +103,12 @@ rlc_config_t default_rlc_am_config()
 	return rlc_cnfg;
 }
 
-rlc_config_t default_rlc_am_nr_config(uint32_t sn_size = 12)
+rlc_config_t default_rlc_am_nr_config(uint32_t sn_size)
 {
 	rlc_config_t rlc_cnfg = {0};
 
 	if (sn_size == 12) {
+		// default
 		rlc_cnfg.am_nr.tx_sn_field_length = (rlc_am_nr_sn_size_t)size12bits;
 		rlc_cnfg.am_nr.rx_sn_field_length = (rlc_am_nr_sn_size_t)size12bits;
 	} else if (sn_size == 18) {

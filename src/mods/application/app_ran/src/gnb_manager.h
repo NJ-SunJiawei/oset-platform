@@ -12,8 +12,8 @@
 #include "gnb_config_parser.h"
 #include "lib/common/time.h"
 #include "rf/channel_2c.h"
-#include "phy/phy_nr_config.h"
-#include "rrc/rrc_nr_config.h"
+#include "phy/phy_config.h"
+#include "rrc/rrc_config.h"
 
 
 #ifdef __cplusplus

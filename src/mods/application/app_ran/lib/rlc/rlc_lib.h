@@ -39,6 +39,8 @@ void rlc_lib_stop(rlc_lib_t *rlc);
 void rlc_lib_write_ul_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
 void rlc_array_set_lcid(rlc_lib_t *rlc, uint32_t lcid, rlc_common *rlc_entity);
 rlc_common *rlc_array_find_by_lcid(rlc_lib_t *rlc, uint32_t lcid);
+void rlc_lib_del_bearer(rlc_lib_t *rlc, uint32_t lcid);
+int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg);
 
 
 #ifdef __cplusplus

@@ -129,6 +129,19 @@ void rlc_rem_user_all(void)
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 }
 
+
+void rlc_del_bearer(uint16_t rnti, uint32_t lcid)
+{
+	//oset_apr_thread_rwlock_wrlock(rlc_manager.rwlock);
+	rlc_user_interface* user = rlc_user_interface_find_by_rnti(rnti);
+	if (NULL == user) {
+		oset_warn("can't find rlc user by rnti=0x%x", rnti);
+	}else{
+		rlc_lib_del_bearer(&user->rlc,lcid);
+	}
+	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
+}
+
 /*******************************************************************************
 RRC interface
 *******************************************************************************/
@@ -142,6 +155,12 @@ void API_rlc_rrc_rem_user(uint16_t rnti)
 {
 	rlc_rem_user(rnti);
 }
+
+void API_rlc_rrc_del_bearer(uint16_t rnti, uint32_t lcid)
+{
+	rlc_del_bearer(rnti, lcid);
+}
+
 
 // pdcp/rlc ====》gnb mac send downlink
 void API_rlc_rrc_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu)
