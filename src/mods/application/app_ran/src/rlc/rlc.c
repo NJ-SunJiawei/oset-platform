@@ -129,13 +129,24 @@ void rlc_rem_user_all(void)
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 }
 
-
-void rlc_del_bearer(uint16_t rnti, uint32_t lcid)
+static void rlc_add_bearer(uint16_t rnti, uint32_t lcid, rlc_config_t *cnfg)
 {
 	//oset_apr_thread_rwlock_wrlock(rlc_manager.rwlock);
 	rlc_user_interface* user = rlc_user_interface_find_by_rnti(rnti);
 	if (NULL == user) {
-		oset_warn("can't find rlc user by rnti=0x%x", rnti);
+		oset_warn("can't find rlc interface by rnti=0x%x", rnti);
+	}else{
+		rlc_lib_add_bearer(&user->rlc,lcid, cnfg);
+	}
+	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
+}
+
+static void rlc_del_bearer(uint16_t rnti, uint32_t lcid)
+{
+	//oset_apr_thread_rwlock_wrlock(rlc_manager.rwlock);
+	rlc_user_interface* user = rlc_user_interface_find_by_rnti(rnti);
+	if (NULL == user) {
+		oset_warn("can't find rlc interface by rnti=0x%x", rnti);
 	}else{
 		rlc_lib_del_bearer(&user->rlc,lcid);
 	}
@@ -154,6 +165,11 @@ void API_rlc_rrc_add_user(uint16_t rnti)
 void API_rlc_rrc_rem_user(uint16_t rnti)
 {
 	rlc_rem_user(rnti);
+}
+
+void API_rlc_rrc_add_bearer(uint16_t rnti, uint32_t lcid, rlc_config_t *cnfg)
+{
+	rlc_add_bearer(rnti, lcid, cnfg);
 }
 
 void API_rlc_rrc_del_bearer(uint16_t rnti, uint32_t lcid)

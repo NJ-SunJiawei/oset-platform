@@ -185,7 +185,7 @@ void rrc_config_mac(uint32_t cc)
 
 	// Derive cell config from rrc_nr_cfg_t
 	fill_phy_pdcch_cfg_common(du_cell, rrc_cell_cfg, &cell.bwps[0].pdcch);
-	//ue-spec pddch
+	//ue-spec pdcch
 	bool ret = fill_phy_pdcch_cfg(rrc_cell_cfg, &cell.bwps[0].pdcch);
 	ASSERT_IF_NOT(ret, "Failed to generate Dedicated PDCCH config");
 	cell.pci                    = rrc_cell_cfg->phy_cell.carrier.pci;
@@ -203,7 +203,7 @@ void rrc_config_mac(uint32_t cc)
 	cell.dl_cfg_common       = &serv_cell->dl_cfg_common;
 	cell.ul_cfg_common       = &serv_cell->ul_cfg_common;
 	cell.ss_pbch_block_power = serv_cell->ss_pbch_block_pwr;
-	bool valid_cfg = API_make_pdsch_cfg_from_serv_cell(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded,
+	bool valid_cfg = make_pdsch_cfg_from_serv_cell(&rrc_manager.cell_ctxt->master_cell_group.sp_cell_cfg.sp_cell_cfg_ded,
 	                                               &cell.bwps[0].pdsch);
 	ASSERT_IF_NOT(valid_cfg, "Invalid NR cell configuration.");
 	cell.ssb_positions_in_burst = &serv_cell->ssb_positions_in_burst;
@@ -211,11 +211,6 @@ void rrc_config_mac(uint32_t cc)
 	cell.ssb_periodicity_ms     = options_ssb_periodicity_ms[serv_cell->ssb_periodicity_serving_cell];
 	cell.ssb_scs                = rrc_cell_cfg->phy_cell.carrier.scs;
 	cell.ssb_offset             = du_cell->mib.ssb_subcarrier_offset;
-	if (!rrc_manager.cfg->is_standalone) {
-		//const serving_cell_cfg_common_s& serv_cell = rrc_manager.cell_ctxt->master_cell_group->sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common;
-		// Derive cell config from ASN1
-		//cell->ssb_scs = serv_cell->ssb_subcarrier_spacing;
-	}
 
 	// Set SIB1 and SI messages
 	uint16_t options_si_periodicity[] = {8, 16, 32, 64, 128, 256, 512};
@@ -451,7 +446,7 @@ static void rrc_handle_rrc_setup_request(uint16_t rnti, ASN_RRC_RRCSetupRequest_
 		oset_error("%s received for inexistent rnti=0x%x", "UL-CCCH", rnti);
 		return;
 	}
-	rrc_nr_ue_handle_rrc_setup_request(ue, msg);
+	handle_rrc_setup_request(ue, msg);
 }
 
 

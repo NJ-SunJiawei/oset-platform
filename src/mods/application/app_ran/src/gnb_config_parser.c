@@ -556,8 +556,8 @@ static void parse_srb(struct rlc_cfg_c* rlc_cfg)
 	ul_am_rlc->sn_field_len = (enum sn_field_len_am_opts)size12;//size12
 	ul_am_rlc->sn_field_len_present = true;
 	ul_am_rlc->t_poll_retx = (enum t_poll_retx_opts)ms45;//ms45
-	ul_am_rlc->poll_pdu = pinfinity;
-	ul_am_rlc->poll_byte = kbinfinity;
+	ul_am_rlc->poll_pdu = infinity;// -1
+	ul_am_rlc->poll_byte = infinity;// -1
 	ul_am_rlc->max_retx_thres = (enum max_retx_thres_opts)t8;//t8
 
 	struct dl_am_rlc_s* dl_am_rlc = &rlc_cfg->c.am.dl_am_rlc;
@@ -660,6 +660,10 @@ static int parse_rb(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_)
     //five_qi_config
 	rrc_nr_cfg_->five_qi_cfg = oset_hash_make();
 	parse_5qi(rrc_nr_cfg_->five_qi_cfg);
+
+	rrc_nr_cfg_->srb1_cfg.present = true;
+	rrc_nr_cfg_->srb2_cfg.present = true;
+
    return OSET_OK; 
 }
 

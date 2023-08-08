@@ -173,12 +173,62 @@ static int update_rlc_bearers(rrc_nr_ue *ue, struct cell_group_cfg_s *cell_group
 		    return OSET_ERROR;
 		  }
 		}
-		parent->rlc->add_bearer(ue->rnti, rb->lc_ch_id, rlc_cfg);
+		API_rlc_rrc_add_bearer(ue->rnti, rb->lc_ch_id, rlc_cfg);
 	}
 
   return OSET_OK;
 }
 
+int update_mac(cell_group_cfg_s *cell_group_config, bool is_config_complete)
+{
+  if (!is_config_complete) {
+    // Release bearers
+    for (uint8_t lcid : cell_group_config.rlc_bearer_to_release_list) {
+      uecfg.lc_ch_to_rem.push_back(lcid);
+    }
+
+    for (const rlc_bearer_cfg_s& bearer : cell_group_config.rlc_bearer_to_add_mod_list) {
+      uecfg.lc_ch_to_add.emplace_back();
+      uecfg.lc_ch_to_add.back().lcid = bearer.lc_ch_id;
+      auto& lch                      = uecfg.lc_ch_to_add.back().cfg;
+      lch.direction                  = mac_lc_ch_cfg_t::BOTH;
+      if (bearer.mac_lc_ch_cfg.ul_specific_params_present) {
+        lch.priority = bearer.mac_lc_ch_cfg.ul_specific_params.prio;
+        lch.pbr      = bearer.mac_lc_ch_cfg.ul_specific_params.prioritised_bit_rate.to_number();
+        lch.bsd      = bearer.mac_lc_ch_cfg.ul_specific_params.bucket_size_dur.to_number();
+        lch.group    = bearer.mac_lc_ch_cfg.ul_specific_params.lc_ch_group;
+        // TODO: remaining fields
+      }
+    }
+
+    if (cell_group_config->sp_cell_cfg_present &&\
+		cell_group_config->sp_cell_cfg.sp_cell_cfg_ded_present &&\
+        cell_group_config->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present &&\
+        cell_group_config->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp_present &&\
+        cell_group_config->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg_present) {
+      struct pdcch_cfg_s* pucch_cfg = &cell_group_config->sp_cell_cfg.sp_cell_cfg_ded.ul_cfg.init_ul_bwp.pucch_cfg.c;
+      fill_phy_pucch_cfg(pucch_cfg, &uecfg.phy_cfg.pucch);
+    }
+  } else {
+    struct pdcch_cfg_s* pdcch = &cell_group_config->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.c;
+    for (auto& ss : pdcch->search_spaces_to_add_mod_list) {
+      uecfg.phy_cfg.pdcch.search_space_present[ss.search_space_id] = true;
+      srsran::make_phy_search_space_cfg(ss, &uecfg.phy_cfg.pdcch.search_space[ss.search_space_id]);
+    }
+    for (auto& cs : pdcch.ctrl_res_set_to_add_mod_list) {
+      uecfg.phy_cfg.pdcch.coreset_present[cs.ctrl_res_set_id] = true;
+      srsran::make_phy_coreset_cfg(cs, &uecfg.phy_cfg.pdcch.coreset[cs.ctrl_res_set_id]);
+    }
+  }
+
+  uecfg.sp_cell_cfg.reset(new sp_cell_cfg_s{cell_group_cfg.sp_cell_cfg});
+  uecfg.mac_cell_group_cfg.reset(new mac_cell_group_cfg_s{cell_group_cfg.mac_cell_group_cfg});
+  uecfg.phy_cell_group_cfg.reset(new phys_cell_group_cfg_s{cell_group_cfg.phys_cell_group_cfg});
+  srsran::make_csi_cfg_from_serv_cell(cell_group_config.sp_cell_cfg.sp_cell_cfg_ded, &uecfg.phy_cfg.csi);
+  parent->mac->ue_cfg(rnti, uecfg);
+
+  return OSET_OK;
+}
 
 void rrc_rem_user_info(uint16_t rnti)
 {
@@ -302,11 +352,17 @@ void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer)
     oset_info("[Added] Number of RRC-UEs is now %d", oset_list_count(&rrc_manager_self()->rrc_ue_list));
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+void rrc_nr_ue_get_metrics(rrc_ue_metrics_t *metrics)
+{
+	/*TODO fill RRC metrics*/
+}
+
 /*******************************************************************************
 send DL interface
 *******************************************************************************/
 /// TS 38.331, RRCReject message
-void rrc_nr_ue_send_rrc_reject(rrc_nr_ue *ue, uint8_t reject_wait_time_secs)
+void send_rrc_reject(rrc_nr_ue *ue, uint8_t reject_wait_time_secs)
 {
 	ASN_RRC_DL_CCCH_Message_t msg = {0};
 
@@ -335,7 +391,7 @@ void rrc_nr_ue_send_rrc_reject(rrc_nr_ue *ue, uint8_t reject_wait_time_secs)
 }
 
 /// TS 38.331, RRCSetup
-void rrc_nr_ue_send_rrc_setup(rrc_nr_ue *ue)
+void send_rrc_setup(rrc_nr_ue *ue)
 {
 	const uint8_t max_wait_time_secs = 16;
 
@@ -353,7 +409,7 @@ void rrc_nr_ue_send_rrc_setup(rrc_nr_ue *ue)
 													ue->radio_bearer_cfg,
 													ue->cell_group_cfg) != OSET_OK) {
 		oset_error("Couldn't fill cellGroupCfg during RRC Setup");
-		rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
+		send_rrc_reject(ue, max_wait_time_secs);
 		return;
 	}
 
@@ -399,7 +455,7 @@ void rrc_nr_ue_send_rrc_setup(rrc_nr_ue *ue)
 
 	// Send RRC Setup message to UE
 	if (send_dl_ccch(msg) != OSET_OK) {
-		rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
+		send_rrc_reject(ue, max_wait_time_secs);
 	}
 
 	oset_free(pdu);
@@ -408,19 +464,19 @@ void rrc_nr_ue_send_rrc_setup(rrc_nr_ue *ue)
 /*******************************************************************************
 handle UL interface
 *******************************************************************************/
-void rrc_nr_ue_handle_rrc_setup_request(rrc_nr_ue *ue, ASN_RRC_RRCSetupRequest_t *msg)
+void handle_rrc_setup_request(rrc_nr_ue *ue, ASN_RRC_RRCSetupRequest_t *msg)
 {
 	const uint8_t max_wait_time_secs = 16;
 	if (! parent->ngap->is_amf_connected()) {
 		oset_error("MME isn't connected. Sending Connection Reject");
-		rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
+		send_rrc_reject(ue, max_wait_time_secs);
 		return;
 	}
 
 	// Allocate PUCCH resources and reject if not available
-	if (!init_pucch()) {
+	if (! init_pucch()) {
 		oset_warn("Could not allocate PUCCH resources for rnti=0x%x. Sending Connection Reject", rnti);
-		rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
+		send_rrc_reject(ue, max_wait_time_secs);
 		return;
 	}
 
@@ -436,19 +492,13 @@ void rrc_nr_ue_handle_rrc_setup_request(rrc_nr_ue *ue, ASN_RRC_RRCSetupRequest_t
 	    break;
 	  default:
 	    oset_error("Unsupported RRCSetupRequest");
-	    rrc_nr_ue_send_rrc_reject(ue, max_wait_time_secs);
+	    send_rrc_reject(ue, max_wait_time_secs);
 	    return;
 	}
 	ue->ctxt.connection_cause = rrcSetupRequest->establishmentCause;
 
-	rrc_nr_ue_send_rrc_setup(ue);
-
+	send_rrc_setup(ue);
 	ue->type = UE_INACTIVITY_TIMEOUT;
 	set_activity_timer(ue);
-}
-
-void rrc_nr_ue_get_metrics(rrc_ue_metrics_t *metrics)
-{
-	/*TODO fill RRC metrics*/
 }
 

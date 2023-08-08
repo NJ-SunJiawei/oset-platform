@@ -93,8 +93,8 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
   //oset_apr_thread_rwlock_unlock(rlc->rwlock);
 
   if (NULL != rlc_valid_lcid(rlc, lcid)) {
-    oset_warn("LCID %d already exists", lcid);
-    return OSET_ERROR;
+	oset_warn("LCID %d already exists", lcid);
+	return OSET_ERROR;
   }
 
   rlc_common  *rlc_entity = NULL;

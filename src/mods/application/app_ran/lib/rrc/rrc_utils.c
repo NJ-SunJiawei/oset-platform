@@ -826,6 +826,25 @@ bool make_csi_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_cs
    return true;
 }
 
+
+static const uint16_t t_poll_retx_options[] = {5,	10,  15,  20,  25,	30,  35,  40,  45,	50,  55,  60,	65,   70,  75,
+											   80,	85,  90,  95,  100, 105, 110, 115, 120, 125, 130, 135,	140,  145, 150,
+											   155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210,	215,  220, 225,
+											   230, 235, 240, 245, 250, 300, 350, 400, 450, 500, 800, 1000, 2000, 4000};
+static const int32_t poll_pdu_options[] 	= {4,	8,	   16,	  32,	 64,	128,   256,   512,	 1024,	2048,  4096,  6144,
+										  		8192, 12288, 16384, 20480, 24576, 28672, 32768, 40960, 49152, 57344, 65536, -1};
+static const int32_t poll_byte_options[] 	= {1,		 2, 	5,	   8,	  10,	 15,	25,    50,	  75,	 100,	125,
+										  		250,	 375,	500,   750,   1000,  1250,	1500,  2000,  3000,  4000,	4500,
+										  		5000,  5500,	6000,  6500,  7000,  7500,	8000,  9000,  10000, 11000, 12000,
+										  		13000, 14000, 15000, 16000, 17000, 18000, 20000, 25000, 30000, 40000, -1};
+static const uint8_t max_retx_thres_options[] = {1, 2, 3, 4, 6, 8, 16, 32};
+static const uint8_t t_reassembly_options[] = {0, 5,  10, 15, 20,  25,	30,  35,  40,  45,	50,  55,  60,  65,	70, 75,
+											  80, 85, 90, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200};
+static const uint16_t t_status_prohibit_options[] = {0,   5,   10,	15,  20,  25,  30,	35,  40,  45,	50,   55,	60,   65,  70,	75,
+									 				80,  85,  90,	95,  100, 105, 110, 115, 120, 125,	130,  135,	140,  145, 150, 155,
+									 				160, 165, 170, 175, 180, 185, 190, 195, 200, 205,	210,  215,	220,  225, 230, 235,
+									 				240, 245, 250, 300, 350, 400, 450, 500, 800, 1000, 1200, 1600, 2000, 2400};
+
 int make_rlc_config_t(struct rlc_cfg_c *asn1_type, uint8_t bearer_id, rlc_config_t* cfg_out)
 {
   rlc_config_t rlc_cfg = {0};
@@ -833,8 +852,9 @@ int make_rlc_config_t(struct rlc_cfg_c *asn1_type, uint8_t bearer_id, rlc_config
   switch (asn1_type->types) {
     case (enum rlc_types_opts)am:
       rlc_cfg = default_rlc_am_nr_config(12);
-      if (asn1_type->c.am.dl_am_rlc.sn_field_len_present && asn1_type->c.am.ul_am_rlc.sn_field_len_present &&
-          asn1_type->c.am.dl_am_rlc.sn_field_len != asn1_type->c.am.ul_am_rlc.sn_field_len) {
+      if (asn1_type->c.am.dl_am_rlc.sn_field_len_present &&\
+	  		asn1_type->c.am.ul_am_rlc.sn_field_len_present &&\
+	  		asn1_type->c.am.dl_am_rlc.sn_field_len != asn1_type->c.am.ul_am_rlc.sn_field_len) {
         oset_warn("NR RLC sequence number length is not the same in uplink and downlink");
         return OSET_ERROR;
       }
@@ -851,17 +871,18 @@ int make_rlc_config_t(struct rlc_cfg_c *asn1_type, uint8_t bearer_id, rlc_config
         default:
           break;
       }
-      rlc_cfg.am_nr.t_poll_retx       = asn1_type->c.am.ul_am_rlc.t_poll_retx.to_number();
-      rlc_cfg.am_nr.poll_pdu          = asn1_type->c.am.ul_am_rlc.poll_pdu.to_number();
-      rlc_cfg.am_nr.poll_byte         = asn1_type->c.am.ul_am_rlc.poll_byte.to_number();
-      rlc_cfg.am_nr.max_retx_thresh   = asn1_type->c.am.ul_am_rlc.max_retx_thres.to_number();
-      rlc_cfg.am_nr.t_reassembly      = asn1_type->c.am.dl_am_rlc.t_reassembly.to_number();
-      rlc_cfg.am_nr.t_status_prohibit = asn1_type->c.am.dl_am_rlc.t_status_prohibit.to_number();
+
+      rlc_cfg.am_nr.t_poll_retx       = t_poll_retx_options[asn1_type->c.am.ul_am_rlc.t_poll_retx];
+      rlc_cfg.am_nr.poll_pdu          = poll_pdu_options[asn1_type->c.am.ul_am_rlc.poll_pdu];
+      rlc_cfg.am_nr.poll_byte         = poll_byte_options[asn1_type->c.am.ul_am_rlc.poll_byte];
+      rlc_cfg.am_nr.max_retx_thresh   = max_retx_thres_options[asn1_type->c.am.ul_am_rlc.max_retx_thres];
+      rlc_cfg.am_nr.t_reassembly      = t_reassembly_options[asn1_type->c.am.dl_am_rlc.t_reassembly];
+      rlc_cfg.am_nr.t_status_prohibit = t_status_prohibit_options[asn1_type->c.am.dl_am_rlc.t_status_prohibit];
       break;
     case (enum rlc_types_opts)um_bi_dir:
-      rlc_cfg                       = default_rlc_um_nr_config();
+      rlc_cfg                       = default_rlc_um_nr_config(6);
       rlc_cfg.rlc_mode              = (rlc_mode_t)um;
-      rlc_cfg.um_nr.t_reassembly_ms = asn1_type->c.um_bi_dir.dl_um_rlc.t_reassembly.to_number();
+      rlc_cfg.um_nr.t_reassembly_ms = t_reassembly_options[asn1_type->c.um_bi_dir.dl_um_rlc.t_reassembly];
       rlc_cfg.um_nr.bearer_id       = bearer_id;
       if (asn1_type->c.um_bi_dir.dl_um_rlc.sn_field_len_present &&
           asn1_type->c.um_bi_dir.ul_um_rlc.sn_field_len_present &&
@@ -880,7 +901,7 @@ int make_rlc_config_t(struct rlc_cfg_c *asn1_type, uint8_t bearer_id, rlc_config
         default:
           break;
       }
-      rlc_cfg.um_nr.t_reassembly_ms = asn1_type->c.um_bi_dir.dl_um_rlc.t_reassembly.to_number();
+      rlc_cfg.um_nr.t_reassembly_ms = t_reassembly_options[asn1_type->c.um_bi_dir.dl_um_rlc.t_reassembly];
       break;
     case (enum rlc_types_opts)um_uni_dir_dl:
       oset_warn("NR RLC type um_uni_dir_dl is not supported");

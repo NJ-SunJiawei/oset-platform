@@ -128,11 +128,12 @@ rlc_config_t default_rlc_am_nr_config(uint32_t sn_size)
 	return rlc_cnfg;
 }
 
-rlc_config_t default_rlc_um_nr_config(uint32_t sn_size = 6)
+rlc_config_t default_rlc_um_nr_config(uint32_t sn_size)
 {
 	rlc_config_t cnfg = {0};
 
 	if (sn_size == 6) {
+	  // default
 	  cnfg.um_nr.sn_field_length = (rlc_um_nr_sn_size_t)size6bits;
 	} else if (sn_size == 12) {
 	  cnfg.um_nr.sn_field_length = (rlc_um_nr_sn_size_t)size12bits;
