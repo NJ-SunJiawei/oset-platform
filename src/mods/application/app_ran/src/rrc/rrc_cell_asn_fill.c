@@ -522,7 +522,7 @@ void fill_csi_resource_cfg_to_add(struct csi_meas_cfg_s *csi_meas, ASN_RRC_CSI_M
 {
 	csi_meas_cfg->csi_ResourceConfigToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->csi_ResourceConfigToAddModList));
 	struct csi_res_cfg_s *csi_res_cfg = NULL;
-	cvector_for_each_in(csi_meas->csi_res_cfg_to_add_mod_list, csi_res_cfg){
+	cvector_for_each_in(csi_res_cfg, csi_meas->csi_res_cfg_to_add_mod_list){
 		if(ASN_RRC_CSI_ResourceConfig__csi_RS_ResourceSetList_PR_nzp_CSI_RS_SSB == csi_res_cfg->csi_rs_res_set_list.type_){
 			asn1cSequenceAdd(csi_meas_cfg->csi_ResourceConfigToAddModList->list, struct ASN_RRC_CSI_ResourceConfig, csi_res_info_ssb);
 			csi_res_info_ssb->csi_ResourceConfigId = csi_res_cfg->csi_res_cfg_id;
@@ -558,7 +558,7 @@ void fill_nzp_csi_rs(struct csi_meas_cfg_s *csi_meas, ASN_RRC_CSI_MeasConfig_t *
 {
 	csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList));
 	struct nzp_csi_rs_res_s *nzp_csi_rs_res = NULL;
-	cvector_for_each_in(csi_meas->nzp_csi_rs_res_to_add_mod_list, nzp_csi_rs_res){
+	cvector_for_each_in(nzp_csi_rs_res, csi_meas->nzp_csi_rs_res_to_add_mod_list){
 		// item 0
 		asn1cSequenceAdd(csi_meas_cfg->nzp_CSI_RS_ResourceToAddModList->list, struct ASN_RRC_NZP_CSI_RS_Resource, nzp_csi_res);
 		nzp_csi_res->nzp_CSI_RS_ResourceId = nzp_csi_rs_res->nzp_csi_rs_res_id;
@@ -594,7 +594,7 @@ void fill_nzp_csi_rs(struct csi_meas_cfg_s *csi_meas, ASN_RRC_CSI_MeasConfig_t *
 	// Fill NZP-CSI Resource Sets
 	csi_meas_cfg->nzp_CSI_RS_ResourceSetToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->nzp_CSI_RS_ResourceSetToAddModList));
 	struct nzp_csi_rs_res_set_s *nzp_csi_rs_res_set = NULL;
-	cvector_for_each_in(csi_meas->nzp_csi_rs_res_set_to_add_mod_list, nzp_csi_rs_res_set){
+	cvector_for_each_in(nzp_csi_rs_res_set, csi_meas->nzp_csi_rs_res_set_to_add_mod_list){
 		// item 0
 		asn1cSequenceAdd(csi_meas_cfg->nzp_CSI_RS_ResourceSetToAddModList->list, struct ASN_RRC_NZP_CSI_RS_ResourceSet, nzp_csi_res_set);
 		nzp_csi_res_set->nzp_CSI_ResourceSetId = nzp_csi_rs_res_set->nzp_csi_res_set_id;
@@ -615,7 +615,7 @@ void fill_csi_im_resource_cfg_to_add(struct csi_meas_cfg_s *csi_meas, ASN_RRC_CS
 	// csi-IM-ResourceToAddModList
 	csi_meas_cfg->csi_IM_ResourceToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->csi_IM_ResourceToAddModList));
 	struct csi_im_res_s *csi_im_res = NULL;
-	cvector_for_each_in(csi_meas->csi_im_res_to_add_mod_list, csi_im_res){
+	cvector_for_each_in(csi_im_res, csi_meas->csi_im_res_to_add_mod_list){
 	asn1cSequenceAdd(csi_meas_cfg->csi_IM_ResourceToAddModList->list, struct ASN_RRC_CSI_IM_Resource, csi_im);
 		csi_im->csi_IM_ResourceId = csi_im_res->csi_im_res_id;
 
@@ -648,7 +648,7 @@ void fill_csi_im_resource_cfg_to_add(struct csi_meas_cfg_s *csi_meas, ASN_RRC_CS
 	// csi-IM-ResourceSetToAddModList
 	csi_meas_cfg->csi_IM_ResourceSetToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->csi_IM_ResourceSetToAddModList));
 	struct csi_im_res_set_s *csi_im_res_set = NULL;
-	cvector_for_each_in(csi_meas->csi_im_res_set_to_add_mod_list, csi_im_res_set){
+	cvector_for_each_in(csi_im_res_set, csi_meas->csi_im_res_set_to_add_mod_list){
 		asn1cSequenceAdd(csi_meas_cfg->csi_IM_ResourceSetToAddModList->list, struct ASN_RRC_CSI_IM_ResourceSet, csi_im_set);
 		csi_im_set->csi_IM_ResourceSetId = csi_im_res_set->csi_im_res_set_id;
 		for(int i = 0; i < cvector_size(csi_im_res_set->csi_im_res); i++){
@@ -663,7 +663,7 @@ int fill_csi_report(struct csi_meas_cfg_s *csi_meas, ASN_RRC_CSI_MeasConfig_t *c
 {
 	csi_meas_cfg->csi_ReportConfigToAddModList = CALLOC(1, sizeof(*csi_meas_cfg->csi_ReportConfigToAddModList));
 	struct csi_report_cfg_s	*csi_report_cfg = NULL;
-	cvector_for_each_in(csi_meas->csi_report_cfg_to_add_mod_list, csi_report_cfg){
+	cvector_for_each_in(csi_report_cfg, csi_meas->csi_report_cfg_to_add_mod_list){
 		asn1cSequenceAdd(csi_meas_cfg->csi_ReportConfigToAddModList->list, struct ASN_RRC_CSI_ReportConfig, csi_rp_cfg);
 		csi_rp_cfg->reportConfigId = csi_report_cfg->report_cfg_id;
 		csi_rp_cfg->resourcesForChannelMeasurement = csi_report_cfg->res_for_ch_meas;
@@ -750,7 +750,7 @@ void fill_pdsch_cfg(struct pdsch_cfg_s *pdsch_cfg, ASN_RRC_PDSCH_Config_t *out)
 
 	out->tci_StatesToAddModList = CALLOC(1, sizeof(*out->tci_StatesToAddModList));
 	struct tci_state_s *tci_state = NULL;
-	cvector_for_each_in(pdsch_cfg->tci_states_to_add_mod_list, tci_state){
+	cvector_for_each_in(tci_state, pdsch_cfg->tci_states_to_add_mod_list){
 		asn1cSequenceAdd(out->tci_StatesToAddModList->list, struct ASN_RRC_TCI_State, tcic);
 		tcic->tci_StateId = tci_state->tci_state_id;
 		tcic->qcl_Type1.referenceSignal.present = tci_state->qcl_type1.ref_sig.type_;//ASN_RRC_QCL_Info__referenceSignal_PR_ssb;
@@ -774,7 +774,7 @@ void fill_pdsch_cfg(struct pdsch_cfg_s *pdsch_cfg, ASN_RRC_PDSCH_Config_t *out)
 	// ZP-CSI
 	out->zp_CSI_RS_ResourceToAddModList = CALLOC(1, sizeof(*out->zp_CSI_RS_ResourceToAddModList));
 	struct zp_csi_rs_res_s *zp_csi_rs_res = NULL;
-	cvector_for_each_in(pdsch_cfg->zp_csi_rs_res_to_add_mod_list, zp_csi_rs_res){
+	cvector_for_each_in(zp_csi_rs_res, pdsch_cfg->zp_csi_rs_res_to_add_mod_list){
 		asn1cSequenceAdd(out->zp_CSI_RS_ResourceToAddModList->list, struct ASN_RRC_ZP_CSI_RS_Resource, zp_csi_rs);
 		zp_csi_rs->zp_CSI_RS_ResourceId = zp_csi_rs_res->zp_csi_rs_res_id;
 		zp_csi_rs->resourceMapping.frequencyDomainAllocation.present = zp_csi_rs_res->res_map.freq_domain_alloc.type_;//ASN_RRC_CSI_RS_ResourceMapping__frequencyDomainAllocation_PR_row4;
@@ -818,7 +818,7 @@ int fill_init_dl_bwp(struct bwp_dl_ded_s       *bwp_dl, ASN_RRC_BWP_DownlinkDedi
 		//coreset
 		asn1cCalloc(init_dl_bwp->pdcch_Config->choice.setup->controlResourceSetToAddModList, ctl_rsset_add_list);
 		struct ctrl_res_set_s *coreset2_date = NULL;
-		cvector_for_each_in(bwp_dl->pdcch_cfg.c.ctrl_res_set_to_add_mod_list, coreset2_date){
+		cvector_for_each_in(coreset2_date, bwp_dl->pdcch_cfg.c.ctrl_res_set_to_add_mod_list){
 			asn1cSequenceAdd(ctl_rsset_add_list->list, struct ASN_RRC_ControlResourceSet, coreset);
 			coreset->controlResourceSetId = coreset2_date->ctrl_res_set_id;
 			oset_asn_buffer_to_BIT_STRING(coreset2_date->freq_domain_res, 6, 3, &coreset->frequencyDomainResources);
@@ -830,7 +830,7 @@ int fill_init_dl_bwp(struct bwp_dl_ded_s       *bwp_dl, ASN_RRC_BWP_DownlinkDedi
 		//searchspace
 		asn1cCalloc(init_dl_bwp->pdcch_Config->choice.setup->searchSpacesToAddModList, ss_add_list);
 		struct search_space_s *ss2_data = NULL;
-		cvector_for_each_in(bwp_dl->pdcch_cfg.c.ctrl_res_set_to_add_mod_list, ss2_data){
+		cvector_for_each_in(ss2_data, bwp_dl->pdcch_cfg.c.ctrl_res_set_to_add_mod_list){
 			asn1cSequenceAdd(ss_add_list->list, struct ASN_RRC_SearchSpace, ss);
 			ss->searchSpaceId = ss2_data->search_space_id;
 			asn1cCallocOne(ss->controlResourceSetId, ss2_data->ctrl_res_set_id);
@@ -868,7 +868,7 @@ void fill_pucch_cfg(struct pucch_cfg_s *pucch_cfg, ASN_RRC_PUCCH_Config_t *out)
 	// Make 2 PUCCH resource sets
 	// Make PUCCH resource set for 1-2 bit
 	struct pucch_res_set_s *pucch_rs = NULL;
-	cvector_for_each_in(pucch_cfg->res_set_to_add_mod_list, pucch_rs){
+	cvector_for_each_in(pucch_rs, pucch_cfg->res_set_to_add_mod_list){
 		asn1cSequenceAdd(out->resourceSetToAddModList->list, struct ASN_RRC_PUCCH_ResourceSet, pucch_res_set);
 		pucch_res_set->pucch_ResourceSetId = pucch_rs->pucch_res_set_id;
 		for (uint32_t i = 0; i < cvector_size(pucch_rs->res_list); ++i) {
@@ -880,7 +880,7 @@ void fill_pucch_cfg(struct pucch_cfg_s *pucch_cfg, ASN_RRC_PUCCH_Config_t *out)
 	// Make 3 possible resources
 	out->resourceToAddModList = CALLOC(1, sizeof(*out->resourceToAddModList));
 	struct pucch_res_s *pucch_r = NULL;
-	cvector_for_each_in(pucch_cfg->res_to_add_mod_list, pucch_r){
+	cvector_for_each_in(pucch_r, pucch_cfg->res_to_add_mod_list){
 		asn1cSequenceAdd(out->resourceToAddModList->list, struct ASN_RRC_PUCCH_Resource, pucch_res);
 		pucch_res->pucch_ResourceId = pucch_r->pucch_res_id;
 		if(ASN_RRC_PUCCH_Resource__format_PR_format1 == pucch_r->format.type_){
@@ -923,7 +923,7 @@ void fill_pucch_cfg(struct pucch_cfg_s *pucch_cfg, ASN_RRC_PUCCH_Config_t *out)
 	out->schedulingRequestResourceToAddModList = CALLOC(1, sizeof(*out->schedulingRequestResourceToAddModList));
 	out->schedulingRequestResourceToAddModList->list = CALLOC(1, sizeof(*out->schedulingRequestResourceToAddModList));
 	struct sched_request_res_cfg_s *sched_request_res = NULL;
-	cvector_for_each_in(pucch_cfg->sched_request_res_to_add_mod_list, sched_request_res){
+	cvector_for_each_in(sched_request_res, pucch_cfg->sched_request_res_to_add_mod_list){
 		asn1cSequenceAdd(out->schedulingRequestResourceToAddModList->list, struct ASN_RRC_SchedulingRequestResourceConfig, sr_res1);
 		sr_res1->schedulingRequestResourceId = sched_request_res->sched_request_res_id;
 		sr_res1->schedulingRequestID = sched_request_res->sched_request_id;
@@ -1063,7 +1063,7 @@ int fill_master_cell_cfg(struct cell_group_cfg_s *cell_group_cfg, ASN_RRC_CellGr
 	out->rlc_BearerToReleaseList = NULL;
 	out->rlc_BearerToAddModList = CALLOC(1, sizeof(*out->rlc_BearerToAddModList));
 	struct rlc_bearer_cfg_s *rlc_bearer_cfg = NULL;
-	cvector_for_each_in(cell_group_cfg->rlc_bearer_to_add_mod_list, rlc_bearer_cfg){
+	cvector_for_each_in(rlc_bearer_cfg, cell_group_cfg->rlc_bearer_to_add_mod_list){
 		asn1cSequenceAdd(out->rlc_BearerToAddModList.list, struct ASN_RRC_RLC_BearerConfig, rlc_BearerConfig);
 		if(rlc_bearer_cfg->lc_ch_id < (nr_srb)count){
 			fill_srb(rlc_bearer_cfg, rlc_BearerConfig);
@@ -1079,7 +1079,7 @@ int fill_master_cell_cfg(struct cell_group_cfg_s *cell_group_cfg, ASN_RRC_CellGr
 			out->mac_CellGroupConfig->schedulingRequestConfig = CALLOC(1, sizeof(struct ASN_RRC_SchedulingRequestConfig));
 			out->mac_CellGroupConfig->schedulingRequestConfig->schedulingRequestToAddModList = CALLOC(1, sizeof(*out->mac_CellGroupConfig->schedulingRequestConfig->schedulingRequestToAddModList));
 			struct sched_request_to_add_mod_s *sched_request_to_add_mod = NULL;
-			cvector_for_each_in(cell_group_cfg->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list, sched_request_to_add_mod){
+			cvector_for_each_in(sched_request_to_add_mod, cell_group_cfg->mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list){
 				asn1cSequenceAdd(out->mac_CellGroupConfig->schedulingRequestConfig->schedulingRequestToAddModList->list,
 						struct ASN_RRC_SchedulingRequestToAddMod, sr_add_mod);
 				sr_add_mod->schedulingRequestId = sched_request_to_add_mod->sched_request_id;
@@ -1097,7 +1097,7 @@ int fill_master_cell_cfg(struct cell_group_cfg_s *cell_group_cfg, ASN_RRC_CellGr
 			out->mac_CellGroupConfig->tag_Config = CALLOC(1, sizeof(struct ASN_RRC_TAG_Config));
 			out->mac_CellGroupConfig->tag_Config->tag_ToAddModList = CALLOC(1, sizeof(*out->mac_CellGroupConfig->tag_Config->tag_ToAddModList));
 			struct tag_s *tag_to_add_mod = NULL;
-			cvector_for_each_in(cell_group_cfg->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list, tag_to_add_mod){
+			cvector_for_each_in(tag_to_add_mod, cell_group_cfg->mac_cell_group_cfg.tag_cfg.tag_to_add_mod_list){
 				asn1cSequenceAdd(out->mac_CellGroupConfig->tag_Config->tag_ToAddModList->list,
 								struct ASN_RRC_TAG, rrc_tag);
 				rrc_tag->tag_Id = tag_to_add_mod->tag_id;

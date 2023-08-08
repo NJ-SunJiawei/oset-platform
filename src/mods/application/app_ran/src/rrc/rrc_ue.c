@@ -139,13 +139,13 @@ static int update_rlc_bearers(rrc_nr_ue *ue, struct cell_group_cfg_s *cell_group
 {
 	// Release RLC radio bearers
 	uint8_t *lcid = NULL;
-	cvector_for_each_in(cell_group_diff->rlc_bearer_to_release_list, lcid){
+	cvector_for_each_in(lcid, cell_group_diff->rlc_bearer_to_release_list){
 		API_rlc_rrc_del_bearer(ue->rnti, *lcid);
 	}
 
 	// Add/Mod RLC radio bearers
 	struct rlc_bearer_cfg_s *rb = NULL;
-	cvector_for_each_in(cell_group_diff->rlc_bearer_to_add_mod_list, rb){
+	cvector_for_each_in(rb, cell_group_diff->rlc_bearer_to_add_mod_list){
 		rlc_config_t         rlc_cfg = {0};
 		uint8_t              rb_id = 0;
 		if (rb->served_radio_bearer.type_.value == (served_radio_bearer_types)srb_id) {
@@ -179,12 +179,13 @@ static int update_rlc_bearers(rrc_nr_ue *ue, struct cell_group_cfg_s *cell_group
   return OSET_OK;
 }
 
-int update_mac(cell_group_cfg_s *cell_group_config, bool is_config_complete)
+static int update_mac(rrc_nr_ue *ue, cell_group_cfg_s *cell_group_config, bool is_config_complete)
 {
   if (!is_config_complete) {
     // Release bearers
-    for (uint8_t lcid : cell_group_config.rlc_bearer_to_release_list) {
-      uecfg.lc_ch_to_rem.push_back(lcid);
+    uint8_t *lcid = NULL;
+    cvector_for_each_in(lcid, cell_group_config->rlc_bearer_to_release_list)
+	  cvector_push_back(ue->uecfg.lc_ch_to_rem, *lcid)
     }
 
     for (const rlc_bearer_cfg_s& bearer : cell_group_config.rlc_bearer_to_add_mod_list) {
