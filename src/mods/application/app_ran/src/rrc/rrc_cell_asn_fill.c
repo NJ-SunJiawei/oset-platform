@@ -337,7 +337,7 @@ int fill_sib1_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_DL_SCH_Mess
 }
 
 
-int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_t **mib_result)
+int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_t **out)
 {
 	ASN_RRC_BCCH_BCH_Message_t *mib_pdu = NULL;
 
@@ -348,7 +348,7 @@ int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_
 	ASN_RRC_MIB_t *mib = mib_pdu->message.choice.mib;
 
 	oset_asn_uint8_to_BIT_STRING(0, (8-6), &mib->systemFrameNumber);
-	switch (cell_cfg.phy_cell.carrier.scs) {
+	switch (cell_cfg->phy_cell.carrier.scs) {
 	case srsran_subcarrier_spacing_15kHz:
 	case srsran_subcarrier_spacing_60kHz:
 	  mib->subCarrierSpacingCommon = ASN_RRC_MIB__subCarrierSpacingCommon_scs15or60;
@@ -368,7 +368,7 @@ int fill_mib_from_enb_cfg(rrc_cell_cfg_nr_t *cell_cfg, ASN_RRC_BCCH_BCH_Message_
 	mib->intraFreqReselection       = ASN_RRC_MIB__intraFreqReselection_allowed;
 	oset_asn_uint8_to_BIT_STRING(0, (8-1), &mib->spare);// This makes a spare of 1 bits
 
-	*mib_result = mib_pdu;
+	*out = mib_pdu;
 
 	return OSET_OK;
 }

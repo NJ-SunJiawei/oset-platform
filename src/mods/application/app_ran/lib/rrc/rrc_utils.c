@@ -751,8 +751,81 @@ bool make_phy_res_config(const pucch_res_s 		 *pucch_res,
 	return false;
   }
   srsran_pucch_nr_resource.max_code_rate = format_2_max_code_rate;
-  *in_srsran_pucch_nr_resource			   = srsran_pucch_nr_resource;
+  *in_srsran_pucch_nr_resource			 = srsran_pucch_nr_resource;
   return true;
+}
+
+bool make_phy_sr_resource(struct sched_request_res_cfg_s  *sched_request_res_cfg,
+						 		srsran_pucch_nr_sr_resource_t *in_srsran_pucch_nr_sr_resource)
+{
+ srsran_pucch_nr_sr_resource_t srsran_pucch_nr_sr_resource = {0};
+ srsran_pucch_nr_sr_resource.sr_id						   = sched_request_res_cfg->sched_request_id;
+ if (sched_request_res_cfg->periodicity_and_offset_present && sched_request_res_cfg->res_present) {
+   srsran_pucch_nr_sr_resource.configured = true;
+   switch (sched_request_res_cfg->periodicity_and_offset.type_) {
+	 case (enum periodicity_and_offset_e_)sl2:
+	   srsran_pucch_nr_sr_resource.period = 2;
+	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+	   break;
+	 case (enum periodicity_and_offset_e_)sl4:
+	   srsran_pucch_nr_sr_resource.period = 4;
+	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+	   break;
+	 case (enum periodicity_and_offset_e_)sl5:
+	   srsran_pucch_nr_sr_resource.period = 5;
+	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+	   break;
+	 case (enum periodicity_and_offset_e_)sl8:
+	   srsran_pucch_nr_sr_resource.period = 8;
+	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+	   break;
+	 case (enum periodicity_and_offset_e_)sl10:
+	   srsran_pucch_nr_sr_resource.period = 10;
+	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+	   break;
+	 case (enum periodicity_and_offset_e_)sl16:
+	   srsran_pucch_nr_sr_resource.period = 16;
+	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+	   break;
+	 case (enum periodicity_and_offset_e_)sl20:
+	   srsran_pucch_nr_sr_resource.period = 20;
+	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+	   break;
+	 case (enum periodicity_and_offset_e_)sl40:
+	   srsran_pucch_nr_sr_resource.period = 40;
+	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+	   break;
+	 case (enum periodicity_and_offset_e_)sl80:
+	   srsran_pucch_nr_sr_resource.period = 80;
+	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+	   break;
+	 case (enum periodicity_and_offset_e_)sl160:
+	   srsran_pucch_nr_sr_resource.period = 160;
+	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+	   break;
+	 case (enum periodicity_and_offset_e_)sl320:
+	   srsran_pucch_nr_sr_resource.period = 320;
+	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+	   break;
+	 case (enum periodicity_and_offset_e_)sl640:
+	   srsran_pucch_nr_sr_resource.period = 640;
+	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+	   break;
+	 case sym2:
+	 case sym6or7:
+	 case (enum periodicity_and_offset_e_)sl1:
+	 default:
+	   srsran_pucch_nr_sr_resource.configured = false;
+	   oset_warn("Invalid option for periodicity_and_offset %d",
+						 sched_request_res_cfg->periodicity_and_offset.type_);
+	   return false;
+   }
+
+ } else {
+   srsran_pucch_nr_sr_resource.configured = false;
+ }
+ *in_srsran_pucch_nr_sr_resource = srsran_pucch_nr_sr_resource;
+ return true;
 }
 
 bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl)
@@ -992,7 +1065,7 @@ bool fill_phy_ssb_cfg(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_ssb_cfg_t *out_ssb
 	return true;
 }
 
-bool fill_rach_cfg_common_default_inner(srsran_prach_cfg_t *prach_cfg, struct rach_cfg_common_s *rach_cfg_com)
+bool fill_rach_cfg_common_default(srsran_prach_cfg_t *prach_cfg, struct rach_cfg_common_s *rach_cfg_com)
 {
   *rach_cfg_com = {0};
   // rach-ConfigGeneric
@@ -1028,6 +1101,93 @@ bool fill_rach_cfg_common_default_inner(srsran_prach_cfg_t *prach_cfg, struct ra
 
   return true;
 }
+
+bool fill_phy_pucch_hl_cfg(struct pucch_cfg_s *pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch)
+{
+  for (size_t n = 0; n < cvector_size(pucch_cfg.sched_request_res_to_add_mod_list); n++) {
+    // fill each sr_resource's cnf
+    struct sched_request_res_cfg_s *asn_sr_res = &pucch_cfg->sched_request_res_to_add_mod_list[n];
+    srsran_pucch_nr_sr_resource_t* sr_res      = &pucch->sr_resources[asn_sr_res.sched_request_res_id];
+    make_phy_sr_resource(asn_sr_res, sr_res);
+
+    // get the pucch_resource from pucch_cfg.res_to_add_mod_list and copy it into the sr_resouce.resource
+    const auto& asn1_pucch_resource = pucch_cfg->res_to_add_mod_list[asn_sr_res.res];
+    auto&       pucch_resource      = sr_res->resource;
+    uint32_t    format2_rate        = 0;
+    if (pucch_cfg.format2_present &&\
+        pucch_cfg.format2.type_ == setup &&\
+        pucch_cfg.format2.c.max_code_rate_present) {
+      format2_rate = options_max_code_rate[pucch_cfg->format2.c.max_code_rate];
+    }
+    if (!make_phy_res_config(asn1_pucch_resource, format2_rate, pucch_resource)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+bool fill_phy_pucch_cfg(struct pucch_cfg_s *pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch)
+{
+  // sanity check to avoid pucch->sets[n] goes out of bound
+  if (cvector_size(pucch_cfg->res_set_to_add_mod_list) > SRSRAN_PUCCH_NR_MAX_NOF_SETS) {
+    return false;
+  }
+
+  // iterate over the sets of resourceSetToAddModList
+  for (size_t n = 0; n < cvector_size(pucch_cfg->res_set_to_add_mod_list); n++) {
+    struct pucch_res_set_s *res_set = &pucch_cfg->res_set_to_add_mod_list[n];
+    pucch->sets[n].nof_resources = cvector_size(res_set->res_list);
+    if (res_set->max_payload_size_present) {
+      pucch->sets[n].max_payload_size = res_set->max_payload_size;
+    }
+    // NOTE:  res_set.pucch_res_set_id does not have a corresponding field in the PHY struct
+
+    // for each set, iterate over the elements (an element is an index). For each of the element or index, find the
+    // corresponding pucch_res_s object in the pucch_cfg.res_to_add_mod_list
+    for (size_t res_idx = 0; res_idx < cvector_size(res_set->res_list); res_idx++) {
+      size_t pucch_resource_id = res_set->res_list[res_idx];
+
+      // Find the pucch_res_s object corresponding to pucch_resource_id in the pucch_cfg.res_to_add_mod_list
+      size_t m = 0;
+      while (m <= cvector_size(pucch_cfg->res_to_add_mod_list)) {
+        if (m == cvector_size(pucch_cfg->res_to_add_mod_list)) {
+          // if we get here, the list pucch_cfg.res_to_add_mod_list does not contain any object corresponding to
+          // pucch_resource_id
+          return false;
+        }
+        if (pucch_cfg->res_to_add_mod_list[m].pucch_res_id == pucch_resource_id) {
+          break; // item found, exit the loop
+        }
+        m++;
+      }
+
+      // Below is the object corresponding to pucch_resource_id in the pucch_cfg.res_to_add_mod_list
+      struct pucch_res_s *asn1_resource = &pucch_cfg->res_to_add_mod_list[m];
+
+      // sanity check to avoid pucch->sets[n].resources[res_idx] goes out of bound;
+      if (res_idx >= SRSRAN_PUCCH_NR_MAX_NOF_RESOURCES_PER_SET) {
+        return false;
+      }
+
+      srsran_pucch_nr_resource_t *resource = &pucch->sets[n].resources[res_idx];
+      uint32_t format2_rate = 0;
+      if (pucch_cfg->format2_present &&\
+          pucch_cfg->format2.type_ == setup &&\
+          pucch_cfg->format2.c.max_code_rate_present) {
+        format2_rate = options_max_code_rate[pucch_cfg->format2.c.max_code_rate];
+      }
+      if (! make_phy_res_config(asn1_resource, format2_rate, resource)) {
+        return false;
+      }
+    }
+  }
+
+  // configure scheduling request resources
+  return fill_phy_pucch_hl_cfg(pucch_cfg, pucch);
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////
 bool API_rrc_mac_make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl)

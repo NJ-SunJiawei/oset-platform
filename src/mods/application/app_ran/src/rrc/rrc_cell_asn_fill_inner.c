@@ -246,7 +246,7 @@ void fill_srb_inner(rrc_nr_cfg_t *cfg, nr_srb srb_id, struct rlc_bearer_cfg_s *o
 
 	out->lc_ch_id                         = srb_to_lcid(srb_id);
 	out->served_radio_bearer_present      = true;
-	out->served_radio_bearer.type_        = 0;//srb_id
+	out->served_radio_bearer.type_        = (enum served_radio_bearer_types)srb_id;//0
 	out->served_radio_bearer.c            = (uint8_t)srb_id;
 
 	if (srb_id == srb1) {
@@ -896,7 +896,7 @@ int fill_sp_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, struct s
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void free_master_cell_cfg_dyn_array(struct cell_group_cfg_s *master_cell_group)
+void free_master_cell_cfg_vector(struct cell_group_cfg_s *master_cell_group)
 {
     //free rlc_bearer_to_add_mod_list
 	cvector_free(master_cell_group->rlc_bearer_to_add_mod_list);
@@ -912,8 +912,8 @@ void free_master_cell_cfg_dyn_array(struct cell_group_cfg_s *master_cell_group)
     struct csi_res_cfg_s *csi_res_cfg = NULL;
     cvector_for_each_in(csi_res_cfg, master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_res_cfg_to_add_mod_list){
 		//release csi_rs_res_set_list
-		if(0 == csi_res_cfg->csi_rs_res_set_list.type_) cvector_free(csi_res_cfg->csi_rs_res_set_list.c.nzp_csi_rs_ssb.nzp_csi_rs_res_set_list);	
-		if(1 == csi_res_cfg->csi_rs_res_set_list.type_) cvector_free(csi_res_cfg->csi_rs_res_set_list.c.csi_im_res_set_list);
+		if(nzp_csi_rs_ssb == csi_res_cfg->csi_rs_res_set_list.type_) cvector_free(csi_res_cfg->csi_rs_res_set_list.c.nzp_csi_rs_ssb.nzp_csi_rs_res_set_list);	
+		if(csi_im_res_set_list == csi_res_cfg->csi_rs_res_set_list.type_) cvector_free(csi_res_cfg->csi_rs_res_set_list.c.csi_im_res_set_list);
 	}
 	cvector_free(master_cell_group->sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg.c.csi_res_cfg_to_add_mod_list);
 	//free NZP-CSI-RS-Resource

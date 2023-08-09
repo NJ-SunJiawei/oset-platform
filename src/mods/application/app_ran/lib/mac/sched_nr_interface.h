@@ -34,8 +34,6 @@ extern "C" {
 			}
 
 /////////////////////////////////////////////////////////
-
-
 typedef enum  { IDLE = 0, UL, DL, BOTH } direction_t;
 
 typedef struct mac_lc_ch_cfg_s {

@@ -31,6 +31,8 @@ bool make_phy_csi_report(csi_report_cfg_s *csi_report_cfg,
 bool make_phy_res_config(const pucch_res_s 		 *pucch_res,
 								   uint32_t 				  format_2_max_code_rate,
 								   srsran_pucch_nr_resource_t *in_srsran_pucch_nr_resource);
+bool make_phy_sr_resource(struct sched_request_res_cfg_s  *sched_request_res_cfg,
+						 		srsran_pucch_nr_sr_resource_t *in_srsran_pucch_nr_sr_resource);
 bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl);
 bool make_csi_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_csi_hl_cfg_t* csi_hl);
 int make_rlc_config_t(struct rlc_cfg_c *asn1_type, uint8_t bearer_id, rlc_config_t* cfg_out);
@@ -40,7 +42,9 @@ bool fill_ssb_pattern_scs(srsran_carrier_nr_t *carrier,
                                   srsran_ssb_pattern_t *pattern,
                                   srsran_subcarrier_spacing_t *ssb_scs);
 bool fill_phy_ssb_cfg(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_ssb_cfg_t *out_ssb);
-bool fill_rach_cfg_common_default_inner(srsran_prach_cfg_t *prach_cfg, struct rach_cfg_common_s *rach_cfg_com);
+bool fill_rach_cfg_common_default(srsran_prach_cfg_t *prach_cfg, struct rach_cfg_common_s *rach_cfg_com);
+bool fill_phy_pucch_hl_cfg(struct pucch_cfg_s *pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch);
+bool fill_phy_pucch_cfg(struct pucch_cfg_s *pucch_cfg, srsran_pucch_nr_hl_cfg_t* pucch);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 bool API_rrc_mac_make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl);

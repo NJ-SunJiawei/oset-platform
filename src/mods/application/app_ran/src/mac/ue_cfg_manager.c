@@ -38,13 +38,13 @@ int ue_cfg_manager_apply_config_request(ue_cfg_manager *ue_cfg, sched_nr_ue_cfg_
 
 	uint32_t *lcid = NULL;
 	cvector_for_each_in(lcid, cfg_req->lc_ch_to_rem){
-		ASSERT_IF_NOT(*lcid > 0 && "LCID=0 cannot be removed");
+		ASSERT_IF_NOT(*lcid > 0, "LCID=0 cannot be removed");
 		ue_cfg->ue_bearers[*lcid] = {0};
 	}
 
 	sched_nr_ue_lc_ch_cfg_t *lc_ch = NULL;
 	cvector_for_each_in(lc_ch, cfg_req->lc_ch_to_add){
-		ASSERT_IF_NOT(lc_ch->lcid > 0 && "LCID=0 cannot be configured");
+		ASSERT_IF_NOT(lc_ch->lcid > 0, "LCID=0 cannot be configured");
 		ue_cfg->ue_bearers[lc_ch->lcid] = lc_ch->cfg;
 	}
 

@@ -23,6 +23,7 @@ static void rlc_lib_write_ul_pdu_suspended(rlc_common *rlc_entity, uint8_t* payl
 
 rlc_common * rlc_valid_lcid(rlc_lib_t *rlc, uint32_t lcid)
 {
+  // ???SRSRAN_N_RADIO_BEARERS
   if (lcid >= SRSRAN_N_RADIO_BEARERS) {
     oset_error("Radio bearer id must be in [0:%d] - %d", SRSRAN_N_RADIO_BEARERS, lcid);
     return NULL;

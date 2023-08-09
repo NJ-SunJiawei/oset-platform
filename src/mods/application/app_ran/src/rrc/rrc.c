@@ -42,6 +42,56 @@ static void rrc_manager_destory(void)
 	rrc_manager.app_pool = NULL; /*app_pool release by openset process*/
 }
 
+static void get_default_cell_cfg(phy_cfg_nr_t *phy_cfg, sched_nr_cell_cfg_t *cell_cfg)
+{
+	cell_cfg->pci                    = phy_cfg->carrier.pci;
+	cell_cfg->dl_center_frequency_hz = phy_cfg->carrier.dl_center_frequency_hz;
+	cell_cfg->ul_center_frequency_hz = phy_cfg->carrier.ul_center_frequency_hz;
+	cell_cfg->ssb_center_freq_hz     = phy_cfg->carrier.ssb_center_freq_hz;
+
+	/*
+	cvector_reserve(cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, 1);
+	struct scs_specific_carrier_s ss_carrier = {0};
+	ss_carrier.subcarrier_spacing = (enum subcarrier_spacing_e)phy_cfg->carrier.scs;
+	ss_carrier.offset_to_carrier = phy_cfg->carrier.offset_to_carrier;
+	cvector_push_back(cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, ss_carrier);
+
+	cell_cfg->dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing = (enum subcarrier_spacing_e)phy_cfg->carrier.scs;
+	cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common_present = true;
+	cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common.type_ = setup;
+	fill_rach_cfg_common_default(&phy_cfg->prach, &cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common.c);
+	*/
+
+	cell_cfg->dl_cell_nof_prb    = phy_cfg->carrier.nof_prb;
+	cell_cfg->nof_layers         = phy_cfg->carrier.max_mimo_layers;
+	cell_cfg->ssb_periodicity_ms = phy_cfg->ssb.periodicity_ms;
+	for (uint32_t i = 0; i < 8; ++i) {//8bit???
+		bitstring_set(&cell_cfg->ssb_positions_in_burst.in_one_group, i, phy_cfg->ssb.position_in_burst[i]);
+	}
+	// TODO: phy_cfg.ssb_positions_in_burst.group_presence_present
+	cell_cfg->dmrs_type_a_position       = (enum dmrs_type_a_position_e_)pos2;
+	cell_cfg->ssb_scs                    = (enum subcarrier_spacing_e )phy_cfg->ssb.scs;
+	cell_cfg->pdcch_cfg_sib1.ctrl_res_set_zero = 0;
+	cell_cfg->pdcch_cfg_sib1.search_space_zero = 0;
+
+	cvector_reserve(cell_cfg->bwps, 1);
+	sched_nr_bwp_cfg_t bwp = {0};
+	bwp.pdcch    = phy_cfg->pdcch;
+	bwp.pdsch    = phy_cfg->pdsch;
+	bwp.pusch    = phy_cfg->pusch;
+	bwp.pucch    = phy_cfg->pucch;
+	bwp.harq_ack = phy_cfg->harq_ack;
+	bwp.rb_width = phy_cfg->carrier.nof_prb;
+	bwp.rar_window_size = 10;
+	cvector_push_back(cell_cfg->bwps, bwp);
+
+	if (phy_cfg->duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
+		cell_cfg->tdd_ul_dl_cfg_common = {0};
+		ASSERT_IF_NOT(make_phy_tdd_cfg_inner(phy_cfg->duplex, srsran_subcarrier_spacing_15kHz, &cell_cfg->tdd_ul_dl_cfg_common), "Failed to generate TDD config");
+	}
+}
+
+
 int32_t rrc_generate_sibs(uint32_t cc)
 {
 	if (!rrc_manager.cfg.is_standalone) {
@@ -103,55 +153,6 @@ void rrc_config_phy(uint32_t cc)
 	common_cfg->duplex_mode = rrc_cell_cfg->duplex_mode;
 	ret	= fill_phy_ssb_cfg(rrc_cell_cfg, &common_cfg->ssb);
 	ASSERT_IF_NOT(ret, "Failed to generate PHY config");
-}
-
-static void get_default_cell_cfg(phy_cfg_nr_t *phy_cfg, sched_nr_cell_cfg_t *cell_cfg)
-{
-
-
-	cell_cfg->pci                    = phy_cfg->carrier.pci;
-	cell_cfg->dl_center_frequency_hz = phy_cfg->carrier.dl_center_frequency_hz;
-	cell_cfg->ul_center_frequency_hz = phy_cfg->carrier.ul_center_frequency_hz;
-	cell_cfg->ssb_center_freq_hz     = phy_cfg->carrier.ssb_center_freq_hz;
-	
-	//cvector_reserve(cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, 1);
-	//struct scs_specific_carrier_s ss_carrier = {0};
-	//ss_carrier.subcarrier_spacing = (enum subcarrier_spacing_e)phy_cfg->carrier.scs;
-	//ss_carrier.offset_to_carrier = phy_cfg->carrier.offset_to_carrier;
-	//cvector_push_back(cell_cfg->dl_cfg_common.freq_info_dl.scs_specific_carrier_list, ss_carrier);
-
-	//cell_cfg->dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing = (enum subcarrier_spacing_e)phy_cfg->carrier.scs;
-	//cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common_present = true;
-	//cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common.type_ = setup;
-	//fill_rach_cfg_common_default_inner(&phy_cfg->prach, &cell_cfg->ul_cfg_common.init_ul_bwp.rach_cfg_common.c);//fill_rach_cfg_common(const srsran_prach_cfg_t& prach_cfg, asn1::rrc_nr::rach_cfg_common_s& asn1_type)
-
-	cell_cfg->dl_cell_nof_prb    = phy_cfg->carrier.nof_prb;
-	cell_cfg->nof_layers         = phy_cfg->carrier.max_mimo_layers;
-	cell_cfg->ssb_periodicity_ms = phy_cfg->ssb.periodicity_ms;
-	//for (uint32_t i = 0; i < 8; ++i) {//8bit???
-	//	bitstring_set(&cell_cfg->ssb_positions_in_burst.in_one_group, i, phy_cfg->ssb.position_in_burst[i]);
-	//}
-	// TODO: phy_cfg.ssb_positions_in_burst.group_presence_present
-	cell_cfg->dmrs_type_a_position       = (enum dmrs_type_a_position_e_)pos2;
-	cell_cfg->ssb_scs                    = (enum subcarrier_spacing_e )phy_cfg->ssb.scs;
-	cell_cfg->pdcch_cfg_sib1.ctrl_res_set_zero = 0;
-	cell_cfg->pdcch_cfg_sib1.search_space_zero = 0;
-
-	cvector_reserve(cell_cfg->bwps, 1);
-	sched_nr_bwp_cfg_t bwp = {0};
-	bwp.pdcch    = phy_cfg->pdcch;
-	bwp.pdsch    = phy_cfg->pdsch;
-	bwp.pusch    = phy_cfg->pusch;
-	bwp.pucch    = phy_cfg->pucch;
-	bwp.harq_ack = phy_cfg->harq_ack;
-	bwp.rb_width = phy_cfg->carrier.nof_prb;
-	bwp.rar_window_size = 10;
-	cvector_push_back(cell_cfg->bwps, bwp);
-
-	if (phy_cfg->duplex.mode == SRSRAN_DUPLEX_MODE_TDD) {
-		cell_cfg->tdd_ul_dl_cfg_common = {0};
-		ASSERT_IF_NOT(make_phy_tdd_cfg_inner(phy_cfg->duplex, srsran_subcarrier_spacing_15kHz, &cell_cfg->tdd_ul_dl_cfg_common), "Failed to generate TDD config");
-	}
 }
 
 void rrc_config_mac(uint32_t cc)
@@ -270,7 +271,7 @@ int rrc_init(void)
 
     //todo //just support one cell now 
 	rrc_manager.cell_ctxt = oset_core_alloc(rrc_manager.app_pool, sizeof(cell_ctxt_t));
-	ret = fill_master_cell_cfg_from_enb_cfg_inner(rrc_manager.cfg, 0, rrc_manager.cell_ctxt->master_cell_group);
+	ret = fill_master_cell_cfg_from_enb_cfg_inner(rrc_manager.cfg, 0, &rrc_manager.cell_ctxt->master_cell_group);
 	ASSERT_IF_NOT(ret == OSET_OK, "Failed to configure MasterCellGroup");
 
 	// derived
@@ -313,7 +314,7 @@ int rrc_destory(void)
 	/*free du*/
 	du_cell_config *du_cell = NULL;
 	cvector_for_each_in(du_cell, rrc_manager.du_cfg.cells){
-		du_config_manager_release_buf(du_cell);
+		du_config_manager_release(du_cell);
 	}
 	cvector_free(rrc_manager.du_cfg.cells);
 
@@ -322,7 +323,7 @@ int rrc_destory(void)
 	cvector_free_each_and_free(rrc_manager.cell_ctxt->sib_buffer, oset_free);
 
     /*free cell_ctxt->master_cell_group*/
-	free_master_cell_cfg_dyn_array(&rrc_manager.cell_ctxt->master_cell_group);
+	free_master_cell_cfg_vector(&rrc_manager.cell_ctxt->master_cell_group);
 
     /*free sched_cells_cfg*/
 	struct sched_nr_cell_cfg_t *nr_cell_cfg = NULL;

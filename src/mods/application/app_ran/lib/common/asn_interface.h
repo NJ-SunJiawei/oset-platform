@@ -2357,7 +2357,7 @@ struct serving_cell_cfg_common_s {
 };
 
 
-struct periodicity_and_offset_c_ {
+struct periodicity_and_offset_ssb_mtc_c_ {
   enum types { sf5, sf10, sf20, sf40, sf80, sf160, nulltype }	type_;
   void *c;//pod_choice_buffer_t
 };
@@ -2367,7 +2367,7 @@ enum dur_e_ { sf1, sf2, sf3, sf4, sf5, nulltype };
 // SSB-MTC ::= SEQUENCE
 struct ssb_mtc_s {
   // member variables
-  struct periodicity_and_offset_c_ periodicity_and_offset;
+  struct periodicity_and_offset_ssb_mtc_c_ periodicity_and_offset;
   enum dur_e_                      dur;
 };
 
@@ -3784,8 +3784,9 @@ struct nzp_csi_rs_ssb_s_ {
   uint8_t	 csi_ssb_res_set_list;//std::array<uint8_t, 1>
 };
 
+enum csi_rs_res_set_list_types {nothing ,nzp_csi_rs_ssb, csi_im_res_set_list, nulltype };
 struct csi_rs_res_set_list_c_ {
-  enum types {nothing ,nzp_csi_rs_ssb, csi_im_res_set_list, nulltype } type_;
+  enum csi_rs_res_set_list_types type_;
   union{
 		  cvector_vector_t(uint8_t) csi_im_res_set_list;//bounded_array<uint8_t, 16>
 		  struct nzp_csi_rs_ssb_s_ nzp_csi_rs_ssb;

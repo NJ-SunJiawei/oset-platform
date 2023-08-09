@@ -40,7 +40,7 @@ typedef struct{
   cvector_vector_t(du_cell_config *) cells;//std::vector<std::unique_ptr<du_cell_config> >
 }du_config_manager;
 
-void du_config_manager_release_buf(du_cell_config *du_cell);
+void du_config_manager_release(du_cell_config *du_cell);
 int du_config_manager_add_cell(rrc_cell_cfg_nr_t *node);
 void fill_phy_pdcch_cfg_common(du_cell_config *cell, srsran_pdcch_cfg_nr_t *pdcch);
 bool fill_phy_pdcch_cfg(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_pdcch_cfg_nr_t *pdcch);
