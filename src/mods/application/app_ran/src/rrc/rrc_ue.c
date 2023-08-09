@@ -135,50 +135,6 @@ static int send_dl_ccch(rrc_nr_ue *ue, ASN_RRC_DL_CCCH_Message_t *dl_ccch_msg)
 	return OSET_OK;
 }
 
-static int update_rlc_bearers(rrc_nr_ue *ue, struct cell_group_cfg_s *cell_group_diff)
-{
-	// Release RLC radio bearers
-	uint8_t *lcid = NULL;
-	cvector_for_each_in(lcid, cell_group_diff->rlc_bearer_to_release_list){
-		API_rlc_rrc_del_bearer(ue->rnti, *lcid);
-	}
-
-	// Add/Mod RLC radio bearers
-	struct rlc_bearer_cfg_s *rb = NULL;
-	cvector_for_each_in(rb, cell_group_diff->rlc_bearer_to_add_mod_list){
-		rlc_config_t         rlc_cfg = {0};
-		uint8_t              rb_id = 0;
-		if (rb->served_radio_bearer.type_.value == (served_radio_bearer_types)srb_id) {
-		  rb_id = rb->served_radio_bearer.c;
-		  if (! rb->rlc_cfg_present) {
-		  	uint32_t default_sn_size = 12;
-		    rlc_cfg = default_rlc_am_nr_config(default_sn_size);
-		  } else {
-		    if (make_rlc_config_t(rb->rlc_cfg, rb_id, &rlc_cfg) != OSET_OK) {
-		      oset_error("Failed to build RLC config");
-		      // TODO: HANDLE
-		      return OSET_ERROR;
-		    }
-		  }
-		} else {
-		  rb_id = rb->served_radio_bearer.c;
-		  if (! rb->rlc_cfg_present) {
-		    oset_error("No RLC config for DRB");
-		    // TODO: HANDLE
-		    return OSET_ERROR;
-		  }
-		  if (make_rlc_config_t(rb->rlc_cfg, rb_id, &rlc_cfg) != OSET_OK) {
-		    oset_error("Failed to build RLC config");
-		    // TODO: HANDLE
-		    return OSET_ERROR;
-		  }
-		}
-		API_rlc_rrc_add_bearer(ue->rnti, rb->lc_ch_id, rlc_cfg);
-	}
-
-  return OSET_OK;
-}
-
 static const int32_t prioritised_bit_rate_options[] = {0, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, -1};
 static const uint16_t bucket_size_dur_options[] = {5, 10, 20, 50, 100, 150, 300, 500, 1000};
 
@@ -217,23 +173,125 @@ static int update_mac(rrc_nr_ue *ue, cell_group_cfg_s *cell_group_config, bool i
 		}
 	} else {
 		struct pdcch_cfg_s* pdcch = &cell_group_config->sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp.pdcch_cfg.c;
-		for (auto& ss : pdcch->search_spaces_to_add_mod_list) {
-			uecfg.phy_cfg.pdcch.search_space_present[ss.search_space_id] = true;
-			srsran::make_phy_search_space_cfg(ss, &uecfg.phy_cfg.pdcch.search_space[ss.search_space_id]);
+		struct search_space_s *ss = NULL;
+		cvector_for_each_in(ss, pdcch->search_spaces_to_add_mod_list){
+			ue->uecfg.phy_cfg.pdcch.search_space_present[ss->search_space_id] = true;
+			make_phy_search_space_cfg(ss, &ue->uecfg.phy_cfg.pdcch.search_space[ss->search_space_id]);
 		}
-		for (auto& cs : pdcch.ctrl_res_set_to_add_mod_list) {
-			uecfg.phy_cfg.pdcch.coreset_present[cs.ctrl_res_set_id] = true;
-			srsran::make_phy_coreset_cfg(cs, &uecfg.phy_cfg.pdcch.coreset[cs.ctrl_res_set_id]);
+
+		struct ctrl_res_set_s *cs = NULL;
+		cvector_for_each_in(cs, pdcch->ctrl_res_set_to_add_mod_list){
+			ue->uecfg.phy_cfg.pdcch.coreset_present[cs->ctrl_res_set_id] = true;
+			make_phy_coreset_cfg(cs, &ue->uecfg.phy_cfg.pdcch.coreset[cs->ctrl_res_set_id]);
 		}
 	}
 
-	uecfg.sp_cell_cfg.reset(new sp_cell_cfg_s{cell_group_cfg.sp_cell_cfg});
-	uecfg.mac_cell_group_cfg.reset(new mac_cell_group_cfg_s{cell_group_cfg.mac_cell_group_cfg});
-	uecfg.phy_cell_group_cfg.reset(new phys_cell_group_cfg_s{cell_group_cfg.phys_cell_group_cfg});
-	srsran::make_csi_cfg_from_serv_cell(cell_group_config.sp_cell_cfg.sp_cell_cfg_ded, &uecfg.phy_cfg.csi);
-	parent->mac->ue_cfg(rnti, uecfg);
+	ue->uecfg.sp_cell_cfg = &cell_group_config->sp_cell_cfg;
+	ue->uecfg.mac_cell_group_cfg= &cell_group_config->mac_cell_group_cfg;
+	ue->uecfg.phy_cell_group_cfg = &cell_group_config->phys_cell_group_cfg;
+
+	make_csi_cfg_from_serv_cell(cell_group_config->sp_cell_cfg.sp_cell_cfg_ded, &ue->uecfg.phy_cfg.csi);
+	API_mac_rrc_api_ue_cfg(ue->rnti, &ue->uecfg);
 
 	return OSET_OK;
+}
+
+static int update_pdcp_bearers(rrc_nr_ue *ue,
+									struct radio_bearer_cfg_s *radio_bearer_diff,
+                                    struct cell_group_cfg_s  *cell_group_diff)
+{
+  // release DRBs
+  // TODO
+
+  // add SRBs
+  for (const srb_to_add_mod_s& srb : radio_bearer_diff->srb_to_add_mod_list) {
+    srsran::pdcp_config_t   pdcp_cnfg  = make_nr_srb_pdcp_config_t(srb.srb_id, false);
+    const rlc_bearer_cfg_s* rlc_bearer = nullptr;
+    for (const rlc_bearer_cfg_s& item : cell_group_diff.rlc_bearer_to_add_mod_list) {
+      if (item.served_radio_bearer.type_ == (enum served_radio_bearer_types)srb_id &&\
+          item.served_radio_bearer.c == srb.srb_id) {
+        rlc_bearer = &item;
+        break;
+      }
+    }
+    if (rlc_bearer == nullptr) {
+      logger.error("Inconsistency between cellGroupConfig and radioBearerConfig in ASN1 message");
+      return SRSRAN_ERROR;
+    }
+    parent->pdcp->add_bearer(rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
+
+    if (sec_ctx.is_as_sec_cfg_valid()) {
+      update_as_security(rlc_bearer->lc_ch_id);
+    }
+  }
+
+  // Add DRBs
+  for (const drb_to_add_mod_s& drb : radio_bearer_diff->drb_to_add_mod_list) {
+    srsran::pdcp_config_t   pdcp_cnfg  = make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
+    const rlc_bearer_cfg_s* rlc_bearer = nullptr;
+    for (const rlc_bearer_cfg_s& item : cell_group_diff.rlc_bearer_to_add_mod_list) {
+      if (item.served_radio_bearer.type().value == rlc_bearer_cfg_s::served_radio_bearer_c_::types_opts::drb_id and
+          item.served_radio_bearer.drb_id() == drb.drb_id) {
+        rlc_bearer = &item;
+        break;
+      }
+    }
+    if (rlc_bearer == nullptr) {
+      logger.error("Inconsistency between cellGroupConfig and radioBearerConfig in ASN1 message");
+      return SRSRAN_ERROR;
+    }
+    parent->pdcp->add_bearer(rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
+
+    if (sec_ctx.is_as_sec_cfg_valid()) {
+      update_as_security(rlc_bearer->lc_ch_id, drb.pdcp_cfg.drb.integrity_protection_present, true);
+    }
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+static int update_rlc_bearers(rrc_nr_ue *ue, struct cell_group_cfg_s *cell_group_diff)
+{
+	// Release RLC radio bearers
+	uint8_t *lcid = NULL;
+	cvector_for_each_in(lcid, cell_group_diff->rlc_bearer_to_release_list){
+		API_rlc_rrc_del_bearer(ue->rnti, *lcid);
+	}
+
+	// Add/Mod RLC radio bearers
+	struct rlc_bearer_cfg_s *rb = NULL;
+	cvector_for_each_in(rb, cell_group_diff->rlc_bearer_to_add_mod_list){
+		rlc_config_t		 rlc_cfg = {0};
+		uint8_t 			 rb_id = 0;
+		if (rb->served_radio_bearer.type_.value == (served_radio_bearer_types)srb_id) {
+		  rb_id = rb->served_radio_bearer.c;
+		  if (! rb->rlc_cfg_present) {
+			uint32_t default_sn_size = 12;
+			rlc_cfg = default_rlc_am_nr_config(default_sn_size);
+		  } else {
+			if (make_rlc_config_t(rb->rlc_cfg, rb_id, &rlc_cfg) != OSET_OK) {
+			  oset_error("Failed to build RLC config");
+			  // TODO: HANDLE
+			  return OSET_ERROR;
+			}
+		  }
+		} else {
+		  rb_id = rb->served_radio_bearer.c;
+		  if (! rb->rlc_cfg_present) {
+			oset_error("No RLC config for DRB");
+			// TODO: HANDLE
+			return OSET_ERROR;
+		  }
+		  if (make_rlc_config_t(rb->rlc_cfg, rb_id, &rlc_cfg) != OSET_OK) {
+			oset_error("Failed to build RLC config");
+			// TODO: HANDLE
+			return OSET_ERROR;
+		  }
+		}
+		API_rlc_rrc_add_bearer(ue->rnti, rb->lc_ch_id, rlc_cfg);
+	}
+
+  return OSET_OK;
 }
 
 void rrc_rem_user_info(uint16_t rnti)
@@ -453,10 +511,10 @@ void send_rrc_setup(rrc_nr_ue *ue)
 	// add PDCP bearers
 	// this is done after updating the RLC bearers,
 	// so the PDCP can query the RLC mode
-	update_pdcp_bearers(ue->radio_bearer_cfg, ue->cell_group_cfg);
+	update_pdcp_bearers(ue, ue->radio_bearer_cfg, ue->cell_group_cfg);
 
 	// add MAC bearers添加MAC承载
-	update_mac(ue->cell_group_cfg, false);
+	update_mac(ue, ue->cell_group_cfg, false);
 
 	// Send RRC Setup message to UE
 	if (send_dl_ccch(msg) != OSET_OK) {
