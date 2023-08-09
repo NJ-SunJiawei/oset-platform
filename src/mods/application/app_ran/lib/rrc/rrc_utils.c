@@ -12,10 +12,27 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-librrcUtils"
 
-uint8_t options_nrof_ports[] = {1, 2, 4, 8, 12, 16, 24, 32};
-int8_t options_pwr_ctrl_offset_ss[] = {-3, 0, 3, 6};
-uint16_t options_csi_report_periodicity_and_offset[] = {4, 5, 8, 10, 16, 20, 40, 80, 160, 320};
-float options_max_code_rate[] = {0.08, 0.15, 0.25, 0.35, 0.45, 0.6, 0.8};
+static const uint8_t nrof_ports_options[] = {1, 2, 4, 8, 12, 16, 24, 32};
+static const int8_t pwr_ctrl_offset_ss_options[] = {-3, 0, 3, 6};
+static const uint16_t csi_report_periodicity_and_offset_options[] = {4, 5, 8, 10, 16, 20, 40, 80, 160, 320};
+static const float max_code_rate_options[] = {0.08, 0.15, 0.25, 0.35, 0.45, 0.6, 0.8};
+static const uint16_t t_poll_retx_options[] = {5,	10,  15,  20,  25,	30,  35,  40,  45,	50,  55,  60,	65,   70,  75,
+											   80,	85,  90,  95,  100, 105, 110, 115, 120, 125, 130, 135,	140,  145, 150,
+											   155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210,	215,  220, 225,
+											   230, 235, 240, 245, 250, 300, 350, 400, 450, 500, 800, 1000, 2000, 4000};
+static const int32_t poll_pdu_options[] 	= {4,	8,	   16,	  32,	 64,	128,   256,   512,	 1024,	2048,  4096,  6144,
+										  		8192, 12288, 16384, 20480, 24576, 28672, 32768, 40960, 49152, 57344, 65536, -1};
+static const int32_t poll_byte_options[] 	= {1,		 2, 	5,	   8,	  10,	 15,	25,    50,	  75,	 100,	125,
+										  		250,	 375,	500,   750,   1000,  1250,	1500,  2000,  3000,  4000,	4500,
+										  		5000,  5500,	6000,  6500,  7000,  7500,	8000,  9000,  10000, 11000, 12000,
+										  		13000, 14000, 15000, 16000, 17000, 18000, 20000, 25000, 30000, 40000, -1};
+static const uint8_t max_retx_thres_options[] = {1, 2, 3, 4, 6, 8, 16, 32};
+static const uint8_t t_reassembly_options[] = {0, 5,  10, 15, 20,  25,	30,  35,  40,  45,	50,  55,  60,  65,	70, 75,
+											  80, 85, 90, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200};
+static const uint16_t t_status_prohibit_options[] = {0,   5,   10,	15,  20,  25,  30,	35,  40,  45,	50,   55,	60,   65,  70,	75,
+									 				80,  85,  90,	95,  100, 105, 110, 115, 120, 125,	130,  135,	140,  145, 150, 155,
+									 				160, 165, 170, 175, 180, 185, 190, 195, 200, 205,	210,  215,	220,  225, 230, 235,
+									 				240, 245, 250, 300, 350, 400, 450, 500, 800, 1000, 1200, 1600, 2000, 2400};
 
 
 bool make_phy_tdd_cfg_inner(srsran_duplex_config_nr_t	       	*srsran_duplex_config_nr,
@@ -270,7 +287,7 @@ bool make_phy_nzp_csi_rs_resource(struct nzp_csi_rs_res_s *asn1_nzp_csi_rs_res,
       return false;
   }
 
-  csi_rs_nzp_resource.resource_mapping.nof_ports        = options_nrof_ports[asn1_nzp_csi_rs_res->res_map.nrof_ports];
+  csi_rs_nzp_resource.resource_mapping.nof_ports        = nrof_ports_options[asn1_nzp_csi_rs_res->res_map.nrof_ports];
   csi_rs_nzp_resource.resource_mapping.first_symbol_idx = asn1_nzp_csi_rs_res->res_map.first_ofdm_symbol_in_time_domain;
 
   switch (asn1_nzp_csi_rs_res->res_map.cdm_type) {
@@ -329,7 +346,7 @@ bool make_phy_nzp_csi_rs_resource(struct nzp_csi_rs_res_s *asn1_nzp_csi_rs_res,
 
   csi_rs_nzp_resource.power_control_offset = asn1_nzp_csi_rs_res->pwr_ctrl_offset;
   if (asn1_nzp_csi_rs_res->pwr_ctrl_offset_ss_present) {
-    csi_rs_nzp_resource.power_control_offset_ss = options_pwr_ctrl_offset_ss[asn1_nzp_csi_rs_res->pwr_ctrl_offset_ss];
+    csi_rs_nzp_resource.power_control_offset_ss = pwr_ctrl_offset_ss_options[asn1_nzp_csi_rs_res->pwr_ctrl_offset_ss];
   }
 
   if (asn1_nzp_csi_rs_res->periodicity_and_offset_present) {
@@ -437,7 +454,7 @@ bool make_phy_zp_csi_rs_resource(struct zp_csi_rs_res_s *zp_csi_rs_res,
 						 zp_csi_rs_res->res_map.freq_domain_alloc.type_);
 	   return false;
    }
-   zp_csi_rs_resource.resource_mapping.nof_ports		= options_nrof_ports[zp_csi_rs_res->res_map.nrof_ports];
+   zp_csi_rs_resource.resource_mapping.nof_ports		= nrof_ports_options[zp_csi_rs_res->res_map.nrof_ports];
    zp_csi_rs_resource.resource_mapping.first_symbol_idx = zp_csi_rs_res->res_map.first_ofdm_symbol_in_time_domain;
  
    switch (zp_csi_rs_res->res_map.cdm_type) {
@@ -589,7 +606,7 @@ bool make_phy_csi_report(csi_report_cfg_s *csi_report_cfg,
 
 	if (srsran_csi_hl_report_cfg.type == SRSRAN_CSI_REPORT_TYPE_PERIODIC) {
 	  struct periodic_s_ *csi_periodic = csi_report_cfg->report_cfg_type.c.periodic;
-	  srsran_csi_hl_report_cfg.periodic.period = options_csi_report_periodicity_and_offset[csi_periodic->report_slot_cfg.type_];
+	  srsran_csi_hl_report_cfg.periodic.period = csi_report_periodicity_and_offset_options[csi_periodic->report_slot_cfg.type_];
 	  switch (csi_periodic->report_slot_cfg.type_) {
 		case (enum csi_report_periodicity_and_offset_e_)slots4:
 		  srsran_csi_hl_report_cfg.periodic.offset = csi_periodic->report_slot_cfg.c;
@@ -715,117 +732,117 @@ bool make_phy_res_config(const pucch_res_s 		 *pucch_res,
 					   uint32_t 				  format_2_max_code_rate,
 					   srsran_pucch_nr_resource_t *in_srsran_pucch_nr_resource)
 {
-  srsran_pucch_nr_resource_t srsran_pucch_nr_resource = {0};
-  srsran_pucch_nr_resource.starting_prb 			= pucch_res->start_prb;
-  srsran_pucch_nr_resource.intra_slot_hopping		= pucch_res->intra_slot_freq_hop_present;
-  if (pucch_res->second_hop_prb_present) {
-	  srsran_pucch_nr_resource.second_hop_prb = pucch_res->second_hop_prb;
-  }
-  switch (pucch_res->format.type_) {
-  case (enum pucch_format_types)format0:
-	srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_0;
-	break;
-  case (enum pucch_format_types)format1:
-	srsran_pucch_nr_resource.format 			  = SRSRAN_PUCCH_NR_FORMAT_1;
-	srsran_pucch_nr_resource.initial_cyclic_shift = pucch_res->format.c.f1.init_cyclic_shift;
-	srsran_pucch_nr_resource.nof_symbols		  = pucch_res->format.c.f1.nrof_symbols;
-	srsran_pucch_nr_resource.start_symbol_idx	  = pucch_res->format.c.f1.start_symbol_idx;
-	srsran_pucch_nr_resource.time_domain_occ	  = pucch_res->format.c.f1.time_domain_occ;
-	break;
-  case (enum pucch_format_types)format2:
-	srsran_pucch_nr_resource.format 		  = SRSRAN_PUCCH_NR_FORMAT_2;
-	srsran_pucch_nr_resource.nof_symbols	  = pucch_res->format.c.f2.nrof_symbols;
-	srsran_pucch_nr_resource.start_symbol_idx = pucch_res->format.c.f2.start_symbol_idx;
-	srsran_pucch_nr_resource.nof_prb		  = pucch_res->format.c.f2.nrof_prbs;
-	break;
-  case (enum pucch_format_types)format3:
-	srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_3;
-	oset_error("SRSRAN_PUCCH_NR_FORMAT_3 conversion not supported");
-	return false;
-  case (enum pucch_format_types)format4:
-	srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_4;
-	oset_error("SRSRAN_PUCCH_NR_FORMAT_4 conversion not supported");
-	return false;
-  default:
-	srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_ERROR;
-	return false;
-  }
-  srsran_pucch_nr_resource.max_code_rate = format_2_max_code_rate;
-  *in_srsran_pucch_nr_resource			 = srsran_pucch_nr_resource;
-  return true;
+	  srsran_pucch_nr_resource_t srsran_pucch_nr_resource = {0};
+	  srsran_pucch_nr_resource.starting_prb 			= pucch_res->start_prb;
+	  srsran_pucch_nr_resource.intra_slot_hopping		= pucch_res->intra_slot_freq_hop_present;
+	  if (pucch_res->second_hop_prb_present) {
+		  srsran_pucch_nr_resource.second_hop_prb = pucch_res->second_hop_prb;
+	  }
+	  switch (pucch_res->format.type_) {
+	  case (enum pucch_format_types)format0:
+		srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_0;
+		break;
+	  case (enum pucch_format_types)format1:
+		srsran_pucch_nr_resource.format 			  = SRSRAN_PUCCH_NR_FORMAT_1;
+		srsran_pucch_nr_resource.initial_cyclic_shift = pucch_res->format.c.f1.init_cyclic_shift;
+		srsran_pucch_nr_resource.nof_symbols		  = pucch_res->format.c.f1.nrof_symbols;
+		srsran_pucch_nr_resource.start_symbol_idx	  = pucch_res->format.c.f1.start_symbol_idx;
+		srsran_pucch_nr_resource.time_domain_occ	  = pucch_res->format.c.f1.time_domain_occ;
+		break;
+	  case (enum pucch_format_types)format2:
+		srsran_pucch_nr_resource.format 		  = SRSRAN_PUCCH_NR_FORMAT_2;
+		srsran_pucch_nr_resource.nof_symbols	  = pucch_res->format.c.f2.nrof_symbols;
+		srsran_pucch_nr_resource.start_symbol_idx = pucch_res->format.c.f2.start_symbol_idx;
+		srsran_pucch_nr_resource.nof_prb		  = pucch_res->format.c.f2.nrof_prbs;
+		break;
+	  case (enum pucch_format_types)format3:
+		srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_3;
+		oset_error("SRSRAN_PUCCH_NR_FORMAT_3 conversion not supported");
+		return false;
+	  case (enum pucch_format_types)format4:
+		srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_4;
+		oset_error("SRSRAN_PUCCH_NR_FORMAT_4 conversion not supported");
+		return false;
+	  default:
+		srsran_pucch_nr_resource.format = SRSRAN_PUCCH_NR_FORMAT_ERROR;
+		return false;
+	  }
+	  srsran_pucch_nr_resource.max_code_rate = format_2_max_code_rate;
+	  *in_srsran_pucch_nr_resource			 = srsran_pucch_nr_resource;
+	  return true;
 }
 
 bool make_phy_sr_resource(struct sched_request_res_cfg_s  *sched_request_res_cfg,
 						 		srsran_pucch_nr_sr_resource_t *in_srsran_pucch_nr_sr_resource)
 {
- srsran_pucch_nr_sr_resource_t srsran_pucch_nr_sr_resource = {0};
- srsran_pucch_nr_sr_resource.sr_id						   = sched_request_res_cfg->sched_request_id;
- if (sched_request_res_cfg->periodicity_and_offset_present && sched_request_res_cfg->res_present) {
-   srsran_pucch_nr_sr_resource.configured = true;
-   switch (sched_request_res_cfg->periodicity_and_offset.type_) {
-	 case (enum periodicity_and_offset_e_)sl2:
-	   srsran_pucch_nr_sr_resource.period = 2;
-	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
-	   break;
-	 case (enum periodicity_and_offset_e_)sl4:
-	   srsran_pucch_nr_sr_resource.period = 4;
-	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
-	   break;
-	 case (enum periodicity_and_offset_e_)sl5:
-	   srsran_pucch_nr_sr_resource.period = 5;
-	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
-	   break;
-	 case (enum periodicity_and_offset_e_)sl8:
-	   srsran_pucch_nr_sr_resource.period = 8;
-	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
-	   break;
-	 case (enum periodicity_and_offset_e_)sl10:
-	   srsran_pucch_nr_sr_resource.period = 10;
-	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
-	   break;
-	 case (enum periodicity_and_offset_e_)sl16:
-	   srsran_pucch_nr_sr_resource.period = 16;
-	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
-	   break;
-	 case (enum periodicity_and_offset_e_)sl20:
-	   srsran_pucch_nr_sr_resource.period = 20;
-	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
-	   break;
-	 case (enum periodicity_and_offset_e_)sl40:
-	   srsran_pucch_nr_sr_resource.period = 40;
-	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
-	   break;
-	 case (enum periodicity_and_offset_e_)sl80:
-	   srsran_pucch_nr_sr_resource.period = 80;
-	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
-	   break;
-	 case (enum periodicity_and_offset_e_)sl160:
-	   srsran_pucch_nr_sr_resource.period = 160;
-	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
-	   break;
-	 case (enum periodicity_and_offset_e_)sl320:
-	   srsran_pucch_nr_sr_resource.period = 320;
-	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
-	   break;
-	 case (enum periodicity_and_offset_e_)sl640:
-	   srsran_pucch_nr_sr_resource.period = 640;
-	   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
-	   break;
-	 case sym2:
-	 case sym6or7:
-	 case (enum periodicity_and_offset_e_)sl1:
-	 default:
-	   srsran_pucch_nr_sr_resource.configured = false;
-	   oset_warn("Invalid option for periodicity_and_offset %d",
-						 sched_request_res_cfg->periodicity_and_offset.type_);
-	   return false;
-   }
+	 srsran_pucch_nr_sr_resource_t srsran_pucch_nr_sr_resource = {0};
+	 srsran_pucch_nr_sr_resource.sr_id						   = sched_request_res_cfg->sched_request_id;
+	 if (sched_request_res_cfg->periodicity_and_offset_present && sched_request_res_cfg->res_present) {
+	   srsran_pucch_nr_sr_resource.configured = true;
+	   switch (sched_request_res_cfg->periodicity_and_offset.type_) {
+		 case (enum periodicity_and_offset_e_)sl2:
+		   srsran_pucch_nr_sr_resource.period = 2;
+		   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+		   break;
+		 case (enum periodicity_and_offset_e_)sl4:
+		   srsran_pucch_nr_sr_resource.period = 4;
+		   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+		   break;
+		 case (enum periodicity_and_offset_e_)sl5:
+		   srsran_pucch_nr_sr_resource.period = 5;
+		   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+		   break;
+		 case (enum periodicity_and_offset_e_)sl8:
+		   srsran_pucch_nr_sr_resource.period = 8;
+		   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+		   break;
+		 case (enum periodicity_and_offset_e_)sl10:
+		   srsran_pucch_nr_sr_resource.period = 10;
+		   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+		   break;
+		 case (enum periodicity_and_offset_e_)sl16:
+		   srsran_pucch_nr_sr_resource.period = 16;
+		   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+		   break;
+		 case (enum periodicity_and_offset_e_)sl20:
+		   srsran_pucch_nr_sr_resource.period = 20;
+		   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+		   break;
+		 case (enum periodicity_and_offset_e_)sl40:
+		   srsran_pucch_nr_sr_resource.period = 40;
+		   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+		   break;
+		 case (enum periodicity_and_offset_e_)sl80:
+		   srsran_pucch_nr_sr_resource.period = 80;
+		   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+		   break;
+		 case (enum periodicity_and_offset_e_)sl160:
+		   srsran_pucch_nr_sr_resource.period = 160;
+		   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+		   break;
+		 case (enum periodicity_and_offset_e_)sl320:
+		   srsran_pucch_nr_sr_resource.period = 320;
+		   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+		   break;
+		 case (enum periodicity_and_offset_e_)sl640:
+		   srsran_pucch_nr_sr_resource.period = 640;
+		   srsran_pucch_nr_sr_resource.offset = sched_request_res_cfg->periodicity_and_offset.c;
+		   break;
+		 case sym2:
+		 case sym6or7:
+		 case (enum periodicity_and_offset_e_)sl1:
+		 default:
+		   srsran_pucch_nr_sr_resource.configured = false;
+		   oset_warn("Invalid option for periodicity_and_offset %d",
+							 sched_request_res_cfg->periodicity_and_offset.type_);
+		   return false;
+	   }
 
- } else {
-   srsran_pucch_nr_sr_resource.configured = false;
- }
- *in_srsran_pucch_nr_sr_resource = srsran_pucch_nr_sr_resource;
- return true;
+	 } else {
+	   srsran_pucch_nr_sr_resource.configured = false;
+	 }
+	 *in_srsran_pucch_nr_sr_resource = srsran_pucch_nr_sr_resource;
+	 return true;
 }
 
 bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl)
@@ -887,7 +904,7 @@ bool make_csi_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_cs
 			   if (pucch_setup->format2_present &&
 				   pucch_setup->format2.type_ == (enum setup_release_e)setup &&
 				   pucch_setup->format2.c.max_code_rate_present) {
-				   format2_rate = options_max_code_rate[pucch_setup->format2.c.max_code_rate];
+				   format2_rate = max_code_rate_options[pucch_setup->format2.c.max_code_rate];
 			   }
 			   if (! make_phy_res_config(asn1_resource, format2_rate, resource)) {
 				   return false;
@@ -898,25 +915,6 @@ bool make_csi_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_cs
 
    return true;
 }
-
-
-static const uint16_t t_poll_retx_options[] = {5,	10,  15,  20,  25,	30,  35,  40,  45,	50,  55,  60,	65,   70,  75,
-											   80,	85,  90,  95,  100, 105, 110, 115, 120, 125, 130, 135,	140,  145, 150,
-											   155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210,	215,  220, 225,
-											   230, 235, 240, 245, 250, 300, 350, 400, 450, 500, 800, 1000, 2000, 4000};
-static const int32_t poll_pdu_options[] 	= {4,	8,	   16,	  32,	 64,	128,   256,   512,	 1024,	2048,  4096,  6144,
-										  		8192, 12288, 16384, 20480, 24576, 28672, 32768, 40960, 49152, 57344, 65536, -1};
-static const int32_t poll_byte_options[] 	= {1,		 2, 	5,	   8,	  10,	 15,	25,    50,	  75,	 100,	125,
-										  		250,	 375,	500,   750,   1000,  1250,	1500,  2000,  3000,  4000,	4500,
-										  		5000,  5500,	6000,  6500,  7000,  7500,	8000,  9000,  10000, 11000, 12000,
-										  		13000, 14000, 15000, 16000, 17000, 18000, 20000, 25000, 30000, 40000, -1};
-static const uint8_t max_retx_thres_options[] = {1, 2, 3, 4, 6, 8, 16, 32};
-static const uint8_t t_reassembly_options[] = {0, 5,  10, 15, 20,  25,	30,  35,  40,  45,	50,  55,  60,  65,	70, 75,
-											  80, 85, 90, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200};
-static const uint16_t t_status_prohibit_options[] = {0,   5,   10,	15,  20,  25,  30,	35,  40,  45,	50,   55,	60,   65,  70,	75,
-									 				80,  85,  90,	95,  100, 105, 110, 115, 120, 125,	130,  135,	140,  145, 150, 155,
-									 				160, 165, 170, 175, 180, 185, 190, 195, 200, 205,	210,  215,	220,  225, 230, 235,
-									 				240, 245, 250, 300, 350, 400, 450, 500, 800, 1000, 1200, 1600, 2000, 2400};
 
 int make_rlc_config_t(struct rlc_cfg_c *asn1_type, uint8_t bearer_id, rlc_config_t* cfg_out)
 {
@@ -1117,7 +1115,7 @@ bool fill_phy_pucch_hl_cfg(struct pucch_cfg_s *pucch_cfg, srsran_pucch_nr_hl_cfg
     if (pucch_cfg.format2_present &&\
         pucch_cfg.format2.type_ == setup &&\
         pucch_cfg.format2.c.max_code_rate_present) {
-      format2_rate = options_max_code_rate[pucch_cfg->format2.c.max_code_rate];
+      format2_rate = max_code_rate_options[pucch_cfg->format2.c.max_code_rate];
     }
     if (!make_phy_res_config(asn1_pucch_resource, format2_rate, pucch_resource)) {
       return false;
@@ -1176,7 +1174,7 @@ bool fill_phy_pucch_cfg(struct pucch_cfg_s *pucch_cfg, srsran_pucch_nr_hl_cfg_t*
       if (pucch_cfg->format2_present &&\
           pucch_cfg->format2.type_ == setup &&\
           pucch_cfg->format2.c.max_code_rate_present) {
-        format2_rate = options_max_code_rate[pucch_cfg->format2.c.max_code_rate];
+        format2_rate = max_code_rate_options[pucch_cfg->format2.c.max_code_rate];
       }
       if (! make_phy_res_config(asn1_resource, format2_rate, resource)) {
         return false;
