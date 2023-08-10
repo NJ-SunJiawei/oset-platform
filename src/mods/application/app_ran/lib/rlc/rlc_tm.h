@@ -20,8 +20,6 @@ extern "C" {
 
 typedef struct{
 	rlc_common           common;
-	uint32_t             lcid;
-
 	oset_apr_mutex_t    *bsr_callback_mutex;
 	bsr_callback_t       bsr_callback;
 

@@ -172,6 +172,7 @@ typedef struct rlc_common_s{
 	rlc_mode_t mode;
 	bool       suspended;// 暂停
 	uint16_t   rnti;
+	uint32_t   lcid;
 	OSET_POOL(resume_pool, byte_buffer_t);// 256
 	oset_queue_t *rx_pdu_resume_queue;//static_blocking_queue<unique_byte_buffer_t, 256>
 	oset_queue_t *tx_sdu_resume_queue;//static_blocking_queue<unique_byte_buffer_t, 256>
@@ -188,7 +189,7 @@ typedef struct rlc_common_s{
 	oset_pool_free(pool, _buf_);     \
 }while(0)
 
-void rlc_common_init(rlc_common *common, char *rb_name, uint16_t rnti, rlc_mode_t mode, oset_apr_memory_pool_t *usepool);
+void rlc_common_init(rlc_common *common, char *rb_name, uint16_t rnti, uint32_t lcid, rlc_mode_t mode, oset_apr_memory_pool_t *usepool);
 void rlc_common_destory(rlc_common *common);
 void rlc_common_queue_rx_pdu(rlc_common *common, uint8_t* payload, uint32_t nof_bytes);
 bool is_suspended(rlc_common *common);

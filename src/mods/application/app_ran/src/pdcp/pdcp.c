@@ -54,8 +54,8 @@ void pdcp_user_interface_set_rnti(uint16_t rnti, pdcp_user_interface *user)
 {
     oset_assert(user);
 	user->rnti = rnti;
-    oset_hash_set(pdcp_manager.users, &rnti, sizeof(rnti), NULL);
-    oset_hash_set(pdcp_manager.users, &rnti, sizeof(rnti), user);
+    oset_hash_set(pdcp_manager.users, &user->rnti, sizeof(user->rnti), NULL);
+    oset_hash_set(pdcp_manager.users, &user->rnti, sizeof(user->rnti), user);
 }
 
 pdcp_user_interface *pdcp_user_interface_find_by_rnti(uint16_t rnti)
@@ -63,10 +63,25 @@ pdcp_user_interface *pdcp_user_interface_find_by_rnti(uint16_t rnti)
     return (pdcp_user_interface *)oset_hash_get(pdcp_manager.users, &rnti, sizeof(rnti));
 }
 
+static void pdcp_add_bearer(uint16_t rnti, uint32_t lcid, pdcp_config_t *cfg)
+{
+	pdcp_user_interface *users = pdcp_user_interface_find_by_rnti(rnti);
+	if (users) {
+		if (rnti != SRSRAN_MRNTI) {
+			pdcp_lib_add_bearer(&users->pdcp, lcid, cfg);
+		} else {
+			// todo
+			//pdcp_lib_add_bearer_mrb(&users->pdcp, lcid, cfg);
+		}
+	}else{
+		oset_warn("can't find pdcp interface by rnti=0x%x", rnti);
+	}
+}
+
 
 static void pdcp_add_user(uint16_t rnti)
 {
-  if (NULL == pdcp_user_interface_set_rnti(rnti)) {
+  if (NULL == pdcp_user_interface_find_by_rnti(rnti)) {
 	  pdcp_user_interface *user = NULL;
 	  oset_apr_memory_pool_t  *usepool = NULL;
 	  oset_core_new_memory_pool(&usepool);
@@ -93,7 +108,7 @@ static void pdcp_rem_user(uint16_t rnti)
 	}else{
 		pdcp_lib_stop(&user->pdcp);
 		oset_list_remove(&pdcp_manager.pdcp_ue_list, user);
-		oset_hash_set(pdcp_manager.users, &rnti, sizeof(rnti), NULL);
+		oset_hash_set(pdcp_manager.users, &user->rnti, sizeof(user->rnti), NULL);
 		oset_core_destroy_memory_pool(&user->pdcp.usepool);
 		user = NULL;
 	}
@@ -125,6 +140,11 @@ void API_pdcp_rrc_add_user(uint16_t rnti)
 void API_pdcp_rrc_rem_user(uint16_t rnti)
 {
 	pdcp_rem_user(rnti);
+}
+
+void API_pdcp_rrc_add_bearer(uint16_t rnti, uint32_t lcid, pdcp_config_t *cfg)
+{
+	pdcp_add_bearer(rnti, lcid, cfg);
 }
 
 /*******************************************************************************

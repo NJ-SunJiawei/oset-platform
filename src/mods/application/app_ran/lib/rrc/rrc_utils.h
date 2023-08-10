@@ -12,6 +12,9 @@
 
 #include "lib/common/phy_cfg_nr.h"
 #include "lib/common/asn_interface.h"
+#include "lib/pdcp/pdcp_interface_types.h"
+#include "lib/rlc/rlc_interface_types.h"
+#include "lib/mac/mac_interface_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,7 +22,7 @@ extern "C" {
 bool make_phy_tdd_cfg_inner(srsran_duplex_config_nr_t	       	*srsran_duplex_config_nr,
 					        srsran_subcarrier_spacing_t	  scs,
 					        struct tdd_ul_dl_cfg_common_s *tdd_ul_dl_cfg_common);
-bool make_phy_rach_cfg_inner(rach_cfg_common_s *asn1_type, srsran_prach_cfg_t *prach_cfg);
+bool make_phy_rach_cfg_inner(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_prach_cfg_t *prach_cfg);
 bool make_phy_coreset_cfg(struct ctrl_res_set_s *ctrl_res_set, srsran_coreset_t *in_srsran_coreset);
 bool make_phy_search_space_cfg(struct search_space_s *search_space, srsran_search_space_t *in_srsran_search_space);
 bool make_phy_nzp_csi_rs_resource(struct nzp_csi_rs_res_s *asn1_nzp_csi_rs_res,
@@ -36,7 +39,8 @@ bool make_phy_sr_resource(struct sched_request_res_cfg_s  *sched_request_res_cfg
 bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl);
 bool make_csi_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_csi_hl_cfg_t* csi_hl);
 int make_rlc_config_t(struct rlc_cfg_c *asn1_type, uint8_t bearer_id, rlc_config_t* cfg_out);
-
+pdcp_config_t make_nr_srb_pdcp_config_t(uint8_t srb_id, bool is_ue);
+pdcp_config_t make_drb_pdcp_config_t(uint8_t bearer_id, bool is_ue, struct pdcp_cfg_s *pdcp_cfg);
 bool fill_phy_pdcch_cfg_common2(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_pdcch_cfg_nr_t *pdcch);
 bool fill_ssb_pattern_scs(srsran_carrier_nr_t *carrier,
                                   srsran_ssb_pattern_t *pattern,

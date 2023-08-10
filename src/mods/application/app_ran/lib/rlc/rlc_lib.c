@@ -75,13 +75,6 @@ void rlc_reset_metrics(rlc_lib_t *rlc)
 	rlc->metrics_tp = oset_micro_time_now();//oset_time_now()//???gnb_get_current_time();
 }
 
-void rlc_array_set_lcid(rlc_lib_t *rlc, uint32_t lcid, rlc_common *rlc_entity)
-{
-    oset_assert(rlc_entity);
-	oset_hash_set(rlc->rlc_array, &lcid, sizeof(lcid), NULL);
-	oset_hash_set(rlc->rlc_array, &lcid, sizeof(lcid), rlc_entity);
-}
-
 rlc_common *rlc_array_find_by_lcid(rlc_lib_t *rlc, uint32_t lcid)
 {
     return (rlc_common *)oset_hash_get(rlc->rlc_array, &lcid, sizeof(lcid));
@@ -152,8 +145,8 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
 
   rlc_entity->func._set_bsr_callback(rlc_entity, rlc->bsr_callback);
 
-  rlc_array_set_lcid(rlc, lcid, rlc_entity);
-
+  oset_hash_set(rlc->rlc_array, &rlc_entity->lcid, sizeof(rlc_entity->lcid), NULL);
+  oset_hash_set(rlc->rlc_array, &rlc_entity->lcid, sizeof(rlc_entity->lcid), rlc_entity);
 
   if (NULL == rlc_array_find_by_lcid(rlc, lcid)) {
     oset_error("Error inserting RLC entity in to array.");
@@ -171,7 +164,7 @@ void rlc_lib_del_bearer(rlc_lib_t *rlc, uint32_t lcid)
 	if (rlc_valid_lcid(rlc, lcid)) {
 		rlc_common *it = rlc_array_find_by_lcid(rlc, lcid);
 		it->func._stop(it);
-		oset_hash_set(rlc->rlc_array, &lcid, sizeof(lcid), NULL);
+		oset_hash_set(rlc->rlc_array, &it->lcid, sizeof(it->lcid), NULL);
 		oset_info("Deleted RLC bearer with LCID %d", lcid);
 	} else {
 		oset_error("Can't delete bearer with LCID %d. Bearer doesn't exist.", lcid);

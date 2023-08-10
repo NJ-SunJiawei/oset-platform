@@ -11,12 +11,13 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-librlccom"
 
-void rlc_common_init(rlc_common *common, char *rb_name, uint16_t rnti, rlc_mode_t mode, oset_apr_memory_pool_t *usepool)
+void rlc_common_init(rlc_common *common, char *rb_name, uint16_t rnti, uint32_t lcid, rlc_mode_t mode, oset_apr_memory_pool_t *usepool)
 {
 	common->usepool = usepool;
 	common->rb_name = oset_core_strdup(usepool, rb_name);
 	common->suspended = false;
 	common->rnti = rnti;
+	common->lcid = lcid;
 	common->mode = mode;
 	common->rx_pdu_resume_queue = oset_queue_create(static_blocking_queue_size);
 	common->tx_sdu_resume_queue = oset_queue_create(static_blocking_queue_size);

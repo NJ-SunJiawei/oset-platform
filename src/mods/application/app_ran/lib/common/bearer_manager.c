@@ -16,12 +16,12 @@ bool is_valid(radio_bearer_t *rb)
 	return rb->rat != NULL; 
 }
 
-void eps_bearer_id_set_lcid(ue_bearer_manager_impl *user, uint32_t lcid, uint8_t *eps_bearer_id)
+void eps_bearer_id_set_lcid(ue_bearer_manager_impl *user, uint32_t *lcid, uint8_t *eps_bearer_id)
 {
     oset_assert(user);
     oset_assert(eps_bearer_id);
-    oset_hash_set(user->lcid_to_eps_bearer_id, &lcid, sizeof(lcid), NULL);
-    oset_hash_set(user->lcid_to_eps_bearer_id, &lcid, sizeof(lcid), eps_bearer_id);
+    oset_hash_set(user->lcid_to_eps_bearer_id, lcid, sizeof(*lcid), NULL);
+    oset_hash_set(user->lcid_to_eps_bearer_id, lcid, sizeof(*lcid), eps_bearer_id);
 }
 
 uint8_t *eps_bearer_id_find_by_lcid(ue_bearer_manager_impl *user, uint32_t lcid)
@@ -30,12 +30,12 @@ uint8_t *eps_bearer_id_find_by_lcid(ue_bearer_manager_impl *user, uint32_t lcid)
 }
 
 
-void radio_bearer_set_eps_bearer_id(ue_bearer_manager_impl *user, uint8_t eps_bearer_id, radio_bearer_t *rb)
+void radio_bearer_set_eps_bearer_id(ue_bearer_manager_impl *user, uint8_t *eps_bearer_id, radio_bearer_t *rb)
 {
     oset_assert(user);
     oset_assert(rb);
-    oset_hash_set(user->bearers, &eps_bearer_id, sizeof(eps_bearer_id), NULL);
-    oset_hash_set(user->bearers, &eps_bearer_id, sizeof(eps_bearer_id), rb);
+    oset_hash_set(user->bearers, eps_bearer_id, sizeof(*eps_bearer_id), NULL);
+    oset_hash_set(user->bearers, eps_bearer_id, sizeof(*eps_bearer_id), rb);
 }
 
 radio_bearer_t *radio_bearer_find_by_eps_bearer_id(ue_bearer_manager_impl *user, uint8_t eps_bearer_id)
@@ -67,8 +67,8 @@ bool ue_bearer_manager_impl_add_eps_bearer(ue_bearer_manager_impl *user, uint8_t
 	rb->eps_bearer_id = eps_bearer_id;
 	rb->five_qi = 0;
 
-	radio_bearer_set_eps_bearer_id(user, eps_bearer_id, rb);
-	eps_bearer_id_set_lcid(user, lcid, &rb->eps_bearer_id);//oset_memdup(&eps_bearer_id, sizeof(uint8_t)
+	radio_bearer_set_eps_bearer_id(user, &rb->eps_bearer_id, rb);
+	eps_bearer_id_set_lcid(user, &rb->lcid, &rb->eps_bearer_id);//oset_memdup(&eps_bearer_id, sizeof(uint8_t)
 	return true;
 }
 
@@ -78,9 +78,9 @@ bool ue_bearer_manager_impl_remove_eps_bearer(ue_bearer_manager_impl *user, uint
 	if (bearer_it == NULL) {
 		return false;
 	}
-	uint32_t lcid = bearer_it->lcid;
-	oset_hash_set(user->bearers, &eps_bearer_id, sizeof(eps_bearer_id), NULL);
-	oset_hash_set(user->lcid_to_eps_bearer_id, &lcid, sizeof(lcid), NULL);
+
+	oset_hash_set(user->bearers, &bearer_it->eps_bearer_id, sizeof(bearer_it->eps_bearer_id), NULL);
+	oset_hash_set(user->lcid_to_eps_bearer_id, &bearer_it->lcid, sizeof(bearer_it->lcid), NULL);
 	oset_free(bearer_it);
 	return true;
 }
@@ -96,13 +96,6 @@ ue_bearer_manager_impl *ue_bearer_manager_impl_init(uint16_t rnti)
 	return user;
 }
 
-void ue_bearer_manager_set_rnti(enb_bearer_manager          *bearer_mapper, uint16_t rnti, ue_bearer_manager_impl *user)
-{
-    oset_assert(user);
-    oset_assert(bearer_mapper);
-    oset_hash_set(bearer_mapper->users_map, &rnti, sizeof(rnti), NULL);
-    oset_hash_set(bearer_mapper->users_map, &rnti, sizeof(rnti), user);
-}
 
 ue_bearer_manager_impl *ue_bearer_manager_find_by_rnti(enb_bearer_manager *bearer_mapper, uint16_t rnti)
 {
@@ -116,7 +109,8 @@ void add_eps_bearer(enb_bearer_manager *bearer_mapper, uint16_t rnti, uint8_t ep
 		// add empty bearer map
 		ue_bearer_manager_impl *user = ue_bearer_manager_impl_init(rnti);
 		oset_assert(user);
-		ue_bearer_manager_set_rnti(rnti, user);
+		oset_hash_set(bearer_mapper->users_map, &user->rnti, sizeof(user->rnti), NULL);
+		oset_hash_set(bearer_mapper->users_map, &user->rnti, sizeof(user->rnti), user);
 	}
 
 	if (ue_bearer_manager_impl_add_eps_bearer(eps_bearer_id, rat, lcid)) {
@@ -148,14 +142,14 @@ void remove_eps_bearer(enb_bearer_manager *bearer_mapper, uint16_t rnti, uint8_t
 
 void rem_user(enb_bearer_manager *bearer_mapper, uint16_t rnti)
 {
-	ue_bearer_manager_impl *user_it = ue_bearer_manager_find_by_rnti(bearer_mapper, rnti);;
+	ue_bearer_manager_impl *user_it = ue_bearer_manager_find_by_rnti(bearer_mapper, rnti);
 	if (user_it == NULL) {
 		oset_info("Bearers: No EPS bearer registered for rnti=0x%x", rnti);
 		return;
 	}
 
  	oset_info("Bearers: Removed rnti=0x%x from EPS bearer manager", rnti);
-	oset_hash_set(bearer_mapper->users_map, &rnti, sizeof(rnti), NULL);
+	oset_hash_set(bearer_mapper->users_map, &user_it->rnti, sizeof(user_it->rnti), NULL);
 	oset_hash_destroy(user_it->bearers);
 	oset_hash_destroy(user_it->lcid_to_eps_bearer_id);
 	oset_free(user_it);

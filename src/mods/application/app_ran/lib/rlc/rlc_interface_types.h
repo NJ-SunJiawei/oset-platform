@@ -9,7 +9,8 @@
 #ifndef RLC_INTERFACE_TYPES_H
 #define RLC_INTERFACE_TYPES_H
 
-#include "lib/rrc/rrc_interface_types.h"
+//#include "lib/rrc/rrc_interface_types.h"
+#include "lib/common/common.h"
 
 /***************************
  *      RLC Config

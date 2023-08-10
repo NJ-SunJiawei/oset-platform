@@ -12,8 +12,10 @@
 #include "rrc/rrc_cell_asn_fill.h"
 #include "rrc/rrc_cell_asn_fill_inner.h"
 #include "rrc/rrc.h"
-#include "phy/phy.h"//tochange
-#include "mac/mac.h"//tochange
+#include "pdcp/pdcp.h"
+#include "rlc/rlc.h"
+#include "mac/mac.h"
+#include "phy/phy.h"
 
 
 #undef  OSET_LOG2_DOMAIN

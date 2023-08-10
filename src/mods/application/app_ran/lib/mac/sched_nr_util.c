@@ -82,7 +82,7 @@ bool make_phy_tdd_cfg(tdd_ul_dl_cfg_common_s *tdd_ul_dl_cfg_common,
   return true;
 }
 
-bool make_phy_rach_cfg(rach_cfg_common_s *asn1_type,
+bool make_phy_rach_cfg(struct rach_cfg_common_s *asn1_type,
 					          srsran_duplex_mode_t duplex_mode,
 					           srsran_prach_cfg_t *prach_cfg)
 {

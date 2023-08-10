@@ -988,6 +988,224 @@ int make_rlc_config_t(struct rlc_cfg_c *asn1_type, uint8_t bearer_id, rlc_config
   return OSET_OK;
 }
 
+pdcp_config_t make_nr_srb_pdcp_config_t(uint8_t srb_id, bool is_ue)
+{
+	pdcp_config_t cfg = {	
+							.bearer_id = srb_id,
+							.rb_type = PDCP_RB_IS_SRB,
+							.tx_direction = is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+							.rx_direction = is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+							.sn_len = PDCP_SN_LEN_12,
+							.t_reordering = (pdcp_t_reordering_t)ms500,
+							.discard_timer = (pdcp_discard_timer_t)infinity,
+							.status_report_required = false,
+							.rat = (srsran_rat_t)nr
+						};
+	return cfg;
+}
+
+pdcp_config_t make_drb_pdcp_config_t(uint8_t drb_id, bool is_ue, struct pdcp_cfg_s *pdcp_cfg)
+{
+  // TODO: complete config processing
+  // TODO: check if is drb_cfg.pdcp_cfg.drb_present if not return Error
+  // TODO: different pdcp sn size for ul and dl
+  pdcp_discard_timer_t discard_timer = (pdcp_discard_timer_t)infinity;
+  if (pdcp_cfg->drb.discard_timer_present) {
+    switch (pdcp_cfg->drb.discard_timer) {
+      case (enum discard_timer_opts)ms10:
+        discard_timer = (pdcp_discard_timer_t)ms10;
+        break;
+      case (enum discard_timer_opts)ms20:
+        discard_timer = (pdcp_discard_timer_t)ms20;
+        break;
+      case (enum discard_timer_opts)ms30:
+        discard_timer = (pdcp_discard_timer_t)ms30;
+        break;
+      case (enum discard_timer_opts)ms40:
+        discard_timer = (pdcp_discard_timer_t)ms40;
+        break;
+      case (enum discard_timer_opts)ms50:
+        discard_timer = (pdcp_discard_timer_t)ms50;
+        break;
+      case (enum discard_timer_opts)ms60:
+        discard_timer = (pdcp_discard_timer_t)ms60;
+        break;
+      case (enum discard_timer_opts)ms75:
+        discard_timer = (pdcp_discard_timer_t)ms75;
+        break;
+      case (enum discard_timer_opts)ms100:
+        discard_timer = (pdcp_discard_timer_t)ms100;
+        break;
+      case (enum discard_timer_opts)ms150:
+        discard_timer = (pdcp_discard_timer_t)ms150;
+        break;
+      case (enum discard_timer_opts)ms200:
+        discard_timer = (pdcp_discard_timer_t)ms200;
+        break;
+      case (enum discard_timer_opts)ms250:
+        discard_timer = (pdcp_discard_timer_t)ms250;
+        break;
+      case (enum discard_timer_opts)ms300:
+        discard_timer = (pdcp_discard_timer_t)ms300;
+        break;
+      case (enum discard_timer_opts)ms500:
+        discard_timer = (pdcp_discard_timer_t)ms500;
+        break;
+      case (enum discard_timer_opts)ms750:
+        discard_timer = (pdcp_discard_timer_t)ms750;
+        break;
+      case (enum discard_timer_opts)ms1500:
+        discard_timer = (pdcp_discard_timer_t)ms1500;
+        break;
+      default:
+        discard_timer = (pdcp_discard_timer_t)infinity;
+        break;
+    }
+  }
+
+  pdcp_t_reordering_t t_reordering = (pdcp_t_reordering_t)infinity;
+  if (pdcp_cfg->t_reordering_present) {
+    switch (pdcp_cfg->t_reordering) {
+      case (enum t_reordering_opts)ms0:
+        t_reordering = (pdcp_t_reordering_t)ms0;
+        break;
+      case (enum t_reordering_opts)ms1:
+        t_reordering = (pdcp_t_reordering_t)ms1;
+        break;
+      case (enum t_reordering_opts)ms2:
+        t_reordering = (pdcp_t_reordering_t)ms2;
+        break;
+      case (enum t_reordering_opts)ms4:
+        t_reordering = (pdcp_t_reordering_t)ms4;
+        break;
+      case (enum t_reordering_opts)ms5:
+        t_reordering = (pdcp_t_reordering_t)ms5;
+        break;
+      case (enum t_reordering_opts)ms8:
+        t_reordering = (pdcp_t_reordering_t)ms8;
+        break;
+      case (enum t_reordering_opts)ms10:
+        t_reordering = (pdcp_t_reordering_t)ms10;
+        break;
+      case (enum t_reordering_opts)ms15:
+        t_reordering = (pdcp_t_reordering_t)ms15;
+        break;
+      case (enum t_reordering_opts)ms20:
+        t_reordering = (pdcp_t_reordering_t)ms20;
+        break;
+      case (enum t_reordering_opts)ms30:
+        t_reordering = (pdcp_t_reordering_t)ms30;
+        break;
+      case (enum t_reordering_opts)ms40:
+        t_reordering = (pdcp_t_reordering_t)ms40;
+        break;
+      case (enum t_reordering_opts)ms50:
+        t_reordering = (pdcp_t_reordering_t)ms50;
+        break;
+      case (enum t_reordering_opts)ms60:
+        t_reordering = (pdcp_t_reordering_t)ms60;
+        break;
+      case (enum t_reordering_opts)ms80:
+        t_reordering = (pdcp_t_reordering_t)ms80;
+        break;
+      case (enum t_reordering_opts)ms100:
+        t_reordering = (pdcp_t_reordering_t)ms100;
+        break;
+      case (enum t_reordering_opts)ms120:
+        t_reordering = (pdcp_t_reordering_t)ms120;
+        break;
+      case (enum t_reordering_opts)ms140:
+        t_reordering = (pdcp_t_reordering_t)ms140;
+        break;
+      case (enum t_reordering_opts)ms160:
+        t_reordering = (pdcp_t_reordering_t)ms160;
+        break;
+      case (enum t_reordering_opts)ms180:
+        t_reordering = (pdcp_t_reordering_t)ms180;
+        break;
+      case (enum t_reordering_opts)ms200:
+        t_reordering = (pdcp_t_reordering_t)ms200;
+        break;
+      case (enum t_reordering_opts)ms220:
+        t_reordering = (pdcp_t_reordering_t)ms220;
+        break;
+      case (enum t_reordering_opts)ms240:
+        t_reordering = (pdcp_t_reordering_t)ms240;
+        break;
+      case (enum t_reordering_opts)ms260:
+        t_reordering = (pdcp_t_reordering_t)ms260;
+        break;
+      case (enum t_reordering_opts)ms280:
+        t_reordering = (pdcp_t_reordering_t)ms280;
+        break;
+      case (enum t_reordering_opts)ms300:
+        t_reordering = (pdcp_t_reordering_t)ms300;
+        break;
+      case (enum t_reordering_opts)ms500:
+        t_reordering = (pdcp_t_reordering_t)ms500;
+        break;
+      case (enum t_reordering_opts)ms750:
+        t_reordering = (pdcp_t_reordering_t)ms750;
+        break;
+      case (enum t_reordering_opts)ms1000:
+        t_reordering = (pdcp_t_reordering_t)ms1000;
+        break;
+      case (enum t_reordering_opts)ms1250:
+        t_reordering = (pdcp_t_reordering_t)ms1250;
+        break;
+      case (enum t_reordering_opts)ms1500:
+        t_reordering = (pdcp_t_reordering_t)ms1500;
+        break;
+      case (enum t_reordering_opts)ms1750:
+        t_reordering = (pdcp_t_reordering_t)ms1750;
+        break;
+      case (enum t_reordering_opts)ms2000:
+        t_reordering = (pdcp_t_reordering_t)ms2000;
+        break;
+      case (enum t_reordering_opts)ms2250:
+        t_reordering = (pdcp_t_reordering_t)ms2250;
+        break;
+      case (enum t_reordering_opts)ms2500:
+        t_reordering = (pdcp_t_reordering_t)ms2500;
+        break;
+      case (enum t_reordering_opts)ms2750:
+        t_reordering = (pdcp_t_reordering_t)ms2750;
+        break;
+      case (enum t_reordering_opts)ms3000:
+        t_reordering = (pdcp_t_reordering_t)ms3000;
+        break;
+      default:
+        t_reordering = (pdcp_t_reordering_t)ms50;
+    }
+  }
+
+  uint8_t sn_len = PDCP_SN_LEN_12;
+  if (pdcp_cfg->drb.pdcp_sn_size_dl_present) {
+    switch (pdcp_cfg->drb.pdcp_sn_size_dl) {
+      case (enum pdcp_sn_size_dl_opts)len12bits:
+        sn_len = PDCP_SN_LEN_12;
+        break;
+      case (enum pdcp_sn_size_dl_opts)len18bits:
+        sn_len = PDCP_SN_LEN_18;
+      default:
+        break;
+    }
+  }
+
+  pdcp_config_t cfg = {
+  						.bearer_id = drb_id,
+	                    .rb_type = PDCP_RB_IS_DRB,
+	                    .tx_direction = is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+	                    .rx_direction = is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+	                    .sn_len = sn_len,
+	                    .t_reordering = t_reordering,
+	                    .discard_timer = discard_timer,
+	                    .status_report_required = false,
+	                    .rat = (srsran_rat_t)nr
+	                    };
+
+  return cfg;
+}
 
 bool fill_phy_pdcch_cfg_common2(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_pdcch_cfg_nr_t *pdcch)
 {

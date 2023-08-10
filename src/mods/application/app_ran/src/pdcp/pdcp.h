@@ -43,6 +43,8 @@ void pdcp_rem_user_all(void);
 /**********************rrc api****************************************/
 void API_pdcp_rrc_add_user(uint16_t rnti);
 void API_pdcp_rrc_rem_user(uint16_t rnti);
+void API_pdcp_rrc_add_bearer(uint16_t rnti, uint32_t lcid, pdcp_config_t *cfg);
+
 /**********************rlc api****************************************/
 void API_pdcp_rlc_write_ul_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu);
 

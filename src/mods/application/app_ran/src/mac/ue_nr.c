@@ -58,8 +58,8 @@ void ue_nr_set_rnti(uint16_t rnti, ue_nr *ue)
 {
     oset_assert(ue);
 	ue->rnti = rnti;
-    oset_hash_set(mac_manager_self()->ue_db, &rnti, sizeof(rnti), NULL);
-    oset_hash_set(mac_manager_self()->ue_db, &rnti, sizeof(rnti), ue);
+    oset_hash_set(mac_manager_self()->ue_db, &ue->rnti, sizeof(ue->rnti), NULL);
+    oset_hash_set(mac_manager_self()->ue_db, &ue->rnti, sizeof(ue->rnti), ue);
 }
 
 ue_nr *ue_nr_find_by_rnti(uint16_t rnti)

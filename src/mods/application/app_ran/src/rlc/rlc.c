@@ -57,8 +57,8 @@ void rlc_user_interface_set_rnti(uint16_t rnti, rlc_user_interface *user)
 {
     oset_assert(user);
 	user->rnti = rnti;
-    oset_hash_set(rlc_manager.users, &rnti, sizeof(rnti), NULL);
-    oset_hash_set(rlc_manager.users, &rnti, sizeof(rnti), user);
+    oset_hash_set(rlc_manager.users, &user->rnti, sizeof(user->rnti), NULL);
+    oset_hash_set(rlc_manager.users, &user->rnti, sizeof(user->rnti), user);
 }
 
 rlc_user_interface *rlc_user_interface_find_by_rnti(uint16_t rnti)
@@ -113,7 +113,7 @@ static void rlc_rem_user(uint16_t rnti)
 	}else{
 		rlc_lib_stop(&user->rlc);
 		oset_list_remove(&rlc_manager.rlc_ue_list, user);
-		oset_hash_set(rlc_manager.users, &rnti, sizeof(rnti), NULL);
+		oset_hash_set(rlc_manager.users, &user->rnti, sizeof(user->rnti), NULL);
 		oset_core_destroy_memory_pool(&user->rlc.usepool);
 		user = NULL;
 	}

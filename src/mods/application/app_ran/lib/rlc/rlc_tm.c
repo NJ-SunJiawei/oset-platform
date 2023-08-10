@@ -159,7 +159,7 @@ rlc_tm *rlc_tm_init(uint32_t lcid_, 	uint16_t rnti_, oset_apr_memory_pool_t	*use
 	ASSERT_IF_NOT(tm, "lcid %u Could not allocate rlc tm context from pool", lcid_);
 	memset(tm, 0, sizeof(rlc_tm));
 
-	rlc_common_init(&tm->common, "SRB0", rnti_, (rlc_mode_t)tm, usepool);
+	rlc_common_init(&tm->common, "SRB0", rnti_, lcid_, (rlc_mode_t)tm, usepool);
 
 	tm->common.func._get_buffer_state = rlc_tm_get_buffer_state;
 	tm->common.func._configure = rlc_tm_configure;
@@ -170,7 +170,6 @@ rlc_tm *rlc_tm_init(uint32_t lcid_, 	uint16_t rnti_, oset_apr_memory_pool_t	*use
 	tm->common.func._write_dl_sdu = rlc_tm_write_dl_sdu;
 	tm->common.func._stop = rlc_tm_stop;
 
-	tm->lcid = lcid_;
 	oset_apr_mutex_init(&tm->bsr_callback_mutex, OSET_MUTEX_NESTED, usepool);
 	oset_apr_mutex_init(&tm->metrics_mutex, OSET_MUTEX_NESTED, usepool);
 	oset_apr_mutex_init(&tm->unread_bytes_mutex, OSET_MUTEX_NESTED, usepool);

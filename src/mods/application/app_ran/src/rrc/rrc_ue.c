@@ -8,9 +8,16 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "rrc/rrc_ue.h"
-	
+#include "pdcp/pdcp.h"
+#include "rlc/rlc.h"
+#include "mac/mac.h"
+
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rrc-ue"
+
+static const int32_t prioritised_bit_rate_options[] = {0, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, -1};
+static const uint16_t bucket_size_dur_options[] = {5, 10, 20, 50, 100, 150, 300, 500, 1000};
+
 
 void log_rx_pdu_fail(uint16_t           rnti,
                          uint32_t          lcid,
@@ -135,8 +142,138 @@ static int send_dl_ccch(rrc_nr_ue *ue, ASN_RRC_DL_CCCH_Message_t *dl_ccch_msg)
 	return OSET_OK;
 }
 
-static const int32_t prioritised_bit_rate_options[] = {0, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, -1};
-static const uint16_t bucket_size_dur_options[] = {5, 10, 20, 50, 100, 150, 300, 500, 1000};
+static int update_as_security(rrc_nr_ue *ue, uint32_t lcid, bool enable_integrity, bool enable_ciphering)
+{
+	if (!ue->sec_ctx.k_gnb_present) {
+		oset_error("Invalid AS security configuration. Skipping configuration for lcid=%d", lcid);
+		return OSET_ERROR;
+	}
+
+	// TODO: Currently we are using the PDCP-LTE, so we need to convert from nr_as_security_cfg to as_security_config.
+	// When we start using PDCP-NR we can avoid this step.
+	nr_as_security_config_t tmp_cnfg  = ue->sec_ctx.sec_cfg;
+	as_security_config_t    pdcp_cnfg = {0};
+	pdcp_cnfg.k_rrc_int                       = tmp_cnfg.k_nr_rrc_int;
+	pdcp_cnfg.k_rrc_enc                       = tmp_cnfg.k_nr_rrc_enc;
+	pdcp_cnfg.k_up_int                        = tmp_cnfg.k_nr_up_int;
+	pdcp_cnfg.k_up_enc                        = tmp_cnfg.k_nr_up_enc;
+	pdcp_cnfg.integ_algo                      = (INTEGRITY_ALGORITHM_ID_ENUM)tmp_cnfg.integ_algo;
+	pdcp_cnfg.cipher_algo                     = (CIPHERING_ALGORITHM_ID_ENUM)tmp_cnfg.cipher_algo;
+
+	// configure algorithm and keys
+		parent->pdcp->config_security(rnti, lcid, pdcp_cnfg);
+
+	if (enable_integrity) {
+		parent->pdcp->enable_integrity(rnti, lcid);
+	}
+
+	if (enable_ciphering) {
+		parent->pdcp->enable_encryption(rnti, lcid);
+	}
+
+	return OSET_OK;
+}
+
+static int update_pdcp_bearers(rrc_nr_ue *ue,
+									struct radio_bearer_cfg_s *radio_bearer_diff,
+                                    struct cell_group_cfg_s  *cell_group_diff)
+{
+	// release DRBs
+	// TODO
+
+	// add SRBs
+	struct srb_to_add_mod_s *srb = NULL;
+	cvector_for_each_in(srb, radio_bearer_diff->srb_to_add_mod_list){
+		pdcp_config_t   pdcp_cnfg  = make_nr_srb_pdcp_config_t(srb->srb_id, false);
+		struct  rlc_bearer_cfg_s* rlc_bearer, item = NULL;
+		cvector_for_each_in(item, cell_group_diff.rlc_bearer_to_add_mod_list){
+			if (item->served_radio_bearer.type_ == (enum served_radio_bearer_types)srb_id &&\
+			  item->served_radio_bearer.c == srb->srb_id) {
+				rlc_bearer = item;
+				break;
+			}
+		}
+		if (rlc_bearer == NULL) {
+			oset_error("Inconsistency between cellGroupConfig and radioBearerConfig in ASN1 message");
+			return OSET_ERROR;
+		}
+		API_pdcp_rrc_add_bearer(ue->rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
+
+		if (ue->sec_ctx.k_gnb_present) {
+			update_as_security(ue, rlc_bearer->lc_ch_id, true, true);
+		}
+	}
+
+	// Add DRBs
+	struct drb_to_add_mod_s *drb = NULL;
+	cvector_for_each_in(drb, radio_bearer_diff->drb_to_add_mod_list){
+		pdcp_config_t   pdcp_cnfg  = make_drb_pdcp_config_t(drb->drb_id, false, &drb->pdcp_cfg);
+		struct  rlc_bearer_cfg_s* rlc_bearer, item = NULL;
+		cvector_for_each_in(item, cell_group_diff->rlc_bearer_to_add_mod_list){
+			if (item->served_radio_bearer.type_ == (enum served_radio_bearer_types)drb_id &&\
+			  	item->served_radio_bearer.c == drb->drb_id) {
+				rlc_bearer = item;
+				break;
+			}
+		}
+		if (rlc_bearer == NULL) {
+			oset_error("Inconsistency between cellGroupConfig and radioBearerConfig in ASN1 message");
+			return OSET_ERROR;
+		}
+
+		API_pdcp_rrc_add_bearer(ue->rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
+
+		if (ue->sec_ctx.k_gnb_present) {
+			update_as_security(ue, rlc_bearer->lc_ch_id, drb->pdcp_cfg.drb.integrity_protection_present, true);
+		}
+	}
+
+	return OSET_OK;
+}
+
+static int update_rlc_bearers(rrc_nr_ue *ue, struct cell_group_cfg_s *cell_group_diff)
+{
+	// Release RLC radio bearers
+	uint8_t *lcid = NULL;
+	cvector_for_each_in(lcid, cell_group_diff->rlc_bearer_to_release_list){
+		API_rlc_rrc_del_bearer(ue->rnti, *lcid);
+	}
+
+	// Add/Mod RLC radio bearers
+	struct rlc_bearer_cfg_s *rb = NULL;
+	cvector_for_each_in(rb, cell_group_diff->rlc_bearer_to_add_mod_list){
+		rlc_config_t		 rlc_cfg = {0};
+		uint8_t 			 rb_id = 0;
+		if (rb->served_radio_bearer.type_.value == (served_radio_bearer_types)srb_id) {
+		  rb_id = rb->served_radio_bearer.c;
+		  if (! rb->rlc_cfg_present) {
+			uint32_t default_sn_size = 12;
+			rlc_cfg = default_rlc_am_nr_config(default_sn_size);
+		  } else {
+			if (make_rlc_config_t(rb->rlc_cfg, rb_id, &rlc_cfg) != OSET_OK) {
+			  oset_error("Failed to build RLC config");
+			  // TODO: HANDLE
+			  return OSET_ERROR;
+			}
+		  }
+		} else {
+		  rb_id = rb->served_radio_bearer.c;
+		  if (! rb->rlc_cfg_present) {
+			oset_error("No RLC config for DRB");
+			// TODO: HANDLE
+			return OSET_ERROR;
+		  }
+		  if (make_rlc_config_t(rb->rlc_cfg, rb_id, &rlc_cfg) != OSET_OK) {
+			oset_error("Failed to build RLC config");
+			// TODO: HANDLE
+			return OSET_ERROR;
+		  }
+		}
+		API_rlc_rrc_add_bearer(ue->rnti, rb->lc_ch_id, rlc_cfg);
+	}
+
+  return OSET_OK;
+}
 
 static int update_mac(rrc_nr_ue *ue, cell_group_cfg_s *cell_group_config, bool is_config_complete)
 {
@@ -196,103 +333,6 @@ static int update_mac(rrc_nr_ue *ue, cell_group_cfg_s *cell_group_config, bool i
 	return OSET_OK;
 }
 
-static int update_pdcp_bearers(rrc_nr_ue *ue,
-									struct radio_bearer_cfg_s *radio_bearer_diff,
-                                    struct cell_group_cfg_s  *cell_group_diff)
-{
-  // release DRBs
-  // TODO
-
-  // add SRBs
-  for (const srb_to_add_mod_s& srb : radio_bearer_diff->srb_to_add_mod_list) {
-    srsran::pdcp_config_t   pdcp_cnfg  = make_nr_srb_pdcp_config_t(srb.srb_id, false);
-    const rlc_bearer_cfg_s* rlc_bearer = nullptr;
-    for (const rlc_bearer_cfg_s& item : cell_group_diff.rlc_bearer_to_add_mod_list) {
-      if (item.served_radio_bearer.type_ == (enum served_radio_bearer_types)srb_id &&\
-          item.served_radio_bearer.c == srb.srb_id) {
-        rlc_bearer = &item;
-        break;
-      }
-    }
-    if (rlc_bearer == nullptr) {
-      logger.error("Inconsistency between cellGroupConfig and radioBearerConfig in ASN1 message");
-      return SRSRAN_ERROR;
-    }
-    parent->pdcp->add_bearer(rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
-
-    if (sec_ctx.is_as_sec_cfg_valid()) {
-      update_as_security(rlc_bearer->lc_ch_id);
-    }
-  }
-
-  // Add DRBs
-  for (const drb_to_add_mod_s& drb : radio_bearer_diff->drb_to_add_mod_list) {
-    srsran::pdcp_config_t   pdcp_cnfg  = make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
-    const rlc_bearer_cfg_s* rlc_bearer = nullptr;
-    for (const rlc_bearer_cfg_s& item : cell_group_diff.rlc_bearer_to_add_mod_list) {
-      if (item.served_radio_bearer.type().value == rlc_bearer_cfg_s::served_radio_bearer_c_::types_opts::drb_id and
-          item.served_radio_bearer.drb_id() == drb.drb_id) {
-        rlc_bearer = &item;
-        break;
-      }
-    }
-    if (rlc_bearer == nullptr) {
-      logger.error("Inconsistency between cellGroupConfig and radioBearerConfig in ASN1 message");
-      return SRSRAN_ERROR;
-    }
-    parent->pdcp->add_bearer(rnti, rlc_bearer->lc_ch_id, pdcp_cnfg);
-
-    if (sec_ctx.is_as_sec_cfg_valid()) {
-      update_as_security(rlc_bearer->lc_ch_id, drb.pdcp_cfg.drb.integrity_protection_present, true);
-    }
-  }
-
-  return SRSRAN_SUCCESS;
-}
-
-static int update_rlc_bearers(rrc_nr_ue *ue, struct cell_group_cfg_s *cell_group_diff)
-{
-	// Release RLC radio bearers
-	uint8_t *lcid = NULL;
-	cvector_for_each_in(lcid, cell_group_diff->rlc_bearer_to_release_list){
-		API_rlc_rrc_del_bearer(ue->rnti, *lcid);
-	}
-
-	// Add/Mod RLC radio bearers
-	struct rlc_bearer_cfg_s *rb = NULL;
-	cvector_for_each_in(rb, cell_group_diff->rlc_bearer_to_add_mod_list){
-		rlc_config_t		 rlc_cfg = {0};
-		uint8_t 			 rb_id = 0;
-		if (rb->served_radio_bearer.type_.value == (served_radio_bearer_types)srb_id) {
-		  rb_id = rb->served_radio_bearer.c;
-		  if (! rb->rlc_cfg_present) {
-			uint32_t default_sn_size = 12;
-			rlc_cfg = default_rlc_am_nr_config(default_sn_size);
-		  } else {
-			if (make_rlc_config_t(rb->rlc_cfg, rb_id, &rlc_cfg) != OSET_OK) {
-			  oset_error("Failed to build RLC config");
-			  // TODO: HANDLE
-			  return OSET_ERROR;
-			}
-		  }
-		} else {
-		  rb_id = rb->served_radio_bearer.c;
-		  if (! rb->rlc_cfg_present) {
-			oset_error("No RLC config for DRB");
-			// TODO: HANDLE
-			return OSET_ERROR;
-		  }
-		  if (make_rlc_config_t(rb->rlc_cfg, rb_id, &rlc_cfg) != OSET_OK) {
-			oset_error("Failed to build RLC config");
-			// TODO: HANDLE
-			return OSET_ERROR;
-		  }
-		}
-		API_rlc_rrc_add_bearer(ue->rnti, rb->lc_ch_id, rlc_cfg);
-	}
-
-  return OSET_OK;
-}
 
 void rrc_rem_user_info(uint16_t rnti)
 {
@@ -365,8 +405,8 @@ void rrc_nr_ue_set_rnti(uint16_t rnti, rrc_nr_ue *ue)
 {
     oset_assert(ue);
 	ue->rnti = rnti;
-    oset_hash_set(rrc_manager_self()->users, &rnti, sizeof(rnti), NULL);
-    oset_hash_set(rrc_manager_self()->users, &rnti, sizeof(rnti), ue);
+    oset_hash_set(rrc_manager_self()->users, &ue->rnti, sizeof(ue->rnti), NULL);
+    oset_hash_set(rrc_manager_self()->users, &ue->rnti, sizeof(ue->rnti), ue);
 }
 
 rrc_nr_ue *rrc_nr_ue_find_by_rnti(uint16_t rnti)

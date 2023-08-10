@@ -9,7 +9,8 @@
 #ifndef MAC_INTERFACE_TYPES_H
 #define MAC_INTERFACE_TYPES_H
 
-#include "lib/rlc/rrc_interface_types.h"
+//#include "lib/rrc/rrc_interface_types.h"
+#include <stdint.h>
 
 /***************************
  *      MAC Config

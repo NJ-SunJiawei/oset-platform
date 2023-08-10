@@ -228,19 +228,12 @@ sched_nr_ue *sched_nr_ue_find_by_rnti(uint16_t rnti)
             mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti));
 }
 
-void sched_nr_add_ue_impl(uint16_t rnti, sched_nr_ue *u, uint32_t cc)
+void sched_nr_add_ue_impl(sched_nr_ue *u, uint32_t cc)
 {
 	oset_assert(u);
-	oset_info("SCHED: New sched user rnti=0x%x, cc=%d", rnti, cc);
-	oset_hash_set(mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), NULL);
-	oset_hash_set(mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), u);
-}
-
-void sched_nr_ue_set_by_rnti(uint16_t rnti, sched_nr_ue *u)
-{
-	oset_assert(u);
-    oset_hash_set(mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), NULL);
-    oset_hash_set(mac_manager_self()->sched.ue_db, &rnti, sizeof(rnti), u);
+	oset_info("SCHED: New sched user rnti=0x%x, cc=%d", u->rnti, cc);
+	oset_hash_set(mac_manager_self()->sched.ue_db, &u->rnti, sizeof(u->rnti), NULL);
+	oset_hash_set(mac_manager_self()->sched.ue_db, &u->rnti, sizeof(u->rnti), u);
 }
 
 sched_nr_ue *sched_nr_ue_add(uint16_t rnti_, uint32_t cc, sched_params_t *sched_cfg_)
@@ -406,19 +399,14 @@ static slot_ue* slot_ue_create(ue_carrier *ue_, slot_point slot_tx_, uint32_t cc
 	return slot_u;
 }
 
-static void slot_ue_set_by_rnti(uint16_t rnti, slot_ue *u, uint32_t cc)
-{
-	oset_assert(u);
-    oset_hash_set(mac_manager_self()->sched.cc_workers[cc].slot_ues, &rnti, sizeof(rnti), NULL);
-    oset_hash_set(mac_manager_self()->sched.cc_workers[cc].slot_ues, &rnti, sizeof(rnti), u);
-}
-
 void slot_ue_alloc(sched_nr_ue *ue, slot_point pdcch_slot, uint32_t cc)
 {
 	ASSERT_IF_NOT(ue->carriers[cc] != NULL, "make_slot_ue() called for unknown rnti=0x%x,cc=%d", ue->rnti, cc);
 	slot_ue* slot_u = slot_ue_create(ue->carriers[cc], pdcch_slot, cc);
 	oset_assert(slot_u);
-	slot_ue_set_by_rnti(ue->rnti, slot_u, cc);
+
+    oset_hash_set(mac_manager_self()->sched.cc_workers[cc].slot_ues, &ue->rnti, sizeof(ue->rnti), NULL);
+    oset_hash_set(mac_manager_self()->sched.cc_workers[cc].slot_ues, &ue->rnti, sizeof(ue->rnti), slot_u);
 	cvector_push_back(mac_manager_self()->sched.cc_workers[cc].slot_ue_list, slot_u);
 }
 

@@ -212,7 +212,7 @@ static int sched_nr_ue_cfg_impl(sched_nr *scheluder, uint16_t rnti, sched_nr_ue_
 		// create user object
 		sched_nr_ue *u = sched_nr_ue_add_inner(rnti, uecfg, scheluder->cfg);
 		oset_assert(u);
-		sched_nr_add_ue_impl(rnti, u, uecfg->carriers[0].cc);
+		sched_nr_add_ue_impl(u, uecfg->carriers[0].cc);
 		return OSET_OK;
 	}
 
@@ -295,7 +295,7 @@ void dl_rach_info_callback(uint16_t rnti, void *argv)
 	sched_nr_ue *u = sched_nr_ue_add(rnti, cc, &mac_manager_self()->sched.cfg);
 	oset_assert(u);
 
-	sched_nr_add_ue_impl(rnti, u, cc);
+	sched_nr_add_ue_impl(u, cc);
 
 	if (sched_nr_ue_find_by_rnti(rnti)) {
 		oset_info("[%5u] dl_rach_info(temp c-rnti=0x%x)", count_idx(&rar_info->prach_slot), rnti);
