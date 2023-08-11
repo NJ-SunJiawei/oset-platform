@@ -152,7 +152,7 @@ void rlc_tm_stop(rlc_common *tm_common)
 	rlc_common_destory(&tm->common);
 }
 
-rlc_tm *rlc_tm_init(uint32_t lcid_, 	uint16_t rnti_, oset_apr_memory_pool_t	*usepool)
+rlc_tm *rlc_tm_init(uint32_t lcid_,	uint16_t rnti_, oset_apr_memory_pool_t	*usepool)
 {
 	oset_assert(usepool);
 	rlc_tm *tm = oset_core_alloc(usepool, sizeof(rlc_tm));
@@ -161,14 +161,16 @@ rlc_tm *rlc_tm_init(uint32_t lcid_, 	uint16_t rnti_, oset_apr_memory_pool_t	*use
 
 	rlc_common_init(&tm->common, "SRB0", rnti_, lcid_, (rlc_mode_t)tm, usepool);
 
-	tm->common.func._get_buffer_state = rlc_tm_get_buffer_state;
-	tm->common.func._configure = rlc_tm_configure;
-	tm->common.func._set_bsr_callback = rlc_tm_set_bsr_callback;
-	tm->common.func._reset_metrics = rlc_tm_reset_metrics;
-	tm->common.func._reestablish = rlc_tm_reestablish;
-	tm->common.func._write_ul_pdu = rlc_tm_write_ul_pdu;
-	tm->common.func._write_dl_sdu = rlc_tm_write_dl_sdu;
-	tm->common.func._stop = rlc_tm_stop;
+	tm->common.func = {
+						._get_buffer_state  = rlc_tm_get_buffer_state,
+						._configure         = rlc_tm_configure,
+						._set_bsr_callback  = rlc_tm_set_bsr_callback,
+						._reset_metrics     = rlc_tm_reset_metrics,
+						._reestablish       = rlc_tm_reestablish,
+						._write_ul_pdu      = rlc_tm_write_ul_pdu,
+						._write_dl_sdu      = rlc_tm_write_dl_sdu,
+						._stop              = rlc_tm_stop,
+					  };
 
 	oset_apr_mutex_init(&tm->bsr_callback_mutex, OSET_MUTEX_NESTED, usepool);
 	oset_apr_mutex_init(&tm->metrics_mutex, OSET_MUTEX_NESTED, usepool);

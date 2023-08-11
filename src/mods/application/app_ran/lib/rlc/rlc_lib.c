@@ -100,9 +100,6 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
       break;
     case (rlc_mode_t)am:
       switch (cnfg->rat) {
-        case (srsran_rat_t)lte:
-          rlc_entity = (rlc_common *)(new rlc_am(cnfg->rat, logger, lcid, pdcp, rrc, timers));
-          break;
         case (srsran_rat_t)nr:
           rlc_entity = (rlc_common *)(new rlc_am(cnfg->rat, logger, lcid, pdcp, rrc, timers));
           break;
@@ -113,9 +110,6 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
       break;
     case (rlc_mode_t)um:
       switch (cnfg->rat) {
-        case (srsran_rat_t)lte:
-          rlc_entity = (rlc_common *)(new rlc_um_lte(logger, lcid, pdcp, rrc, timers));
-          break;
         case (srsran_rat_t)nr:
           rlc_entity = (rlc_common *)(new rlc_um_nr(logger, lcid, pdcp, rrc, timers));
           break;

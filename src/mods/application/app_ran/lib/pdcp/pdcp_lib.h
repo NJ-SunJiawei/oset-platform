@@ -10,8 +10,7 @@
 #ifndef PDCP_LIB_H_
 #define PDCP_LIB_H_
 
-#include "lib/pdcp/pdcp_entity_base.h"
-#include "lib/pdcp/pdcp_interface_types.h"
+#include "lib/pdcp/pdcp_entity_nr.h"
 
 #ifdef __cplusplus
 extern "C" {

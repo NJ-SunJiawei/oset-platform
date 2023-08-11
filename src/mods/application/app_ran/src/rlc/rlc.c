@@ -177,7 +177,6 @@ void API_rlc_rrc_del_bearer(uint16_t rnti, uint32_t lcid)
 	rlc_del_bearer(rnti, lcid);
 }
 
-
 // pdcp/rlc ====》gnb mac send downlink
 void API_rlc_rrc_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu)
 {

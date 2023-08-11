@@ -11,7 +11,9 @@
 #define PDCP_ENTITY_BASE_H
 
 #include "lib/common/security.h"
+#include "lib/common/util_helper.h"
 #include "lib/pdcp/pdcp_metrics.h"
+#include "lib/pdcp/pdcp_interface_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,11 +32,65 @@ extern "C" {
 #define PDCP_MAX_SDU_SIZE 9000
 
 typedef enum {
-  PDCP_D_C_CONTROL_PDU = 0,
-  PDCP_D_C_DATA_PDU,
-  PDCP_D_C_N_ITEMS,
+	PDCP_D_C_CONTROL_PDU = 0,
+	PDCP_D_C_DATA_PDU,
+	PDCP_D_C_N_ITEMS,
 } pdcp_d_c_t;
 static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU", "Data PDU"};
+
+/****************************************************************************
+ * PDCP Entity interface
+ * Common interface for LTE and NR PDCP entities
+ ***************************************************************************/
+pdcp_config_t cfg = {
+						1,
+						PDCP_RB_IS_DRB,
+						SECURITY_DIRECTION_DOWNLINK,
+						SECURITY_DIRECTION_UPLINK,
+						PDCP_SN_LEN_12,
+						(pdcp_t_reordering_t)ms500,
+						(pdcp_discard_timer_t)infinity,
+						false,
+						(srsran_rat_t)nr,
+                   };
+
+typedef struct {
+   bool (*_configure)(pdcp_entity_base*, pdcp_config_t*);
+}pdcp_func_entity;
+
+typedef struct {
+	bool               active;// false
+	uint16_t 		   rnti;
+	uint32_t           lcid;
+	srsran_direction_t integrity_direction;
+	srsran_direction_t encryption_direction;
+	int32_t            enable_security_tx_sn; // -1 // TX SN at which security will be enabled
+	int32_t            enable_security_rx_sn; // -1 // RX SN at which security will be enabled
+	char               *rb_name;
+	as_security_config_t   sec_cfg;
+	// Metrics helpers
+	pdcp_bearer_metrics_t  metrics;
+	rolling_average_t(double) tx_pdu_ack_latency_ms;//lte
+	pdcp_func_entity   func;
+}pdcp_entity_base;
+
+inline uint32_t pdcp_HFN(pdcp_config_t *cfg, uint32_t count)
+{
+  return (count >> cfg->sn_len);
+}
+
+inline uint32_t pdcp_SN(pdcp_config_t *cfg, uint32_t count)
+{
+  return count & (0xFFFFFFFF >> (32 - cfg->sn_len));
+}
+
+inline uint32_t pdcp_COUNT(pdcp_config_t *cfg, uint32_t hfn, uint32_t sn)
+{
+  return (hfn << cfg->sn_len) | sn;
+} 
+
+
+void pdcp_entity_base_init(pdcp_entity_base *base, uint32_t         lcid_, uint16_t rnti_, oset_apr_memory_pool_t *usepool);
 
 #ifdef __cplusplus
 }

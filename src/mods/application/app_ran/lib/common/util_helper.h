@@ -53,7 +53,7 @@ extern "C" {
 //////////////////////////////////////////////////////////////////////////////
 
 #define span_t(T) \
-		struct { \
+		struct span { \
 			T        *ptr;\
 			size_t   len;\
 		};
@@ -70,6 +70,14 @@ extern "C" {
 				node.ptr = data.ptr + offset;\
 				node.len = count;\
 			} while (0)
+
+/////////////////////////////////////////////////////////////////////
+#define rolling_average_t(T) \
+		struct rolling_average {\
+			T 	   avg_;\
+			uint32_t count_;\
+		};
+
 
 #ifdef __cplusplus
 }
