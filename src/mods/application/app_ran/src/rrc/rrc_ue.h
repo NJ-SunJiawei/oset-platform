@@ -86,7 +86,7 @@ void log_rrc_message(const char               *source,
 						   const char              *msg_type);
 
 
-void activity_timer_expired(rrc_nr_ue *ue);
+void activity_timer_expired(void *data);
 void rrc_rem_user_info(uint16_t rnti);
 ////////////////////////////////////////////////////////////////////////
 void rrc_nr_ue_deactivate_bearers(rrc_nr_ue *ue);

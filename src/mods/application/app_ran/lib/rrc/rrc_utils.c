@@ -1000,6 +1000,7 @@ pdcp_config_t make_nr_srb_pdcp_config_t(uint8_t srb_id, bool is_ue)
 							.discard_timer = (pdcp_discard_timer_t)infinity,
 							.status_report_required = false,
 							.rat = (srsran_rat_t)nr
+							.hdr_len_bytes = ceilf((float)PDCP_SN_LEN_12 / 8),
 						};
 	return cfg;
 }
@@ -1201,8 +1202,9 @@ pdcp_config_t make_drb_pdcp_config_t(uint8_t drb_id, bool is_ue, struct pdcp_cfg
 	                    .t_reordering = t_reordering,
 	                    .discard_timer = discard_timer,
 	                    .status_report_required = false,
-	                    .rat = (srsran_rat_t)nr
-	                    };
+	                    .rat = (srsran_rat_t)nr,
+	                    .hdr_len_bytes = ceilf((float)sn_len / 8),
+	                   };
 
   return cfg;
 }

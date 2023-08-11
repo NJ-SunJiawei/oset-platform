@@ -52,8 +52,9 @@ static void log_rrc_ue_message(uint16_t rnti,
 
 
 //todo
-void activity_timer_expired(rrc_nr_ue *ue)
+void activity_timer_expired(void *data)
 {
+	rrc_nr_ue *ue = (rrc_nr_ue *)data;
 	oset_assert(ue);
 	oset_info("Activity timer for rnti=0x%x expired", ue->rnti);
 

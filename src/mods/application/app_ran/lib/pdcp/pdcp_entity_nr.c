@@ -15,8 +15,9 @@
  * Timers
  */
 // Reordering Timer Callback (t-reordering)
-void reordering_callback(pdcp_entity_base* pdcp_base, uint32_t timer_id)
+void reordering_callback(void *data)
 {
+	pdcp_entity_base *pdcp_base = (pdcp_entity_base*)data;
 	pdcp_entity_nr *pdcp_nr = (pdcp_entity_nr *)pdcp_base;
 
 	oset_info("Reordering timer expired. RX_REORD=%u, re-order queue size=%ld", pdcp_nr->rx_reord, pdcp_nr->reorder_queue.size());
@@ -48,46 +49,46 @@ void reordering_callback(pdcp_entity_base* pdcp_base, uint32_t timer_id)
 ////////////////////////////////////////////////////////////////////////////
 bool pdcp_entity_nr_configure(pdcp_entity_base* pdcp_base, pdcp_config_t *cnfg_)
 {
+	char name[64] = {0};
 	pdcp_entity_nr *pdcp_nr = (pdcp_entity_nr *)pdcp_base;
 
 	if (pdcp_base->active) {
-	// Already configured
-	if (cnfg_ != cfg) {
-		oset_error("Bearer reconfiguration not supported. LCID=%s.", pdcp_base->rb_name);
-		return false;
-	}
+		// Already configured
+		if (0 != memcmp(&pdcp_base->cfg, cnfg_, sizeof(pdcp_config_t))){
+			oset_error("Bearer reconfiguration not supported. LCID=%s.", pdcp_base->rb_name);
+			return false;
+		}
 		return true;
 	}
 
-	cfg         = cnfg_;
-	rb_name     = cfg.get_rb_name();
-	window_size = 1 << (cfg.sn_len - 1);
+	pdcp_base->cfg      = cnfg_;
+	pdcp_base->rb_name  = sprintf(name, "%s%d", cnfg_->rb_type == PDCP_RB_IS_DRB ? "DRB" : "SRB", cnfg_->bearer_id);
+	pdcp_nr->window_size = 1 << (pdcp_base->cfg.sn_len - 1);
 
-	rlc_mode = rlc->rb_is_um(lcid) ? rlc_mode_t::UM : rlc_mode_t::AM;
+	pdcp_nr->rlc_mode = rlc->rb_is_um(lcid) ? pdcp_entity_nr::UM : pdcp_entity_nr::AM;
 
 	// t-Reordering timer
-	if (cfg.t_reordering != pdcp_t_reordering_t::infinity) {
-	reordering_timer = task_sched.get_unique_timer();
-	if (static_cast<uint32_t>(cfg.t_reordering) > 0) {
-	  reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering), *reordering_fnc);
-	}
-	} else if (rlc_mode == rlc_mode_t::UM) {
-	logger.warning("%s possible PDCP-NR misconfiguration: using infinite re-ordering timer with RLC UM bearer.",
-	               rb_name);
+	if (pdcp_base->cfg.t_reordering != (pdcp_t_reordering_t)infinity) {
+		if ((uint32_t)pdcp_base->cfg.t_reordering > 0) {
+			pdcp_nr->reordering_timer = gnb_timer_add(gnb_manager_self()->app_timer, reordering_callback, pdcp_base);
+		}
+	} else if (pdcp_nr->rlc_mode == pdcp_entity_nr::UM) {
+		oset_warn("%s possible PDCP-NR misconfiguration: using infinite re-ordering timer with RLC UM bearer.",
+	               pdcp_base->rb_name);
 	}
 
-	active = true;
-	logger.info("%s PDCP-NR entity configured. SN_LEN=%d, Discard timer %d, Re-ordering timer %d, RLC=%s, RAT=%s",
-	          rb_name,
-	          cfg.sn_len,
-	          cfg.discard_timer,
-	          cfg.t_reordering,
-	          rlc_mode == rlc_mode_t::UM ? "UM" : "AM",
-	          to_string(cfg.rat));
+	pdcp_base->active = true;
+	oset_info("%s PDCP-NR entity configured. SN_LEN=%d, Discard timer %d, Re-ordering timer %d, RLC=%s, RAT=%s",
+	          pdcp_base->rb_name,
+	          pdcp_base->cfg.sn_len,
+	          pdcp_base->cfg.discard_timer,
+	          pdcp_base->cfg.t_reordering,
+	          pdcp_nr->rlc_mode == pdcp_entity_nr::UM ? "UM" : "AM",
+	          "NR");
 
 	// disable discard timer if using UM
-	if (rlc_mode == rlc_mode_t::UM) {
-		cfg.discard_timer = pdcp_discard_timer_t::infinity;
+	if (pdcp_nr->rlc_mode == pdcp_entity_nr::UM) {
+		pdcp_base->cfg.discard_timer = (pdcp_discard_timer_t)infinity;
 	}
 	return true;
 }
@@ -105,7 +106,6 @@ pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_, oset_apr_mem
 							._configure = pdcp_entity_nr_configure,
 						 };
 
-	pdcp_nr->reordering_fnc = reordering_callback;
 	pdcp_nr->reorder_queue = oset_hash_make();
 	pdcp_nr->discard_timers_map = oset_hash_make();
 }

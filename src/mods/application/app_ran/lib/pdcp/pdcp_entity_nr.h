@@ -20,7 +20,7 @@ extern "C" {
  * NR PDCP Entity
  * PDCP entity for 5G NR
  ***************************************************************************/
-typedef void (*_reordering_callback)();
+typedef void (*_reordering_callback)(void *);
 
 typedef struct {
 	pdcp_entity_base   base;
@@ -36,9 +36,6 @@ typedef struct {
 	// Reordering Queue / Timers
 	oset_hash_t  *reorder_queue;//std::map<uint32_t, byte_buffer_t>
 	gnb_timer_t  *reordering_timer;
-
-	// Reodering callback (t-Reordering)
-	_reordering_callback reordering_fnc;
 
 	// Discard callback (discardTimer)
 	oset_hash_t  *discard_timers_map;//std::map<uint32_t, timer_handler::unique_timer>

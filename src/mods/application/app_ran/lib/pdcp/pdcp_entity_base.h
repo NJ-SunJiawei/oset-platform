@@ -42,18 +42,6 @@ static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU", "Data PD
  * PDCP Entity interface
  * Common interface for LTE and NR PDCP entities
  ***************************************************************************/
-pdcp_config_t cfg = {
-						1,
-						PDCP_RB_IS_DRB,
-						SECURITY_DIRECTION_DOWNLINK,
-						SECURITY_DIRECTION_UPLINK,
-						PDCP_SN_LEN_12,
-						(pdcp_t_reordering_t)ms500,
-						(pdcp_discard_timer_t)infinity,
-						false,
-						(srsran_rat_t)nr,
-                   };
-
 typedef struct {
    bool (*_configure)(pdcp_entity_base*, pdcp_config_t*);
 }pdcp_func_entity;
@@ -66,6 +54,7 @@ typedef struct {
 	srsran_direction_t encryption_direction;
 	int32_t            enable_security_tx_sn; // -1 // TX SN at which security will be enabled
 	int32_t            enable_security_rx_sn; // -1 // RX SN at which security will be enabled
+	pdcp_config_t 	   cfg;
 	char               *rb_name;
 	as_security_config_t   sec_cfg;
 	// Metrics helpers
