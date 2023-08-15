@@ -10,7 +10,7 @@
 #ifndef PDCP_H_
 #define PDCP_H_
 
-#include "lib/pdcp/pdcp_lib.h"
+#include "pdcp/pdcp_lib.h"
 
 #ifdef __cplusplus
 extern "C" {

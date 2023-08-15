@@ -153,6 +153,20 @@ static void rlc_del_bearer(uint16_t rnti, uint32_t lcid)
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 }
 
+static bool rlc_rb_is_um(uint16_t rnti, uint32_t lcid)
+{
+	bool ret = false;
+	//oset_apr_thread_rwlock_wrlock(rlc_manager.rwlock);
+	rlc_user_interface* user = rlc_user_interface_find_by_rnti(rnti);
+	if (NULL == user) {
+		oset_warn("can't find rlc interface by rnti=0x%x", rnti);
+	}else{
+		ret = rlc_lib_rb_is_um(&user->rlc, lcid);
+	}
+	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
+	return ret;
+}
+
 /*******************************************************************************
 RRC interface
 *******************************************************************************/
@@ -193,6 +207,18 @@ void API_rlc_rrc_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu)
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 }
 
+/*******************************************************************************
+PDCP interface
+*******************************************************************************/
+bool API_rlc_pdcp_rb_is_um(uint16_t rnti, uint32_t lcid)
+{
+	rlc_rb_is_um(rnti, lcid);
+}
+
+
+/*******************************************************************************
+MAC interface
+*******************************************************************************/
 // gnb mac《==== pdcp/rlc get downlink
 int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
@@ -230,4 +256,5 @@ void API_rlc_mac_write_ul_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, ui
 	}
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 }
+
 

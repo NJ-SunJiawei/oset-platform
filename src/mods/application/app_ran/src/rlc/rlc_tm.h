@@ -10,7 +10,7 @@
 #ifndef RLC_TM_H_
 #define RLC_TM_H_
 
-#include "lib/rlc/rlc_common.h"
+#include "rlc/rlc_common.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,6 +43,7 @@ void rlc_tm_reset_metrics(rlc_common *tm_common);
 void rlc_tm_reestablish(rlc_common *tm_common);
 void rlc_tm_write_ul_pdu(rlc_common *tm_common, uint8_t* payload, uint32_t nof_bytes);
 void rlc_tm_write_dl_sdu(rlc_common *tm_common, byte_buffer_t *sdu);
+rlc_mode_t rlc_tm_get_mode(void);
 void rlc_tm_stop(rlc_common *tm_common);
 
 

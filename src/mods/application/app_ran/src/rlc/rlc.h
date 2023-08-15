@@ -10,7 +10,7 @@
 #ifndef RRC_H_
 #define RRC_H_
 
-#include "lib/rlc/rlc_lib.h"
+#include "rlc/rlc_lib.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,6 +58,10 @@ void API_rlc_rrc_add_user(uint16_t rnti);
 void API_rlc_rrc_rem_user(uint16_t rnti);
 void API_rlc_rrc_add_bearer(uint16_t rnti, uint32_t lcid, rlc_config_t *cnfg);
 void API_rlc_rrc_del_bearer(uint16_t rnti, uint32_t lcid);
+
+/**********************pdcp api****************************************/
+
+bool API_rlc_pdcp_rb_is_um(uint16_t rnti, uint32_t lcid);
 
 
 #ifdef __cplusplus

@@ -6,10 +6,10 @@
  *Author: create by sunjiawei
  *Date: 2023.07
 ************************************************************************/
-#include "lib/rlc/rlc_common.h"
+#include "rlc/rlc_common.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-librlccom"
+#define OSET_LOG2_DOMAIN   "app-gnb-rlcBase"
 
 void rlc_common_init(rlc_common *common, char *rb_name, uint16_t rnti, uint32_t lcid, rlc_mode_t mode, oset_apr_memory_pool_t *usepool)
 {

@@ -10,7 +10,7 @@
 #ifndef PDCP_ENTITY_NR_H
 #define PDCP_ENTITY_NR_H
 
-#include "lib/pdcp/pdcp_entity_base.h"
+#include "pdcp/pdcp_entity_base.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,6 +50,7 @@ typedef struct {
 }pdcp_entity_nr;
 
 pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_, oset_apr_memory_pool_t	*usepool);
+bool pdcp_entity_nr_configure(pdcp_entity_nr* pdcp_nr, pdcp_config_t *cnfg_);
 
 #ifdef __cplusplus
 }

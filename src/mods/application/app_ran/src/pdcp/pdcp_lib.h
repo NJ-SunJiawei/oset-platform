@@ -10,7 +10,7 @@
 #ifndef PDCP_LIB_H_
 #define PDCP_LIB_H_
 
-#include "lib/pdcp/pdcp_entity_nr.h"
+#include "pdcp/pdcp_entity_nr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,8 +31,8 @@ typedef struct {
 	oset_time_t              metrics_tp;
 }pdcp_lib_t;
 
-pdcp_entity_base* pdcp_valid_lcid(pdcp_lib_t *pdcp, uint32_t lcid);
-pdcp_entity_base *pdcp_array_find_by_lcid(pdcp_lib_t *pdcp, uint32_t lcid);
+pdcp_entity_nr* pdcp_valid_lcid(pdcp_lib_t *pdcp, uint32_t lcid);
+pdcp_entity_nr *pdcp_array_find_by_lcid(pdcp_lib_t *pdcp, uint32_t lcid);
 
 
 void pdcp_lib_init(pdcp_lib_t *pdcp);

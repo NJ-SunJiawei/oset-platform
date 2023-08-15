@@ -9,7 +9,7 @@
 #include "lib/rlc/rlc_lib.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-librlc"
+#define OSET_LOG2_DOMAIN   "app-gnb-rlclib"
 
 
 static void rlc_lib_write_ul_pdu_suspended(rlc_common *rlc_entity, uint8_t* payload, uint32_t nof_bytes)
@@ -251,5 +251,19 @@ void rlc_lib_write_dl_sdu(rlc_lib_t *rlc, uint32_t lcid, byte_buffer_t *sdu)
   } else {
     oset_warn("RLC LCID %d doesn't exist. Deallocating SDU", lcid);
   }
+}
+
+bool rlc_lib_rb_is_um(rlc_lib_t *rlc, uint32_t lcid)
+{
+  bool ret = false;
+  
+  rlc_common  *rlc_entity = rlc_valid_lcid(rlc, lcid);
+
+  if (NULL != rlc_entity) {
+	ret = (rlc_entity->func._get_mode() == (rlc_mode_t)um);
+  } else {
+	oset_warn("LCID %d doesn't exist.", lcid);
+  }
+  return ret;
 }
 

@@ -6,12 +6,17 @@
  *Author: create by sunjiawei
  *Date: 2023.07
 ************************************************************************/
-#include "lib/pdcp/pdcp_lib.h"
+#include "pdcp/pdcp_lib.h"
 	
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-libpdcp"
+#define OSET_LOG2_DOMAIN   "app-gnb-pdcplib"
 
-pdcp_entity_base* pdcp_valid_lcid(pdcp_lib_t *pdcp, uint32_t lcid)
+pdcp_entity_nr *pdcp_array_find_by_lcid(pdcp_lib_t *pdcp, uint32_t lcid)
+{
+    return (pdcp_entity_nr *)oset_hash_get(pdcp->pdcp_array, &lcid, sizeof(lcid));
+}
+
+pdcp_entity_nr* pdcp_valid_lcid(pdcp_lib_t *pdcp, uint32_t lcid)
 {
 	if (lcid >= SRSRAN_N_RADIO_BEARERS) {
 		oset_error("Radio bearer id must be in [0:%d] - %d", SRSRAN_N_RADIO_BEARERS, lcid);
@@ -20,13 +25,6 @@ pdcp_entity_base* pdcp_valid_lcid(pdcp_lib_t *pdcp, uint32_t lcid)
 
 	return pdcp_array_find_by_lcid(pdcp, lcid);
 }
-
-
-pdcp_entity_base *pdcp_array_find_by_lcid(pdcp_lib_t *pdcp, uint32_t lcid)
-{
-    return (pdcp_entity_base *)oset_hash_get(pdcp->pdcp_array, &lcid, sizeof(lcid));
-}
-
 
 void pdcp_lib_init(pdcp_lib_t *pdcp)
 {
@@ -50,18 +48,21 @@ void pdcp_lib_stop(pdcp_lib_t *pdcp)
 
 int pdcp_lib_add_bearer(pdcp_lib_t *pdcp, uint32_t lcid, pdcp_config_t *cfg)
 {
-	pdcp_entity_base  *entity = pdcp_valid_lcid(pdcp, lcid);
+	pdcp_entity_nr  *entity = pdcp_valid_lcid(pdcp, lcid);
 
 	if (NULL != entity) {
-		return entity->func._configure(entity, cfg) ? OSET_OK : OSET_ERROR;
+		return pdcp_entity_nr_configure(entity, cfg) ? OSET_OK : OSET_ERROR;
 	}
 
 	// For now we create an pdcp entity lte for nr due to it's maturity
 	if (cfg->rat == (srsran_rat_t)nr) {
 		entity = (pdcp_entity_base *)(pdcp_entity_nr_init(lcid), pdcp->rnti, pdcp->usepool);
+	}else{
+		oset_error("Can not support other PDCP entity");
+		return OSET_ERROR;
 	}
 
-	if (! entity->func._configure(entity, cfg)) {
+	if (!pdcp_entity_nr_configure(entity, cfg)) {
 		oset_error("Can not configure PDCP entity");
 		return OSET_ERROR;
 	}

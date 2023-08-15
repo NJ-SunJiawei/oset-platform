@@ -6,11 +6,11 @@
  *Author: create by sunjiawei
  *Date: 2023.07
 ************************************************************************/
-#include "lib/rlc/rlc_tm.h"
+#include "rlc/rlc_tm.h"
 #include "rrc/rrc.h"
 
 #undef  OSET_LOG2_DOMAIN
-#define OSET_LOG2_DOMAIN   "app-gnb-librlcTM"
+#define OSET_LOG2_DOMAIN   "app-gnb-rlcTM"
 
 static void empty_queue(rlc_tm *tm)
 {
@@ -38,7 +38,7 @@ void rlc_tm_get_buffer_state(rlc_common *tm_common, uint32_t *newtx_queue, uint3
 	*newtx_queue   = tm->unread_bytes;
 	*prio_tx_queue = 0;
 	if (tm->bsr_callback) {
-		tm->bsr_callback(tm_common->rnti, tm->lcid, *newtx_queue, *prio_tx_queue);
+		tm->bsr_callback(tm_common->rnti, tm_common->lcid, *newtx_queue, *prio_tx_queue);
 	}
 	oset_apr_mutex_unlock(tm->bsr_callback_mutex);
 }
@@ -91,11 +91,11 @@ void rlc_tm_write_ul_pdu(rlc_common *tm_common, uint8_t* payload, uint32_t nof_b
 			tm->metrics.num_rx_pdus++;
 			oset_apr_mutex_unlock(tm->metrics_mutex);
 		}
-		if (srb_to_lcid(srb0) == tm->lcid) {
-			API_rrc_rlc_write_ul_pdu(tm_common->rnti, tm->lcid, sdu);
+		if (srb_to_lcid(srb0) == tm_common->lcid) {
+			API_rrc_rlc_write_ul_pdu(tm_common->rnti, tm_common->lcid, sdu);
 		} else {
 			/* RLC calls PDCP to push a PDCP PDU. */
-			API_pdcp_rlc_write_ul_pdu(tm_common->rnti, tm->lcid, sdu);
+			API_pdcp_rlc_write_ul_pdu(tm_common->rnti, tm_common->lcid, sdu);
 		}
 		//RLC_BUFF_FREE(&tm->tm_pool, sdu);
 		oset_free(sdu);
@@ -135,7 +135,10 @@ void rlc_tm_write_dl_sdu(rlc_common *tm_common, byte_buffer_t *sdu)
 	}
 }
 
-
+rlc_mode_t rlc_tm_get_mode(void)
+{
+	return (rlc_mode_t)tm;
+}
 
 void rlc_tm_stop(rlc_common *tm_common)
 {
@@ -169,6 +172,7 @@ rlc_tm *rlc_tm_init(uint32_t lcid_,	uint16_t rnti_, oset_apr_memory_pool_t	*usep
 						._reestablish       = rlc_tm_reestablish,
 						._write_ul_pdu      = rlc_tm_write_ul_pdu,
 						._write_dl_sdu      = rlc_tm_write_dl_sdu,
+						._get_mode		    = rlc_tm_get_mode,
 						._stop              = rlc_tm_stop,
 					  };
 

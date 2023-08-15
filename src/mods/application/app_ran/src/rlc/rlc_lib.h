@@ -14,9 +14,9 @@
 extern "C" {
 #endif
 
-#include "lib/rlc/rlc_tm.h"
-#include "lib/rlc/rlc_um.h"
-#include "lib/rlc/rlc_am.h"
+#include "rlc/rlc_tm.h"
+#include "rlc/rlc_um.h"
+#include "rlc/rlc_am.h"
 
 
 typedef struct {
@@ -40,6 +40,7 @@ void rlc_lib_write_ul_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, uint3
 rlc_common *rlc_array_find_by_lcid(rlc_lib_t *rlc, uint32_t lcid);
 void rlc_lib_del_bearer(rlc_lib_t *rlc, uint32_t lcid);
 int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg);
+bool rlc_lib_rb_is_um(rlc_lib_t *rlc, uint32_t lcid);
 
 
 #ifdef __cplusplus

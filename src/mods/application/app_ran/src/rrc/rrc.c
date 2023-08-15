@@ -602,7 +602,7 @@ int API_rrc_mac_update_user(uint16_t prev_rnti, uint16_t rnti)
 }
 
 /*******************************************************************************
-RLC interface
+RRC interface
 *******************************************************************************/
 void API_rrc_rlc_write_ul_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
 {

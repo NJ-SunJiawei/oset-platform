@@ -43,10 +43,6 @@ static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU", "Data PD
  * Common interface for LTE and NR PDCP entities
  ***************************************************************************/
 typedef struct {
-   bool (*_configure)(pdcp_entity_base*, pdcp_config_t*);
-}pdcp_func_entity;
-
-typedef struct {
 	bool               active;// false
 	uint16_t 		   rnti;
 	uint32_t           lcid;
@@ -60,7 +56,6 @@ typedef struct {
 	// Metrics helpers
 	pdcp_bearer_metrics_t  metrics;
 	rolling_average_t(double) tx_pdu_ack_latency_ms;//lte
-	pdcp_func_entity   func;
 }pdcp_entity_base;
 
 inline uint32_t pdcp_HFN(pdcp_config_t *cfg, uint32_t count)
