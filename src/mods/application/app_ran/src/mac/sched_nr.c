@@ -619,7 +619,7 @@ dl_res_t* sched_nr_get_dl_sched(sched_nr *scheluder, slot_point pdsch_tti, uint3
 	// Process pending CC-specific feedback, generate {slot_idx,cc} scheduling decision
 	dl_res_t* ret = cc_worker_run_slot(&scheluder->cc_workers[cc], pdsch_tti, &scheluder->sched_ue_list);
 
-  return ret;
+	return ret;
 }
 
 /// Fetch {ul_slot,cc} UL scheduling decision

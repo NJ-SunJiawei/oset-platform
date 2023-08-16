@@ -11,6 +11,15 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-pdcplib"
 
+static int compare(const void *a, const void *b)
+{
+	const int *x = a;
+	const int *y = b;
+	// 升序
+	return *x - *y;
+}
+
+
 pdcp_entity_nr *pdcp_array_find_by_lcid(pdcp_lib_t *pdcp, uint32_t lcid)
 {
     return (pdcp_entity_nr *)oset_hash_get(pdcp->pdcp_array, &lcid, sizeof(lcid));
@@ -31,7 +40,7 @@ void pdcp_lib_init(pdcp_lib_t *pdcp)
 	pdcp->pdcp_array = oset_hash_make();
 	//pdcp->pdcp_array_mrb = oset_hash_make();
 	oset_apr_mutex_init(&pdcp->cache_mutex, pdcp->usepool);
-	oset_stl_array_init(pdcp->valid_lcids_cached);
+	oset_stl_array_init(&pdcp->valid_lcids_cached);
 	pdcp->metrics_tp = 0;
 }
 
@@ -41,7 +50,7 @@ void pdcp_lib_stop(pdcp_lib_t *pdcp)
 	oset_hash_destroy(pdcp->pdcp_array);
 	//oset_hash_destroy(pdcp->pdcp_array_mrb);
 	oset_apr_mutex_destroy(pdcp->cache_mutex);
-	oset_stl_array_term(pdcp->valid_lcids_cached);
+	oset_stl_array_term(&pdcp->valid_lcids_cached);
 }
 
 
@@ -58,7 +67,7 @@ int pdcp_lib_add_bearer(pdcp_lib_t *pdcp, uint32_t lcid, pdcp_config_t *cfg)
 	if (cfg->rat == (srsran_rat_t)nr) {
 		entity = (pdcp_entity_base *)(pdcp_entity_nr_init(lcid), pdcp->rnti, pdcp->usepool);
 	}else{
-		oset_error("Can not support other PDCP entity");
+		oset_error("Can not support other type PDCP entity");
 		return OSET_ERROR;
 	}
 
@@ -67,14 +76,19 @@ int pdcp_lib_add_bearer(pdcp_lib_t *pdcp, uint32_t lcid, pdcp_config_t *cfg)
 		return OSET_ERROR;
 	}
 
-	if (! pdcp_array.insert(std::make_pair(lcid, std::move(entity))).second) {
+	oset_hash_set(pdcp->pdcp_array, &entity->base.lcid, sizeof(entity->base.lcid), NULL);
+	oset_hash_set(pdcp->pdcp_array, &entity->base.lcid, sizeof(entity->base.lcid), entity);
+
+	if (NULL == pdcp_array_find_by_lcid(pdcp, lcid)) {
 		oset_error("Error inserting PDCP entity in to array.");
 		return OSET_ERROR;
 	}
 
 	{
-		std::lock_guard<std::mutex> lock(cache_mutex);
-		pdcp->valid_lcids_cached.insert(lcid);
+		oset_apr_mutex_lock(pdcp->cache_mutex);
+		oset_stl_array_add(&pdcp->valid_lcids_cached, lcid);
+		oset_stl_array_sort(&pdcp->valid_lcids_cached, compare);
+		oset_apr_mutex_unlock(pdcp->cache_mutex);
 	}
 
 	oset_info("Add %s%d (lcid=%d, sn_len=%dbits)",
