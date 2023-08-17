@@ -80,7 +80,7 @@ prb_bitmap* pdsch_allocator_occupied_prbs(pdsch_allocator *pdsch_alloc, uint32_t
 rbg_bitmap* pdsch_allocator_occupied_rbgs(pdsch_allocator *pdsch_alloc);
 void pdsch_allocator_destory(pdsch_allocator *pdsch_alloc);
 void pdsch_allocator_reset(pdsch_allocator *pdsch_alloc);
-void pdsch_allocator_init(pdsch_allocator *pdsch_alloc, bwp_params_t *cfg_, uint32_t slot_index, cvector_vector_t(pdsch_t) pdsch_lst);
+void pdsch_allocator_init(pdsch_allocator *pdsch_alloc, bwp_params_t *cfg_, uint32_t slot_index, cvector_vector_t(pdsch_t *) pdsch_lst);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 pusch_t* pusch_allocator_alloc_pusch_unchecked(pusch_allocator *pusch_alloc, prb_grant *grant, srsran_dci_ul_nr_t *out_dci);
 prb_bitmap* pusch_allocator_occupied_prbs(pusch_allocator *pusch_alloc);
@@ -89,7 +89,7 @@ void pusch_allocator_reserve_prbs(pusch_allocator *pdsch_alloc, prb_grant *grant
 alloc_result pusch_allocator_has_grant_space(pusch_allocator *pusch_alloc, uint32_t nof_grants, bool verbose);
 void pusch_allocator_destory(pusch_allocator *pusch_alloc);
 void pusch_allocator_reset(pusch_allocator *pusch_alloc);
-void pusch_allocator_init(pusch_allocator *pusch_alloc, bwp_params_t *cfg_, uint32_t slot_index,  cvector_vector_t(pusch_t) pusch_lst);
+void pusch_allocator_init(pusch_allocator *pusch_alloc, bwp_params_t *cfg_, uint32_t slot_index,  cvector_vector_t(pusch_t *) pusch_lst);
 
 #ifdef __cplusplus
 }

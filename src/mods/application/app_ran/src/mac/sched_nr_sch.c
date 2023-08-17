@@ -246,7 +246,7 @@ void pdsch_allocator_destory(pdsch_allocator *pdsch_alloc)
 	cvector_free_each_and_free(pdsch_alloc->pdschs, oset_free);
 }
 
-void pdsch_allocator_init(pdsch_allocator *pdsch_alloc, bwp_params_t *cfg_, uint32_t slot_index, cvector_vector_t(pdsch_t) pdsch_lst)
+void pdsch_allocator_init(pdsch_allocator *pdsch_alloc, bwp_params_t *cfg_, uint32_t slot_index, cvector_vector_t(pdsch_t *) pdsch_lst)
 {
 	pdsch_alloc->bwp_cfg = cfg_;
 	pdsch_alloc->slot_idx = slot_index;
@@ -351,7 +351,7 @@ void pusch_allocator_destory(pusch_allocator *pusch_alloc)
 {
 	cvector_free_each_and_free(pusch_alloc->puschs, oset_free);
 }
-void pusch_allocator_init(pusch_allocator *pusch_alloc, bwp_params_t *cfg_, uint32_t slot_index,  cvector_vector_t(pusch_t) pusch_lst)
+void pusch_allocator_init(pusch_allocator *pusch_alloc, bwp_params_t *cfg_, uint32_t slot_index,  cvector_vector_t(pusch_t *) pusch_lst)
 {
 	pusch_alloc->bwp_cfg = cfg_;
 	pusch_alloc->slot_idx = slot_idx;

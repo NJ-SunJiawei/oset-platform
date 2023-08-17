@@ -23,11 +23,13 @@ void reordering_callback(void *data)
 	oset_info("Reordering timer expired. RX_REORD=%u, re-order queue size=%ld", pdcp_nr->rx_reord, pdcp_nr->reorder_queue.size());
 
 	// Deliver all PDCP SDU(s) with associated COUNT value(s) < RX_REORD
-	for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = pdcp_nr->reorder_queue.begin();
-	   it != pdcp_nr->reorder_queue.end() && it->first < pdcp_nr->rx_reord;
-	   pdcp_nr->reorder_queue.erase(it++)) {
+
+	oset_stl_heap_data_t *item = NULL;
+	for(;item = oset_stl_heap_peek(&pdcp_nr->reorder_queue) &&\
+			(uint32_t)item->key < pdcp_nr->rx_reord; 
+			oset_stl_heap_pop(&pdcp_nr->reorder_queue)){
 		// Deliver to upper layers
-		pdcp_nr->pass_to_upper_layers(std::move(it->second));
+		pdcp_nr->pass_to_upper_layers(item->data);
 	}
 
 	// Update RX_DELIV to the first PDCP SDU not delivered to the upper layers
@@ -42,7 +44,7 @@ void reordering_callback(void *data)
 		                     pdcp_nr->rx_reord,
 		                     pdcp_nr->rx_deliv);
 		pdcp_nr->rx_reord = pdcp_nr->rx_next;
-		pdcp_nr->reordering_timer.run();
+		gnb_timer_start(pdcp_nr->reordering_timer, pdcp_nr->base.cfg.t_reordering);
 	}
 }
 
@@ -95,13 +97,22 @@ bool pdcp_entity_nr_configure(pdcp_entity_nr* pdcp_nr, pdcp_config_t *cnfg_)
 pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_, oset_apr_memory_pool_t	*usepool)
 {
 	oset_assert(usepool);
-	pdcp_entity_nr *pdcp_nr = oset_core_alloc(usepool, sizeof(pdcp_entity_nr));
+	pdcp_entity_nr *pdcp_nr = oset_calloc(1, sizeof(pdcp_entity_nr));
 	ASSERT_IF_NOT(pdcp_nr, "lcid %u Could not allocate pdcp nr context from pool", lcid_);
 	memset(pdcp_nr, 0, sizeof(pdcp_entity_nr));
 
 	pdcp_entity_base_init(&pdcp_nr->base, lcid_, rnti_, usepool);
-	pdcp_nr->reorder_queue = oset_hash_make();
+	oset_stl_heap_init(&pdcp_nr->reorder_queue, 0);
 	pdcp_nr->discard_timers_map = oset_hash_make();
+}
+
+
+void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr)
+{
+	oset_stl_heap_term(&pdcp_nr->reorder_queue);
+	oset_hash_destroy(pdcp_nr->discard_timers_map);
+	pdcp_entity_base_stop(&pdcp_nr->base);
+	oset_free(pdcp_nr);
 }
 
 

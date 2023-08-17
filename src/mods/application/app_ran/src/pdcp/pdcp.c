@@ -78,6 +78,15 @@ static void pdcp_add_bearer(uint16_t rnti, uint32_t lcid, pdcp_config_t *cfg)
 	}
 }
 
+static void pdcp_del_bearer(uint16_t rnti, uint32_t lcid)
+{
+	pdcp_user_interface *users = pdcp_user_interface_find_by_rnti(rnti);
+	if (users) {
+		pdcp_lib_del_bearer(&users->pdcp, lcid);
+	}else{
+		oset_warn("can't find pdcp interface by rnti=0x%x", rnti);
+	}
+}
 
 static void pdcp_add_user(uint16_t rnti)
 {
@@ -147,6 +156,10 @@ void API_pdcp_rrc_add_bearer(uint16_t rnti, uint32_t lcid, pdcp_config_t *cfg)
 	pdcp_add_bearer(rnti, lcid, cfg);
 }
 
+void API_pdcp_rrc_del_bearer(uint16_t rnti, uint32_t lcid)
+{
+	pdcp_del_bearer(rnti, lcid);
+}
 /*******************************************************************************
 RLC interface
 *******************************************************************************/

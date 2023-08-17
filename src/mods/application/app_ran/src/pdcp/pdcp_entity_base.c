@@ -13,6 +13,7 @@
 
 void pdcp_entity_base_init(pdcp_entity_base *base, uint32_t         lcid_, uint16_t rnti_, oset_apr_memory_pool_t *usepool)
 {
+	base->usepool              = usepool;
 	base->active               = false;
 	base->rnti                 = rnti_;
 	base->lcid                 = lcid_;
@@ -32,5 +33,11 @@ void pdcp_entity_base_init(pdcp_entity_base *base, uint32_t         lcid_, uint1
 					.rat = (srsran_rat_t)nr,
 					.hdr_len_bytes = ceilf((float)PDCP_SN_LEN_12 / 8),
 				};
+}
+
+void pdcp_entity_base_stop(pdcp_entity_base *base)
+{
+	base->usepool              = NULL;
+	base->active               = false;
 }
 

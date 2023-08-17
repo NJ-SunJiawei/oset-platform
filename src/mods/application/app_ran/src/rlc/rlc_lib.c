@@ -96,11 +96,13 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
   // 初始默认 lcid=0(ccch), tm模式
   switch (cnfg->rlc_mode) {
     case (rlc_mode_t)tm:
+      // 在 eNodeB 或 UE 侧，一个 TM 实体只能接收或发送数据，而不能同时收发数据，即 TM 实体只提供单向的数据传输服务
       rlc_entity = (rlc_common *)(rlc_tm_init(lcid, rlc->rnti, rlc->usepool));
       break;
     case (rlc_mode_t)am:
       switch (cnfg->rat) {
         case (srsran_rat_t)nr:
+          // 一个 UM 实体只能接收或发送数据，而不能同时收发数据。UM 实体只提供单向的数据传输服务
           rlc_entity = (rlc_common *)(new rlc_am(cnfg->rat, logger, lcid, pdcp, rrc, timers));
           break;
         default:
