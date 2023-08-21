@@ -20,17 +20,18 @@ void reordering_callback(void *data)
 {
 	pdcp_entity_nr *pdcp_nr = (pdcp_entity_nr *)data;
 
-	oset_info("Reordering timer expired. RX_REORD=%u, re-order queue size=%ld", pdcp_nr->rx_reord, pdcp_nr->reorder_queue.size());
+	oset_info("Reordering timer expired. RX_REORD=%u, re-order queue size=%ld", pdcp_nr->rx_reord, oset_list_count(&pdcp_nr->reorder_list));
 
 	// Deliver all PDCP SDU(s) with associated COUNT value(s) < RX_REORD
+    for (pdcp_nr_pdu_t *pdu = oset_list_first(&pdcp_nr->reorder_list);\
+		(pdu) && (pdu->count < pdcp_nr->rx_reord);\
+        pdu = oset_list_next(pdu)){
+		    // Deliver to upper layers
+		    parent->pass_to_upper_layers(std::move(it->second));
+			oset_list_remove(&pdcp_nr->reorder_list, pdu);
+			oset_hash_set(pdcp_nr->reorder_hash, pdu->count, sizeof(uint32_t), NULL);
+		}	
 
-	oset_stl_heap_data_t *item = NULL;
-	for(;item = oset_stl_heap_peek(&pdcp_nr->reorder_queue) &&\
-			(uint32_t)item->key < pdcp_nr->rx_reord; 
-			oset_stl_heap_pop(&pdcp_nr->reorder_queue)){
-		// Deliver to upper layers
-		pdcp_nr->pass_to_upper_layers(item->data);
-	}
 
 	// Update RX_DELIV to the first PDCP SDU not delivered to the upper layers
 	pdcp_nr->rx_deliv = pdcp_nr->rx_reord;
@@ -102,17 +103,28 @@ pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_, oset_apr_mem
 	memset(pdcp_nr, 0, sizeof(pdcp_entity_nr));
 
 	pdcp_entity_base_init(&pdcp_nr->base, lcid_, rnti_, usepool);
-	oset_stl_heap_init(&pdcp_nr->reorder_queue, 0);
+	oset_list_init(&pdcp_nr->reorder_list);
+	pdcp_nr->reorder_hash = oset_hash_make();
 	pdcp_nr->discard_timers_map = oset_hash_make();
 }
 
 
 void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr)
 {
-	oset_stl_heap_term(&pdcp_nr->reorder_queue);
+	oset_hash_destroy(pdcp_nr->reorder_hash);
 	oset_hash_destroy(pdcp_nr->discard_timers_map);
 	pdcp_entity_base_stop(&pdcp_nr->base);
 	oset_free(pdcp_nr);
 }
 
+pdcp_bearer_metrics_t pdcp_entity_nr_get_metrics(pdcp_entity_nr *pdcp_nr)
+{
+  // TODO
+  return pdcp_nr->base.metrics;
+}
+
+void pdcp_entity_nr_reset_metrics(pdcp_entity_nr *pdcp_nr)
+{
+	pdcp_nr->base.metrics = {0};
+}
 

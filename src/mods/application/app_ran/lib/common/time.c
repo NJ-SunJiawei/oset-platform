@@ -171,7 +171,7 @@ void gnb_timer_mgr_expire(gnb_timer_mgr_t *manager)
 	}
 
 	oset_list_for_each(&list, lnode) {
-		this = oset_rb_entry(lnode, gnb_timer_t, lnode);
+		this = oset_list_entry(lnode, gnb_timer_t, lnode);
 		gnb_timer_stop(this);
 		if (this->cb)
 			this->cb(this->data);

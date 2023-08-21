@@ -9,7 +9,7 @@
 #ifndef PDCP_INTERFACE_TYPES_H
 #define PDCP_INTERFACE_TYPES_H
 
-#include "lib/common/security.h"
+#include "lib/common/security_private.h"
 #include <math.h>
 #include <stdint.h>
 

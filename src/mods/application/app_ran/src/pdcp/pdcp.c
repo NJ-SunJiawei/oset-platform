@@ -130,6 +130,27 @@ void pdcp_rem_user_all(void)
 	  	pdcp_rem_user(user->rnti);
 }
 
+static void pdcp_config_security(uint16_t rnti, uint32_t lcid, struct as_security_config_t *sec_cfg)
+{
+	pdcp_user_interface *users = pdcp_user_interface_find_by_rnti(rnti);
+	if (users) {
+		pdcp_lib_config_security(&users->pdcp, lcid, sec_cfg);
+	}else{
+		oset_warn("can't find pdcp interface by rnti=0x%x", rnti);
+	}
+}
+
+static void pdcp_enable_integrity(uint16_t rnti, uint32_t lcid)
+{
+  users[rnti].pdcp->enable_integrity(lcid, srsran::DIRECTION_TXRX);
+}
+
+static void pdcp_enable_encryption(uint16_t rnti, uint32_t lcid)
+{
+  users[rnti].pdcp->enable_encryption(lcid, srsran::DIRECTION_TXRX);
+}
+
+
 static void pdcp_write_ul_pdu_interface(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
 {
   pdcp_user_interface *user = pdcp_user_interface_find_by_rnti(rnti);

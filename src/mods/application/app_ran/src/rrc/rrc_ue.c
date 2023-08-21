@@ -153,7 +153,7 @@ static int update_as_security(rrc_nr_ue *ue, uint32_t lcid, bool enable_integrit
 	// TODO: Currently we are using the PDCP-LTE, so we need to convert from nr_as_security_cfg to as_security_config.
 	// When we start using PDCP-NR we can avoid this step.
 	nr_as_security_config_t tmp_cnfg  = ue->sec_ctx.sec_cfg;
-	as_security_config_t    pdcp_cnfg = {0};
+	struct as_security_config_t    pdcp_cnfg = {0};
 	pdcp_cnfg.k_rrc_int                       = tmp_cnfg.k_nr_rrc_int;
 	pdcp_cnfg.k_rrc_enc                       = tmp_cnfg.k_nr_rrc_enc;
 	pdcp_cnfg.k_up_int                        = tmp_cnfg.k_nr_up_int;
@@ -162,14 +162,14 @@ static int update_as_security(rrc_nr_ue *ue, uint32_t lcid, bool enable_integrit
 	pdcp_cnfg.cipher_algo                     = (CIPHERING_ALGORITHM_ID_ENUM)tmp_cnfg.cipher_algo;
 
 	// configure algorithm and keys
-		parent->pdcp->config_security(rnti, lcid, pdcp_cnfg);
+	pdcp_config_security(ue->rnti, lcid, pdcp_cnfg);
 
 	if (enable_integrity) {
-		parent->pdcp->enable_integrity(rnti, lcid);
+		parent->pdcp->enable_integrity(ue->rnti, lcid);
 	}
 
 	if (enable_ciphering) {
-		parent->pdcp->enable_encryption(rnti, lcid);
+		parent->pdcp->enable_encryption(ue->rnti, lcid);
 	}
 
 	return OSET_OK;
@@ -185,7 +185,7 @@ static int update_pdcp_bearers(rrc_nr_ue *ue,
 	// add SRBs
 	struct srb_to_add_mod_s *srb = NULL;
 	cvector_for_each_in(srb, radio_bearer_diff->srb_to_add_mod_list){
-		pdcp_config_t   pdcp_cnfg  = make_nr_srb_pdcp_config_t(srb->srb_id, false);
+		pdcp_config_t   pdcp_cnfg  = make_srb_pdcp_config_t(srb->srb_id, false);
 		struct  rlc_bearer_cfg_s* rlc_bearer, item = NULL;
 		cvector_for_each_in(item, cell_group_diff.rlc_bearer_to_add_mod_list){
 			if (item->served_radio_bearer.type_ == (enum served_radio_bearer_types)srb_id &&\
@@ -534,7 +534,7 @@ void send_rrc_setup(rrc_nr_ue *ue)
 	// - Setup SRB1
 	rrcsetup_ies->radioBearerConfig.srb_ToAddModList = CALLOC(1,sizeof(struct ASN_RRC_SRB_ToAddModList));
 	asn1cSequenceAdd(rrcsetup_ies->radioBearerConfig.srb_ToAddModList->list, struct ASN_RRC_SRB_ToAddMod, SRB1_config);	
-	SRB1_config->srb_Identity = ue->next_radio_bearer_cfg.srb_to_add_mod_list[0].srb_id;
+	SRB1_config->srb_Identity = ue->radio_bearer_cfg.srb_to_add_mod_list[0].srb_id;
 
 	// masterCellGroup
 	ASN_RRC_CellGroupConfig masterCellGroup = {0};

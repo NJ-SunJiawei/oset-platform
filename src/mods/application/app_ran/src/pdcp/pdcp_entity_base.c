@@ -41,3 +41,18 @@ void pdcp_entity_base_stop(pdcp_entity_base *base)
 	base->active               = false;
 }
 
+void pdcp_entity_base_config_security(pdcp_entity_base *base, struct as_security_config_t *sec_cfg_)
+{
+	base->sec_cfg = sec_cfg_;
+
+	oset_info("Configuring security with %s and %s",
+	          integrity_algorithm_id_text[sec_cfg_->integ_algo],
+	          ciphering_algorithm_id_text[sec_cfg_->cipher_algo]);
+
+	oset_debug("K_rrc_enc") && oset_log2_hexdump(OSET_LOG2_DEBUG, sec_cfg_->k_rrc_enc, 32);
+	oset_debug("K_up_enc") && oset_log2_hexdump(OSET_LOG2_DEBUG, sec_cfg_->k_up_enc, 32);
+	oset_debug("K_rrc_int") && oset_log2_hexdump(OSET_LOG2_DEBUG, sec_cfg_->k_rrc_int, 32);
+	oset_debug("K_up_int") && oset_log2_hexdump(OSET_LOG2_DEBUG, sec_cfg_->k_up_int, 32);
+}
+
+

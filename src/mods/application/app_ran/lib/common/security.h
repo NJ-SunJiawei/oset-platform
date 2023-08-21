@@ -14,127 +14,32 @@
  * Common security header - wraps ciphering/integrity check algorithms.
  *****************************************************************************/
 
-#include "lib/common/common.h"
+#include "lib/common/security_private.h"
 #include <vector>
+#include <array>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define AKA_RAND_LEN 16
-#define AKA_AUTN_LEN 16
-#define AKA_AUTS_LEN 14
-#define RES_MAX_LEN 16
-#define MAC_LEN 8
-#define IK_LEN 16
-#define CK_LEN 16
-#define AK_LEN 6
-#define SQN_LEN 6
-
-#define KEY_LEN 32
-
-
-typedef enum {
-  CIPHERING_ALGORITHM_ID_EEA0 = 0,
-  CIPHERING_ALGORITHM_ID_128_EEA1,
-  CIPHERING_ALGORITHM_ID_128_EEA2,
-  CIPHERING_ALGORITHM_ID_128_EEA3,
-  CIPHERING_ALGORITHM_ID_N_ITEMS,
-} CIPHERING_ALGORITHM_ID_ENUM;
-static const char ciphering_algorithm_id_text[CIPHERING_ALGORITHM_ID_N_ITEMS][20] = {"EEA0",
-                                                                                     "128-EEA1",
-                                                                                     "128-EEA2",
-                                                                                     "128-EEA3"};
-
-typedef enum {
-  INTEGRITY_ALGORITHM_ID_EIA0 = 0,
-  INTEGRITY_ALGORITHM_ID_128_EIA1,
-  INTEGRITY_ALGORITHM_ID_128_EIA2,
-  INTEGRITY_ALGORITHM_ID_128_EIA3,
-  INTEGRITY_ALGORITHM_ID_N_ITEMS,
-} INTEGRITY_ALGORITHM_ID_ENUM;
-static const char integrity_algorithm_id_text[INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {"EIA0",
-                                                                                     "128-EIA1",
-                                                                                     "128-EIA2",
-                                                                                     "128-EIA3"};
-
-typedef enum {
-  CIPHERING_ALGORITHM_ID_NR_NEA0 = 0,
-  CIPHERING_ALGORITHM_ID_NR_128_NEA1,
-  CIPHERING_ALGORITHM_ID_NR_128_NEA2,
-  CIPHERING_ALGORITHM_ID_NR_128_NEA3,
-  CIPHERING_ALGORITHM_ID_NR_N_ITEMS,
-} CIPHERING_ALGORITHM_ID_NR_ENUM;
-static const char ciphering_algorithm_id_nr_text[CIPHERING_ALGORITHM_ID_N_ITEMS][20] = {"NEA0",
-                                                                                        "128-NEA1",
-                                                                                        "128-NEA2",
-                                                                                        "128-NEA3"};
-typedef enum {
-  INTEGRITY_ALGORITHM_ID_NR_NIA0 = 0,
-  INTEGRITY_ALGORITHM_ID_NR_128_NIA1,
-  INTEGRITY_ALGORITHM_ID_NR_128_NIA2,
-  INTEGRITY_ALGORITHM_ID_NR_128_NIA3,
-  INTEGRITY_ALGORITHM_ID_NR_N_ITEMS,
-} INTEGRITY_ALGORITHM_ID_NR_ENUM;
-static const char integrity_algorithm_id_nr_text[INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {"NIA0",
-                                                                                        "128-NIA1",
-                                                                                        "128-NIA2",
-                                                                                        "128-NIA3"};
-typedef enum {
-  SECURITY_DIRECTION_UPLINK   = 0,
-  SECURITY_DIRECTION_DOWNLINK = 1,
-  SECURITY_DIRECTION_N_ITEMS,
-} security_direction_t;
-static const char security_direction_text[INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {"Uplink", "Downlink"};
-
-using as_key_t = std::array<uint8_t, 32>;
-struct k_enb_context_t {
-  as_key_t k_enb;
-  as_key_t nh;
-  bool     is_first_ncc;
-  uint32_t ncc;
-};
-
-struct k_gnb_context_t {
-  as_key_t k_gnb;
-  as_key_t sk_gnb;
-};
-
-struct as_security_config_t {
-  as_key_t                    k_rrc_int;
-  as_key_t                    k_rrc_enc;
-  as_key_t                    k_up_int;
-  as_key_t                    k_up_enc;
-  INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
-  CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
-};
-
-struct nr_as_security_config_t {
-  as_key_t                       k_nr_rrc_int;
-  as_key_t                       k_nr_rrc_enc;
-  as_key_t                       k_nr_up_int;
-  as_key_t                       k_nr_up_enc;
-  INTEGRITY_ALGORITHM_ID_NR_ENUM integ_algo;
-  CIPHERING_ALGORITHM_ID_NR_ENUM cipher_algo;
-};
-
-
 /******************************************************************************
  * Key Generation
  *****************************************************************************/
 
-int kdf_common(const uint8_t fc, const std::array<uint8_t, 32>& key, const std::vector<uint8_t>& P, uint8_t* output);
-int kdf_common(const uint8_t                  fc,
-               const std::array<uint8_t, 32>& key,
-               const std::vector<uint8_t>&    P0,
-               const std::vector<uint8_t>&    P1,
-               uint8_t*                       output);
-int kdf_common(const uint8_t                  fc,
-               const std::array<uint8_t, 32>& key,
-               const std::vector<uint8_t>&    P0,
-               const std::vector<uint8_t>&    P1,
-               const std::vector<uint8_t>&    P3,
-               uint8_t*                       output);
+int kdf_common(const uint8_t fc, const uint8_t* key, const size_t key_len, const std::vector<uint8_t>& P, uint8_t* output);
+int kdf_common(const uint8_t                       fc,
+					const uint8_t*				   key,
+					const size_t				   key_len,
+					const std::vector<uint8_t>&    P0,
+					const std::vector<uint8_t>&    P1,
+					uint8_t*                       output);
+int kdf_common(const uint8_t                       fc,
+					const uint8_t*				   key,
+					const size_t				   key_len,
+					const std::vector<uint8_t>&    P0,
+					const std::vector<uint8_t>&    P1,
+					const std::vector<uint8_t>&    P3,
+					uint8_t*                       output);
 
 uint8_t security_generate_k_asme(const uint8_t* ck,
                                  const uint8_t* ik,
@@ -157,7 +62,7 @@ uint8_t security_generate_k_amf(const uint8_t* k_seaf,
 
 uint8_t security_generate_k_seaf(const uint8_t* k_ausf, const char* serving_network_name, uint8_t* k_seaf);
 
-uint8_t security_generate_k_gnb(const as_key_t& k_amf, const uint32_t nas_count, as_key_t& k_gnb);
+uint8_t security_generate_k_gnb(const uint8_t* k_amf, const uint32_t nas_count, uint8_t* k_gnb);
 
 uint8_t security_generate_k_enb(const uint8_t* k_asme, const uint32_t nas_count, uint8_t* k_enb);
 

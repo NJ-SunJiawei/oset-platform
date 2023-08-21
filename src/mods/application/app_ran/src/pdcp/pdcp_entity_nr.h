@@ -22,6 +22,12 @@ extern "C" {
  ***************************************************************************/
 typedef void (*_reordering_callback)(void *);
 
+typedef struct pdcp_nr_pdu {
+	oset_lnode_t       lnode;
+	uint32_t           count;
+	byte_buffer_t      buffer;
+} pdcp_nr_pdu_t;
+
 // 所有状态变量是非负整数，取值从0 到 [2^32 – 1]. 
 // PDCP Data PDUs 的整数序列号 (SN) 循环范围:从 0到 2^pdcp-SN-Size – 1.
 // Window_Size：该变量指示重排序窗口的大小，其值等于2^(pdcp-SN-Size – 1).
@@ -49,11 +55,11 @@ typedef struct {
 	uint32_t      window_size;
 
 	// Reordering Queue / Timers
-	oset_stl_heap_t  reorder_queue;//std::map<uint32_t, byte_buffer_t>
-	oset_hash_t      *reorder_queue_hash;
+	oset_list_t   reorder_list;//std::map<uint32_t, byte_buffer_t>//oset_stl_heap_t
+	oset_hash_t   *reorder_hash;
 	// 接收测：重排序定时器，一个接收侧实体同时只能启动一个。用于检测丢包（序号不连续），
 	// 超时后和RLC的UM模式的重组定时器超时类似，接收侧只是简单的向上层递交，不要求对端重传
-	gnb_timer_t  *reordering_timer;
+	gnb_timer_t   *reordering_timer;
 
 	// Discard callback (discardTimer)
 	// 发送侧: DRB丢弃定时器，只有DRB才有，发送侧对每一个SDU都会启动一个定时器，超时后丢弃该SDU。用于防止发送缓冲拥塞
@@ -71,6 +77,8 @@ typedef struct {
 pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_, oset_apr_memory_pool_t	*usepool);
 void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr);
 bool pdcp_entity_nr_configure(pdcp_entity_nr* pdcp_nr, pdcp_config_t *cnfg_);
+pdcp_bearer_metrics_t pdcp_entity_nr_get_metrics(pdcp_entity_nr *pdcp_nr);
+void pdcp_entity_nr_reset_metrics(pdcp_entity_nr *pdcp_nr);
 
 #ifdef __cplusplus
 }

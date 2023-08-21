@@ -136,3 +136,12 @@ void pdcp_lib_del_bearer(pdcp_lib_t *pdcp, uint32_t lcid)
 	}
 }
 
+void pdcp_lib_config_security(pdcp_lib_t *pdcp, uint32_t lcid, struct as_security_config_t *sec_cfg)
+{
+	pdcp_entity_nr *entity = pdcp_valid_lcid(pdcp, lcid);
+	if (entity) {
+		pdcp_entity_base_config_security(entity, sec_cfg);
+	}
+}
+
+

@@ -39,7 +39,7 @@ bool make_phy_sr_resource(struct sched_request_res_cfg_s  *sched_request_res_cfg
 bool make_pdsch_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_sch_hl_cfg_nr_t *sch_hl);
 bool make_csi_cfg_from_serv_cell(struct serving_cell_cfg_s *serv_cell, srsran_csi_hl_cfg_t* csi_hl);
 int make_rlc_config_t(struct rlc_cfg_c *asn1_type, uint8_t bearer_id, rlc_config_t* cfg_out);
-pdcp_config_t make_nr_srb_pdcp_config_t(uint8_t srb_id, bool is_ue);
+pdcp_config_t make_srb_pdcp_config_t(uint8_t srb_id, bool is_ue);
 pdcp_config_t make_drb_pdcp_config_t(uint8_t bearer_id, bool is_ue, struct pdcp_cfg_s *pdcp_cfg);
 bool fill_phy_pdcch_cfg_common2(rrc_cell_cfg_nr_t *rrc_cell_cfg, srsran_pdcch_cfg_nr_t *pdcch);
 bool fill_ssb_pattern_scs(srsran_carrier_nr_t *carrier,

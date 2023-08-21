@@ -988,7 +988,7 @@ int make_rlc_config_t(struct rlc_cfg_c *asn1_type, uint8_t bearer_id, rlc_config
   return OSET_OK;
 }
 
-pdcp_config_t make_nr_srb_pdcp_config_t(uint8_t srb_id, bool is_ue)
+pdcp_config_t make_srb_pdcp_config_t(uint8_t srb_id, bool is_ue)
 {
 	pdcp_config_t cfg = {	
 							.bearer_id = srb_id,
@@ -1180,14 +1180,14 @@ pdcp_config_t make_drb_pdcp_config_t(uint8_t drb_id, bool is_ue, struct pdcp_cfg
     }
   }
 
-  uint8_t sn_len = PDCP_SN_LEN_12;
+  uint8_t pdcp_sn_len = PDCP_SN_LEN_12;
   if (pdcp_cfg->drb.pdcp_sn_size_dl_present) {
     switch (pdcp_cfg->drb.pdcp_sn_size_dl) {
       case (enum pdcp_sn_size_dl_opts)len12bits:
-        sn_len = PDCP_SN_LEN_12;
+        pdcp_sn_len = PDCP_SN_LEN_12;
         break;
       case (enum pdcp_sn_size_dl_opts)len18bits:
-        sn_len = PDCP_SN_LEN_18;
+        pdcp_sn_len = PDCP_SN_LEN_18;
       default:
         break;
     }
@@ -1198,12 +1198,12 @@ pdcp_config_t make_drb_pdcp_config_t(uint8_t drb_id, bool is_ue, struct pdcp_cfg
 	                    .rb_type = PDCP_RB_IS_DRB,
 	                    .tx_direction = is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
 	                    .rx_direction = is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
-	                    .sn_len = sn_len,
+	                    .sn_len = pdcp_sn_len,
 	                    .t_reordering = t_reordering,
 	                    .discard_timer = discard_timer,
 	                    .status_report_required = false,
 	                    .rat = (srsran_rat_t)nr,
-	                    .hdr_len_bytes = ceilf((float)sn_len / 8),
+	                    .hdr_len_bytes = ceilf((float)pdcp_sn_len / 8),
 	                   };
 
   return cfg;

@@ -92,7 +92,7 @@ uint8_t security_generate_k_asme(const uint8_t* ck,
   memcpy(ak_xor_sqn.data(), ak_xor_sqn_, ak_xor_sqn.size());
 
   uint8_t output[32];
-  if (kdf_common(FC_EPS_K_ASME_DERIVATION, key, sn_id, ak_xor_sqn, output) != OSET_OK) {
+  if (kdf_common(FC_EPS_K_ASME_DERIVATION, key.data(), key.size(), sn_id, ak_xor_sqn, output) != OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
   }
@@ -129,7 +129,7 @@ uint8_t security_generate_k_ausf(const uint8_t* ck,
   memcpy(ak_xor_sqn.data(), ak_xor_sqn_, ak_xor_sqn.size());
 
   uint8_t output[32];
-  if (kdf_common(FC_5G_KAUSF_DERIVATION, key, ssn, ak_xor_sqn, output) != OSET_OK) {
+  if (kdf_common(FC_5G_KAUSF_DERIVATION, key.data(), key.size(), ssn, ak_xor_sqn, output) != OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
   }
@@ -153,7 +153,7 @@ uint8_t security_generate_k_seaf(const uint8_t* k_ausf, const char* serving_netw
   ssn.resize(strlen(serving_network_name));
   memcpy(ssn.data(), serving_network_name, ssn.size());
 
-  if (kdf_common(FC_5G_KSEAF_DERIVATION, key, ssn, k_seaf) != OSET_OK) {
+  if (kdf_common(FC_5G_KSEAF_DERIVATION, key.data(), key.size(), ssn, k_seaf) != OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
   }
@@ -184,19 +184,23 @@ uint8_t security_generate_k_amf(const uint8_t* k_seaf,
   abba.resize(abba_len);
   memcpy(abba.data(), abba_, abba.size());
 
-  if (kdf_common(FC_5G_KAMF_DERIVATION, key, supi, abba, k_amf) != OSET_OK) {
+  if (kdf_common(FC_5G_KAMF_DERIVATION, key.data(), key.size(), supi, abba, k_amf) != OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
   }
   return OSET_OK;
 }
 
-uint8_t security_generate_k_gnb(const as_key_t& k_amf, const uint32_t nas_count_, as_key_t& k_gnb)
+uint8_t security_generate_k_gnb(const uint8_t* k_amf, const uint32_t nas_count_, uint8_t* k_gnb)
 {
-  if (k_amf.empty()) {
+  if (k_amf == NULL || k_gnb == NULL) {
     oset_error("Invalid inputs");
     return OSET_ERROR;
   }
+
+  std::array<uint8_t, 32> key;
+
+  memcpy(key.data(), k_amf, 32);
 
   // NAS Count
   std::vector<uint8_t> nas_count;
@@ -209,7 +213,7 @@ uint8_t security_generate_k_gnb(const as_key_t& k_amf, const uint32_t nas_count_
   // Access Type Distinguisher 3GPP access = 0x01 (TS 33501 Annex A.9)
   std::vector<uint8_t> access_type_distinguisher = {1};
 
-  if (kdf_common(FC_5G_KGNB_KN3IWF_DERIVATION, k_amf, nas_count, access_type_distinguisher, k_gnb.data()) !=
+  if (kdf_common(FC_5G_KGNB_KN3IWF_DERIVATION, key.data(), key.size(), nas_count, access_type_distinguisher, k_gnb) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -235,7 +239,7 @@ uint8_t security_generate_k_enb(const uint8_t* k_asme, const uint32_t nas_count_
   nas_count[2] = (nas_count_ >> 8) & 0xFF;
   nas_count[3] = nas_count_ & 0xFF;
 
-  if (kdf_common(FC_EPS_K_ENB_DERIVATION, key, nas_count, k_enb) != OSET_OK) {
+  if (kdf_common(FC_EPS_K_ENB_DERIVATION, key.data(), key.size(), nas_count, k_enb) != OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
   }
@@ -290,7 +294,7 @@ uint8_t security_generate_k_nb_star_common(uint8_t        fc,
     earfcn[2] = earfcn_ & 0xFF;
   }
 
-  if (kdf_common(fc, key, pci, earfcn, k_enb_star) != OSET_OK) {
+  if (kdf_common(fc, key.data(), key.size(), pci, earfcn, k_enb_star) != OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
   }
@@ -311,7 +315,7 @@ uint8_t security_generate_nh(const uint8_t* k_asme, const uint8_t* sync_, uint8_
   sync.resize(32);
   memcpy(sync.data(), sync_, 32);
 
-  if (kdf_common(FC_EPS_NH_DERIVATION, key, sync, nh) != OSET_OK) {
+  if (kdf_common(FC_EPS_NH_DERIVATION, key.data(), key.size(), sync, nh) != OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
   }
@@ -343,7 +347,7 @@ uint8_t security_generate_k_nas(const uint8_t*                    k_asme,
   algorithm_identity.resize(1);
   algorithm_identity[0] = enc_alg_id;
 
-  if (kdf_common(FC_EPS_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_nas_enc) !=
+  if (kdf_common(FC_EPS_ALGORITHM_KEY_DERIVATION, key.data(), key.size(), algo_distinguisher, algorithm_identity, k_nas_enc) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -359,7 +363,7 @@ uint8_t security_generate_k_nas(const uint8_t*                    k_asme,
   algorithm_identity[0] = int_alg_id;
 
   // Derive NAS int
-  if (kdf_common(FC_EPS_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_nas_int) !=
+  if (kdf_common(FC_EPS_ALGORITHM_KEY_DERIVATION, key.data(), key.size(), algo_distinguisher, algorithm_identity, k_nas_int) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -392,7 +396,7 @@ uint8_t security_generate_k_nas_5g(const uint8_t*                    k_amf,
   algorithm_identity.resize(1);
   algorithm_identity[0] = enc_alg_id;
 
-  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_nas_enc) !=
+  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key.data(), key.size(), algo_distinguisher, algorithm_identity, k_nas_enc) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -408,7 +412,7 @@ uint8_t security_generate_k_nas_5g(const uint8_t*                    k_amf,
   algorithm_identity[0] = int_alg_id;
 
   // Derive NAS int
-  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_nas_int) !=
+  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key.data(), key.size(), algo_distinguisher, algorithm_identity, k_nas_int) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -441,7 +445,7 @@ uint8_t security_generate_k_rrc(const uint8_t*                    k_enb,
   algorithm_identity.resize(1);
   algorithm_identity[0] = enc_alg_id;
 
-  if (kdf_common(FC_EPS_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_rrc_enc) !=
+  if (kdf_common(FC_EPS_ALGORITHM_KEY_DERIVATION, key.data(), key.size(), algo_distinguisher, algorithm_identity, k_rrc_enc) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -457,7 +461,7 @@ uint8_t security_generate_k_rrc(const uint8_t*                    k_enb,
   algorithm_identity[0] = int_alg_id;
 
   // Derive RRC int
-  if (kdf_common(FC_EPS_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_rrc_int) !=
+  if (kdf_common(FC_EPS_ALGORITHM_KEY_DERIVATION, key.data(), key.size(), algo_distinguisher, algorithm_identity, k_rrc_int) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -490,7 +494,7 @@ uint8_t security_generate_k_up(const uint8_t*                    k_enb,
   algorithm_identity.resize(1);
   algorithm_identity[0] = enc_alg_id;
 
-  if (kdf_common(FC_EPS_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_up_enc) !=
+  if (kdf_common(FC_EPS_ALGORITHM_KEY_DERIVATION, key.data(), key.size(), algo_distinguisher, algorithm_identity, k_up_enc) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -506,7 +510,7 @@ uint8_t security_generate_k_up(const uint8_t*                    k_enb,
   algorithm_identity[0] = int_alg_id;
 
   // Derive UP int
-  if (kdf_common(FC_EPS_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_up_int) !=
+  if (kdf_common(FC_EPS_ALGORITHM_KEY_DERIVATION, key.data(), key.size(), algo_distinguisher, algorithm_identity, k_up_int) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -532,7 +536,7 @@ uint8_t security_generate_sk_gnb(const uint8_t* k_enb, const uint16_t scg_count_
 
   // Derive sk_gnb
   uint8_t output[32];
-  if (kdf_common(0x1C, key, scg_count, output) != OSET_OK) {
+  if (kdf_common(0x1C, key.data(), key.size(), scg_count, output) != OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
   }
@@ -566,7 +570,7 @@ uint8_t security_generate_k_nr_rrc(const uint8_t*                    k_gnb,
   algorithm_identity.resize(1);
   algorithm_identity[0] = enc_alg_id;
 
-  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_rrc_enc) !=
+  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key.data(), key.size(), algo_distinguisher, algorithm_identity, k_rrc_enc) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -582,7 +586,7 @@ uint8_t security_generate_k_nr_rrc(const uint8_t*                    k_gnb,
   algorithm_identity[0] = int_alg_id;
 
   // Derive RRC int
-  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_rrc_int) !=
+  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key.data(), key.size(), algo_distinguisher, algorithm_identity, k_rrc_int) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -615,7 +619,7 @@ uint8_t security_generate_k_nr_up(const uint8_t*                    k_gnb,
   algorithm_identity.resize(1);
   algorithm_identity[0] = enc_alg_id;
 
-  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_up_enc) !=
+  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key.data(), key.size(), algo_distinguisher, algorithm_identity, k_up_enc) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -631,7 +635,7 @@ uint8_t security_generate_k_nr_up(const uint8_t*                    k_gnb,
   algorithm_identity[0] = int_alg_id;
 
   // Derive UP int
-  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key, algo_distinguisher, algorithm_identity, k_up_int) !=
+  if (kdf_common(FC_5G_ALGORITHM_KEY_DERIVATION, key.data(), key.size(), algo_distinguisher, algorithm_identity, k_up_int) !=
       OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
@@ -673,7 +677,7 @@ uint8_t security_generate_res_star(const uint8_t* ck,
   memcpy(res.data(), res_, res.size());
 
   uint8_t output[32];
-  if (kdf_common(FC_5G_RES_STAR_DERIVATION, key, ssn, rand, res, output) != OSET_OK) {
+  if (kdf_common(FC_5G_RES_STAR_DERIVATION, key.data(), key.size(), ssn, rand, res, output) != OSET_OK) {
     oset_error("Failed to run kdf_common");
     return OSET_ERROR;
   }
@@ -682,7 +686,7 @@ uint8_t security_generate_res_star(const uint8_t* ck,
   return OSET_OK;
 }
 
-int kdf_common(const uint8_t fc, const std::array<uint8_t, 32>& key, const std::vector<uint8_t>& P0, uint8_t* output)
+int kdf_common(const uint8_t fc, const uint8_t* key, const size_t key_len, const std::vector<uint8_t>& P0, uint8_t* output)
 {
   uint8_t* s;
   uint32_t s_len = 1 + P0.size() + 2;
@@ -705,14 +709,15 @@ int kdf_common(const uint8_t fc, const std::array<uint8_t, 32>& key, const std::
   memcpy(&s[i], &p0_length_value, sizeof(p0_length_value));
   i += sizeof(p0_length_value);
 
-  sha256(key.data(), key.size(), s, i, output, 0);
+  sha256(key, key_len, s, i, output, 0);
   free(s);
 
   return OSET_OK;
 }
 
 int kdf_common(const uint8_t                  fc,
-               const std::array<uint8_t, 32>& key,
+               const uint8_t*                 key,
+               const size_t                   key_len,
                const std::vector<uint8_t>&    P0,
                const std::vector<uint8_t>&    P1,
                uint8_t*                       output)
@@ -745,18 +750,19 @@ int kdf_common(const uint8_t                  fc,
   memcpy(&s[i], &p1_length_value, sizeof(p1_length_value));
   i += sizeof(p1_length_value);
 
-  sha256(key.data(), key.size(), s, i, output, 0);
+  sha256(key, key_len, s, i, output, 0);
   free(s);
 
   return OSET_OK;
 }
 
-int kdf_common(const uint8_t                  fc,
-               const std::array<uint8_t, 32>& key,
-               const std::vector<uint8_t>&    P0,
-               const std::vector<uint8_t>&    P1,
-               const std::vector<uint8_t>&    P2,
-               uint8_t*                       output)
+int kdf_common(const uint8_t                   fc,
+				const uint8_t*				   key,
+				const size_t 				   key_len,
+				const std::vector<uint8_t>&    P0,
+				const std::vector<uint8_t>&    P1,
+				const std::vector<uint8_t>&    P2,
+				uint8_t*                       output)
 {
   uint8_t* s;
   uint32_t s_len = 1 + P0.size() + 2 + P1.size() + 2 + P2.size() + 2;
@@ -793,7 +799,7 @@ int kdf_common(const uint8_t                  fc,
   memcpy(&s[i], &p2_length_value, sizeof(p2_length_value));
   i += sizeof(p2_length_value);
 
-  sha256(key.data(), key.size(), s, i, output, 0);
+  sha256(key, key_len, s, i, output, 0);
   free(s);
 
   return OSET_OK;

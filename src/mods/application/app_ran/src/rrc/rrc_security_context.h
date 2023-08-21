@@ -10,7 +10,7 @@
 #ifndef RRC_NR_SECURITY_CONTEXT_H
 #define RRC_NR_SECURITY_CONTEXT_H
 
-#include "lib/common/security.h"
+#include "lib/common/security_private.h"
 #include "rrc/rrc_config.h"
 
 #ifdef __cplusplus

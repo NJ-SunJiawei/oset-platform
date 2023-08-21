@@ -10,7 +10,7 @@
 #ifndef PDCP_ENTITY_BASE_H
 #define PDCP_ENTITY_BASE_H
 
-#include "lib/common/security.h"
+#include "lib/common/security_private.h"
 #include "lib/common/util_helper.h"
 #include "lib/pdcp/pdcp_metrics.h"
 #include "lib/pdcp/pdcp_interface_types.h"
@@ -53,7 +53,7 @@ typedef struct {
 	int32_t            enable_security_rx_sn; // -1 // RX SN at which security will be enabled
 	pdcp_config_t 	   cfg;
 	char               *rb_name;
-	as_security_config_t   sec_cfg;
+	struct as_security_config_t   sec_cfg;
 	// Metrics helpers
 	pdcp_bearer_metrics_t  metrics;
 	rolling_average_t(double) tx_pdu_ack_latency_ms;//lte
@@ -77,6 +77,7 @@ inline uint32_t pdcp_COUNT(pdcp_config_t *cfg, uint32_t hfn, uint32_t sn)
 
 void pdcp_entity_base_init(pdcp_entity_base *base, uint32_t         lcid_, uint16_t rnti_, oset_apr_memory_pool_t *usepool);
 void pdcp_entity_base_stop(pdcp_entity_base *base);
+void pdcp_entity_base_config_security(pdcp_entity_base *base, struct as_security_config_t *sec_cfg_);
 
 #ifdef __cplusplus
 }
