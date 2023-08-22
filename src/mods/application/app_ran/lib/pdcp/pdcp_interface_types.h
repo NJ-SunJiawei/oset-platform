@@ -111,7 +111,7 @@ typedef struct {
 	security_direction_t tx_direction;//  = SECURITY_DIRECTION_DOWNLINK
 	security_direction_t rx_direction;//  = SECURITY_DIRECTION_UPLINK
 	uint8_t              sn_len;//        = PDCP_SN_LEN_12
-	uint8_t              hdr_len_bytes;// = 2
+	uint8_t              hdr_len_bytes;// = 2//pdcp header数据长度占位字节数
 
 	pdcp_t_reordering_t  t_reordering;//  = (pdcp_t_reordering_t)ms500
 	pdcp_discard_timer_t discard_timer;// = (pdcp_discard_timer_t)infinity

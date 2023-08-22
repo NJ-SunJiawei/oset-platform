@@ -140,7 +140,7 @@ void pdcp_lib_config_security(pdcp_lib_t *pdcp, uint32_t lcid, struct as_securit
 {
 	pdcp_entity_nr *entity = pdcp_valid_lcid(pdcp, lcid);
 	if (entity) {
-		pdcp_entity_base_config_security(entity, sec_cfg);
+		pdcp_entity_base_config_security(&entity->base, sec_cfg);
 	}
 }
 
@@ -148,7 +148,7 @@ void pdcp_lib_enable_integrity(pdcp_lib_t *pdcp, uint32_t lcid, srsran_direction
 {
 	pdcp_entity_nr *entity = pdcp_valid_lcid(pdcp, lcid);
 	if (entity) {
-		pdcp_entity_base_enable_integrity(entity, direction);
+		pdcp_entity_base_enable_integrity(&entity->base, direction);
 	}
 }
 
@@ -156,8 +156,17 @@ void pdcp_lib_enable_encryption(pdcp_lib_t *pdcp, uint32_t lcid, srsran_directio
 {
 	pdcp_entity_nr *entity = pdcp_valid_lcid(pdcp, lcid);
 	if (entity) {
-		pdcp_entity_base_enable_encryption(entity, direction);
+		pdcp_entity_base_enable_encryption(&entity->base, direction);
 	}
 }
 
+void pdcp_lib_write_ul_pdu(pdcp_lib_t *pdcp, uint32_t lcid, byte_buffer_t *pdu)
+{
+	pdcp_entity_nr *entity = pdcp_valid_lcid(pdcp, lcid);
+	if (entity) {
+		pdcp_entity_nr_write_ul_pdu(entity, pdu);
+	} else {
+		oset_warn("Dropping PDU, lcid=%d doesnt exists", lcid);
+	}
+}
 

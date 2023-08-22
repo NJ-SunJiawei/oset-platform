@@ -157,7 +157,7 @@ static void pdcp_write_ul_pdu_interface(uint16_t rnti, uint32_t lcid, byte_buffe
 {
   pdcp_user_interface *user = pdcp_user_interface_find_by_rnti(rnti);
   if (user) {
-	  pdcp_lib_write_pdu(&user->pdcp, lcid, pdu);
+	  pdcp_lib_write_ul_pdu(&user->pdcp, lcid, pdu);
   }
 }
 

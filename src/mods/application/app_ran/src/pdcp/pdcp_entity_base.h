@@ -56,7 +56,7 @@ typedef struct {
 	struct as_security_config_t   sec_cfg;
 	// Metrics helpers
 	pdcp_bearer_metrics_t  metrics;
-	rolling_average_t(double) tx_pdu_ack_latency_ms;//lte
+	//rolling_average_t(double) tx_pdu_ack_latency_ms;//lte
 }pdcp_entity_base;
 
 inline uint32_t pdcp_HFN(pdcp_config_t *cfg, uint32_t count)
