@@ -117,7 +117,7 @@ int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t tbs_len, cvector_
         remaining_len -= (remaining_len >= MAC_SUBHEADER_LEN_THRESHOLD ? 3 : 2);
 
         // read RLC PDU API
-        int pdu_len = API_rlc_mac_read_pdu(ue->rnti, *lcid, ue->ue_rlc_buffer->msg, remaining_len);
+        int pdu_len = API_rlc_mac_read_dl_pdu(ue->rnti, *lcid, ue->ue_rlc_buffer->msg, remaining_len);
 
         if (pdu_len > remaining_len) {
           oset_error("Can't add SDU of %d B. Available space %d B", pdu_len, remaining_len);

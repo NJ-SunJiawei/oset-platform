@@ -220,7 +220,7 @@ bool API_rlc_pdcp_rb_is_um(uint16_t rnti, uint32_t lcid)
 MAC interface
 *******************************************************************************/
 // gnb mac《==== pdcp/rlc get downlink
-int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+int API_rlc_mac_read_dl_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
 	int ret = OSET_ERROR;
 
@@ -228,7 +228,7 @@ int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_
 	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
 	if (user) {
 		if (rnti != SRSRAN_MRNTI) {
-			ret = users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);
+			ret = rlc_lib_read_dl_pdu(&user->rlc, lcid, payload, nof_bytes);
 		} else {
 			//todo mcch 多播控制信道
 			//ret = read_pdu_mch(lcid, payload, nof_bytes);

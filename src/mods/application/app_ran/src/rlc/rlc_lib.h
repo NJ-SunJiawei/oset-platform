@@ -36,10 +36,12 @@ rlc_common * rlc_valid_lcid(rlc_lib_t *rlc, uint32_t lcid);
 void rlc_reset_metrics(rlc_lib_t *rlc);
 void rlc_lib_init(rlc_lib_t *rlc, uint32_t lcid_, bsr_callback_t bsr_callback_);
 void rlc_lib_stop(rlc_lib_t *rlc);
-void rlc_lib_write_ul_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
 rlc_common *rlc_array_find_by_lcid(rlc_lib_t *rlc, uint32_t lcid);
 void rlc_lib_del_bearer(rlc_lib_t *rlc, uint32_t lcid);
 int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg);
+void rlc_lib_write_ul_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
+uint32_t rlc_lib_read_dl_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
+void rlc_lib_write_dl_sdu(rlc_lib_t *rlc, uint32_t lcid, byte_buffer_t *sdu);
 bool rlc_lib_rb_is_um(rlc_lib_t *rlc, uint32_t lcid);
 
 

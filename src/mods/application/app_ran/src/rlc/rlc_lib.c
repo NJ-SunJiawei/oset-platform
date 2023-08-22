@@ -235,6 +235,26 @@ void rlc_lib_write_ul_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, uint3
 	}
 }
 
+uint32_t rlc_lib_read_dl_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+{
+  uint32_t ret = 0;
+
+  //oset_apr_thread_rwlock_rdlock(rlc->rwlock);
+  rlc_common  *rlc_entity = rlc_valid_lcid(rlc, lcid);
+  //oset_apr_thread_rwlock_unlock(rlc->rwlock);
+
+  if (NULL != rlc_entity) {
+	ret = rlc_entity->func._read_dl_pdu(rlc_entity, payload, nof_bytes);
+	rlc_lib_update_bsr(rlc, lcid);
+  } else {
+    oset_warn("LCID %d doesn't exist", lcid);
+  }
+
+  ASSERT_IF_NOT(ret <= nof_bytes, "Created too big RLC PDU (%d > %d)", ret, nof_bytes);
+
+  return ret;
+}
+
 /*******************************************************************************
   PDCP/rrc interface (called from Stack thread and therefore no lock required)
 *******************************************************************************/

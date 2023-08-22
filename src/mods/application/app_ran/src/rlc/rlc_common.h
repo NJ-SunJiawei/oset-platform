@@ -156,15 +156,16 @@ typedef struct rlc_common_s rlc_common;
 typedef void (*bsr_callback_t)(uint16_t, uint32_t, uint32_t, uint32_t);
 
 typedef struct {
-	void (*_get_buffer_state)(rlc_common *, uint32_t *, uint32_t *);
-	bool (*_configure)(rlc_common *, rlc_config_t *);
-	void (*_set_bsr_callback)(rlc_common *, bsr_callback_t);
-	void (*_reset_metrics)(rlc_common *);
-	void (*_reestablish)(rlc_common *);
-	void (*_write_ul_pdu)(rlc_common *, uint8_t*, uint32_t);
-	void (*_write_dl_sdu)(rlc_common *, byte_buffer_t *);
+	void (*_get_buffer_state)(rlc_common*, uint32_t*, uint32_t*);
+	bool (*_configure)(rlc_common*, rlc_config_t*);
+	void (*_set_bsr_callback)(rlc_common*, bsr_callback_t);
+	void (*_reset_metrics)(rlc_common*);
+	void (*_reestablish)(rlc_common*);
+	void (*_write_ul_pdu)(rlc_common*, uint8_t*, uint32_t);
+	uint32_t (*_read_dl_pdu)(rlc_common*, uint8_t*, uint32_t);
+	void (*_write_dl_sdu)(rlc_common*, byte_buffer_t*);
 	void (*_get_mode)(void);
-	void (*_stop)(rlc_common *);
+	void (*_stop)(rlc_common*);
 }rlc_func_entity;
 
 typedef struct rlc_common_s{

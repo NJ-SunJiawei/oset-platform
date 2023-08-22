@@ -51,6 +51,7 @@ byte_buffer_t *oset_rrc_encode2(const asn_TYPE_descriptor_t *td, _In_ void *mess
     oset_expect_or_return_val(pkbuf, NULL);
 	
 	byte_buffer_t* buf= byte_buffer_change(pkbuf);
+	byte_buffer_set_timestamp(buf);
 	oset_pkbuf_free(pkbuf);
 
     return buf;
