@@ -7,8 +7,8 @@
  *Date: 2022.12
 ************************************************************************/
 
-#ifndef SCHED_NR_RB_H_
-#define SCHED_NR_RB_H_
+#ifndef SCHED_RB_H_
+#define SCHED_RB_H_
 
 #include "lib/common/bitset_helper.h"
 

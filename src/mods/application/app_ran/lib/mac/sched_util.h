@@ -7,10 +7,10 @@
  *Date: 2023.02
 ************************************************************************/
 
-#ifndef SCHED_NR_INTERFACE_HELPERS_H
-#define SCHED_NR_INTERFACE_HELPERS_H
+#ifndef SCHED_UTIL_H
+#define SCHED_UTIL_H
 
-#include "lib/mac/sched_nr_interface.h"
+#include "lib/mac/sched_interface.h"
 
 #ifdef __cplusplus
 extern "C" {

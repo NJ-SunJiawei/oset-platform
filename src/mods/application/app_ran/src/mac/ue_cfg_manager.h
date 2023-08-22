@@ -10,7 +10,7 @@
 #ifndef UE_CFG_MANAGER_H_
 #define UE_CFG_MANAGER_H_
 
-#include "mac/sched_nr_cfg.h"
+#include "mac/sched_cfg.h"
 
 #ifdef __cplusplus
 extern "C" {

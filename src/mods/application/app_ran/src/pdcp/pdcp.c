@@ -83,8 +83,6 @@ static void pdcp_del_bearer(uint16_t rnti, uint32_t lcid)
 	pdcp_user_interface *users = pdcp_user_interface_find_by_rnti(rnti);
 	if (users) {
 		pdcp_lib_del_bearer(&users->pdcp, lcid);
-	}else{
-		oset_warn("can't find pdcp interface by rnti=0x%x", rnti);
 	}
 }
 
@@ -135,19 +133,23 @@ static void pdcp_config_security(uint16_t rnti, uint32_t lcid, struct as_securit
 	pdcp_user_interface *users = pdcp_user_interface_find_by_rnti(rnti);
 	if (users) {
 		pdcp_lib_config_security(&users->pdcp, lcid, sec_cfg);
-	}else{
-		oset_warn("can't find pdcp interface by rnti=0x%x", rnti);
 	}
 }
 
 static void pdcp_enable_integrity(uint16_t rnti, uint32_t lcid)
 {
-  users[rnti].pdcp->enable_integrity(lcid, srsran::DIRECTION_TXRX);
+	pdcp_user_interface *users = pdcp_user_interface_find_by_rnti(rnti);
+	if (users) {
+		pdcp_lib_enable_integrity(&users->pdcp, lcid, DIRECTION_TXRX);
+	}
 }
 
 static void pdcp_enable_encryption(uint16_t rnti, uint32_t lcid)
 {
-  users[rnti].pdcp->enable_encryption(lcid, srsran::DIRECTION_TXRX);
+	pdcp_user_interface *users = pdcp_user_interface_find_by_rnti(rnti);
+	if (users) {
+		pdcp_lib_enable_encryption(&users->pdcp, lcid, DIRECTION_TXRX);
+	}
 }
 
 
@@ -181,6 +183,23 @@ void API_pdcp_rrc_del_bearer(uint16_t rnti, uint32_t lcid)
 {
 	pdcp_del_bearer(rnti, lcid);
 }
+
+void API_pdcp_rrc_config_security(uint16_t rnti, uint32_t lcid, struct as_security_config_t *sec_cfg)
+{
+	pdcp_config_security(rnti, lcid, sec_cfg);
+}
+
+void API_pdcp_rrc_enable_integrity(uint16_t rnti, uint32_t lcid)
+{
+	pdcp_enable_integrity(rnti, lcid);
+}
+
+void API_pdcp_rrc_enable_encryption(uint16_t rnti, uint32_t lcid)
+{
+	pdcp_enable_encryption(rnti, lcid);
+}
+
+
 /*******************************************************************************
 RLC interface
 *******************************************************************************/

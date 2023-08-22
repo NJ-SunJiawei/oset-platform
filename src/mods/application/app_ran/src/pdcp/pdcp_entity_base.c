@@ -43,7 +43,7 @@ void pdcp_entity_base_stop(pdcp_entity_base *base)
 
 void pdcp_entity_base_config_security(pdcp_entity_base *base, struct as_security_config_t *sec_cfg_)
 {
-	base->sec_cfg = sec_cfg_;
+	base->sec_cfg = *sec_cfg_;
 
 	oset_info("Configuring security with %s and %s",
 	          integrity_algorithm_id_text[sec_cfg_->integ_algo],
@@ -55,4 +55,29 @@ void pdcp_entity_base_config_security(pdcp_entity_base *base, struct as_security
 	oset_debug("K_up_int") && oset_log2_hexdump(OSET_LOG2_DEBUG, sec_cfg_->k_up_int, 32);
 }
 
+void pdcp_entity_base_enable_integrity(pdcp_entity_base *base, srsran_direction_t direction)
+{
+	// if either DL or UL is already enabled, both are enabled
+	if (base->integrity_direction == DIRECTION_TX && direction == DIRECTION_RX) {
+		base->integrity_direction = DIRECTION_TXRX;
+	} else if (base->integrity_direction == DIRECTION_RX && direction == DIRECTION_TX) {
+		base->integrity_direction = DIRECTION_TXRX;
+	} else {
+		base->integrity_direction = direction;
+	}
+	oset_debug("Enabled integrity. LCID=%d, integrity=%s", base->lcid, srsran_direction_text[base->integrity_direction]);
+}
+
+void pdcp_entity_base_enable_encryption(pdcp_entity_base *base, srsran_direction_t direction)
+{
+	// if either DL or UL is already enabled, both are enabled
+	if (base->encryption_direction == DIRECTION_TX && direction == DIRECTION_RX) {
+		base->encryption_direction = DIRECTION_TXRX;
+	} else if (base->encryption_direction == DIRECTION_RX && direction == DIRECTION_TX) {
+		base->encryption_direction = DIRECTION_TXRX;
+	} else {
+		base->encryption_direction = direction;
+	}
+	oset_debug("Enabled encryption. LCID=%d, encryption=%s", base->lcid, srsran_direction_text[base->encryption_direction]);
+}
 

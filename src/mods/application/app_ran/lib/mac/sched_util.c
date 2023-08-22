@@ -6,7 +6,7 @@
  *Author: create by sunjiawei
  *Date: 2023.02
 ************************************************************************/
-#include "lib/mac/sched_nr_util.h"
+#include "lib/mac/sched_util.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-util"

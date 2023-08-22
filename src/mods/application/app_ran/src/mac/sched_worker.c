@@ -7,8 +7,8 @@
  *Date: 2023.02
 ************************************************************************/
 #include "gnb_common.h"
-#include "mac/sched_nr_worker.h"
-#include "mac/sched_nr_bwp.h"
+#include "mac/sched_worker.h"
+#include "mac/sched_bwp.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-worker"

@@ -10,7 +10,7 @@
 #ifndef BASE_UE_BUFFER_MANAGER_H_
 #define BASE_UE_BUFFER_MANAGER_H_
 
-#include "mac/sched_nr_cfg.h"
+#include "mac/sched_cfg.h"
 
 #ifdef __cplusplus
 extern "C" {

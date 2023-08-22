@@ -42,6 +42,8 @@ void pdcp_lib_stop(pdcp_lib_t *pdcp);
 int pdcp_lib_add_bearer(pdcp_lib_t *pdcp, uint32_t lcid, pdcp_config_t *cfg);
 void pdcp_lib_del_bearer(pdcp_lib_t *pdcp, uint32_t lcid);
 void pdcp_lib_config_security(pdcp_lib_t *pdcp, uint32_t lcid, struct as_security_config_t *sec_cfg);
+void pdcp_lib_enable_integrity(pdcp_lib_t *pdcp, uint32_t lcid, srsran_direction_t direction);
+void pdcp_lib_enable_encryption(pdcp_lib_t *pdcp, uint32_t lcid, srsran_direction_t direction);
 
 #ifdef __cplusplus
 }

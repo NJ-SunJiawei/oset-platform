@@ -7,11 +7,11 @@
  *Date: 2023.02
 ************************************************************************/
 
-#ifndef SCHED_NR_SCH_H_
-#define SCHED_NR_SCH_H_
+#ifndef SCHED_SCH_H_
+#define SCHED_SCH_H_
 
 #include "mac/sched_common.h"
-#include "mac/sched_nr_cfg.h"
+#include "mac/sched_cfg.h"
 #include "mac/ue_cfg_manager.h"
 
 #ifdef __cplusplus

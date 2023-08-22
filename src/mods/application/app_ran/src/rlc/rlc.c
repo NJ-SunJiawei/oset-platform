@@ -230,7 +230,8 @@ int API_rlc_mac_read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_
 		if (rnti != SRSRAN_MRNTI) {
 			ret = users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);
 		} else {
-			ret = users[rnti].rlc->read_pdu_mch(lcid, payload, nof_bytes);//mcch 多播控制信道
+			//todo mcch 多播控制信道
+			//ret = read_pdu_mch(lcid, payload, nof_bytes);
 		}
 	} else {
 		ret = OSET_ERROR;

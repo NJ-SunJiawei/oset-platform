@@ -7,11 +7,11 @@
  *Date: 2023.02
 ************************************************************************/
 
-#ifndef SCHED_NR_GRANT_ALLOCATOR_H
-#define SCHED_NR_GRANT_ALLOCATOR_H
+#ifndef SCHED_GRANT_ALLOCATOR_H
+#define SCHED_GRANT_ALLOCATOR_H
 
-#include "mac/sched_nr_pdcch.h"
-#include "mac/sched_nr_sch.h"
+#include "mac/sched_pdcch.h"
+#include "mac/sched_sch.h"
 
 #ifdef __cplusplus
 extern "C" {

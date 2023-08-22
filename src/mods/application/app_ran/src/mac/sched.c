@@ -8,8 +8,8 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "mac/mac.h"
-#include "mac/sched_nr.h"
-#include "mac/sched_nr_worker.h"
+#include "mac/sched.h"
+#include "mac/sched_worker.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched"

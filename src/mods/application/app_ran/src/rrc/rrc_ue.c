@@ -162,14 +162,14 @@ static int update_as_security(rrc_nr_ue *ue, uint32_t lcid, bool enable_integrit
 	pdcp_cnfg.cipher_algo                     = (CIPHERING_ALGORITHM_ID_ENUM)tmp_cnfg.cipher_algo;
 
 	// configure algorithm and keys
-	pdcp_config_security(ue->rnti, lcid, pdcp_cnfg);
+	API_pdcp_rrc_config_security(ue->rnti, lcid, &pdcp_cnfg);
 
 	if (enable_integrity) {
-		parent->pdcp->enable_integrity(ue->rnti, lcid);
+		API_pdcp_rrc_enable_integrity(ue->rnti, lcid);
 	}
 
 	if (enable_ciphering) {
-		parent->pdcp->enable_encryption(ue->rnti, lcid);
+		API_pdcp_rrc_enable_encryption(ue->rnti, lcid);
 	}
 
 	return OSET_OK;

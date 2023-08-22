@@ -7,10 +7,10 @@
  *Date: 2023.02
 ************************************************************************/
 
-#ifndef SCHED_NR_PDCCH_H_
-#define SCHED_NR_PDCCH_H_
+#ifndef SCHED_PDCCH_H_
+#define SCHED_PDCCH_H_
 
-#include "mac/sched_nr_cfg.h"
+#include "mac/sched_cfg.h"
 #include "mac/ue_cfg_manager.h"
 
 #ifdef __cplusplus

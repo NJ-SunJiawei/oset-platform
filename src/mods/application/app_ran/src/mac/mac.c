@@ -8,7 +8,7 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "rrc/rrc.h"
-#include "lib/mac/sched_nr_util.h"
+#include "lib/mac/sched_util.h"
 #include "mac/mac.h"
 
 

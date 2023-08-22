@@ -7,8 +7,8 @@
  *Date: 2023.02
 ************************************************************************/
 
-#ifndef SCHED_NR_INTERFACE_H_
-#define SCHED_NR_INTERFACE_H_
+#ifndef SCHED_INTERFACE_H_
+#define SCHED_INTERFACE_H_
 
 #include "gnb_interface.h"
 #include "lib/common/phy_cfg_nr.h"

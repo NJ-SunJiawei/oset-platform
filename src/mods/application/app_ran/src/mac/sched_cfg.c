@@ -7,8 +7,8 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-#include "mac/sched_nr_cfg.h"
-#include "lib/mac/sched_nr_util.h"	
+#include "mac/sched_cfg.h"
+#include "lib/mac/sched_util.h"	
 	
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-cfg"

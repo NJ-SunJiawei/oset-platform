@@ -8,7 +8,7 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "mac/mac.h"
-#include "mac/sched_nr_ue.h"
+#include "mac/sched_ue.h"
 #include "lib/mac/mac_sch_pdu_nr.h"
 
 #undef  OSET_LOG2_DOMAIN

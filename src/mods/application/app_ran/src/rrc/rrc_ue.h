@@ -7,12 +7,12 @@
  *Date: 2023.02
 ************************************************************************/
 
-#ifndef RRC_NR_UE_H_
-#define RRC_NR_UE_H_
+#ifndef RRC_UE_H_
+#define RRC_UE_H_
 
 #include "lib/common/buffer_interface.h"
 #include "lib/common/time.h"
-#include "lib/mac/sched_nr_interface.h"
+#include "lib/mac/sched_interface.h"
 #include "rrc/rrc_security_context.h"
 #include "rrc/rrc_config.h"
 

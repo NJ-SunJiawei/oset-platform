@@ -7,7 +7,7 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-#include "mac/ue_nr.h"
+#include "mac/mac_ue.h"
 #include "mac/mac.h"
 #include "rlc/rlc.h"
 
@@ -163,7 +163,10 @@ int ue_nr_generate_pdu(ue_nr *ue, byte_buffer_t *pdu, uint32_t tbs_len, cvector_
 }
 
 
+/*****************************************/
 /******* METRICS interface ***************/
+/*****************************************/
+
 void ue_nr_metrics_read(ue_nr *ue, mac_ue_metrics_t* metrics_)
 {
 	uint32_t ul_buffer = 0;

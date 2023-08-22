@@ -7,7 +7,7 @@
  *Date: 2023.04
 ************************************************************************/
 #include "gnb_common.h"
-#include "mac/sched_nr_sch.h"
+#include "mac/sched_sch.h"
 			
 			
 #undef  OSET_LOG2_DOMAIN

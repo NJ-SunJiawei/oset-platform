@@ -78,6 +78,8 @@ inline uint32_t pdcp_COUNT(pdcp_config_t *cfg, uint32_t hfn, uint32_t sn)
 void pdcp_entity_base_init(pdcp_entity_base *base, uint32_t         lcid_, uint16_t rnti_, oset_apr_memory_pool_t *usepool);
 void pdcp_entity_base_stop(pdcp_entity_base *base);
 void pdcp_entity_base_config_security(pdcp_entity_base *base, struct as_security_config_t *sec_cfg_);
+void pdcp_entity_base_enable_integrity(pdcp_entity_base *base, srsran_direction_t direction);
+void pdcp_entity_base_enable_encryption(pdcp_entity_base *base, srsran_direction_t direction);
 
 #ifdef __cplusplus
 }

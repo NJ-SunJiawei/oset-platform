@@ -144,4 +144,20 @@ void pdcp_lib_config_security(pdcp_lib_t *pdcp, uint32_t lcid, struct as_securit
 	}
 }
 
+void pdcp_lib_enable_integrity(pdcp_lib_t *pdcp, uint32_t lcid, srsran_direction_t direction)
+{
+	pdcp_entity_nr *entity = pdcp_valid_lcid(pdcp, lcid);
+	if (entity) {
+		pdcp_entity_base_enable_integrity(entity, direction);
+	}
+}
+
+void pdcp_lib_enable_encryption(pdcp_lib_t *pdcp, uint32_t lcid, srsran_direction_t direction)
+{
+	pdcp_entity_nr *entity = pdcp_valid_lcid(pdcp, lcid);
+	if (entity) {
+		pdcp_entity_base_enable_encryption(entity, direction);
+	}
+}
+
 

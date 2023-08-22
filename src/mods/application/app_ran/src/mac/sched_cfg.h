@@ -7,14 +7,14 @@
  *Date: 2022.12
 ************************************************************************/
 
-#ifndef SCHED_NR_CFG_H_
-#define SCHED_NR_CFG_H_
+#ifndef SCHED_CFG_H_
+#define SCHED_CFG_H_
 
 #include "gnb_config_parser.h"
-#include "lib/mac/sched_nr_interface.h"
+#include "lib/mac/sched_interface.h"
 #include "lib/mac/mac_metrics.h"
 #include "lib/common/common.h"
-#include "mac/sched_nr_rb.h"
+#include "mac/sched_rb.h"
 #include "mac/harq_softbuffer.h"
 
 #define MAX_NOF_AGGR_LEVELS  5

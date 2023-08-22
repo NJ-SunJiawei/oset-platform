@@ -7,11 +7,11 @@
  *Date: 2023.02
 ************************************************************************/
 
-#ifndef SCHED_NR_WORKER_H_
-#define SCHED_NR_WORKER_H_
+#ifndef SCHED_WORKER_H_
+#define SCHED_WORKER_H_
 
-#include "mac/sched_nr_cfg.h"
-#include "mac/sched_nr_ue.h"
+#include "mac/sched_cfg.h"
+#include "mac/sched_ue.h"
 
 #ifdef __cplusplus
 extern "C" {

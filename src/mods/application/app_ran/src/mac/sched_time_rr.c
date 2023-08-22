@@ -7,7 +7,7 @@
  *Date: 2023.06
 ************************************************************************/
 #include "gnb_common.h"
-#include "mac/sched_nr_time_rr.h"
+#include "mac/sched_time_rr.h"
 
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-time-rr"

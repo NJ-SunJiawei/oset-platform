@@ -7,8 +7,8 @@
  *Date: 2022.12
 ************************************************************************/
 
-#ifndef UE_NR_H_
-#define UE_NR_H_
+#ifndef MAC_UE_H_
+#define MAC_UE_H_
 
 #include "lib/mac/mac_metrics.h"
 #include "lib/mac/mac_sch_pdu_nr.h"

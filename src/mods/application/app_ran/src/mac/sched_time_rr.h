@@ -7,10 +7,10 @@
  *Date: 2023.06
 ************************************************************************/
 
-#ifndef SCHED_NR_TIME_RR_H_
-#define SCHED_NR_TIME_RR_H_
+#ifndef SCHED_TIME_RR_H_
+#define SCHED_TIME_RR_H_
 
-#include "mac/sched_nr_grant_allocator.h"
+#include "mac/sched_grant_allocator.h"
 
 
 #ifdef __cplusplus

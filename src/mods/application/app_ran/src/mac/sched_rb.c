@@ -7,7 +7,7 @@
  *Date: 2022.12
 ************************************************************************/
 #include "gnb_common.h"
-#include "mac/sched_nr_rb.h"
+#include "mac/sched_rb.h"
 		
 		
 #undef  OSET_LOG2_DOMAIN

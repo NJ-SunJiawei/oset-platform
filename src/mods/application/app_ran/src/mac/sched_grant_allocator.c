@@ -7,7 +7,7 @@
  *Date: 2023.04
 ************************************************************************/
 #include "gnb_common.h"
-#include "mac/sched_nr_grant_allocator.h"
+#include "mac/sched_grant_allocator.h"
 		
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-sched-grant"

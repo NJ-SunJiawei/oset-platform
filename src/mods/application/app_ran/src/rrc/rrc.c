@@ -8,7 +8,7 @@
 ************************************************************************/
 #include "gnb_common.h"
 #include "lib/common/phy_cfg_nr_default.h"
-#include "lib/mac/sched_nr_util.h"
+#include "lib/mac/sched_util.h"
 #include "rrc/rrc_cell_asn_fill.h"
 #include "rrc/rrc_cell_asn_fill_inner.h"
 #include "rrc/rrc.h"

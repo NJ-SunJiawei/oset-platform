@@ -7,11 +7,11 @@
  *Date: 2023.02
 ************************************************************************/
 
-#ifndef SCHED_NR_HARQ_H_
-#define SCHED_NR_HARQ_H_
+#ifndef SCHED_HARQ_H_
+#define SCHED_HARQ_H_
 
 #include "lib/common/slot_point.h"
-#include "mac/sched_nr_cfg.h"
+#include "mac/sched_cfg.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -7,12 +7,12 @@
  *Date: 2023.02
 ************************************************************************/
 
-#ifndef SCHED_NR_BWP_H_
-#define SCHED_NR_BWP_H_
+#ifndef SCHED_BWP_H_
+#define SCHED_BWP_H_
 
-#include "mac/sched_nr_grant_allocator.h"
-#include "mac/sched_nr_signalling.h"
-#include "mac/sched_nr_time_rr.h"
+#include "mac/sched_grant_allocator.h"
+#include "mac/sched_signalling.h"
+#include "mac/sched_time_rr.h"
 
 #ifdef __cplusplus
 extern "C" {

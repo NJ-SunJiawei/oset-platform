@@ -7,10 +7,10 @@
  *Date: 2023.02
 ************************************************************************/
 
-#ifndef RRC_INTERFACE_TYPES_H_
-#define RRC_INTERFACE_TYPES_H_
+#ifndef SCHED_SIGNALLING_H_
+#define SCHED_SIGNALLING_H_
 
-#include "mac/sched_nr_grant_allocator.h"
+#include "mac/sched_grant_allocator.h"
 
 #ifdef __cplusplus
 extern "C" {
