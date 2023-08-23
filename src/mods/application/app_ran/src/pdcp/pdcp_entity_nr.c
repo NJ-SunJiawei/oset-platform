@@ -7,6 +7,7 @@
  *Date: 2023.08
 ************************************************************************/
 #include "pdcp/pdcp_entity_nr.h"
+#include "rrc/rrc.h"
 #include "rlc/rlc.h"
 
 #undef  OSET_LOG2_DOMAIN
@@ -29,7 +30,6 @@ void reordering_callback(void *data)
 		    // Deliver to upper layers
 		    parent->pass_to_upper_layers(std::move(it->second));
 			oset_list_remove(&pdcp_nr->reorder_list, pdu);
-			oset_hash_set(pdcp_nr->reorder_hash, pdu->count, sizeof(uint32_t), NULL);
 		}	
 
 
@@ -47,6 +47,16 @@ void reordering_callback(void *data)
 		pdcp_nr->rx_reord = pdcp_nr->rx_next;
 		gnb_timer_start(pdcp_nr->reordering_timer, pdcp_nr->base.cfg.t_reordering);
 	}
+}
+
+static int count_compare(pdcp_nr_pdu_t *pdu1, pdcp_nr_pdu_t *pdu2)
+{
+    if (pdu1->count == pdu2->count)
+        return 0;
+    else if (pdu1->count < pdu2->count)
+        return -1;
+    else
+        return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -104,7 +114,6 @@ pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_, oset_apr_mem
 
 	pdcp_entity_base_init(&pdcp_nr->base, lcid_, rnti_, usepool);
 	oset_list_init(&pdcp_nr->reorder_list);
-	pdcp_nr->reorder_hash = oset_hash_make();
 	pdcp_nr->discard_timers_map = oset_hash_make();
 	pdcp_nr->rx_overflow = false;
 	pdcp_nr->tx_overflow = false;
@@ -113,15 +122,15 @@ pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_, oset_apr_mem
 
 void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr)
 {
-	oset_hash_destroy(pdcp_nr->reorder_hash);
 	oset_hash_destroy(pdcp_nr->discard_timers_map);
 	pdcp_entity_base_stop(&pdcp_nr->base);
 	oset_free(pdcp_nr);
 }
 
-// RLC ===>RRC
-// nas 先加密再完保
-// pdcp 先完保再加密
+// RLC ===>RRC 接收到ue侧的pdcp包
+// nas 先加密再完保   pdcp 先完保再加密(完整性保护是PDU头和PDU的数据部分，pdu head不加密pdu data和mac-I加密)
+// NR PDCP采用PUSH window（下边沿驱动）+t-reordering timer的形式接收下层递交的PDCP PDU
+// 关于PUSH window：接收窗口只能依赖于接收窗口下边界状态变量（RX_DELIV）更新才能移动
 void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
 {
   // Log PDU
@@ -146,14 +155,16 @@ void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
   // |   MAC-I        |Oct n        |   MAC-I(可选)      |Oct n     |   MAC-I(可选)      |Oct n
   
   // Sanity check
+  // pdu为ue侧pdcp包，需要解析
   if (pdu->N_bytes <= pdcp_nr->base.cfg.hdr_len_bytes) {
     return;
   }
 
-  oset_debug("Rx PDCP state - RX_NEXT=%u, RX_DELIV=%u, RX_REORD=%u", rx_next, rx_deliv, rx_reord);
+  oset_debug("Rx PDCP state - RX_NEXT=%u, RX_DELIV=%u, RX_REORD=%u", pdcp_nr->rx_next, pdcp_nr->rx_deliv, pdcp_nr->rx_reord);
 
+  // decode ue==>gnb ul pdcp pdu
   // Extract RCVD_SN from header
-  uint32_t rcvd_sn = read_data_header(pdu);
+  uint32_t rcvd_sn = pdcp_entity_base_read_data_header(&pdcp_nr->base, pdu);
 
   /*
    * Calculate RCVD_COUNT:
@@ -167,57 +178,69 @@ void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
    * - RCVD_COUNT = [RCVD_HFN, RCVD_SN].
    */
   uint32_t rcvd_hfn, rcvd_count;
-  if ((int64_t)rcvd_sn < (int64_t)SN(rx_deliv) - (int64_t)window_size) {
-    rcvd_hfn = HFN(rx_deliv) + 1;
-  } else if (rcvd_sn >= SN(rx_deliv) + window_size) {
-    rcvd_hfn = HFN(rx_deliv) - 1;
+  if ((int64_t)rcvd_sn < ((int64_t)pdcp_SN(&pdcp_nr->base, pdcp_nr->rx_deliv) - (int64_t)pdcp_nr->window_size)) {
+    rcvd_hfn = pdcp_HFN(&pdcp_nr->base, pdcp_nr->rx_deliv) + 1;
+  } else if (rcvd_sn >= (pdcp_SN(&pdcp_nr->base, pdcp_nr->rx_deliv) + pdcp_nr->window_size)) {
+    rcvd_hfn = pdcp_HFN(&pdcp_nr->base, pdcp_nr->rx_deliv) - 1;
   } else {
-    rcvd_hfn = HFN(rx_deliv);
+    rcvd_hfn = pdcp_HFN(&pdcp_nr->base, pdcp_nr->rx_deliv);
   }
-  rcvd_count = COUNT(rcvd_hfn, rcvd_sn);
+  rcvd_count = pdcp_COUNT(&pdcp_nr->base, rcvd_hfn, rcvd_sn);
 
-  logger.debug("Estimated RCVD_HFN=%u, RCVD_SN=%u, RCVD_COUNT=%u", rcvd_hfn, rcvd_sn, rcvd_count);
+  oset_debug("Estimated RCVD_HFN=%u, RCVD_SN=%u, RCVD_COUNT=%u", rcvd_hfn, rcvd_sn, rcvd_count);
+
+  // PDCP层加密功能只对Data部分（不包含SDAP协议头）进行。
+  // PDCP提供两种RB承载，SRB和DRB，其中SRB的Data PDU必须进行完整性保护，
+  // DRB的Data PDU可根据配置需要进行完整性保护。
 
   /*
-   * TS 38.323, section 5.8: Deciphering
+   * TS 38.323, section 5.8: Deciphering 解密
    *
    * The data unit that is ciphered is the MAC-I and the
    * data part of the PDCP Data PDU except the
    * SDAP header and the SDAP Control PDU if included in the PDCP SDU.
    */
-  if (encryption_direction == DIRECTION_RX || encryption_direction == DIRECTION_TXRX) {
-    cipher_decrypt(
-        &pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, rcvd_count, &pdu->msg[cfg.hdr_len_bytes]);
+  if (pdcp_nr->base.encryption_direction == DIRECTION_RX || pdcp_nr->base.encryption_direction == DIRECTION_TXRX) {
+    pdcp_entity_base_cipher_decrypt(&pdcp_nr->base,
+									&pdu->msg[pdcp_nr->base.cfg.hdr_len_bytes],
+									pdu->N_bytes - pdcp_nr->base.cfg.hdr_len_bytes,
+									rcvd_count,
+									&pdu->msg[pdcp_nr->base.cfg.hdr_len_bytes]);
   }
 
   /*
    * Extract MAC-I:
    * Always extract from SRBs, only extract from DRBs if integrity is enabled
    */
-  uint8_t mac[4] = {};
-  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
-    extract_mac(pdu, mac);
+  // 获取mac值
+  uint8_t mac[4] = {0};
+  if (is_srb(&pdcp_nr->base) || (is_drb(&pdcp_nr->base) && (pdcp_nr->base.integrity_direction == DIRECTION_TX || pdcp_nr->base.integrity_direction == DIRECTION_TXRX))) {
+    pdcp_entity_base_extract_mac(pdu, mac);
   }
 
   /*
-   * TS 38.323, section 5.9: Integrity verification
+   * TS 38.323, section 5.9: Integrity verification完保校验
    *
    * The data unit that is integrity protected is the PDU header
    * and the data part of the PDU before ciphering.
    */
-  if (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX) {
-    bool is_valid = integrity_verify(pdu->msg, pdu->N_bytes, rcvd_count, mac);
+  if (pdcp_nr->base.integrity_direction == DIRECTION_TX || pdcp_nr->base.integrity_direction == DIRECTION_TXRX) {
+    bool is_valid = pdcp_entity_base_integrity_verify(&pdcp_nr->base,
+														pdu->msg,
+														pdu->N_bytes,
+														rcvd_count,
+														mac);
     if (!is_valid) {
-      logger.error(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rb_name.c_str());
-      rrc->notify_pdcp_integrity_error(lcid);
+      oset_error(pdu->msg, pdu->N_bytes, "%s Dropping PDU", pdcp_nr->base.rb_name);
+      API_rrc_pdcp_notify_integrity_error(pdcp_nr->base.rnti, pdcp_nr->base.lcid);
       return; // Invalid packet, drop.
     } else {
-      logger.debug(pdu->msg, pdu->N_bytes, "%s: Integrity verification successful", rb_name.c_str());
+      oset_debug(pdu->msg, pdu->N_bytes, "%s: Integrity verification successful", rb_name.c_str());
     }
   }
 
   // After checking the integrity, we can discard the header.
-  discard_data_header(pdu);
+  pdcp_entity_base_discard_data_header(pdu);
 
   /*
    * Check valid rcvd_count:
@@ -226,48 +249,59 @@ void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
    * - if the PDCP Data PDU with COUNT = RCVD_COUNT has been received before:
    *   - discard the PDCP Data PDU;
    */
-  if (rcvd_count < rx_deliv) {
-    logger.debug("Out-of-order after time-out, duplicate or COUNT wrap-around");
-    logger.debug("RCVD_COUNT %u, RCVD_COUNT %u", rcvd_count, rx_deliv);
+  if (rcvd_count < pdcp_nr->rx_deliv) {
+    oset_debug("Out-of-order after time-out, duplicate or COUNT wrap-around");
+    oset_debug("RCVD_COUNT %u, RCVD_COUNT %u", rcvd_count, pdcp_nr->rx_deliv);
     return; // Invalid count, drop.
   }
 
   // Check if PDU has been received
-  if (reorder_list.find(rcvd_count) != reorder_list.end()) {
-    logger.debug("Duplicate PDU, dropping");
-    return; // PDU already present, drop.
+  pdcp_nr_pdu_t *node = NULL;  
+  oset_list_for_each(&pdcp_nr->reorder_list, node) {
+	  if (rcvd_count == node->count) {
+	  	// PDU already present, drop.
+		oset_debug("Duplicate PDU, dropping");
+		return;
+	  }
   }
 
   // Store PDU in reception buffer
-  reorder_list[rcvd_count] = std::move(pdu);
+  pdcp_nr_pdu_t *pdu_node = oset_malloc(pdcp_nr_pdu_t);
+  pdu_node->count = rcvd_count;
+  pdu_node->buffer = byte_buffer_dup(pdu);
+  oset_list_insert_sorted(&pdcp_nr->reorder_list, pdu_node, count_compare);
 
   // Update RX_NEXT
-  if (rcvd_count >= rx_next) {
-    rx_next = rcvd_count + 1;
+  if (rcvd_count >= pdcp_nr->rx_next) {
+    pdcp_nr->rx_next = rcvd_count + 1;
   }
 
   // TODO if out-of-order configured, submit to upper layer
 
-  if (rcvd_count == rx_deliv) {
+  if (rcvd_count == pdcp_nr->rx_deliv) {
     // Deliver to upper layers in ascending order of associated COUNT
     deliver_all_consecutive_counts();
   }
 
+  // 判断是否要停止或启动t-reordering 定时器:
+  //	1、如果定时器正在运行且更新后的RX_DELIV>=RX_REORD,停止定时器;
+  //    2、如果定时没有运行（包括因前述行为停止的）且更新后的RX_DELIV < RX_NEXT，启动定时器，并设置RX_REORD=RX_NEXT;
+
   // Handle reordering timers
-  if (reordering_timer.is_running() and rx_deliv >= rx_reord) {
-    reordering_timer.stop();
-    logger.debug("Stopped t-Reordering - RX_DELIV=%d, RX_REORD=%ld", rx_deliv, rx_reord);
+  if ((true == pdcp_nr->reordering_timer.running) && (pdcp_nr->rx_deliv >= pdcp_nr->rx_reord)) {
+    gnb_timer_stop(pdcp_nr->reordering_timer);
+    oset_debug("Stopped t-Reordering - RX_DELIV=%d, RX_REORD=%ld", pdcp_nr->rx_deliv, pdcp_nr->rx_reord);
   }
 
-  if (cfg.t_reordering != pdcp_t_reordering_t::infinity) {
-    if (not reordering_timer.is_running() and rx_deliv < rx_next) {
-      rx_reord = rx_next;
-      reordering_timer.run();
-      logger.debug("Started t-Reordering - RX_REORD=%ld, RX_DELIV=%ld, RX_NEXT=%ld", rx_reord, rx_deliv, rx_next);
+  if (pdcp_nr->base.cfg.t_reordering != (pdcp_t_reordering_t)infinity) {
+    if ((false == pdcp_nr->reordering_timer.running) && (pdcp_nr->rx_deliv < pdcp_nr->rx_next)) {
+      pdcp_nr->rx_reord = pdcp_nr->rx_next;
+      gnb_timer_start(pdcp_nr->reordering_timer, pdcp_nr->base.cfg.t_reordering);
+      oset_debug("Started t-Reordering - RX_REORD=%ld, RX_DELIV=%ld, RX_NEXT=%ld", pdcp_nr->rx_reord, pdcp_nr->rx_deliv, pdcp_nr->rx_next);
     }
   }
 
-  logger.debug("Rx PDCP state - RX_NEXT=%u, RX_DELIV=%u, RX_REORD=%u", rx_next, rx_deliv, rx_reord);
+  oset_debug("Rx PDCP state - RX_NEXT=%u, RX_DELIV=%u, RX_REORD=%u", pdcp_nr->rx_next, pdcp_nr->rx_deliv, pdcp_nr->rx_reord);
 }
 
 

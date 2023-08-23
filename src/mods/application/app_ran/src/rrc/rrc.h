@@ -72,6 +72,8 @@ void API_rrc_mac_set_activity_user(uint16_t rnti);
 int API_rrc_mac_update_user(uint16_t prev_rnti, uint16_t rnti);
 /**********************rlc api****************************************/
 void API_rrc_rlc_write_ul_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu);
+/**********************pdcp api****************************************/
+void API_rrc_pdcp_notify_integrity_error(uint16_t rnti, uint32_t lcid);
 
 #ifdef __cplusplus
 }

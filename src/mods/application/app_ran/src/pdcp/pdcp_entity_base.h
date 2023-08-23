@@ -59,27 +59,22 @@ typedef struct {
 	//rolling_average_t(double) tx_pdu_ack_latency_ms;//lte
 }pdcp_entity_base;
 
-inline uint32_t pdcp_HFN(pdcp_config_t *cfg, uint32_t count)
-{
-  return (count >> cfg->sn_len);
-}
 
-inline uint32_t pdcp_SN(pdcp_config_t *cfg, uint32_t count)
-{
-  return count & (0xFFFFFFFF >> (32 - cfg->sn_len));
-}
-
-inline uint32_t pdcp_COUNT(pdcp_config_t *cfg, uint32_t hfn, uint32_t sn)
-{
-  return (hfn << cfg->sn_len) | sn;
-} 
-
-
+bool is_srb(pdcp_entity_base *base);
+bool is_drb(pdcp_entity_base *base);
+uint32_t pdcp_HFN(pdcp_entity_base *base, uint32_t count);
+uint32_t pdcp_SN(pdcp_entity_base *base, uint32_t count);
+uint32_t pdcp_COUNT(pdcp_entity_base *base, uint32_t hfn, uint32_t sn);
 void pdcp_entity_base_init(pdcp_entity_base *base, uint32_t         lcid_, uint16_t rnti_, oset_apr_memory_pool_t *usepool);
 void pdcp_entity_base_stop(pdcp_entity_base *base);
 void pdcp_entity_base_config_security(pdcp_entity_base *base, struct as_security_config_t *sec_cfg_);
 void pdcp_entity_base_enable_integrity(pdcp_entity_base *base, srsran_direction_t direction);
 void pdcp_entity_base_enable_encryption(pdcp_entity_base *base, srsran_direction_t direction);
+uint32_t pdcp_entity_base_read_data_header(pdcp_entity_base *base, byte_buffer_t *pdu);
+void pdcp_entity_base_cipher_decrypt(pdcp_entity_base *base, uint8_t *ct, uint32_t ct_len, uint32_t count, uint8_t *msg);
+void pdcp_entity_base_extract_mac(byte_buffer_t *pdu, uint8_t *mac);
+bool pdcp_entity_base_integrity_verify(pdcp_entity_base *base, uint8_t *msg, uint32_t msg_len, uint32_t count, uint8_t *mac);
+void pdcp_entity_base_discard_data_header(pdcp_entity_base *base, byte_buffer_t *pdu);
 
 #ifdef __cplusplus
 }

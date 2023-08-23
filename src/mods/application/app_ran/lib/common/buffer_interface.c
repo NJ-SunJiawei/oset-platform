@@ -71,7 +71,7 @@ byte_buffer_t* byte_buffer_change(oset_pkbuf_t *buf)
 	return p;
 }
 
-byte_buffer_t*  byte_buffer_clear(byte_buffer_t *p)
+byte_buffer_t* byte_buffer_clear(byte_buffer_t *p)
 {
 	memset(p, 0, sizeof(byte_buffer_t));
 	p->msg	   = &p->buffer[SRSRAN_BUFFER_HEADER_OFFSET];

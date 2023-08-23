@@ -520,6 +520,10 @@ static void rrc_write_ul_pdu_interface(uint16_t rnti, uint32_t lcid, byte_buffer
 	rrc_handle_pdu(rnti, lcid, pdu);
 }
 
+static void rrc_notify_pdcp_integrity_error(uint16_t rnti, uint32_t lcid)
+{
+	// todo
+}
 
 static void gnb_rrc_task_handle(msg_def_t *msg_p, uint32_t msg_l)
 {
@@ -602,11 +606,18 @@ int API_rrc_mac_update_user(uint16_t prev_rnti, uint16_t rnti)
 }
 
 /*******************************************************************************
-RRC interface
+RLC interface
 *******************************************************************************/
 void API_rrc_rlc_write_ul_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
 {
 	return rrc_write_ul_pdu_interface(rnti, lcid, pdu);
 }
 
+/*******************************************************************************
+PDCP interface
+*******************************************************************************/
+void API_rrc_pdcp_notify_integrity_error(uint16_t rnti, uint32_t lcid)
+{
+	return rrc_notify_pdcp_integrity_error(rnti, lcid);
+}
 

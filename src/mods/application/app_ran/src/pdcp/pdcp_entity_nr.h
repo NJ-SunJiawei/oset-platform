@@ -25,7 +25,7 @@ typedef void (*_reordering_callback)(void *);
 typedef struct pdcp_nr_pdu {
 	oset_lnode_t       lnode;
 	uint32_t           count;
-	byte_buffer_t      buffer;
+	byte_buffer_t      *buffer;
 } pdcp_nr_pdu_t;
 
 // 所有状态变量是非负整数，取值从0 到 [2^32 – 1]. 
@@ -56,7 +56,6 @@ typedef struct {
 
 	// Reordering Queue / Timers
 	oset_list_t   reorder_list;//std::map<uint32_t, byte_buffer_t>//oset_stl_heap_t
-	oset_hash_t   *reorder_hash;
 	// 接收测：重排序定时器，一个接收侧实体同时只能启动一个。用于检测丢包（序号不连续），
 	// 超时后和RLC的UM模式的重组定时器超时类似，接收侧只是简单的向上层递交，不要求对端重传
 	gnb_timer_t   *reordering_timer;
