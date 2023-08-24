@@ -103,6 +103,8 @@ void rlc_tm_write_ul_pdu(rlc_common* tm_common, uint8_t* payload, uint32_t nof_b
 			tm->metrics.num_rx_pdus++;
 			oset_apr_mutex_unlock(tm->metrics_mutex);
 		}
+
+		// gnb_rrc_task_handle??? push queue
 		if (srb_to_lcid(srb0) == tm_common->lcid) {
 			API_rrc_rlc_write_ul_pdu(tm_common->rnti, tm_common->lcid, sdu);
 		} else {

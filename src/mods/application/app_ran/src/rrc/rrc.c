@@ -621,3 +621,8 @@ void API_rrc_pdcp_notify_integrity_error(uint16_t rnti, uint32_t lcid)
 	return rrc_notify_pdcp_integrity_error(rnti, lcid);
 }
 
+void API_rrc_pdcp_write_ul_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
+{
+	return rrc_write_ul_pdu_interface(rnti, lcid, pdu);
+}
+

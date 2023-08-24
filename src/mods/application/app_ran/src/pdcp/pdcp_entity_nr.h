@@ -75,7 +75,7 @@ typedef struct {
 
 pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_, oset_apr_memory_pool_t	*usepool);
 void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr);
-bool pdcp_entity_nr_configure(pdcp_entity_nr* pdcp_nr, pdcp_config_t *cnfg_);
+bool pdcp_entity_nr_configure(pdcp_entity_nr *pdcp_nr, pdcp_config_t *cnfg_);
 pdcp_bearer_metrics_t pdcp_entity_nr_get_metrics(pdcp_entity_nr *pdcp_nr);
 void pdcp_entity_nr_reset_metrics(pdcp_entity_nr *pdcp_nr);
 

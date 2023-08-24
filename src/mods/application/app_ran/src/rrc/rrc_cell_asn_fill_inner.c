@@ -1015,6 +1015,34 @@ int fill_master_cell_cfg_from_enb_cfg_inner(rrc_nr_cfg_t *cfg, uint32_t cc, stru
   return OSET_OK;
 }
 
+// RRC定义了三种SRB：SRB0，SRB1，SRB2，SRB3
+// (1) SRB0
+// 使用CCCH逻辑信道，用于RRC连接建立/重建过程。一直存在。
+// SRB0没有加密和完整性保护。
+// SRB0上承载的信令有：RRCConnectionRequest、RRCConnectionReject、RRCConnectionSetup和RRCConnectionReestablishmentRequest、RRCConnectionReestablishment、RRCConnectionReestablishmentReject。
+// (2)SRB1
+// 使用DCCH信道，由RRC连接建立时建立。
+// 当初始安全激活之后，SRB1有加密和完整性保护。
+// SRB1承载所有RRC信令和部分NAS信令（SRB2未建立前）
+// (3)SRB2
+// 使用DCCH信道，由RRC重配时建立，初始安全激活后。
+// SRB2承载NAS信令。
+// (4)SRB3
+// 只用于NSA组网，用在SCG上面
+// 用于UE和SgNB之间传输一些特定的RRC消息，全部使用DCCH逻辑信道。
+// SRB2上传送的RRC信令非常少，只有两 种：UL information transfer以及DL information transfer消息
+// 在SRB2没有建立的时候，UL information transfer以及DL information transfer消息也会通过SRB1来传，
+// 比如附着过程中获取终端ID的信令流程。这样做有一个缺点，安全性没有保证
+
+// |      |    rrcsetup rq                 |pdi  1          |pdu seesion ID
+// |      |    rrcsetup                    |qfi  1          |qod flow ID
+// |      |                                |5qi  7/9        |fiveqi
+// |rrc   |srb   0           1    2    3   |drb  1          |SDAP
+// |      |--------------------------------|--------------- |
+// |rlc   |     TM           AM   AM   AM  |     UM/AM      |rlc
+// |      |--------------------------------|--------------- |
+// |mac   |lcid  0           1    2    3   |     4          |mac
+
 int fill_cellgroup_with_radio_bearer_cfg_inner(rrc_nr_cfg_t *              cfg,
                                          uint32_t                  rnti,
                                          enb_bearer_manager        *bearer_mapper,
@@ -1028,6 +1056,7 @@ int fill_cellgroup_with_radio_bearer_cfg_inner(rrc_nr_cfg_t *              cfg,
 	cvector_for_each_in(srb, bearers->srb_to_add_mod_list){
 		// Add SRBs
 		struct rlc_bearer_cfg_s bearer_to_add_out= {0};
+		// rlc config
 		fill_srb_inner(cfg, srb->srb_id, &bearer_to_add_out);
 		cvector_push_back(out->rlc_bearer_to_add_mod_list, bearer_to_add_out);
 	}
@@ -1035,10 +1064,11 @@ int fill_cellgroup_with_radio_bearer_cfg_inner(rrc_nr_cfg_t *              cfg,
 	struct drb_to_add_mod_s *drb = NULL;
 	cvector_for_each_in(drb, bearers->drb_to_add_mod_list){
 		struct rlc_bearer_cfg_s drb_to_add_out= {0};
-		uint32_t lcid        = drb->drb_id + (nr_srb)count - 1;
+		uint32_t lcid        = drb->drb_id + ((nr_srb)count - 1);
 		radio_bearer_t *rb   = get_lcid_bearer(bearer_mapper, rnti, lcid);
 		rrc_nr_cfg_five_qi_t *cfg_five_qi = oset_hash_get(cfg->five_qi_cfg, rb->five_qi, sizeof(uint32_t));
 		if (is_valid(rb) && NULL != cfg_five_qi) {
+			// rlc config
 	  		fill_drb_inner(cfg_five_qi, rb, (nr_drb)drb->drb_id, &drb_to_add_out);
 		} else {
 	 		return OSET_ERROR;

@@ -13,7 +13,7 @@
 
 bool is_valid(radio_bearer_t *rb) 
 { 
-	return rb->rat != NULL; 
+	return rb->rat != (srsran_rat_t)nulltype; 
 }
 
 void eps_bearer_id_set_lcid(ue_bearer_manager_impl *user, uint32_t *lcid, uint8_t *eps_bearer_id)
@@ -43,19 +43,19 @@ radio_bearer_t *radio_bearer_find_by_eps_bearer_id(ue_bearer_manager_impl *user,
     return (radio_bearer_t *)oset_hash_get(user->bearers, &eps_bearer_id, sizeof(eps_bearer_id));
 }
 
-radio_bearer_t* ue_bearer_manager_impl_get_eps_bearer_id_for_lcid(ue_bearer_manager_impl *user, uint32_t lcid)
+radio_bearer_t* ue_bearer_manager_get_eps_bearer_id_for_lcid(ue_bearer_manager_impl *user, uint32_t lcid)
 {
 	uint8_t *lcid_it = eps_bearer_id_find_by_lcid(user, lcid);
 	return lcid_it != NULL ?radio_bearer_find_by_eps_bearer_id(user, *lcid_it) : NULL;
 }
 
-radio_bearer_t* ue_bearer_manager_impl_get_radio_bearer(ue_bearer_manager_impl *user, uint8_t eps_bearer_id)
+radio_bearer_t* ue_bearer_manager_get_radio_bearer(ue_bearer_manager_impl *user, uint8_t eps_bearer_id)
 {
 	radio_bearer_t * it = radio_bearer_find_by_eps_bearer_id(user, eps_bearer_id);
 	return it;
 }
 
-bool ue_bearer_manager_impl_add_eps_bearer(ue_bearer_manager_impl *user, uint8_t eps_bearer_id, srsran_rat_t rat, uint32_t lcid)
+bool ue_bearer_manager_add_eps_bearer(ue_bearer_manager_impl *user, uint8_t eps_bearer_id, srsran_rat_t rat, uint32_t lcid)
 {
 	radio_bearer_t *bearer_it = radio_bearer_find_by_eps_bearer_id(user, eps_bearer_id);
 	if (bearer_it != NULL) {
@@ -72,7 +72,7 @@ bool ue_bearer_manager_impl_add_eps_bearer(ue_bearer_manager_impl *user, uint8_t
 	return true;
 }
 
-bool ue_bearer_manager_impl_remove_eps_bearer(ue_bearer_manager_impl *user, uint8_t eps_bearer_id)
+bool ue_bearer_manager_remove_eps_bearer(ue_bearer_manager_impl *user, uint8_t eps_bearer_id)
 {
 	radio_bearer_t *bearer_it = radio_bearer_find_by_eps_bearer_id(user, eps_bearer_id);
 	if (bearer_it == NULL) {
@@ -85,7 +85,7 @@ bool ue_bearer_manager_impl_remove_eps_bearer(ue_bearer_manager_impl *user, uint
 	return true;
 }
 
-ue_bearer_manager_impl *ue_bearer_manager_impl_init(uint16_t rnti)
+ue_bearer_manager_impl *ue_bearer_manager_init(uint16_t rnti)
 {
 	ue_bearer_manager_impl *user = oset_malloc(sizeof(*user));
 	ASSERT_IF_NOT(user, "Could not allocate sched ue %d context from pool");
@@ -107,13 +107,13 @@ void add_eps_bearer(enb_bearer_manager *bearer_mapper, uint16_t rnti, uint8_t ep
 	ue_bearer_manager_impl *user_it = ue_bearer_manager_find_by_rnti(bearer_mapper, rnti);
 	if (user_it == NULL) {
 		// add empty bearer map
-		ue_bearer_manager_impl *user = ue_bearer_manager_impl_init(rnti);
+		ue_bearer_manager_impl *user = ue_bearer_manager_init(rnti);
 		oset_assert(user);
 		oset_hash_set(bearer_mapper->users_map, &user->rnti, sizeof(user->rnti), NULL);
 		oset_hash_set(bearer_mapper->users_map, &user->rnti, sizeof(user->rnti), user);
 	}
 
-	if (ue_bearer_manager_impl_add_eps_bearer(eps_bearer_id, rat, lcid)) {
+	if (ue_bearer_manager_add_eps_bearer(eps_bearer_id, rat, lcid)) {
 		oset_info("Bearers: Registered eps-BearerID=%d for rnti=0x%x, lcid=%d over %s-PDCP",
 		            eps_bearer_id,
 		            rnti,
@@ -132,7 +132,7 @@ void remove_eps_bearer(enb_bearer_manager *bearer_mapper, uint16_t rnti, uint8_t
 		return;
 	}
 
-	if (ue_bearer_manager_impl_remove_eps_bearer(user_it, eps_bearer_id)) {
+	if (ue_bearer_manager_remove_eps_bearer(user_it, eps_bearer_id)) {
 		oset_info("Bearers: Removed mapping for EPS bearer ID %d for rnti=0x%x", eps_bearer_id, rnti);
 	} else {
 		oset_info("Bearers: Can't remove EPS bearer ID %d, rnti=0x%x", eps_bearer_id, rnti);
@@ -161,7 +161,7 @@ radio_bearer_t* get_lcid_bearer(enb_bearer_manager *bearer_mapper, uint16_t rnti
 	if (user_it == NULL) {
     	return NULL;
   	}
-  	return ue_bearer_manager_impl_get_eps_bearer_id_for_lcid(user_it, lcid);
+  	return ue_bearer_manager_get_eps_bearer_id_for_lcid(user_it, lcid);
 }
 
 radio_bearer_t *get_radio_bearer(enb_bearer_manager *bearer_mapper, uint16_t rnti, uint32_t eps_bearer_id)
@@ -171,6 +171,6 @@ radio_bearer_t *get_radio_bearer(enb_bearer_manager *bearer_mapper, uint16_t rnt
     	return NULL;
   	}
 
-  	return ue_bearer_manager_impl_get_radio_bearer(user_it, eps_bearer_id);
+  	return ue_bearer_manager_get_radio_bearer(user_it, eps_bearer_id);
 }
 

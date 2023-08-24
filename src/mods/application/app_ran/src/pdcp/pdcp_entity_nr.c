@@ -13,11 +13,53 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-pdcpNR"
 
+static void pass_to_upper_layers(pdcp_entity_nr *pdcp_nr, pdcp_nr_pdu_t *pdu)
+{
+  // gnb_rrc_task_handle??? push queue
+  if (is_srb(&pdcp_nr->base)) {
+    API_rrc_pdcp_write_ul_pdu(pdcp_nr->base.rnti, pdcp_nr->base.lcid, pdu->buffer);
+  } else {
+    gw->write_pdu(lcid, pdu);
+  }
+  oset_free(pdu->buffer);
+  oset_free(pdu);
+}
+
+
+// Deliver all consecutively associated COUNTs.
+// Update RX_NEXT after submitting to higher layers
+static void deliver_all_consecutive_counts(pdcp_entity_nr *pdcp_nr)
+{
+  for (pdcp_nr_pdu_t *pdu = oset_list_first(&pdcp_nr->reorder_list);\
+		(pdu) && (pdu->count == pdcp_nr->rx_deliv);\
+        pdu = oset_list_next(pdu)){
+    oset_debug("Delivering SDU with RCVD_COUNT %u", pdu->count);
+
+    // Check RX_DELIV overflow
+    if (pdcp_nr->rx_overflow) {
+      oset_warn("RX_DELIV has overflowed. Droping packet");
+      return;
+    }
+
+	// pdcp_nr->rx_deliv = -1 (0xFFFFFFFF)
+    if (pdcp_nr->rx_deliv + 1 == 0) {
+      pdcp_nr->rx_overflow = true;
+    }
+
+    // Pass PDCP SDU to the next layers
+    pass_to_upper_layers(pdcp_nr, pdu);
+
+    // Update RX_DELIV
+    pdcp_nr->rx_deliv = pdcp_nr->rx_deliv + 1;
+  }
+}
+
+
 /*
  * Timers
  */
 // Reordering Timer Callback (t-reordering)
-void reordering_callback(void *data)
+static void reordering_callback(void *data)
 {
 	pdcp_entity_nr *pdcp_nr = (pdcp_entity_nr *)data;
 
@@ -28,7 +70,7 @@ void reordering_callback(void *data)
 		(pdu) && (pdu->count < pdcp_nr->rx_reord);\
         pdu = oset_list_next(pdu)){
 		    // Deliver to upper layers
-		    parent->pass_to_upper_layers(std::move(it->second));
+		    pass_to_upper_layers(pdcp_nr, pdu);
 			oset_list_remove(&pdcp_nr->reorder_list, pdu);
 		}	
 
@@ -37,7 +79,7 @@ void reordering_callback(void *data)
 	pdcp_nr->rx_deliv = pdcp_nr->rx_reord;
 
 	// Deliver all PDCP SDU(s) consecutively associated COUNT value(s) starting from RX_REORD
-	pdcp_nr->deliver_all_consecutive_counts();
+	deliver_all_consecutive_counts(pdcp_nr);
 
 	if (pdcp_nr->rx_deliv < pdcp_nr->rx_next) {
 		oset_debug("Updating RX_REORD to %ld. Old RX_REORD=%ld, RX_DELIV=%ld",
@@ -60,7 +102,7 @@ static int count_compare(pdcp_nr_pdu_t *pdu1, pdcp_nr_pdu_t *pdu2)
 }
 
 ////////////////////////////////////////////////////////////////////////////
-bool pdcp_entity_nr_configure(pdcp_entity_nr* pdcp_nr, pdcp_config_t *cnfg_)
+bool pdcp_entity_nr_configure(pdcp_entity_nr *pdcp_nr, pdcp_config_t *cnfg_)
 {
 	char name[64] = {0};
 	if (pdcp_nr->base.active) {
@@ -235,7 +277,7 @@ void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
       API_rrc_pdcp_notify_integrity_error(pdcp_nr->base.rnti, pdcp_nr->base.lcid);
       return; // Invalid packet, drop.
     } else {
-      oset_debug(pdu->msg, pdu->N_bytes, "%s: Integrity verification successful", rb_name.c_str());
+      oset_debug(pdu->msg, pdu->N_bytes, "%s: Integrity verification successful", pdcp_nr->base.rb_name;
     }
   }
 
@@ -280,7 +322,7 @@ void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
 
   if (rcvd_count == pdcp_nr->rx_deliv) {
     // Deliver to upper layers in ascending order of associated COUNT
-    deliver_all_consecutive_counts();
+    deliver_all_consecutive_counts(pdcp_nr);
   }
 
   // 判断是否要停止或启动t-reordering 定时器:
@@ -303,7 +345,6 @@ void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
 
   oset_debug("Rx PDCP state - RX_NEXT=%u, RX_DELIV=%u, RX_REORD=%u", pdcp_nr->rx_next, pdcp_nr->rx_deliv, pdcp_nr->rx_reord);
 }
-
 
 pdcp_bearer_metrics_t pdcp_entity_nr_get_metrics(pdcp_entity_nr *pdcp_nr)
 {
