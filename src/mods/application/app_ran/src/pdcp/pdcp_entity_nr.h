@@ -20,13 +20,18 @@ extern "C" {
  * NR PDCP Entity
  * PDCP entity for 5G NR
  ***************************************************************************/
-typedef void (*_reordering_callback)(void *);
-
 typedef struct pdcp_nr_pdu {
 	oset_lnode_t       lnode;
 	uint32_t           count;
 	byte_buffer_t      *buffer;
 } pdcp_nr_pdu_t;
+
+typedef struct discard_pdu {
+	oset_lnode_t    lnode;
+	uint32_t		discard_sn;
+	pdcp_entity_nr  *pdcp_nr;
+	gnb_timer_t     *discard_timer;
+} discard_timer_t;
 
 // 所有状态变量是非负整数，取值从0 到 [2^32 – 1]. 
 // PDCP Data PDUs 的整数序列号 (SN) 循环范围:从 0到 2^pdcp-SN-Size – 1.
@@ -62,7 +67,7 @@ typedef struct {
 
 	// Discard callback (discardTimer)
 	// 发送侧: DRB丢弃定时器，只有DRB才有，发送侧对每一个SDU都会启动一个定时器，超时后丢弃该SDU。用于防止发送缓冲拥塞
-	oset_hash_t  *discard_timers_map;//std::map<uint32_t, timer_handler::unique_timer>
+	oset_list_t  discard_timers_list;//std::map<uint32_t, timer_handler::unique_timer> //discard_timer_t
 
 	// COUNT overflow protection
 	bool tx_overflow;
@@ -73,7 +78,7 @@ typedef struct {
 	} rlc_mode;
 }pdcp_entity_nr;
 
-pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_, oset_apr_memory_pool_t	*usepool);
+pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_);
 void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr);
 bool pdcp_entity_nr_configure(pdcp_entity_nr *pdcp_nr, pdcp_config_t *cnfg_);
 pdcp_bearer_metrics_t pdcp_entity_nr_get_metrics(pdcp_entity_nr *pdcp_nr);

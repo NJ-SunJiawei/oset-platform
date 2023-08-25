@@ -24,6 +24,7 @@ typedef struct {
 	uint16_t		         rnti;
 	//OSET_POOL(pool, byte_buffer_t);// 256
 	oset_hash_t              *rlc_array; //std::map<uint16_t lcid, std::unique_ptr<rlc_common>>
+	cvector_vector_t(uint32_t) valid_lcids_cached;
 	//oset_hash_t              *rlc_array_mrb;// mrb 组播/多播技术
 	//oset_apr_thread_rwlock_t *rwlock;
 	uint32_t                 default_lcid;
@@ -43,6 +44,7 @@ void rlc_lib_write_ul_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, uint3
 uint32_t rlc_lib_read_dl_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
 void rlc_lib_write_dl_sdu(rlc_lib_t *rlc, uint32_t lcid, byte_buffer_t *sdu);
 bool rlc_lib_rb_is_um(rlc_lib_t *rlc, uint32_t lcid);
+bool rlc_lib_sdu_queue_is_full(rlc_lib_t *rlc, uint32_t lcid);
 
 
 #ifdef __cplusplus

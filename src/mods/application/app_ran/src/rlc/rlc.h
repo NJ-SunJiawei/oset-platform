@@ -58,8 +58,8 @@ void API_rlc_rrc_add_bearer(uint16_t rnti, uint32_t lcid, rlc_config_t *cnfg);
 void API_rlc_rrc_del_bearer(uint16_t rnti, uint32_t lcid);
 void API_rlc_rrc_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu);
 /**********************pdcp api****************************************/
-
 bool API_rlc_pdcp_rb_is_um(uint16_t rnti, uint32_t lcid);
+bool API_rlc_pdcp_sdu_queue_is_full(uint16_t rnti, uint32_t lcid);
 
 
 #ifdef __cplusplus

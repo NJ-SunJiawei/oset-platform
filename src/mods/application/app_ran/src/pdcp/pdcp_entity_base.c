@@ -29,9 +29,8 @@ uint32_t pdcp_COUNT(pdcp_entity_base *base, uint32_t hfn, uint32_t sn)
   return (hfn << base->cfg.sn_len) | sn;
 } 
 
-void pdcp_entity_base_init(pdcp_entity_base *base, uint32_t         lcid_, uint16_t rnti_, oset_apr_memory_pool_t *usepool)
+void pdcp_entity_base_init(pdcp_entity_base *base, uint32_t         lcid_, uint16_t rnti_)
 {
-	base->usepool              = usepool;
 	base->active               = false;
 	base->rnti                 = rnti_;
 	base->lcid                 = lcid_;
@@ -55,7 +54,6 @@ void pdcp_entity_base_init(pdcp_entity_base *base, uint32_t         lcid_, uint1
 
 void pdcp_entity_base_stop(pdcp_entity_base *base)
 {
-	base->usepool              = NULL;
 	base->active               = false;
 }
 

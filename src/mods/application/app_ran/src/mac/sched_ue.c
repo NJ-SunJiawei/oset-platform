@@ -78,6 +78,7 @@ bool pdu_builder_alloc_subpdus(pdu_builder           *pdu_builders, uint32_t rem
 	}
 
 	// todo ???? 为啥不记录长度 ???? 应该用令牌桶
+	// srslte令牌桶函数 <<==>> lch_ue_manager::alloc_rlc_pdu
 	// Second step: allocate the remaining LCIDs (LCIDs for MAC CEs are addressed above)
 	for (uint32_t lcid = 0; rem_bytes > 0 && is_lcid_valid(lcid); ++lcid) {
 		uint32_t pending_lcid_bytes = get_dl_tx_total_inner(&pdu_builders->parent->base_ue, lcid);

@@ -165,6 +165,7 @@ typedef struct {
 	uint32_t (*_read_dl_pdu)(rlc_common*, uint8_t*, uint32_t);
 	void (*_write_dl_sdu)(rlc_common*, byte_buffer_t*);
 	void (*_get_mode)(void);
+	void (*_sdu_queue_is_full)(void);
 	void (*_stop)(rlc_common*);
 }rlc_func_entity;
 

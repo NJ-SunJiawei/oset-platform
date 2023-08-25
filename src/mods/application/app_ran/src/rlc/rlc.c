@@ -133,9 +133,7 @@ static void rlc_add_bearer(uint16_t rnti, uint32_t lcid, rlc_config_t *cnfg)
 {
 	//oset_apr_thread_rwlock_wrlock(rlc_manager.rwlock);
 	rlc_user_interface* user = rlc_user_interface_find_by_rnti(rnti);
-	if (NULL == user) {
-		oset_warn("can't find rlc interface by rnti=0x%x", rnti);
-	}else{
+	if (user)
 		rlc_lib_add_bearer(&user->rlc,lcid, cnfg);
 	}
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
@@ -145,9 +143,7 @@ static void rlc_del_bearer(uint16_t rnti, uint32_t lcid)
 {
 	//oset_apr_thread_rwlock_wrlock(rlc_manager.rwlock);
 	rlc_user_interface* user = rlc_user_interface_find_by_rnti(rnti);
-	if (NULL == user) {
-		oset_warn("can't find rlc interface by rnti=0x%x", rnti);
-	}else{
+	if (user) {
 		rlc_lib_del_bearer(&user->rlc,lcid);
 	}
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
@@ -158,13 +154,24 @@ static bool rlc_rb_is_um(uint16_t rnti, uint32_t lcid)
 	bool ret = false;
 	//oset_apr_thread_rwlock_wrlock(rlc_manager.rwlock);
 	rlc_user_interface* user = rlc_user_interface_find_by_rnti(rnti);
-	if (NULL == user) {
-		oset_warn("can't find rlc interface by rnti=0x%x", rnti);
-	}else{
+	if (user) {
 		ret = rlc_lib_rb_is_um(&user->rlc, lcid);
 	}
 	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 	return ret;
+}
+
+static bool rlc_sdu_queue_is_full(uint16_t rnti, uint32_t lcid)
+{
+  bool ret = false;
+  //oset_apr_thread_rwlock_wrlock(rlc_manager.rwlock);
+  rlc_user_interface* user = rlc_user_interface_find_by_rnti(rnti);
+  if (user) {
+    ret = rlc_lib_sdu_queue_is_full(&user->rlc, lcid);
+  }
+  //oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
+
+  return ret;
 }
 
 /*******************************************************************************
@@ -215,6 +222,10 @@ bool API_rlc_pdcp_rb_is_um(uint16_t rnti, uint32_t lcid)
 	rlc_rb_is_um(rnti, lcid);
 }
 
+bool API_rlc_pdcp_sdu_queue_is_full(uint16_t rnti, uint32_t lcid)
+{
+	rlc_sdu_queue_is_full(rnti, lcid);
+}
 
 /*******************************************************************************
 MAC interface

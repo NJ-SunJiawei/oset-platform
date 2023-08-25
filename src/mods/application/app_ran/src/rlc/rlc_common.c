@@ -14,7 +14,7 @@
 void rlc_common_init(rlc_common *common, char *rb_name, uint16_t rnti, uint32_t lcid, rlc_mode_t mode, oset_apr_memory_pool_t *usepool)
 {
 	common->usepool = usepool;
-	common->rb_name = oset_core_strdup(usepool, rb_name);
+	common->rb_name = oset_strdup(rb_name);
 	common->suspended = false;
 	common->rnti = rnti;
 	common->lcid = lcid;
@@ -31,8 +31,8 @@ void rlc_common_init(rlc_common *common, char *rb_name, uint16_t rnti, uint32_t 
 
 void rlc_common_destory(rlc_common *common)
 {
+	oset_free(common->rb_name);
 	oset_pool_final(&common->resume_pool);
-
 	oset_queue_term(common->rx_pdu_resume_queue);
 	oset_queue_destroy(common->rx_pdu_resume_queue);
 	oset_queue_term(common->tx_sdu_resume_queue);

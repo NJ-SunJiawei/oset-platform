@@ -24,8 +24,7 @@ typedef struct {
 	//oset_hash_t              *pdcp_array_mrb;
 	// cache valid lcids to be checked from separate thread
 	oset_apr_mutex_t		 *cache_mutex;
-	cvector_vector_t(uint32_t) valid_lcids_cached;
-	// oset_rbtree_t      valid_lcids_cached;
+	cvector_vector_t(uint32_t) valid_lcids_cached;// oset_list_t
 
 	// Timer needed for metrics calculation
 	oset_time_t              metrics_tp;

@@ -43,7 +43,6 @@ static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU", "Data PD
  * Common interface for LTE and NR PDCP entities
  ***************************************************************************/
 typedef struct {
-	oset_apr_memory_pool_t	 *usepool;
 	bool               active;// false
 	uint16_t 		   rnti;
 	uint32_t           lcid;
@@ -65,7 +64,7 @@ bool is_drb(pdcp_entity_base *base);
 uint32_t pdcp_HFN(pdcp_entity_base *base, uint32_t count);
 uint32_t pdcp_SN(pdcp_entity_base *base, uint32_t count);
 uint32_t pdcp_COUNT(pdcp_entity_base *base, uint32_t hfn, uint32_t sn);
-void pdcp_entity_base_init(pdcp_entity_base *base, uint32_t         lcid_, uint16_t rnti_, oset_apr_memory_pool_t *usepool);
+void pdcp_entity_base_init(pdcp_entity_base *base, uint32_t         lcid_, uint16_t rnti_);
 void pdcp_entity_base_stop(pdcp_entity_base *base);
 void pdcp_entity_base_config_security(pdcp_entity_base *base, struct as_security_config_t *sec_cfg_);
 void pdcp_entity_base_enable_integrity(pdcp_entity_base *base, srsran_direction_t direction);

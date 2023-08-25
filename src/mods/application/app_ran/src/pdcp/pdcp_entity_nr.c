@@ -91,6 +91,24 @@ static void reordering_callback(void *data)
 	}
 }
 
+// Discard Timer Callback (discardTimer)
+static void discard_callback(void *data)
+{
+  discard_timer_t *discard_node = (discard_timer_t *)data;
+
+  oset_debug("Discard timer expired for PDU with SN=%d", discard_node->discard_sn);
+
+  // Notify the RLC of the discard. It's the RLC to actually discard, if no segment was transmitted yet.
+  parent->rlc->discard_sdu(discard_node->pdcp_nr->base.lcid, discard_node->discard_sn);
+
+  // Remove timer from map
+  // NOTE: this will delete the callback. It *must* be the last instruction.
+  gnb_timer_delete(discard_node->discard_timer);
+  oset_list_remove(&discard_node->pdcp_nr->discard_timers_list, discard_node);
+  oset_free(discard_node);
+}
+
+
 static int count_compare(pdcp_nr_pdu_t *pdu1, pdcp_nr_pdu_t *pdu2)
 {
     if (pdu1->count == pdu2->count)
@@ -147,16 +165,15 @@ bool pdcp_entity_nr_configure(pdcp_entity_nr *pdcp_nr, pdcp_config_t *cnfg_)
 }
 
 
-pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_, oset_apr_memory_pool_t	*usepool)
+pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_)
 {
-	oset_assert(usepool);
-	pdcp_entity_nr *pdcp_nr = oset_calloc(1, sizeof(pdcp_entity_nr));
+	pdcp_entity_nr *pdcp_nr = oset_malloc(sizeof(pdcp_entity_nr));
 	ASSERT_IF_NOT(pdcp_nr, "lcid %u Could not allocate pdcp nr context from pool", lcid_);
 	memset(pdcp_nr, 0, sizeof(pdcp_entity_nr));
 
-	pdcp_entity_base_init(&pdcp_nr->base, lcid_, rnti_, usepool);
+	pdcp_entity_base_init(&pdcp_nr->base, lcid_, rnti_);
 	oset_list_init(&pdcp_nr->reorder_list);
-	pdcp_nr->discard_timers_map = oset_hash_make();
+	oset_list_init(&pdcp_nr->discard_timers_list);
 	pdcp_nr->rx_overflow = false;
 	pdcp_nr->tx_overflow = false;
 }
@@ -164,7 +181,18 @@ pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_, oset_apr_mem
 
 void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr)
 {
-	oset_hash_destroy(pdcp_nr->discard_timers_map);
+	byte_buffer_t *buffer_node = NULL;
+	oset_list_for_each(pdcp_nr->reorder_list, buffer_node){
+		oset_free(buffer_node);
+	}
+
+	discard_timer_t *timer_node = NULL;
+	oset_list_for_each(&pdcp_nr->discard_timers_list, timer_node){
+		gnb_timer_delete(timer_node->discard_timer);
+		oset_free(timer_node);
+	}
+	
+	gnb_timer_delete(pdcp_nr->reordering_timer);
 	pdcp_entity_base_stop(&pdcp_nr->base);
 	oset_free(pdcp_nr);
 }
@@ -345,6 +373,95 @@ void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
 
   oset_debug("Rx PDCP state - RX_NEXT=%u, RX_DELIV=%u, RX_REORD=%u", pdcp_nr->rx_next, pdcp_nr->rx_deliv, pdcp_nr->rx_reord);
 }
+
+// SDAP/RRC interface
+void pdcp_entity_nr_write_dl_sdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *sdu)
+{
+  // Log SDU
+  oset_info(sdu->msg,
+              sdu->N_bytes,
+              "TX %s SDU (%dB), integrity=%s, encryption=%s",
+              pdcp_nr->base.rb_name,
+              sdu->N_bytes,
+              srsran_direction_text[pdcp_nr->base.integrity_direction],
+              srsran_direction_text[pdcp_nr->base.encryption_direction]);
+
+  if (API_rlc_pdcp_sdu_queue_is_full(pdcp_nr->base.rnti, pdcp_nr->base.lcid)) {
+  	oset_info("Dropping %s SDU due to full queue", pdcp_nr->base.rb_name);
+	oset_log2_hexdump(OSET_LOG2_INFO, sdu->msg, sdu->N_bytes);
+    return;
+  }
+
+  // Check for COUNT overflow 0xFFFFFFFF
+  if (pdcp_nr->tx_overflow) {
+    oset_warn("TX_NEXT has overflowed. Dropping packet");
+    return;
+  }
+  // pdcp_nr->tx_next = -1 (0xFFFFFFFF)
+  if (pdcp_nr->tx_next + 1 == 0) {
+    pdcp_nr->tx_overflow = true;
+  }
+
+  // Start discard timer
+  // DRB丢弃定时器，只有DRB才有，防止阻塞
+  if (pdcp_nr->base.cfg.discard_timer != (pdcp_discard_timer_t)infinity) {
+	discard_timer_t *discard_node = oset_malloc(sizeof(discard_timer_t));
+	oset_assert(discard_node);
+	discard_node->discard_sn = pdcp_nr->tx_next;
+	discard_node->pdcp_nr = pdcp_nr;
+    discard_node->discard_timer = gnb_timer_add(gnb_manager_self()->app_timer, discard_callback, discard_node);
+	gnb_timer_start(discard_node->discard_timer, pdcp_nr->base.cfg.discard_timer);
+	oset_list_add(&pdcp_nr->discard_timers_list, discard_node);
+    oset_debug("Discard Timer set for SN %u. Timeout: %ums", pdcp_nr->tx_next, (uint32_t)(pdcp_nr->base.cfg.discard_timer));
+  }
+
+  // Perform header compression TODO
+
+  // Write PDCP header info
+  write_data_header(sdu, tx_next);
+
+  // TS 38.323, section 5.9: Integrity protection
+  // The data unit that is integrity protected is the PDU header
+  // and the data part of the PDU before ciphering.
+  uint8_t mac[4] = {0};
+  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
+    integrity_generate(sdu->msg, sdu->N_bytes, tx_next, mac);
+  }
+  // Append MAC-I
+  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
+    append_mac(sdu, mac);
+  }
+
+  // TS 38.323, section 5.8: Ciphering
+  // The data unit that is ciphered is the MAC-I and the
+  // data part of the PDCP Data PDU except the
+  // SDAP header and the SDAP Control PDU if included in the PDCP SDU.
+  if (encryption_direction == DIRECTION_TX || encryption_direction == DIRECTION_TXRX) {
+    cipher_encrypt(
+        &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_next, &sdu->msg[cfg.hdr_len_bytes]);
+  }
+
+  // Set meta-data for RLC AM
+  sdu->md.pdcp_sn = tx_next;
+
+  logger.info(sdu->msg,
+              sdu->N_bytes,
+              "TX %s PDU (%dB), HFN=%d, SN=%d, integrity=%s, encryption=%s",
+              rb_name.c_str(),
+              sdu->N_bytes,
+              HFN(tx_next),
+              SN(tx_next),
+              srsran_direction_text[integrity_direction],
+              srsran_direction_text[encryption_direction]);
+
+  // Check if PDCP is associated with more than on RLC entity TODO
+  // Write to lower layers
+  rlc->write_sdu(lcid, std::move(sdu));
+
+  // Increment TX_NEXT
+  tx_next++;
+}
+
 
 pdcp_bearer_metrics_t pdcp_entity_nr_get_metrics(pdcp_entity_nr *pdcp_nr)
 {

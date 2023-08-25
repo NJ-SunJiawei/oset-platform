@@ -11,6 +11,32 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rlclib"
 
+static int rlc_lcid_compare(const void *a, const void *b)
+{
+	const int *x = a;
+	const int *y = b;
+	//升序
+	return *x - *y;
+}
+
+void rlc_valid_lcids_insert(rlc_lib_t *rlc, uint32_t lcid)
+{
+	uint32_t *val = NULL;
+	cvector_for_each_in(val, rlc->valid_lcids_cached){
+		if(lcid == *val) return;
+	}
+	cvector_push_back(rlc->valid_lcids_cached, lcid);
+	//qsort(rlc->valid_lcids_cached, cvector_size(rlc->valid_lcids_cached), sizeof(uint32_t), rlc_lcid_compare);
+}
+
+void rlc_valid_lcids_delete(rlc_lib_t *rlc, uint32_t lcid)
+{
+	for (int i = 0; i < cvector_size(rlc->valid_lcids_cached); i++){
+		if(rlc->valid_lcids_cached[i] = lcid){
+			cvector_erase(rlc->valid_lcids_cached, i);
+		}
+	}
+}
 
 static void rlc_lib_write_ul_pdu_suspended(rlc_common *rlc_entity, uint8_t* payload, uint32_t nof_bytes)
 {
@@ -149,6 +175,8 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
     return OSET_ERROR;
   }
 
+  rlc_valid_lcids_insert(rlc, lcid);
+
   oset_info("Added %s radio bearer with LCID %d in %s", rat_to_string(cnfg->rat), lcid, rlc_mode_to_string(cnfg->rlc_mode, true));
 
   return OSET_ERROR;
@@ -156,11 +184,13 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
 
 void rlc_lib_del_bearer(rlc_lib_t *rlc, uint32_t lcid)
 {
+	rlc_valid_lcids_delete(rlc, lcid);
+
 	//oset_apr_thread_rwlock_rdlock(rlc->rwlock);
 	if (rlc_valid_lcid(rlc, lcid)) {
 		rlc_common *it = rlc_array_find_by_lcid(rlc, lcid);
-		it->func._stop(it);
 		oset_hash_set(rlc->rlc_array, &it->lcid, sizeof(it->lcid), NULL);
+		it->func._stop(it);
 		oset_info("Deleted RLC bearer with LCID %d", lcid);
 	} else {
 		oset_error("Can't delete bearer with LCID %d. Bearer doesn't exist.", lcid);
@@ -200,18 +230,11 @@ void rlc_lib_init(rlc_lib_t *rlc, uint32_t lcid_, bsr_callback_t bsr_callback_)
 void rlc_lib_stop(rlc_lib_t *rlc)
 {
 	//oset_apr_thread_rwlock_wrlock(rlc->rwlock);
-	oset_hash_index_t *hi = NULL;
-	for (hi = oset_hash_first(rlc->rlc_array); hi; hi = oset_hash_next(hi)) {
-		uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
-		rlc_common  *it = oset_hash_this_val(hi);
-		it->func._stop(it);
+	uint32_t *val = NULL;
+	cvector_for_each_in(val, rlc->valid_lcids_cached){
+		rlc_lib_del_bearer(rlc, *val);
 	}
-
-	//for (hi = oset_hash_first(rlc->rlc_array_mrb); hi; hi = oset_hash_next(hi)) {
-	//	uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
-	//	rlc_common  *it = oset_hash_this_val(hi);
-	//	it->func._stop(it);
-	//}
+	cvector_free(rlc->valid_lcids_cached);
 
 	rlc->bsr_callback = NULL;
 	oset_hash_destroy(rlc->rlc_array);
@@ -278,8 +301,7 @@ void rlc_lib_write_dl_sdu(rlc_lib_t *rlc, uint32_t lcid, byte_buffer_t *sdu)
 bool rlc_lib_rb_is_um(rlc_lib_t *rlc, uint32_t lcid)
 {
   bool ret = false;
-  
-  rlc_common  *rlc_entity = rlc_valid_lcid(rlc, lcid);
+  rlc_common *rlc_entity = rlc_valid_lcid(rlc, lcid);
 
   if (NULL != rlc_entity) {
 	ret = (rlc_entity->func._get_mode() == (rlc_mode_t)um);
@@ -287,5 +309,16 @@ bool rlc_lib_rb_is_um(rlc_lib_t *rlc, uint32_t lcid)
 	oset_warn("LCID %d doesn't exist.", lcid);
   }
   return ret;
+}
+
+bool rlc_lib_sdu_queue_is_full(rlc_lib_t *rlc, uint32_t lcid)
+{
+  rlc_common *rlc_entity = rlc_valid_lcid(rlc, lcid);
+
+  if (NULL != rlc_entity) {
+    return rlc_entity->func._sdu_queue_is_full();
+  }
+  oset_warn("RLC LCID %d doesn't exist. Ignoring queue check", lcid);
+  return false;
 }
 

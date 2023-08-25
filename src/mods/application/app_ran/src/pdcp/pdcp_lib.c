@@ -11,7 +11,7 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-pdcplib"
 
-static int lcid_compare(const void *a, const void *b)
+static int pdcp_lcid_compare(const void *a, const void *b)
 {
 	const int *x = a;
 	const int *y = b;
@@ -26,7 +26,7 @@ void pdcp_valid_lcids_insert(pdcp_lib_t *pdcp, uint32_t lcid)
 		if(lcid == *val) return;
 	}
 	cvector_push_back(pdcp->valid_lcids_cached, lcid);
-	qsort(pdcp->valid_lcids_cached, cvector_size(pdcp->valid_lcids_cached), sizeof(uint32_t), lcid_compare);
+	qsort(pdcp->valid_lcids_cached, cvector_size(pdcp->valid_lcids_cached), sizeof(uint32_t), pdcp_lcid_compare);
 }
 
 void pdcp_valid_lcids_delete(pdcp_lib_t *pdcp, uint32_t lcid)
@@ -37,7 +37,6 @@ void pdcp_valid_lcids_delete(pdcp_lib_t *pdcp, uint32_t lcid)
 		}
 	}
 }
-
 
 pdcp_entity_nr *pdcp_array_find_by_lcid(pdcp_lib_t *pdcp, uint32_t lcid)
 {
@@ -65,15 +64,15 @@ void pdcp_lib_init(pdcp_lib_t *pdcp)
 
 void pdcp_lib_stop(pdcp_lib_t *pdcp)
 {
-	oset_hash_destroy(pdcp->pdcp_array);
-	//oset_hash_destroy(pdcp->pdcp_array_mrb);
-	oset_apr_mutex_destroy(pdcp->cache_mutex);
-
 	uint32_t *val = NULL;
 	cvector_for_each_in(val, pdcp->valid_lcids_cached){
 		pdcp_lib_del_bearer(pdcp, *val);
 	}	
 	cvector_free(pdcp->valid_lcids_cached);
+
+	oset_hash_destroy(pdcp->pdcp_array);
+	//oset_hash_destroy(pdcp->pdcp_array_mrb);
+	oset_apr_mutex_destroy(pdcp->cache_mutex);
 }
 
 
@@ -88,7 +87,7 @@ int pdcp_lib_add_bearer(pdcp_lib_t *pdcp, uint32_t lcid, pdcp_config_t *cfg)
 
 	// For now we create an pdcp entity lte for nr due to it's maturity
 	if (cfg->rat == (srsran_rat_t)nr) {
-		entity = (pdcp_entity_base *)(pdcp_entity_nr_init(lcid), pdcp->rnti, pdcp->usepool);
+		entity = (pdcp_entity_base *)(pdcp_entity_nr_init(lcid), pdcp->rnti);
 	}else{
 		oset_error("Can not support other type PDCP entity");
 		return OSET_ERROR;
@@ -129,8 +128,8 @@ void pdcp_lib_del_bearer(pdcp_lib_t *pdcp, uint32_t lcid)
 	pdcp_entity_nr *entity = pdcp_valid_lcid(pdcp, lcid);
 	if (entity) {
 		oset_info("Deleted PDCP bearer %s", entity->base.rb_name);
-		pdcp_entity_nr_stop(entity);
 		oset_hash_set(pdcp->pdcp_array, &entity->base.lcid, sizeof(entity->base.lcid), NULL);
+		pdcp_entity_nr_stop(entity);
 	} else {
 		oset_warn("Can't delete bearer with LCID=%s. Cause: bearer doesn't exist", lcid);
 	}
