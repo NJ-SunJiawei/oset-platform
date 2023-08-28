@@ -40,6 +40,7 @@ static void pack_and_queue_nr(mac_pcap *pcap,
 	//todo
     // try to allocate PDU buffer
 	pdu->pdu = oset_pkbuf_alloc(NULL, SRSRAN_MAX_BUFFER_SIZE_BYTES);
+	oset_expect_or_return_val(pdu->pdu, NULL);
     oset_pkbuf_reserve(pdu->pdu, SRSRAN_BUFFER_HEADER_OFFSET);
     if (pdu->pdu != NULL && oset_pkbuf_tailroom(pdu->pdu) >= payload_len) {
       // copy payload into PDU buffer

@@ -384,34 +384,50 @@ static void sset_load_core_config(const char *file)
 				} else if (!strcasecmp(var, "pool-size-1024")) {
 					int tmp = atoi(val);
 
-					if (tmp > 0 && tmp < 1024*100) {
+					if (tmp > 0 && tmp < 2048*100) {
 						runtime.defconfig.cluster_1024_pool = (int) tmp;
 					} else {
-						oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "pool-size-1024 must be between 0 and 1024*100");
+						oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "pool-size-1024 must be between 0 and 2048*100");
 					}
 				} else if (!strcasecmp(var, "pool-size-2048")) {
 					int tmp = atoi(val);
 
-					if (tmp > 0 && tmp < 512*100) {
+					if (tmp > 0 && tmp < 1024*100) {
 						runtime.defconfig.cluster_2048_pool = (int) tmp;
 					} else {
-						oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "pool-size-2048 must be between 0 and 512*100");
+						oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "pool-size-2048 must be between 0 and 1024*100");
 					}
 				} else if (!strcasecmp(var, "pool-size-8192")) {
 					int tmp = atoi(val);
 
-					if (tmp > 0 && tmp < 128*100) {
+					if (tmp > 0 && tmp < 512*100) {
 						runtime.defconfig.cluster_8192_pool = (int) tmp;
 					} else {
-						oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "pool-size-8192 must be between 0 and 128*100");
+						oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "pool-size-8192 must be between 0 and 512*100");
 					}
-				} else if (!strcasecmp(var, "pool-size-1024*1024")) {
+				} else if (!strcasecmp(var, "pool-size-lil")) {
+					int tmp = atoi(val);
+
+					if (tmp > 0 && tmp < 256*100) {
+						runtime.defconfig.cluster_lil_pool = (int) tmp;
+					} else {
+						oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "pool-size-lil must be between 0 and 256*100");
+					}
+				}else if (!strcasecmp(var, "pool-size-mid")) {
+					int tmp = atoi(val);
+
+					if (tmp > 0 && tmp < 128*100) {
+						runtime.defconfig.cluster_mid_pool = (int) tmp;
+					} else {
+						oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "pool-size-mid must be between 0 and 128*100");
+					}
+				}else if (!strcasecmp(var, "pool-size-big")) {
 					int tmp = atoi(val);
 
 					if (tmp > 0 && tmp < 8*100) {
 						runtime.defconfig.cluster_big_pool = (int) tmp;
 					} else {
-						oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "pool-size-1024*1024 must be between 0 and 8*100");
+						oset_log2_printf(OSET_CHANNEL_LOG, OSET_LOG2_ERROR, "pool-size-big must be between 0 and 8*100");
 					}
 				} else if (!strcasecmp(var, "thread-pool-size")) {
 					int tmp = atoi(val);

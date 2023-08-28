@@ -81,6 +81,8 @@ typedef struct {
 pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_);
 void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr);
 bool pdcp_entity_nr_configure(pdcp_entity_nr *pdcp_nr, pdcp_config_t *cnfg_);
+void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu);
+void pdcp_entity_nr_write_dl_sdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *sdu, int sn);
 pdcp_bearer_metrics_t pdcp_entity_nr_get_metrics(pdcp_entity_nr *pdcp_nr);
 void pdcp_entity_nr_reset_metrics(pdcp_entity_nr *pdcp_nr);
 

@@ -44,6 +44,7 @@ void pdcp_lib_config_security(pdcp_lib_t *pdcp, uint32_t lcid, struct as_securit
 void pdcp_lib_enable_integrity(pdcp_lib_t *pdcp, uint32_t lcid, srsran_direction_t direction);
 void pdcp_lib_enable_encryption(pdcp_lib_t *pdcp, uint32_t lcid, srsran_direction_t direction);
 void pdcp_lib_write_ul_pdu(pdcp_lib_t *pdcp, uint32_t lcid, byte_buffer_t *pdu);
+void pdcp_lib_write_dl_sdu(pdcp_lib_t *pdcp, uint32_t lcid, byte_buffer_t *sdu, int sn);
 
 
 #ifdef __cplusplus

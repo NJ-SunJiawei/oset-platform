@@ -185,14 +185,14 @@ void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr)
 	oset_list_for_each(pdcp_nr->reorder_list, buffer_node){
 		oset_free(buffer_node);
 	}
+	gnb_timer_delete(pdcp_nr->reordering_timer);
 
 	discard_timer_t *timer_node = NULL;
 	oset_list_for_each(&pdcp_nr->discard_timers_list, timer_node){
 		gnb_timer_delete(timer_node->discard_timer);
 		oset_free(timer_node);
 	}
-	
-	gnb_timer_delete(pdcp_nr->reordering_timer);
+
 	pdcp_entity_base_stop(&pdcp_nr->base);
 	oset_free(pdcp_nr);
 }
@@ -223,7 +223,8 @@ void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
   // |   Data         |Oct 3        |   Data           |Oct 3     |   PDCP SN        |Oct 3
   // |   ...          |Oct n-1      |   ...            |Oct n-1   |   Data ...       |Oct 4
   // |   MAC-I        |Oct n        |   MAC-I(可选)      |Oct n     |   MAC-I(可选)      |Oct n
-  
+  // D/C：0表示control pdu，1表示data pdu
+
   // Sanity check
   // pdu为ue侧pdcp包，需要解析
   if (pdu->N_bytes <= pdcp_nr->base.cfg.hdr_len_bytes) {
@@ -247,6 +248,7 @@ void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
    *   - RCVD_HFN = HFN(RX_DELIV);
    * - RCVD_COUNT = [RCVD_HFN, RCVD_SN].
    */
+   // COUNT值共32bit，其中低SN bit代表SN号；高（32减SN)bit代表HFN;
   uint32_t rcvd_hfn, rcvd_count;
   if ((int64_t)rcvd_sn < ((int64_t)pdcp_SN(&pdcp_nr->base, pdcp_nr->rx_deliv) - (int64_t)pdcp_nr->window_size)) {
     rcvd_hfn = pdcp_HFN(&pdcp_nr->base, pdcp_nr->rx_deliv) + 1;
@@ -375,7 +377,7 @@ void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
 }
 
 // SDAP/RRC interface
-void pdcp_entity_nr_write_dl_sdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *sdu)
+void pdcp_entity_nr_write_dl_sdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *sdu, int sn)
 {
   // Log SDU
   oset_info(sdu->msg,
@@ -418,17 +420,17 @@ void pdcp_entity_nr_write_dl_sdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *sdu)
   // Perform header compression TODO
 
   // Write PDCP header info
-  write_data_header(sdu, tx_next);
+  write_data_header(sdu, pdcp_nr->tx_next);
 
   // TS 38.323, section 5.9: Integrity protection
   // The data unit that is integrity protected is the PDU header
   // and the data part of the PDU before ciphering.
   uint8_t mac[4] = {0};
-  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
-    integrity_generate(sdu->msg, sdu->N_bytes, tx_next, mac);
+  if (is_srb(&pdcp_nr->base) || (is_drb(&pdcp_nr->base) && (pdcp_nr->base.integrity_direction == DIRECTION_TX || pdcp_nr->base.integrity_direction == DIRECTION_TXRX))) {
+    integrity_generate(sdu->msg, sdu->N_bytes, pdcp_nr->tx_next, mac);
   }
   // Append MAC-I
-  if (is_srb() || (is_drb() && (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX))) {
+  if (is_srb(&pdcp_nr->base) || (is_drb(&pdcp_nr->base) && (pdcp_nr->base.integrity_direction == DIRECTION_TX || pdcp_nr->base.integrity_direction == DIRECTION_TXRX))) {
     append_mac(sdu, mac);
   }
 
@@ -436,15 +438,15 @@ void pdcp_entity_nr_write_dl_sdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *sdu)
   // The data unit that is ciphered is the MAC-I and the
   // data part of the PDCP Data PDU except the
   // SDAP header and the SDAP Control PDU if included in the PDCP SDU.
-  if (encryption_direction == DIRECTION_TX || encryption_direction == DIRECTION_TXRX) {
+  if (pdcp_nr->base.encryption_direction == DIRECTION_TX || pdcp_nr->base.encryption_direction == DIRECTION_TXRX) {
     cipher_encrypt(
-        &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_next, &sdu->msg[cfg.hdr_len_bytes]);
+        &sdu->msg[pdcp_nr->base.cfg.hdr_len_bytes], sdu->N_bytes - pdcp_nr->base.cfg.hdr_len_bytes, pdcp_nr->tx_next, &sdu->msg[pdcp_nr->base.cfg.hdr_len_bytes]);
   }
 
   // Set meta-data for RLC AM
-  sdu->md.pdcp_sn = tx_next;
+  sdu->md.pdcp_sn = pdcp_nr->tx_next;
 
-  logger.info(sdu->msg,
+  oset_info(sdu->msg,
               sdu->N_bytes,
               "TX %s PDU (%dB), HFN=%d, SN=%d, integrity=%s, encryption=%s",
               rb_name.c_str(),
@@ -459,7 +461,7 @@ void pdcp_entity_nr_write_dl_sdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *sdu)
   rlc->write_sdu(lcid, std::move(sdu));
 
   // Increment TX_NEXT
-  tx_next++;
+  pdcp_nr->tx_next++;
 }
 
 

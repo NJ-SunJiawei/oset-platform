@@ -74,7 +74,7 @@ void pdcp_entity_base_cipher_decrypt(pdcp_entity_base *base, uint8_t *ct, uint32
 void pdcp_entity_base_extract_mac(byte_buffer_t *pdu, uint8_t *mac);
 bool pdcp_entity_base_integrity_verify(pdcp_entity_base *base, uint8_t *msg, uint32_t msg_len, uint32_t count, uint8_t *mac);
 void pdcp_entity_base_discard_data_header(pdcp_entity_base *base, byte_buffer_t *pdu);
-
+void pdcp_entity_base_write_data_header(pdcp_entity_base *base, byte_buffer_t *sdu, uint32_t count);
 #ifdef __cplusplus
 }
 #endif

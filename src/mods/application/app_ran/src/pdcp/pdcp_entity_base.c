@@ -250,3 +250,47 @@ void pdcp_entity_base_discard_data_header(pdcp_entity_base *base, byte_buffer_t 
   pdu->N_bytes -= base->cfg.hdr_len_bytes;
 }
 
+void pdcp_entity_base_write_data_header(pdcp_entity_base *base, byte_buffer_t *sdu, uint32_t count)
+{
+  // Add room for header
+  if (base->cfg.hdr_len_bytes > byte_buffer_get_headroom(sdu)) {
+    oset_error("Not enough space to add header");
+    return;
+  }
+  sdu->msg -= base->cfg.hdr_len_bytes;
+  sdu->N_bytes += base->cfg.hdr_len_bytes;
+
+  // PDCP_SN_LEN_12 SRB             PDCP_SN_LEN_12 DRB            PDCP_SN_LEN_18 DRB
+  // |R|R|R|R| PDCP SN|Oct 1        |D/C|R|R|R| PDCP SN|Oct 1     |D/C|R|R|R| PDCP SN|Oct 1
+  // |   PDCP SN      |Oct 2        |   PDCP SN        |Oct 2     |   PDCP SN        |Oct 2
+  // |   Data         |Oct 3        |   Data           |Oct 3     |   PDCP SN        |Oct 3
+  // |   ...          |Oct n-1      |   ...            |Oct n-1   |   Data ...       |Oct 4
+  // |   MAC-I        |Oct n        |   MAC-I(可选)      |Oct n     |   MAC-I(可选)      |Oct n
+  // D/C：0表示control pdu(srb)，1表示data pdu(drb)
+
+  // Add SN
+  switch (base->cfg.sn_len) {
+    case PDCP_SN_LEN_5:
+      sdu->msg[0] = pdcp_SN(base, count); // Data PDU and SN LEN 5 implies SRB, D flag must not be present
+      break;
+    case PDCP_SN_LEN_7:
+      sdu->msg[0] = pdcp_SN(base, count);
+      if (is_drb(base)) {
+        sdu->msg[0] |= 0x80; // On Data PDUs for DRBs we must set the D flag.
+      }
+      break;
+    case PDCP_SN_LEN_12:
+      uint16_to_uint8(pdcp_SN(base, count), sdu->msg);
+      if (is_drb(base)) {
+        sdu->msg[0] |= 0x80; // On Data PDUs for DRBs we must set the D flag.
+      }
+      break;
+    case PDCP_SN_LEN_18:
+      uint24_to_uint8(pdcp_SN(base, count), sdu->msg);
+      sdu->msg[0] |= 0x80; // Data PDU and SN LEN 18 implies DRB, D flag must be present
+      break;
+    default:
+      oset_error("Invalid SN length configuration: %d bits", base->cfg.sn_len);
+  }
+}
+

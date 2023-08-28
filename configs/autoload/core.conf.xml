@@ -5,10 +5,12 @@
     <param name="pool-size-128" value="65536"/>
     <param name="pool-size-256" value="16384"/>
     <param name="pool-size-512" value="4096"/>
-    <param name="pool-size-1024" value="1024"/>
-    <param name="pool-size-2048" value="512"/>
-    <param name="pool-size-8192" value="128"/>
-    <param name="pool-size-1024*1024" value="8"/>	
+    <param name="pool-size-1024" value="2048"/>
+    <param name="pool-size-2048" value="1024"/>
+    <param name="pool-size-8192" value="512"/>
+    <param name="pool-size-lil" value="256"/>
+    <param name="pool-size-mid" value="128"/>
+    <param name="pool-size-big" value="8"/>
     <!--the size of self thread pools -->
     <param name="thread-pool-size" value="20"/>
     <!-- Run the timer at 20ms by default and drop down as needed unless you set 1m-timer=true which was previous default -->

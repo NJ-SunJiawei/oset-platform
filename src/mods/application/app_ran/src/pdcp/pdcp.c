@@ -161,6 +161,20 @@ static void pdcp_write_ul_pdu_interface(uint16_t rnti, uint32_t lcid, byte_buffe
   }
 }
 
+static void pdcp_write_dl_sdu_interface(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu, int pdcp_sn)
+{
+	pdcp_user_interface *user = pdcp_user_interface_find_by_rnti(rnti);
+	if (user) {
+		if (rnti != SRSRAN_MRNTI) {
+			// TODO: Handle PDCP SN coming from GTPU
+			pdcp_lib_write_dl_sdu(&user->pdcp, lcid, sdu, pdcp_sn);
+		} else {
+			// todo mch
+		}
+	}
+}
+
+
 /*******************************************************************************
 RRC interface
 *******************************************************************************/
@@ -199,6 +213,10 @@ void API_pdcp_rrc_enable_encryption(uint16_t rnti, uint32_t lcid)
 	pdcp_enable_encryption(rnti, lcid);
 }
 
+void API_pdcp_rrc_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu, int pdcp_sn)
+{
+	pdcp_write_dl_sdu_interface(rnti, lcid, sdu, pdcp_sn);
+}
 
 /*******************************************************************************
 RLC interface

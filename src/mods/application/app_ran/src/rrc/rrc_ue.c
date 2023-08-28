@@ -138,7 +138,6 @@ static int send_dl_ccch(rrc_nr_ue *ue, ASN_RRC_DL_CCCH_Message_t *dl_ccch_msg)
 	sprintf(fmtbuf, "DL-CCCH.%s", #ASN_RRC_DL_CCCH_MessageType__c1_PR_rrcReject);
 	log_rrc_ue_message(ue->rnti, srb0, Tx, pdu, fmtbuf);
 	API_rlc_rrc_write_dl_sdu(ue->rnti, srb_to_lcid(srb0), pdu);
-
 	oset_free(pdu);
 	return OSET_OK;
 }

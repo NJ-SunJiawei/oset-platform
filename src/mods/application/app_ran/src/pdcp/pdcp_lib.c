@@ -169,3 +169,13 @@ void pdcp_lib_write_ul_pdu(pdcp_lib_t *pdcp, uint32_t lcid, byte_buffer_t *pdu)
 	}
 }
 
+void pdcp_lib_write_dl_sdu(pdcp_lib_t *pdcp, uint32_t lcid, byte_buffer_t *sdu, int sn)
+{
+	pdcp_entity_nr *entity = pdcp_valid_lcid(pdcp, lcid);
+	if (entity) {
+		pdcp_entity_nr_write_dl_sdu(entity, sdu, sn);
+	} else {
+		oset_warn("LCID %d doesn't exist. Deallocating SDU", lcid);
+	}
+}
+

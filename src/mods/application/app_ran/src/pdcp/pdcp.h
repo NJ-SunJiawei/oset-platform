@@ -48,7 +48,7 @@ void API_pdcp_rrc_del_bearer(uint16_t rnti, uint32_t lcid);
 void API_pdcp_rrc_config_security(uint16_t rnti, uint32_t lcid, struct as_security_config_t *sec_cfg);
 void API_pdcp_rrc_enable_integrity(uint16_t rnti, uint32_t lcid);
 void API_pdcp_rrc_enable_encryption(uint16_t rnti, uint32_t lcid);
-
+void API_pdcp_rrc_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu, int pdcp_sn);
 /**********************rlc api****************************************/
 void API_pdcp_rlc_write_ul_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu);
 
