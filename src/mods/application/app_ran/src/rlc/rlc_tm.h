@@ -36,6 +36,7 @@ typedef struct{
 }rlc_tm;
 
 rlc_tm *rlc_tm_init(uint32_t lcid_, 	uint16_t rnti_, oset_apr_memory_pool_t	*usepool);
+void rlc_tm_stop(rlc_common *tm_common);;
 void rlc_tm_get_buffer_state(rlc_common *tm_common, uint32_t *newtx_queue, uint32_t *prio_tx_queue);
 bool rlc_tm_configure(rlc_common *tm_common, rlc_config_t *cnfg);
 void rlc_tm_set_bsr_callback(rlc_common *tm_common, bsr_callback_t callback);
@@ -45,7 +46,7 @@ void rlc_tm_write_ul_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_b
 uint32_t rlc_tm_read_dl_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_bytes);
 void rlc_tm_write_dl_sdu(rlc_common *tm_common, byte_buffer_t *sdu);
 rlc_mode_t rlc_tm_get_mode(rlc_common *tm_common);
-void rlc_tm_stop(rlc_common *tm_common);
+void rlc_tm_discard_sdu(rlc_common *tm_common, uint32_t discard_sn);
 
 
 #ifdef __cplusplus

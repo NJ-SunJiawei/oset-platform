@@ -322,3 +322,15 @@ bool rlc_lib_sdu_queue_is_full(rlc_lib_t *rlc, uint32_t lcid)
   return false;
 }
 
+void rlc_lib_discard_sdu(rlc_lib_t *rlc, uint32_t lcid, uint32_t discard_sn)
+{
+  rlc_common *rlc_entity = rlc_valid_lcid(rlc, lcid);
+
+  if (NULL != rlc_entity) {
+    rlc_entity->func._discard_sdu(rlc_entity, discard_sn);
+    rlc_lib_update_bsr(rlc, lcid);
+  } else {
+    oset_warn("RLC LCID %d doesn't exist. Ignoring discard SDU", lcid);
+  }
+}
+

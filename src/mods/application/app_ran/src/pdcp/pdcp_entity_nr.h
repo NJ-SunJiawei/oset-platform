@@ -70,8 +70,8 @@ typedef struct {
 	oset_list_t  discard_timers_list;//std::map<uint32_t, timer_handler::unique_timer> //discard_timer_t
 
 	// COUNT overflow protection
-	bool tx_overflow;
-	bool rx_overflow;
+	bool tx_overflow;// 可以去掉越界判断
+	bool rx_overflow;// 可以去掉越界判断
 	enum rlc_mode_t {
 		UM,
 		AM,

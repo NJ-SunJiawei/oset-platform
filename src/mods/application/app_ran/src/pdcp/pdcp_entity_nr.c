@@ -99,7 +99,9 @@ static void discard_callback(void *data)
   oset_debug("Discard timer expired for PDU with SN=%d", discard_node->discard_sn);
 
   // Notify the RLC of the discard. It's the RLC to actually discard, if no segment was transmitted yet.
-  parent->rlc->discard_sdu(discard_node->pdcp_nr->base.lcid, discard_node->discard_sn);
+  API_rlc_pdcp_discard_sdu(discard_node->pdcp_nr->base.rnti,
+  							discard_node->pdcp_nr->base.lcid,
+  							discard_node->discard_sn);
 
   // Remove timer from map
   // NOTE: this will delete the callback. It *must* be the last instruction.
@@ -198,7 +200,7 @@ void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr)
 }
 
 // RLC ===>RRC 接收到ue侧的pdcp包
-// nas 先加密再完保   pdcp 先完保再加密(完整性保护是PDU头和PDU的数据部分，pdu head不加密pdu data和mac-I加密)
+// nas 先加密再完保   pdcp 先完保再加密(完整性保护是PDU头和PDU的数据部分，pdu head不加密pdu dat,mac-I加密)
 // NR PDCP采用PUSH window（下边沿驱动）+t-reordering timer的形式接收下层递交的PDCP PDU
 // 关于PUSH window：接收窗口只能依赖于接收窗口下边界状态变量（RX_DELIV）更新才能移动
 void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
@@ -420,27 +422,32 @@ void pdcp_entity_nr_write_dl_sdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *sdu, in
   // Perform header compression TODO
 
   // Write PDCP header info
-  write_data_header(sdu, pdcp_nr->tx_next);
+  pdcp_entity_base_write_data_header(&pdcp_nr->base, sdu, pdcp_nr->tx_next);
 
   // TS 38.323, section 5.9: Integrity protection
   // The data unit that is integrity protected is the PDU header
   // and the data part of the PDU before ciphering.
+  // 完保
   uint8_t mac[4] = {0};
   if (is_srb(&pdcp_nr->base) || (is_drb(&pdcp_nr->base) && (pdcp_nr->base.integrity_direction == DIRECTION_TX || pdcp_nr->base.integrity_direction == DIRECTION_TXRX))) {
-    integrity_generate(sdu->msg, sdu->N_bytes, pdcp_nr->tx_next, mac);
+    pdcp_entity_base_integrity_generate(&pdcp_nr->base, sdu->msg, sdu->N_bytes, pdcp_nr->tx_next, mac);
   }
   // Append MAC-I
   if (is_srb(&pdcp_nr->base) || (is_drb(&pdcp_nr->base) && (pdcp_nr->base.integrity_direction == DIRECTION_TX || pdcp_nr->base.integrity_direction == DIRECTION_TXRX))) {
-    append_mac(sdu, mac);
+    pdcp_entity_base_append_mac(sdu, mac);
   }
 
   // TS 38.323, section 5.8: Ciphering
   // The data unit that is ciphered is the MAC-I and the
   // data part of the PDCP Data PDU except the
   // SDAP header and the SDAP Control PDU if included in the PDCP SDU.
+  // 加密
   if (pdcp_nr->base.encryption_direction == DIRECTION_TX || pdcp_nr->base.encryption_direction == DIRECTION_TXRX) {
-    cipher_encrypt(
-        &sdu->msg[pdcp_nr->base.cfg.hdr_len_bytes], sdu->N_bytes - pdcp_nr->base.cfg.hdr_len_bytes, pdcp_nr->tx_next, &sdu->msg[pdcp_nr->base.cfg.hdr_len_bytes]);
+    pdcp_entity_base_cipher_encrypt(&pdcp_nr->base,
+									&sdu->msg[pdcp_nr->base.cfg.hdr_len_bytes],
+									sdu->N_bytes - pdcp_nr->base.cfg.hdr_len_bytes,
+									pdcp_nr->tx_next,
+									&sdu->msg[pdcp_nr->base.cfg.hdr_len_bytes]);
   }
 
   // Set meta-data for RLC AM
@@ -449,16 +456,16 @@ void pdcp_entity_nr_write_dl_sdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *sdu, in
   oset_info(sdu->msg,
               sdu->N_bytes,
               "TX %s PDU (%dB), HFN=%d, SN=%d, integrity=%s, encryption=%s",
-              rb_name.c_str(),
+              pdcp_nr->base.rb_name,
               sdu->N_bytes,
-              HFN(tx_next),
-              SN(tx_next),
-              srsran_direction_text[integrity_direction],
-              srsran_direction_text[encryption_direction]);
+              pdcp_HFN(&pdcp_nr->base, pdcp_nr->tx_next),
+              pdcp_SN(&pdcp_nr->base, pdcp_nr->tx_next),
+              srsran_direction_text[pdcp_nr->base.integrity_direction],
+              srsran_direction_text[pdcp_nr->base.encryption_direction]);
 
   // Check if PDCP is associated with more than on RLC entity TODO
   // Write to lower layers
-  rlc->write_sdu(lcid, std::move(sdu));
+  API_rlc_pdcp_write_dl_sdu(pdcp_nr->base.rnti, pdcp_nr->base.lcid, sdu);
 
   // Increment TX_NEXT
   pdcp_nr->tx_next++;

@@ -130,6 +130,47 @@ uint32_t pdcp_entity_base_read_data_header(pdcp_entity_base *base, byte_buffer_t
   return rcvd_sn_32;
 }
 
+void pdcp_entity_base_cipher_encrypt(pdcp_entity_base *base, uint8_t *msg, uint32_t msg_len, uint32_t count, uint8_t *ct)
+{
+  uint8_t  *k_enc = NULL;
+  uint8_t  ct_tmp[PDCP_MAX_SDU_SIZE];
+
+  // If control plane use RRC encrytion key. If data use user plane key
+  if (is_srb(base)) {
+    k_enc = base->sec_cfg.k_rrc_enc;
+  } else {
+    k_enc = base->sec_cfg.k_up_enc;
+  }
+
+  oset_debug("Cipher encrypt input: COUNT: %" PRIu32 ", Bearer ID: %d, Direction %s",
+               count,
+               base->cfg.bearer_id,
+               base->cfg.tx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
+  oset_debug("Cipher encrypt key:") && oset_log2_hexdump(OSET_LOG2_DEBUG, k_enc, 32);
+  oset_debug("Cipher encrypt input msg:") && oset_log2_hexdump(OSET_LOG2_DEBUG, msg, msg_len);
+
+  switch (base->sec_cfg.cipher_algo) {
+    case CIPHERING_ALGORITHM_ID_EEA0:
+      break;
+    case CIPHERING_ALGORITHM_ID_128_EEA1:
+      security_128_eea1(&(k_enc[16]), count, base->cfg.bearer_id - 1, base->cfg.tx_direction, msg, msg_len, ct_tmp);
+      memcpy(ct, ct_tmp, msg_len);
+      break;
+    case CIPHERING_ALGORITHM_ID_128_EEA2:
+      security_128_eea2(&(k_enc[16]), count, base->cfg.bearer_id - 1, base->cfg.tx_direction, msg, msg_len, ct_tmp);
+      memcpy(ct, ct_tmp, msg_len);
+      break;
+    case CIPHERING_ALGORITHM_ID_128_EEA3:
+      security_128_eea3(&(k_enc[16]), count, base->cfg.bearer_id - 1, base->cfg.tx_direction, msg, msg_len, ct_tmp);
+      memcpy(ct, ct_tmp, msg_len);
+      break;
+    default:
+      break;
+  }
+  oset_debug("Cipher encrypt output msg:") && oset_log2_hexdump(OSET_LOG2_DEBUG, ct, msg_len);
+}
+
+
 void pdcp_entity_base_cipher_decrypt(pdcp_entity_base *base, uint8_t *ct, uint32_t ct_len, uint32_t count, uint8_t *msg)
 {
   uint8_t  *k_enc = NULL;
@@ -171,6 +212,19 @@ void pdcp_entity_base_cipher_decrypt(pdcp_entity_base *base, uint8_t *ct, uint32
   oset_debug("Cipher decrypt output msg:") && oset_log2_hexdump(OSET_LOG2_DEBUG, msg, ct_len);
 }
 
+void pdcp_entity_base_append_mac(byte_buffer_t *sdu, uint8_t *mac)
+{
+  // Check enough space for MAC
+  if (sdu->N_bytes + 4 > byte_buffer_get_tailroom(sdu)) {
+    oset_error("Not enough space to add MAC-I");
+    return;
+  }
+
+  // Append MAC
+  memcpy(&sdu->msg[sdu->N_bytes], mac, 4);
+  sdu->N_bytes += 4;
+}
+
 void pdcp_entity_base_extract_mac(byte_buffer_t *pdu, uint8_t *mac)
 {
   // Check enough space for MAC
@@ -182,6 +236,42 @@ void pdcp_entity_base_extract_mac(byte_buffer_t *pdu, uint8_t *mac)
   // Extract MAC
   memcpy(mac, &pdu->msg[pdu->N_bytes - 4], 4);
   pdu->N_bytes -= 4;
+}
+
+void pdcp_entity_base_integrity_generate(pdcp_entity_base *base, uint8_t *msg, uint32_t msg_len, uint32_t count, uint8_t *mac)
+{
+  uint8_t* k_int;
+
+  // If control plane use RRC integrity key. If data use user plane key
+  if (is_srb(base)) {
+    k_int = base->sec_cfg.k_rrc_int;
+  } else {
+    k_int = base->sec_cfg.k_up_int;
+  }
+
+  switch (base->sec_cfg.integ_algo) {
+    case INTEGRITY_ALGORITHM_ID_EIA0:
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA1:
+      security_128_eia1(&k_int[16], count, base->cfg.bearer_id - 1, base->cfg.tx_direction, msg, msg_len, mac);
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA2:
+      security_128_eia2(&k_int[16], count, base->cfg.bearer_id - 1, base->cfg.tx_direction, msg, msg_len, mac);
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA3:
+      security_128_eia3(&k_int[16], count, base->cfg.bearer_id - 1, base->cfg.tx_direction, msg, msg_len, mac);
+      break;
+    default:
+      break;
+  }
+
+  oset_debug("Integrity gen input: COUNT %" PRIu32 ", Bearer ID %d, Direction %s",
+               count,
+               base->cfg.bearer_id,
+               (base->cfg.tx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
+  oset_debug("Integrity gen key:") && oset_log2_hexdump(OSET_LOG2_DEBUG, k_int, 32);
+  oset_debug("Integrity gen input msg:") && oset_log2_hexdump(OSET_LOG2_DEBUG, msg, msg_len);
+  oset_debug("MAC (generated)") && oset_log2_hexdump(OSET_LOG2_DEBUG, mac, 4);
 }
 
 bool pdcp_entity_base_integrity_verify(pdcp_entity_base *base, uint8_t *msg, uint32_t msg_len, uint32_t count, uint8_t *mac)

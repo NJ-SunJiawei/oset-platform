@@ -174,6 +174,66 @@ static bool rlc_sdu_queue_is_full(uint16_t rnti, uint32_t lcid)
   return ret;
 }
 
+static void rlc_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu)
+{
+	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
+	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
+	if (user) {
+		if (rnti != SRSRAN_MRNTI) {
+			rlc_lib_write_dl_sdu(&user->rlc, lcid, sdu);
+		} else {
+			// todo
+			//rlc_lib_write_dl_sdu_mch;
+		}
+	}
+	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
+}
+
+static int rlc_read_dl_pdu(uint16_t rnti, uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
+{
+	int ret = OSET_ERROR;
+
+	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
+	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
+	if (user) {
+		if (rnti != SRSRAN_MRNTI) {
+			ret = rlc_lib_read_dl_pdu(&user->rlc, lcid, payload, nof_bytes);
+		} else {
+			//todo mcch 多播控制信道
+			//ret = read_pdu_mch(lcid, payload, nof_bytes);
+		}
+	} else {
+		ret = OSET_ERROR;
+	}
+	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
+  return ret;
+}
+
+static void rlc_write_ul_pdu(uint16_t rnti, uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
+{
+	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
+	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
+	if (user) {
+		rlc_lib_write_ul_pdu(&user->rlc, lcid, payload, nof_bytes);
+	}else{
+		oset_error("rnti=0x%x. API_rlc_mac_write_ul_pdu() fail", rnti);
+	}
+	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
+}
+
+void rlc_discard_sdu(uint16_t rnti, uint32_t lcid, uint32_t discard_sn)
+{
+  //oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
+  rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
+  if (user) {
+    rlc_lib_discard_sdu(&user->rlc, lcid, discard_sn);
+  }
+  //oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /*******************************************************************************
 RRC interface
 *******************************************************************************/
@@ -201,17 +261,7 @@ void API_rlc_rrc_del_bearer(uint16_t rnti, uint32_t lcid)
 // pdcp/rlc ====》gnb mac send downlink
 void API_rlc_rrc_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu)
 {
-	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
-	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
-	if (user) {
-		if (rnti != SRSRAN_MRNTI) {
-			rlc_lib_write_dl_sdu(&user->rlc, lcid, sdu);
-		} else {
-			// todo
-			//rlc_lib_write_dl_sdu_mch;
-		}
-	}
-	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
+	rlc_write_dl_sdu(rnti, lcid, sdu);
 }
 
 /*******************************************************************************
@@ -227,46 +277,31 @@ bool API_rlc_pdcp_sdu_queue_is_full(uint16_t rnti, uint32_t lcid)
 	rlc_sdu_queue_is_full(rnti, lcid);
 }
 
+void API_rlc_pdcp_write_dl_sdu(uint16_t rnti, uint32_t lcid, byte_buffer_t *sdu)
+{
+	rlc_write_dl_sdu(rnti, lcid, sdu);
+}
+
+void API_rlc_pdcp_discard_sdu(uint16_t rnti, uint32_t lcid, uint32_t discard_sn)
+{
+	rlc_discard_sdu(rnti, lcid, discard_sn);
+}
+
 /*******************************************************************************
 MAC interface
 *******************************************************************************/
 // gnb mac《==== pdcp/rlc get downlink
-int API_rlc_mac_read_dl_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+int API_rlc_mac_read_dl_pdu(uint16_t rnti, uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
 {
-	int ret = OSET_ERROR;
-
-	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
-	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
-	if (user) {
-		if (rnti != SRSRAN_MRNTI) {
-			ret = rlc_lib_read_dl_pdu(&user->rlc, lcid, payload, nof_bytes);
-		} else {
-			//todo mcch 多播控制信道
-			//ret = read_pdu_mch(lcid, payload, nof_bytes);
-		}
-	} else {
-		ret = OSET_ERROR;
-	}
-	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
-  return ret;
+  return rlc_read_dl_pdu(rnti, lcid, payload, nof_bytes);
 }
-
-
 
 // gnb mac====》pdcp/rlc send uplink
 //--------------sdu-----------(服务数据)
 //--------------handle+-------
 //--------------pdu-----------(协议数据)
-void API_rlc_mac_write_ul_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+void API_rlc_mac_write_ul_pdu(uint16_t rnti, uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
 {
-	//oset_apr_thread_rwlock_rdlock(rlc_manager.rwlock);
-	rlc_user_interface *user = rlc_user_interface_find_by_rnti(rnti);
-	if (user) {
-		rlc_lib_write_ul_pdu(&user->rlc, lcid, payload, nof_bytes);
-	}else{
-		oset_error("rnti=0x%x. API_rlc_mac_write_ul_pdu() fail", rnti);
-	}
-	//oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
+	rlc_write_ul_pdu(rnti, lcid, payload, nof_bytes);
 }
-
 

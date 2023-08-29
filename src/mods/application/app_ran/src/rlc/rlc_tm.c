@@ -12,7 +12,7 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rlcTM"
 
-static uint32_t tm_sdu_peek_front_bytes(oset_queue_t *dl_sdu_queue)
+static uint32_t tm_sdu_peek_first_bytes(oset_queue_t *dl_sdu_queue)
 {
 	uint32_t size_next = 0;
 	byte_buffer_t *front_val = oset_queue_pop_peek(dl_sdu_queue);
@@ -109,7 +109,7 @@ void rlc_tm_write_ul_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_b
 			API_rrc_rlc_write_ul_pdu(tm_common->rnti, tm_common->lcid, sdu);
 		} else {
 			/* RLC calls PDCP to push a PDCP PDU. */
-			API_pdcp_rlc_write_ul_pdu(tm_common->rnti, tm_common->lcid, sdu);
+			//API_pdcp_rlc_write_ul_pdu(tm_common->rnti, tm_common->lcid, sdu);
 		}
 		//RLC_BUFF_FREE(&tm->tm_pool, sdu);
 		oset_free(sdu);
@@ -123,7 +123,7 @@ uint32_t rlc_tm_read_dl_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t no
 {
 	rlc_tm *tm = (rlc_tm *)tm_common;
 
-	uint32_t pdu_size = tm_sdu_peek_front_bytes(tm->dl_sdu_queue);
+	uint32_t pdu_size = tm_sdu_peek_first_bytes(tm->dl_sdu_queue);
 	if (pdu_size > nof_bytes) {
 		RlcInfo("Tx PDU size larger than MAC opportunity (%d > %d)", pdu_size, nof_bytes);
 		return 0;
@@ -199,6 +199,16 @@ bool rlc_tm_sdu_queue_is_full(rlc_common *tm_common)
   return oset_queue_full(tm->dl_sdu_queue);
 }
 
+void rlc_tm_discard_sdu(rlc_common *tm_common, uint32_t discard_sn)
+{
+  rlc_tm *tm = (rlc_tm *)tm_common;
+
+  if (!tm->tx_enabled) {
+    return;
+  }
+  RlcWarning("SDU discard not implemented on RLC TM");
+}
+
 void rlc_tm_stop(rlc_common *tm_common)
 {
 	rlc_tm *tm = (rlc_tm *)tm_common;
@@ -233,6 +243,7 @@ rlc_tm *rlc_tm_init(uint32_t lcid_,	uint16_t rnti_, oset_apr_memory_pool_t *usep
 						._write_dl_sdu      = rlc_tm_write_dl_sdu,
 						._get_mode		    = rlc_tm_get_mode,
 						._sdu_queue_is_full	= rlc_tm_sdu_queue_is_full,
+						._discard_sdu	    = rlc_tm_discard_sdu,
 						._stop              = rlc_tm_stop,
 					  };
 

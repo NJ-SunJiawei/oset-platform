@@ -70,8 +70,11 @@ void pdcp_entity_base_config_security(pdcp_entity_base *base, struct as_security
 void pdcp_entity_base_enable_integrity(pdcp_entity_base *base, srsran_direction_t direction);
 void pdcp_entity_base_enable_encryption(pdcp_entity_base *base, srsran_direction_t direction);
 uint32_t pdcp_entity_base_read_data_header(pdcp_entity_base *base, byte_buffer_t *pdu);
+void pdcp_entity_base_cipher_encrypt(pdcp_entity_base *base, uint8_t *msg, uint32_t msg_len, uint32_t count, uint8_t *ct);
 void pdcp_entity_base_cipher_decrypt(pdcp_entity_base *base, uint8_t *ct, uint32_t ct_len, uint32_t count, uint8_t *msg);
+void pdcp_entity_base_append_mac(byte_buffer_t *sdu, uint8_t *mac);
 void pdcp_entity_base_extract_mac(byte_buffer_t *pdu, uint8_t *mac);
+void pdcp_entity_base_integrity_generate(pdcp_entity_base *base, uint8_t *msg, uint32_t msg_len, uint32_t count, uint8_t *mac);
 bool pdcp_entity_base_integrity_verify(pdcp_entity_base *base, uint8_t *msg, uint32_t msg_len, uint32_t count, uint8_t *mac);
 void pdcp_entity_base_discard_data_header(pdcp_entity_base *base, byte_buffer_t *pdu);
 void pdcp_entity_base_write_data_header(pdcp_entity_base *base, byte_buffer_t *sdu, uint32_t count);
