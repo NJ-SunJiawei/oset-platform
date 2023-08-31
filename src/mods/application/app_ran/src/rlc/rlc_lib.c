@@ -164,7 +164,7 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
     case (rlc_mode_t)um:
       switch (cnfg->rat) {
         case (srsran_rat_t)nr:
-          rlc_entity = (rlc_common *)(new rlc_um_nr(logger, lcid, pdcp, rrc, timers));
+          rlc_entity = (rlc_common *)(new rlc_um_nr_init(lcid, rlc->rnti));
           break;
         default:
           oset_error("UM not supported for this RAT");

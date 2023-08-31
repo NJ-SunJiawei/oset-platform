@@ -14,7 +14,7 @@
 void rlc_common_init(rlc_common *common, char *rb_name, uint16_t rnti, uint32_t lcid, rlc_mode_t mode, oset_apr_memory_pool_t *usepool)
 {
 	common->usepool = usepool;
-	common->rb_name = oset_strdup(rb_name);
+	if(rb_name) common->rb_name = oset_strdup(rb_name);
 	common->suspended = false;
 	common->rnti = rnti;
 	common->lcid = lcid;
