@@ -456,9 +456,10 @@ void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-void rrc_nr_ue_get_metrics(rrc_ue_metrics_t *metrics)
+void rrc_nr_ue_get_metrics(rrc_nr_ue *ue, rrc_ue_metrics_t *ue_metrics)
 {
 	/*TODO fill RRC metrics*/
+	ue_metrics->state	  = ue->state;
 }
 
 /*******************************************************************************

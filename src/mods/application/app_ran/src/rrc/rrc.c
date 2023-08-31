@@ -391,7 +391,7 @@ void rrc_get_metrics(rrc_metrics_t *m)
 	  rrc_nr_ue *ue = NULL, *next_ue = NULL;
 	  oset_list_for_each_safe(&rrc_manager.rrc_ue_list, next_ue, ue){
 	      rrc_ue_metrics_t ue_metrics = {0};
-	      rrc_nr_ue_get_metrics(&ue_metrics);
+	      rrc_nr_ue_get_metrics(ue, &ue_metrics);
 		  cvector_push_back(m->ues, ue_metrics);
     }
   }

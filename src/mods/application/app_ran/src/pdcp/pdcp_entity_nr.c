@@ -15,12 +15,16 @@
 
 static void pass_to_upper_layers(pdcp_entity_nr *pdcp_nr, pdcp_nr_pdu_t *pdu)
 {
+  pdcp_nr->base.metrics.num_rx_pdu_bytes += pdu->buffer->N_bytes;
+  pdcp_nr->base.metrics.num_rx_pdus++;
+
   // gnb_rrc_task_handle??? push queue
   if (is_srb(&pdcp_nr->base)) {
     API_rrc_pdcp_write_ul_pdu(pdcp_nr->base.rnti, pdcp_nr->base.lcid, pdu->buffer);
   } else {
     gw->write_pdu(lcid, pdu);
   }
+
   oset_free(pdu->buffer);
   oset_free(pdu);
 }
@@ -462,6 +466,9 @@ void pdcp_entity_nr_write_dl_sdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *sdu, in
               pdcp_SN(&pdcp_nr->base, pdcp_nr->tx_next),
               srsran_direction_text[pdcp_nr->base.integrity_direction],
               srsran_direction_text[pdcp_nr->base.encryption_direction]);
+
+  pdcp_nr->base.metrics.num_tx_pdu_bytes += sdu->N_bytes;
+  pdcp_nr->base.metrics.num_tx_pdus++;
 
   // Check if PDCP is associated with more than on RLC entity TODO
   // Write to lower layers

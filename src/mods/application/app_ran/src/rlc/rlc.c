@@ -231,6 +231,15 @@ void rlc_discard_sdu(uint16_t rnti, uint32_t lcid, uint32_t discard_sn)
   //oset_apr_thread_rwlock_unlock(rlc_manager.rwlock);
 }
 
+void rlc_get_metrics(rlc_metrics_t *m, uint32_t nof_tti)
+{
+	rlc_user_interface *user = NULL, *next_user = NULL;
+	oset_list_for_each_safe(rlc_manager.rlc_ue_list, next_user, user){
+		rlc_ue_metrics_t ue_metrics = {0};
+		rlc_lib_get_metrics(&user->rlc, &ue_metrics, nof_tti);
+		cvector_push_back(m->ues, ue_metrics)
+	}
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 

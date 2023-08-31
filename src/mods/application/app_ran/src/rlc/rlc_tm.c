@@ -73,9 +73,15 @@ void rlc_tm_reset_metrics(rlc_common *tm_common)
 {
 	rlc_tm *tm = (rlc_tm *)tm_common;
 
-	oset_apr_mutex_lock(tm->metrics_mutex);
+	//oset_apr_mutex_lock(tm->metrics_mutex);
 	tm->metrics = {0};
-	oset_apr_mutex_unlock(tm->metrics_mutex);
+	//oset_apr_mutex_unlock(tm->metrics_mutex);
+}
+
+rlc_bearer_metrics_t rlc_tm_get_metrics(rlc_common *tm_common)
+{
+	rlc_tm *tm = (rlc_tm *)tm_common;
+	return tm->metrics;
 }
 
 void rlc_tm_reestablish(rlc_common *tm_common)
@@ -98,10 +104,10 @@ void rlc_tm_write_ul_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_b
 		sdu->N_bytes = nof_bytes;
 		byte_buffer_set_timestamp(sdu);
 		{
-			oset_apr_mutex_lock(tm->metrics_mutex);
+			//oset_apr_mutex_lock(tm->metrics_mutex);
 			tm->metrics.num_rx_pdu_bytes += nof_bytes;
 			tm->metrics.num_rx_pdus++;
-			oset_apr_mutex_unlock(tm->metrics_mutex);
+			//oset_apr_mutex_unlock(tm->metrics_mutex);
 		}
 
 		// gnb_rrc_task_handle??? push queue
@@ -144,9 +150,10 @@ uint32_t rlc_tm_read_dl_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t no
 		           oset_queue_size(tm->dl_sdu_queue),
 		           tm->unread_bytes);
 
-		oset_apr_mutex_lock(tm->metrics_mutex);
+		//oset_apr_mutex_lock(tm->metrics_mutex);
 		tm->metrics.num_tx_pdu_bytes += pdu_size;
-		oset_apr_mutex_unlock(tm->metrics_mutex);
+		tm->metrics.num_tx_pdus++;
+		//oset_apr_mutex_unlock(tm->metrics_mutex);
 		return pdu_size;
 	}
 
@@ -218,7 +225,7 @@ void rlc_tm_stop(rlc_common *tm_common)
 	oset_queue_destroy(tm->dl_sdu_queue);
 	//oset_pool_final(&tm->tm_pool);
 	oset_apr_mutex_destroy(tm->bsr_callback_mutex);
-	oset_apr_mutex_destroy(tm->metrics_mutex);
+	//oset_apr_mutex_destroy(tm->metrics_mutex);
 	oset_apr_mutex_destroy(tm->unread_bytes_mutex);
 
 	rlc_common_destory(&tm->common);
@@ -236,6 +243,7 @@ rlc_tm *rlc_tm_init(uint32_t lcid_,	uint16_t rnti_, oset_apr_memory_pool_t *usep
 						._get_buffer_state  = rlc_tm_get_buffer_state,
 						._configure         = rlc_tm_configure,
 						._set_bsr_callback  = rlc_tm_set_bsr_callback,
+						._get_metrics 	    = rlc_tm_get_metrics,
 						._reset_metrics     = rlc_tm_reset_metrics,
 						._reestablish       = rlc_tm_reestablish,
 						._write_ul_pdu      = rlc_tm_write_ul_pdu,
@@ -248,7 +256,7 @@ rlc_tm *rlc_tm_init(uint32_t lcid_,	uint16_t rnti_, oset_apr_memory_pool_t *usep
 					  };
 
 	oset_apr_mutex_init(&tm->bsr_callback_mutex, OSET_MUTEX_NESTED, usepool);
-	oset_apr_mutex_init(&tm->metrics_mutex, OSET_MUTEX_NESTED, usepool);
+	//oset_apr_mutex_init(&tm->metrics_mutex, OSET_MUTEX_NESTED, usepool);
 	oset_apr_mutex_init(&tm->unread_bytes_mutex, OSET_MUTEX_NESTED, usepool);
 
 	tm->dl_sdu_queue = oset_queue_create(static_tm_size);

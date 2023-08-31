@@ -47,6 +47,7 @@ int rlc_destory(void);
 void rlc_user_interface_set_rnti(uint16_t rnti, rlc_user_interface *user);
 rlc_user_interface *rlc_user_interface_find_by_rnti(uint16_t rnti);
 void rlc_rem_user_all(void);
+void rlc_get_metrics(rlc_metrics_t *m, uint32_t nof_tti);
 ////////////////////////////////////////////////////////////////////////////////////////////
 /**********************rrc api****************************************/
 void API_rlc_rrc_add_user(uint16_t rnti);

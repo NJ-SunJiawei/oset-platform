@@ -25,7 +25,7 @@ typedef struct{
 
 	bool                 tx_enabled;//true
 
-	oset_apr_mutex_t    *metrics_mutex;
+	//oset_apr_mutex_t    *metrics_mutex;
 	rlc_bearer_metrics_t metrics;
 
 	// Thread-safe queues for MAC messages
@@ -41,6 +41,7 @@ void rlc_tm_get_buffer_state(rlc_common *tm_common, uint32_t *newtx_queue, uint3
 bool rlc_tm_configure(rlc_common *tm_common, rlc_config_t *cnfg);
 void rlc_tm_set_bsr_callback(rlc_common *tm_common, bsr_callback_t callback);
 void rlc_tm_reset_metrics(rlc_common *tm_common);
+rlc_bearer_metrics_t rlc_tm_get_metrics(rlc_common *tm_common);
 void rlc_tm_reestablish(rlc_common *tm_common);
 void rlc_tm_write_ul_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_bytes);
 uint32_t rlc_tm_read_dl_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_bytes);

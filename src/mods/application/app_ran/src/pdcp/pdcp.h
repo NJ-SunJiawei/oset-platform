@@ -38,7 +38,7 @@ int pdcp_destory(void);
 void pdcp_user_interface_set_rnti(uint16_t rnti, pdcp_user_interface *user);
 pdcp_user_interface *pdcp_user_interface_find_by_rnti(uint16_t rnti);
 void pdcp_rem_user_all(void);
-
+void pdcp_get_metrics(pdcp_metrics_t *m, uint32_t nof_tti);
 ///////////////////////////////////////////////////////////////////////////////////////
 /**********************rrc api****************************************/
 void API_pdcp_rrc_add_user(uint16_t rnti);

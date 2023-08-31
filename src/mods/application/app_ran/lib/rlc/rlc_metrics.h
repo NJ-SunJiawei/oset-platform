@@ -39,7 +39,7 @@ typedef struct {
 
 typedef struct {
   rlc_bearer_metrics_t bearer[SRSRAN_N_RADIO_BEARERS];
-  rlc_bearer_metrics_t mrb_bearer[SRSRAN_N_MCH_LCIDS];
+  //rlc_bearer_metrics_t mrb_bearer[SRSRAN_N_MCH_LCIDS];
 } rlc_ue_metrics_t;
 
 typedef struct {

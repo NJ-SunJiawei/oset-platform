@@ -21,7 +21,6 @@ typedef struct {
 	uint16_t	             rnti;
 	// task_sched_handle  task_sched;
 	oset_hash_t              *pdcp_array; // std::map<uint16_t, std::unique_ptr<pdcp_entity_nr>>;
-	//oset_hash_t              *pdcp_array_mrb;
 	// cache valid lcids to be checked from separate thread
 	oset_apr_mutex_t		 *cache_mutex;
 	cvector_vector_t(uint32_t) valid_lcids_cached;// oset_list_t
@@ -30,10 +29,10 @@ typedef struct {
 	oset_time_t              metrics_tp;
 }pdcp_lib_t;
 
-void pdcp_valid_lcids_insert(pdcp_lib_t *pdcp, uint32_t lcid);
-void pdcp_valid_lcids_delete(pdcp_lib_t *pdcp, uint32_t lcid);
+void pdcp_lib_valid_lcids_insert(pdcp_lib_t *pdcp, uint32_t lcid);
+void pdcp_lib_valid_lcids_delete(pdcp_lib_t *pdcp, uint32_t lcid);
 
-pdcp_entity_nr* pdcp_valid_lcid(pdcp_lib_t *pdcp, uint32_t lcid);
+pdcp_entity_nr* pdcp_array_valid_lcid(pdcp_lib_t *pdcp, uint32_t lcid);
 pdcp_entity_nr *pdcp_array_find_by_lcid(pdcp_lib_t *pdcp, uint32_t lcid);
 
 void pdcp_lib_init(pdcp_lib_t *pdcp);
@@ -45,6 +44,8 @@ void pdcp_lib_enable_integrity(pdcp_lib_t *pdcp, uint32_t lcid, srsran_direction
 void pdcp_lib_enable_encryption(pdcp_lib_t *pdcp, uint32_t lcid, srsran_direction_t direction);
 void pdcp_lib_write_ul_pdu(pdcp_lib_t *pdcp, uint32_t lcid, byte_buffer_t *pdu);
 void pdcp_lib_write_dl_sdu(pdcp_lib_t *pdcp, uint32_t lcid, byte_buffer_t *sdu, int sn);
+void pdcp_lib_reset_metrics(pdcp_lib_t *pdcp);
+void pdcp_lib_get_metrics(pdcp_lib_t *pdcp, pdcp_ue_metrics_t *ue_m, uint32_t nof_tti);
 
 
 #ifdef __cplusplus

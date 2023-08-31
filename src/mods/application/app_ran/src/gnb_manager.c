@@ -197,12 +197,15 @@ static void gnb_metrics_stdout(gnb_metrics_t *metrics)
 
 static bool stack_get_metrics(stack_metrics_t *metrics)
 {
-  bool metrics_ready = false;
+  //bool metrics_ready = false;
 
-  rrc_get_metrics(metrics->rrc);
-  // obtain MAC metrics 
+  // obtain MAC metrics
   mac_get_metrics(&metrics->mac);
-
+  if(!cvector_empty(metrics->mac.ues)){
+	  rlc_get_metrics(&metrics->rlc, metrics->mac.ues[0].nof_tti);
+	  pdcp_get_metrics(&metrics->pdcp, metrics->mac.ues[0].nof_tti);
+  }
+  rrc_get_metrics(&metrics->rrc);
   return true;
 }
 
@@ -222,9 +225,27 @@ static bool gnb_get_metrics(gnb_metrics_t* m)
 void gnb_metrics_handle(void)
 {
 	gnb_metrics = {0};
+
 	gnb_get_metrics(&gnb_metrics);
 	gnb_metrics_stdout(&gnb_metrics);
-	
+
+	cvector_free(gnb_metrics.phy);
+	cvector_free(gnb_metrics.nr_stack.mac.cc_info);
+	cvector_free(gnb_metrics.nr_stack.mac.ues);
+	cvector_free(gnb_metrics.nr_stack.rlc.ues);
+	cvector_free(gnb_metrics.nr_stack.pdcp.ues);
+	cvector_free(gnb_metrics.nr_stack.rrc.ues);
+}
+
+static void gnb_metrics_init(void)
+{
+	gnb_manager.metrics_running = 1;
+}
+
+static void gnb_metrics_destory(void)
+{
+	gnb_manager.metrics_running = 0;
+
 	cvector_free(gnb_metrics.phy);
 	cvector_free(gnb_metrics.nr_stack.mac.cc_info);
 	cvector_free(gnb_metrics.nr_stack.mac.ues);
@@ -245,24 +266,6 @@ static void *gnb_metrics_task(oset_threadplus_t *thread, void *data)
 			gnb_metrics_handle();
 			oset_msleep(oset_time_from_msec(gnb_manager.args.general.metrics_period_secs));
 		}
-	}
-}
-
-static void gnb_metrics_init(void)
-{
-	gnb_manager.metrics_running = 1;
-}
-
-static void gnb_metrics_destory(void)
-{
-	gnb_manager.metrics_running = 0;
-
-	cvector_free(gnb_metrics.phy);
-	cvector_free(gnb_metrics.nr_stack.mac.cc_info);
-	cvector_free(gnb_metrics.nr_stack.mac.ues);
-	cvector_free(gnb_metrics.nr_stack.rlc.ues);
-	cvector_free(gnb_metrics.nr_stack.pdcp.ues);
-	cvector_free(gnb_metrics.nr_stack.rrc.ues);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -286,6 +289,8 @@ void gnb_manager_init(void)
 void gnb_manager_destory(void)
 {
 	gnb_manager.running = false;
+	gnb_metrics_destory();
+
 	rrc_cell_cfg_nr_t *cell = NULL;
 	cvector_for_each_in(cell, gnb_manager.rrc_nr_cfg.cell_list){
 		cvector_free(cell->pdcch_cfg_common.common_search_space_list);

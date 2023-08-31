@@ -19,7 +19,7 @@ static int rlc_lcid_compare(const void *a, const void *b)
 	return *x - *y;
 }
 
-void rlc_valid_lcids_insert(rlc_lib_t *rlc, uint32_t lcid)
+static void rlc_lib_valid_lcids_insert(rlc_lib_t *rlc, uint32_t lcid)
 {
 	uint32_t *val = NULL;
 	cvector_for_each_in(val, rlc->valid_lcids_cached){
@@ -29,7 +29,7 @@ void rlc_valid_lcids_insert(rlc_lib_t *rlc, uint32_t lcid)
 	//qsort(rlc->valid_lcids_cached, cvector_size(rlc->valid_lcids_cached), sizeof(uint32_t), rlc_lcid_compare);
 }
 
-void rlc_valid_lcids_delete(rlc_lib_t *rlc, uint32_t lcid)
+static void rlc_lib_valid_lcids_delete(rlc_lib_t *rlc, uint32_t lcid)
 {
 	for (int i = 0; i < cvector_size(rlc->valid_lcids_cached); i++){
 		if(rlc->valid_lcids_cached[i] = lcid){
@@ -47,7 +47,12 @@ static void rlc_lib_write_ul_pdu_suspended(rlc_common *rlc_entity, uint8_t* payl
   }
 }
 
-rlc_common * rlc_valid_lcid(rlc_lib_t *rlc, uint32_t lcid)
+rlc_common *rlc_array_find_by_lcid(rlc_lib_t *rlc, uint32_t lcid)
+{
+    return (rlc_common *)oset_hash_get(rlc->rlc_array, &lcid, sizeof(lcid));
+}
+
+rlc_common * rlc_array_valid_lcid(rlc_lib_t *rlc, uint32_t lcid)
 {
   // ???SRSRAN_N_RADIO_BEARERS
   if (lcid >= SRSRAN_N_RADIO_BEARERS) {
@@ -61,7 +66,7 @@ rlc_common * rlc_valid_lcid(rlc_lib_t *rlc, uint32_t lcid)
 static void get_buffer_state(rlc_lib_t *rlc, uint32_t lcid, uint32_t *tx_queue, uint32_t *prio_tx_queue)
 {
 	//oset_apr_thread_rwlock_rdlock(rlc->rwlock);
-	rlc_common  *rlc_entity = rlc_valid_lcid(rlc, lcid);
+	rlc_common  *rlc_entity = rlc_array_valid_lcid(rlc, lcid);
 	if (rlc_entity) {
 		if (is_suspended(rlc_entity)) {
 			*tx_queue      = 0;
@@ -83,7 +88,7 @@ static void rlc_lib_update_bsr(rlc_lib_t *rlc, uint32_t lcid)
 }
 
 
-void rlc_reset_metrics(rlc_lib_t *rlc)
+void rlc_lib_reset_metrics(rlc_lib_t *rlc)
 {
 	oset_hash_index_t *hi = NULL;
 	for (hi = oset_hash_first(rlc->rlc_array); hi; hi = oset_hash_next(hi)) {
@@ -92,19 +97,39 @@ void rlc_reset_metrics(rlc_lib_t *rlc)
 	    it->func._reset_metrics(it);
 	}
 
-	//for (hi = oset_hash_first(rlc->rlc_array_mrb); hi; hi = oset_hash_next(hi)) {
-	//	uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
-	//	rlc_common  *it = oset_hash_this_val(hi);
-	//    it->func._reset_metrics(it);
-	//}
-
-	rlc->metrics_tp = oset_micro_time_now();//oset_time_now()//???gnb_get_current_time();
+	rlc->metrics_tp = oset_epoch_time_now();//oset_time_now();
 }
 
-rlc_common *rlc_array_find_by_lcid(rlc_lib_t *rlc, uint32_t lcid)
+void rlc_lib_get_metrics(rlc_lib_t *rlc, rlc_ue_metrics_t *ue_m, uint32_t nof_tti)
 {
-    return (rlc_common *)oset_hash_get(rlc->rlc_array, &lcid, sizeof(lcid));
+	time_t secs = oset_epoch_time_now() - rlc->metrics_tp;
+
+	oset_hash_index_t *hi = NULL;
+	for (hi = oset_hash_first(rlc->rlc_array); hi; hi = oset_hash_next(hi)) {
+		uint16_t lcid = *(uint16_t *)oset_hash_this_key(hi);
+		rlc_common  *it = oset_hash_this_val(hi);
+		rlc_bearer_metrics_t metrics = it->func._get_metrics(it);
+
+		// Rx/Tx rate based on real time
+		double rx_rate_mbps_real_time = (metrics.num_rx_pdu_bytes * 8 / (double)1e6) / secs;
+		double tx_rate_mbps_real_time = (metrics.num_tx_pdu_bytes * 8 / (double)1e6) / secs;
+
+		// Rx/Tx rate based on number of TTIs (tti ~ ms)
+		double rx_rate_mbps = (nof_tti > 0) ? ((metrics.num_rx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
+		double tx_rate_mbps = (nof_tti > 0) ? ((metrics.num_tx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
+
+		oset_debug("lcid=%d, rx_rate_mbps=%4.2f (real=%4.2f), tx_rate_mbps=%4.2f (real=%4.2f)",
+		         lcid,
+		         rx_rate_mbps,
+		         rx_rate_mbps_real_time,
+		         tx_rate_mbps,
+		         tx_rate_mbps_real_time);
+		ue_m->bearer[lcid] = metrics;
+	}
+
+	rlc_lib_reset_metrics(rlc);
 }
+
 
 // Methods modifying the RLC array need to acquire the write-lock
 int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
@@ -112,7 +137,7 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
   //oset_apr_thread_rwlock_rdlock(rlc->rwlock);
   //oset_apr_thread_rwlock_unlock(rlc->rwlock);
 
-  if (NULL != rlc_valid_lcid(rlc, lcid)) {
+  if (NULL != rlc_array_valid_lcid(rlc, lcid)) {
 	oset_warn("LCID %d already exists", lcid);
 	return OSET_ERROR;
   }
@@ -175,7 +200,7 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
     return OSET_ERROR;
   }
 
-  rlc_valid_lcids_insert(rlc, lcid);
+  rlc_lib_valid_lcids_insert(rlc, lcid);
 
   oset_info("Added %s radio bearer with LCID %d in %s", rat_to_string(cnfg->rat), lcid, rlc_mode_to_string(cnfg->rlc_mode, true));
 
@@ -184,10 +209,10 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
 
 void rlc_lib_del_bearer(rlc_lib_t *rlc, uint32_t lcid)
 {
-	rlc_valid_lcids_delete(rlc, lcid);
+	rlc_lib_valid_lcids_delete(rlc, lcid);
 
 	//oset_apr_thread_rwlock_rdlock(rlc->rwlock);
-	if (rlc_valid_lcid(rlc, lcid)) {
+	if (rlc_array_valid_lcid(rlc, lcid)) {
 		rlc_common *it = rlc_array_find_by_lcid(rlc, lcid);
 		oset_hash_set(rlc->rlc_array, &it->lcid, sizeof(it->lcid), NULL);
 		it->func._stop(it);
@@ -203,7 +228,7 @@ static void rlc_lib_init2(rlc_lib_t *rlc, uint32_t lcid_)
 {
 	rlc->default_lcid = lcid_;
 
-	rlc_reset_metrics(rlc);
+	rlc_lib_reset_metrics(rlc);
 
 	rlc_config_t default_rlc_cfg = default_rlc_config();
 
@@ -220,7 +245,6 @@ void rlc_lib_init(rlc_lib_t *rlc, uint32_t lcid_, bsr_callback_t bsr_callback_)
 	//oset_apr_thread_rwlock_create(&rlc->rwlock, rlc->usepool);
 	//oset_pool_init(&rlc->pool, static_pool_size);
 	rlc->rlc_array = oset_hash_make();
-	//rlc->rlc_array_mrb = oset_hash_make();
 
 	rlc->bsr_callback = bsr_callback_;
 	rlc->metrics_tp = 0;
@@ -238,7 +262,6 @@ void rlc_lib_stop(rlc_lib_t *rlc)
 
 	rlc->bsr_callback = NULL;
 	oset_hash_destroy(rlc->rlc_array);
-	//oset_hash_destroy(rlc->rlc_array_mrb);
     //oset_pool_final(&rlc->pool);
 	//oset_apr_thread_rwlock_unlock(rlc->rwlock);
 	//oset_apr_thread_rwlock_destroy(rlc->rwlock);
@@ -248,7 +271,7 @@ void rlc_lib_stop(rlc_lib_t *rlc)
 // Write PDU methods are called from Stack thread context, no need to acquire the lock
 void rlc_lib_write_ul_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
-	rlc_common	*rlc_entity = rlc_valid_lcid(rlc, lcid);
+	rlc_common	*rlc_entity = rlc_array_valid_lcid(rlc, lcid);
 
 	if (NULL != rlc_entity) {
 		rlc_lib_write_ul_pdu_suspended(rlc_entity, payload, nof_bytes);
@@ -263,7 +286,7 @@ uint32_t rlc_lib_read_dl_pdu(rlc_lib_t *rlc, uint32_t lcid, uint8_t* payload, ui
   uint32_t ret = 0;
 
   //oset_apr_thread_rwlock_rdlock(rlc->rwlock);
-  rlc_common  *rlc_entity = rlc_valid_lcid(rlc, lcid);
+  rlc_common  *rlc_entity = rlc_array_valid_lcid(rlc, lcid);
   //oset_apr_thread_rwlock_unlock(rlc->rwlock);
 
   if (NULL != rlc_entity) {
@@ -288,7 +311,7 @@ void rlc_lib_write_dl_sdu(rlc_lib_t *rlc, uint32_t lcid, byte_buffer_t *sdu)
     oset_warn("Dropping too long SDU of size %d B (Max. size %d B).", sdu->N_bytes, RLC_MAX_SDU_SIZE);
     return;
   }
-  rlc_common  *rlc_entity = rlc_valid_lcid(rlc, lcid);
+  rlc_common  *rlc_entity = rlc_array_valid_lcid(rlc, lcid);
   
   if (NULL != rlc_entity) {
   	rlc_entity->func._write_dl_sdu(rlc_entity, sdu);
@@ -301,7 +324,7 @@ void rlc_lib_write_dl_sdu(rlc_lib_t *rlc, uint32_t lcid, byte_buffer_t *sdu)
 bool rlc_lib_rb_is_um(rlc_lib_t *rlc, uint32_t lcid)
 {
   bool ret = false;
-  rlc_common *rlc_entity = rlc_valid_lcid(rlc, lcid);
+  rlc_common *rlc_entity = rlc_array_valid_lcid(rlc, lcid);
 
   if (NULL != rlc_entity) {
 	ret = (rlc_entity->func._get_mode() == (rlc_mode_t)um);
@@ -313,7 +336,7 @@ bool rlc_lib_rb_is_um(rlc_lib_t *rlc, uint32_t lcid)
 
 bool rlc_lib_sdu_queue_is_full(rlc_lib_t *rlc, uint32_t lcid)
 {
-  rlc_common *rlc_entity = rlc_valid_lcid(rlc, lcid);
+  rlc_common *rlc_entity = rlc_array_valid_lcid(rlc, lcid);
 
   if (NULL != rlc_entity) {
     return rlc_entity->func._sdu_queue_is_full();
@@ -324,7 +347,7 @@ bool rlc_lib_sdu_queue_is_full(rlc_lib_t *rlc, uint32_t lcid)
 
 void rlc_lib_discard_sdu(rlc_lib_t *rlc, uint32_t lcid, uint32_t discard_sn)
 {
-  rlc_common *rlc_entity = rlc_valid_lcid(rlc, lcid);
+  rlc_common *rlc_entity = rlc_array_valid_lcid(rlc, lcid);
 
   if (NULL != rlc_entity) {
     rlc_entity->func._discard_sdu(rlc_entity, discard_sn);

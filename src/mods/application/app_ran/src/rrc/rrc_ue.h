@@ -92,7 +92,7 @@ void rrc_rem_user_info(uint16_t rnti);
 void rrc_nr_ue_deactivate_bearers(rrc_nr_ue *ue);
 void rrc_nr_ue_set_activity(rrc_nr_ue *ue, bool enabled);
 void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer);
-void rrc_nr_ue_get_metrics(rrc_ue_metrics_t *metrics);
+void rrc_nr_ue_get_metrics(rrc_nr_ue *ue, rrc_ue_metrics_t *ue_metrics);
 /*******************************************************************************
 send DL interface
 *******************************************************************************/

@@ -174,6 +174,15 @@ static void pdcp_write_dl_sdu_interface(uint16_t rnti, uint32_t lcid, byte_buffe
 	}
 }
 
+void pdcp_get_metrics(pdcp_metrics_t *m, uint32_t nof_tti)
+{
+	pdcp_user_interface *user = NULL, *next_user = NULL;
+	oset_list_for_each_safe(pdcp_manager.pdcp_ue_list, next_user, user){
+		pdcp_ue_metrics_t ue_metrics = {0};
+		pdcp_lib_get_metrics(&user->pdcp, &ue_metrics, nof_tti);
+		cvector_push_back(m->ues, ue_metrics)
+	}
+}
 
 /*******************************************************************************
 RRC interface

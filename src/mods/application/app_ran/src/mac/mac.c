@@ -168,7 +168,7 @@ static void get_metrics_nolock(mac_metrics_t *metrics)
 	ue_nr *u = NULL, *next_u = NULL;
 	oset_list_for_each_safe(&mac_manager.mac_ue_list, next_u, u){
 		mac_ue_metrics_t u_metric = {0};
-		ue_nr_metrics_read(&u_metric);
+		ue_nr_metrics_read(u, &u_metric);
 		cvector_push_back(metrics->ues, u_metric)
 	}
 

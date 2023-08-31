@@ -160,6 +160,7 @@ typedef struct {
 	bool (*_configure)(rlc_common*, rlc_config_t*);
 	void (*_set_bsr_callback)(rlc_common*, bsr_callback_t);
 	void (*_reset_metrics)(rlc_common*);
+	void (*_get_metrics)(rlc_common*);
 	void (*_reestablish)(rlc_common*);
 	void (*_write_ul_pdu)(rlc_common*, uint8_t*, uint32_t);
 	uint32_t (*_read_dl_pdu)(rlc_common*, uint8_t*, uint32_t);
