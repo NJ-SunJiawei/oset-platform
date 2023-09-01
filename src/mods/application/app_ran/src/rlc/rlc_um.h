@@ -22,7 +22,9 @@ extern "C" {
 
 typedef struct {
 	rlc_um_base_tx base_tx;
-	uint32_t   TX_Next; // send state as defined in TS 38.322 v15.3 Section 7
+	uint32_t   TX_Next; // 该状态变量指示的是分配给下一个新产生的包含RLC SDU segment的UMD PDU的SN.
+	                    // 该变量的初始值为0，在UM RLC向下层递交了包含RLC SDU最后一个片段的UMD PDU后按步长1更新;
+	                    // send state as defined in TS 38.322 v15.3 Section 7
 						// It holds the value of the SN to be assigned for the next newly generated UMD PDU with
 						// segment. It is initially set to 0, and is updated after the UM RLC entity submits a UMD PDU
 						// including the last segment of an RLC SDU to lower layers.
@@ -51,10 +53,13 @@ typedef struct {
 
 typedef struct {
 	rlc_um_base_rx  base_rx;
-	uint32_t      RX_Next_Reassembly; // the earliest SN that is still considered for reassembly
-	uint32_t      RX_Timer_Trigger; // the SN following the SN which triggered t-Reassembly
-	uint32_t      RX_Next_Highest; // the SN following the SN of the UMD PDU with the highest SN among
-								 // received UMD PDUs. It serves as the higher edge of the reassembly window.
+	uint32_t      RX_Next_Reassembly; // 该变量指示的是接收到的UMD PDU中最早的待组装的PDU的SN。该变量的初始值为0，是接收窗口的下边界
+	                                  // the earliest SN that is still considered for reassembly
+	uint32_t      RX_Timer_Trigger;   // 该变量指示的是触发t-Ressembly timer的UMD PDU的SN+1(用于RLC分段的重组)
+									  // the SN following the SN which triggered t-Reassembly
+	uint32_t      RX_Next_Highest; // 该变量指示的是的接收到的UMD PDU的最大SN+1。该变量的初始值为0，是接收窗口的上边界
+								   // the SN following the SN of the UMD PDU with the highest SN among
+								   // received UMD PDUs. It serves as the higher edge of the reassembly window.
 	uint32_t      UM_Window_Size;
 	uint32_t      mod; // Rx counter modulus
 	oset_hash_t   *rx_window;//std::map<uint32_t, rlc_umd_pdu_segments_nr_t>
@@ -71,6 +76,7 @@ typedef struct {
 
 rlc_um_nr *rlc_um_nr_init(uint32_t lcid_,	uint16_t rnti_);
 void rlc_um_nr_stop(rlc_common *tm_common);
+rlc_mode_t rlc_um_nr_get_mode(void);
 
 #ifdef __cplusplus
 }

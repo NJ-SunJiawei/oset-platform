@@ -205,8 +205,8 @@ void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr)
 
 // RLC ===>RRC 接收到ue侧的pdcp包
 // nas 先加密再完保   pdcp 先完保再加密(完整性保护是PDU头和PDU的数据部分，pdu head不加密pdu dat,mac-I加密)
-// NR PDCP采用PUSH window（下边沿驱动）+t-reordering timer的形式接收下层递交的PDCP PDU
-// 关于PUSH window：接收窗口只能依赖于接收窗口下边界状态变量（RX_DELIV）更新才能移动
+// NR PDCP采用PUSH window(下边沿驱动)+t-reordering timer的形式接收下层递交的PDCP PDU
+// 关于PUSH window:接收窗口只能依赖于接收窗口下边界状态变量(RX_DELIV)更新才能移动
 void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
 {
   // Log PDU

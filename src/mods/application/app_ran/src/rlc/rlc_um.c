@@ -12,6 +12,23 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rlcUM"
 
+/////////////////////////////////rlc_um_nr_rx/////////////////////////////////
+
+void rlc_um_nr_rx_init(rlc_um_nr_rx *rx)
+{
+	rx->reassembly_timer = gnb_timer_add(gnb_manager_self()->app_timer, , );
+
+}
+
+
+/////////////////////////////////rlc_um_nr_tx/////////////////////////////////
+
+void rlc_um_nr_tx_init(rlc_um_nr_tx *tx)
+{
+
+}
+
+////////////////////////////////rlc_um_nr/////////////////////////////////////
 void rlc_um_nr_stop(rlc_common *tm_common)
 {
 	rlc_um_nr *um = (rlc_um_nr *)tm_common;
@@ -19,6 +36,41 @@ void rlc_um_nr_stop(rlc_common *tm_common)
 	rlc_um_base_stop(&um->base);
 }
 
+bool rlc_um_nr_configure(rlc_common *tm_common, rlc_config_t *cnfg_)
+{
+	rlc_um_nr *um = (rlc_um_nr *)tm_common;
+
+	// store config
+	um->base.cfg = *cnfg_;
+
+	// determine bearer name and configure Rx/Tx objects
+	um->base.common.rb_name = oset_msprintf("DRB%s", um->base.cfg.um_nr.bearer_id);
+
+	rlc_um_nr_tx_init(&um->tx);
+	if (not rx->configure(cfg, rb_name)) {
+		return false;
+	}
+
+	rlc_um_nr_rx_init(&um->rx);
+	if (not tx->configure(cfg, rb_name)) {
+		return false;
+	}
+
+	RlcInfo("configured in %s: sn_field_length=%u bits, t_reassembly=%d ms",
+	      srsran::to_string(cnfg_.rlc_mode),
+	      srsran::to_number(cfg.um_nr.sn_field_length),
+	      cfg.um_nr.t_reassembly_ms);
+
+	rx_enabled = true;
+	tx_enabled = true;
+
+	return true;
+}
+
+rlc_mode_t rlc_um_nr_get_mode(void)
+{
+  return rlc_mode_t(um);
+}
 
 rlc_um_nr *rlc_um_nr_init(uint32_t lcid_,	uint16_t rnti_)
 {

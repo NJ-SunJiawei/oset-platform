@@ -16,8 +16,6 @@
 extern "C" {
 #endif
 
-typedef struct rlc_um_base_s rlc_um_base;
-
 // Transmitter sub-class base
 typedef struct {
 	char                  *rb_name;

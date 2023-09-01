@@ -44,16 +44,16 @@ typedef struct discard_pdu {
 typedef struct {
 	pdcp_entity_base   base;
 	// State variables: 3GPP TS 38.323 v15.2.0, section 7.1
-	// TX_NEXT:指示下一个将要被发送的PDCP SDU的COUNT值
+	                  // TX_NEXT:指示下一个将要被发送的PDCP SDU的COUNT值
 	uint32_t tx_next; // COUNT value of next SDU to be transmitted.
 
-	// RX_NEXT:指示下一个期待收到的PDCP PDU的COUNT值
+	                  // RX_NEXT:指示下一个期待收到的PDCP PDU的COUNT值
 	uint32_t rx_next; // COUNT value of next SDU expected to be received.
 
-	// RX_DELIV[下边界]:指示的是还没有递交上层但是等待递交的first PDCP SDU的COUNT值
+	                   // RX_DELIV[下边界]:指示的是还没有递交上层但是等待递交的first PDCP SDU的COUNT值
 	uint32_t rx_deliv; // COUNT value of first SDU not delivered to upper layers, but still waited for.
 
-	// RX_REORD:指示触发了重排序定时器的关联的PDCP 数据 PDU的COUNT值
+	                   // RX_REORD:指示触发了重排序定时器的关联的PDCP 数据 PDU的COUNT值
 	uint32_t rx_reord; // COUNT value following the COUNT value of PDCP Data PDU which triggered t-Reordering.
 
 	// Constants: 3GPP TS 38.323 v15.2.0, section 7.2
