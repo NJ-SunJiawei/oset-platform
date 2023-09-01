@@ -46,23 +46,23 @@ bool rlc_um_nr_configure(rlc_common *tm_common, rlc_config_t *cnfg_)
 	// determine bearer name and configure Rx/Tx objects
 	um->base.common.rb_name = oset_msprintf("DRB%s", um->base.cfg.um_nr.bearer_id);
 
-	rlc_um_nr_tx_init(&um->tx);
-	if (not rx->configure(cfg, rb_name)) {
+	rlc_um_nr_rx_init(&um->rx);
+	if (! rx->configure(cfg, rb_name)) {
 		return false;
 	}
 
-	rlc_um_nr_rx_init(&um->rx);
-	if (not tx->configure(cfg, rb_name)) {
+	rlc_um_nr_tx_init(&um->tx);
+	if (! tx->configure(cfg, rb_name)) {
 		return false;
 	}
 
 	RlcInfo("configured in %s: sn_field_length=%u bits, t_reassembly=%d ms",
 	      srsran::to_string(cnfg_.rlc_mode),
 	      srsran::to_number(cfg.um_nr.sn_field_length),
-	      cfg.um_nr.t_reassembly_ms);
+	      um->base.cfg.um_nr.t_reassembly_ms);
 
-	rx_enabled = true;
-	tx_enabled = true;
+	um->base.rx_enabled = true;
+	um->base.tx_enabled = true;
 
 	return true;
 }
