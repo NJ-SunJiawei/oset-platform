@@ -153,7 +153,7 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
     case (rlc_mode_t)am:
       switch (cnfg->rat) {
         case (srsran_rat_t)nr:
-          // AM收发端各有一个实体，成对出现，但是有两个交互通道，类似于我们通信中常说的全双工，能够同时完成收发操作
+          // AM收发端各有一个实体，成对出现，但是一个实体有两个交互通道，类似于我们通信中常说的全双工，能够同时完成收发操作
           rlc_entity = (rlc_common *)(new rlc_am(cnfg->rat, logger, lcid, pdcp, rrc, timers));
           break;
         default:

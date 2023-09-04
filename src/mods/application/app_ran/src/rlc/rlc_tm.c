@@ -16,7 +16,7 @@ static uint32_t tm_sdu_peek_first_bytes(oset_queue_t *dl_sdu_queue)
 {
 	uint32_t size_next = 0;
 	byte_buffer_t *front_val = oset_queue_pop_peek(dl_sdu_queue);
-		if (front_val != nullptr) {
+		if (front_val != NULL) {
 		size_next = front_val->N_bytes;
 	}
 	return size_next;

@@ -269,7 +269,7 @@ static int update_rlc_bearers(rrc_nr_ue *ue, struct cell_group_cfg_s *cell_group
 			return OSET_ERROR;
 		  }
 		}
-		API_rlc_rrc_add_bearer(ue->rnti, rb->lc_ch_id, rlc_cfg);
+		API_rlc_rrc_add_bearer(ue->rnti, rb->lc_ch_id, &rlc_cfg);
 	}
 
   return OSET_OK;

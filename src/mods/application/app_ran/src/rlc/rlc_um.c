@@ -12,28 +12,167 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rlcUM"
 
-/////////////////////////////////rlc_um_nr_rx/////////////////////////////////
+//  UDM PDU
 
-void rlc_um_nr_rx_init(rlc_um_nr_rx *rx)
+// complete RLC PDU
+// | SI |R|R|R|R|R|R|
+// |      Data      |
+// |      ...       |
+
+// first RLC PDU segment(sn 6 bit)      first RLC PDU segment(sn 12 bit)
+// | SI |    SN     |                   | SI |R|R|   SN   |
+// |      Data      |                   |      SN         |
+// |      ...       |                   |      Data       |
+
+
+// other RLC PDU segment(sn 6 bit)      other RLC PDU segment(sn 12 bit)
+// | SI |    SN     |                   | SI |R|R|   SN   |
+// |      SO        |                   |      SO         |
+// |      SO        |                   |      SO         |
+// |      Data      |                   |      SN         |
+// |      ...       |                   |      Data       |
+
+uint32_t rlc_um_nr_packed_length(rlc_um_nr_pdu_header_t *header)
 {
-	rx->reassembly_timer = gnb_timer_add(gnb_manager_self()->app_timer, , );
+  uint32_t len = 0;
+  if (header->si == (rlc_nr_si_field_t)full_sdu) {
+    // that's all ..
+    len++;
+  } else {
+    if (header->sn_size == (rlc_um_nr_sn_size_t)size6bits) {
+      // Only 1Byte for SN
+      len++;
+    } else {
+      // 2 Byte for 12bit SN
+      len += 2;
+    }
+    if (header->so) {
+      // Two bytes always for segment information
+      len += 2;
+    }
+  }
+  return len;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////rlc_um_nr_rx/////////////////////////////////
+// TS 38.322 v15.003 Section 5.2.2.2.4
+void rlc_um_nr_rx_timer_expired(void *data)
+{
+  rlc_um_nr_rx *rx = (rlc_um_nr_rx *)data;
+
+  oset_thread_mutex_lock(&rx->mutex);
+  if (rx->reassembly_timer.id() == timeout_id) {
+    RlcDebug("reassembly timeout expiry for SN=%d - updating RX_Next_Reassembly and reassembling", RX_Next_Reassembly);
+
+    metrics.num_lost_pdus++;
+
+    if (rx_sdu != nullptr) {
+      rx_sdu->clear();
+    }
+
+    // update RX_Next_Reassembly to the next SN that has not been reassembled yet
+    RX_Next_Reassembly = RX_Timer_Trigger;
+    while (RX_MOD_NR_BASE(RX_Next_Reassembly) < RX_MOD_NR_BASE(RX_Next_Highest)) {
+      RX_Next_Reassembly = (RX_Next_Reassembly + 1) % mod;
+      debug_state();
+    }
+
+    // discard all segments with SN < updated RX_Next_Reassembly
+    for (auto it = rx_window.begin(); it != rx_window.end();) {
+      if (RX_MOD_NR_BASE(it->first) < RX_MOD_NR_BASE(RX_Next_Reassembly)) {
+        it = rx_window.erase(it);
+      } else {
+        ++it;
+      }
+    }
+
+    // check start of t_reassembly
+    if (RX_MOD_NR_BASE(RX_Next_Highest) > RX_MOD_NR_BASE(RX_Next_Reassembly + 1) ||
+        ((RX_MOD_NR_BASE(RX_Next_Highest) == RX_MOD_NR_BASE(RX_Next_Reassembly + 1) &&
+          has_missing_byte_segment(RX_Next_Reassembly)))) {
+      RlcDebug("starting reassembly timer for SN=%d", rb_name.c_str(), RX_Next_Reassembly);
+      reassembly_timer.run();
+      RX_Timer_Trigger = RX_Next_Highest;
+    }
+
+    debug_state();
+  }
+  oset_thread_mutex_unlock(&rx->mutex);
+}
+
+
+static void rlc_um_nr_rx_init(rlc_um_nr_rx *rx)
+{
+	oset_thread_mutex_init(&rx->mutex); 
+}
+
+static void rlc_um_nr_rx_stop(rlc_um_nr_rx *rx)
+{
+	oset_thread_mutex_destroy(&rx->mutex);
+	if(rx->reassembly_timer) gnb_timer_delete(rx->reassembly_timer);
 
 }
 
+static bool rlc_um_nr_rx_configure(rlc_um_nr_rx *rx, rlc_config_t *cnfg_, char *rb_name_)
+{
+	rx->base_rx.rb_name = rb_name_;
+	rx->base_rx.cfg = *cnfg_;
+
+	rx->mod  = (cnfg_->um_nr.sn_field_length == (rlc_um_nr_sn_size_t)size6bits) ? 64 : 4096;
+	rx->UM_Window_Size = (cnfg_->um_nr.sn_field_length == (rlc_um_nr_sn_size_t)size6bits) ? 32 : 2048;
+
+	// configure timer
+	if (rx->base_rx.cfg.um_nr.t_reassembly_ms > 0) {
+		rx->reassembly_timer = gnb_timer_add(gnb_manager_self()->app_timer, rlc_um_nr_rx_timer_expired, rx);
+	}
+
+	return true;
+}
 
 /////////////////////////////////rlc_um_nr_tx/////////////////////////////////
 
-void rlc_um_nr_tx_init(rlc_um_nr_tx *tx)
+static void rlc_um_nr_tx_init(rlc_um_nr_tx *tx)
 {
 
 }
 
+static void rlc_um_nr_tx_stop(rlc_um_nr_tx *tx)
+{
+
+}
+
+static bool rlc_um_nr_tx_configure(rlc_um_nr_tx *tx, rlc_config_t *cnfg_, char *rb_name_)
+{
+  tx->base_tx.rb_name = rb_name_;
+  tx->base_tx.cfg = *cnfg_;
+
+  tx->mod            = (cnfg_->um_nr.sn_field_length == (rlc_um_nr_sn_size_t)size6bits) ? 64 : 4096;
+  tx->UM_Window_Size = (cnfg_->um_nr.sn_field_length == (rlc_um_nr_sn_size_t)size6bits) ? 32 : 2048;
+
+  // calculate header sizes for configured SN length
+  rlc_um_nr_pdu_header_t header = {0};
+  header.si        = (rlc_nr_si_field_t)first_segment;
+  header.so        = 0;//无偏移
+  tx->head_len_first   = rlc_um_nr_packed_length(&header);
+
+  header.so        = 1;//有偏移
+  tx->head_len_segment = rlc_um_nr_packed_length(&header);
+
+  tx->base_tx.tx_sdu_queue.resize(cnfg_->tx_queue_length);
+  return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////rlc_um_nr/////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 void rlc_um_nr_stop(rlc_common *tm_common)
 {
 	rlc_um_nr *um = (rlc_um_nr *)tm_common;
 
 	rlc_um_base_stop(&um->base);
+	rlc_um_nr_rx_stop(&um->rx);
+	rlc_um_nr_tx_stop(&um->tx);
 }
 
 bool rlc_um_nr_configure(rlc_common *tm_common, rlc_config_t *cnfg_)
@@ -47,18 +186,18 @@ bool rlc_um_nr_configure(rlc_common *tm_common, rlc_config_t *cnfg_)
 	um->base.common.rb_name = oset_msprintf("DRB%s", um->base.cfg.um_nr.bearer_id);
 
 	rlc_um_nr_rx_init(&um->rx);
-	if (! rx->configure(cfg, rb_name)) {
+	if (! rlc_um_nr_rx_configure(&um->rx, &um->base.cfg, um->base.common.rb_name)) {
 		return false;
 	}
 
 	rlc_um_nr_tx_init(&um->tx);
-	if (! tx->configure(cfg, rb_name)) {
+	if (! rlc_um_nr_tx_configure(&um->tx, &um->base.cfg, um->base.common.rb_name)) {
 		return false;
 	}
 
 	RlcInfo("configured in %s: sn_field_length=%u bits, t_reassembly=%d ms",
-	      srsran::to_string(cnfg_.rlc_mode),
-	      srsran::to_number(cfg.um_nr.sn_field_length),
+	      rlc_mode_to_string(um->base.cfg.rlc_mode, false),
+	      rlc_um_nr_sn_size_to_number(um->base.cfg.um_nr.sn_field_length),
 	      um->base.cfg.um_nr.t_reassembly_ms);
 
 	um->base.rx_enabled = true;

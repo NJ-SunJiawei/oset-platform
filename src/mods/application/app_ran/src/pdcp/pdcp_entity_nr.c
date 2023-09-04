@@ -191,7 +191,7 @@ void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr)
 	oset_list_for_each(pdcp_nr->reorder_list, buffer_node){
 		oset_free(buffer_node);
 	}
-	gnb_timer_delete(pdcp_nr->reordering_timer);
+	if(pdcp_nr->reordering_timer) gnb_timer_delete(pdcp_nr->reordering_timer);
 
 	discard_timer_t *timer_node = NULL;
 	oset_list_for_each(&pdcp_nr->discard_timers_list, timer_node){
