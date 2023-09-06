@@ -175,15 +175,17 @@ void rlc_tm_write_dl_sdu(rlc_common *tm_common, byte_buffer_t *sdu)
 	}
 
 	if (sdu != NULL) {
-		uint8_t*   msg_ptr   = sdu->msg;
+		uint8_t    *msg_ptr  = sdu->msg;
 		uint32_t   nof_bytes = sdu->N_bytes;
-		int        ret = oset_queue_trypush(tm->dl_sdu_queue, byte_buffer_dup(sdu));
+		byte_buffer_t *dup = byte_buffer_dup(sdu);
+		int ret = oset_queue_trypush(tm->dl_sdu_queue, dup);
 		if (OSET_OK == ret) {
 			oset_apr_mutex_lock(tm->unread_bytes_mutex);
 			tm->unread_bytes += sdu->N_bytes;
 			oset_apr_mutex_unlock(tm->unread_bytes_mutex);
 			RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU, queue size=%d, sdu size = %d, sdu bytes=%d", tm->dl_sdu_queue.bounds, oset_queue_size(tm->dl_sdu_queue), tm->unread_bytes);
 		} else {
+			oset_free(dup);
 			RlcWarning("[Dropped SDU] Tx SDU, queue size=%d, sdu size = %d, sdu bytes=%d",
 			            tm->dl_sdu_queue.bounds,
 			            oset_queue_size(tm->dl_sdu_queue),
