@@ -25,7 +25,7 @@ typedef struct byte_buffer_s
 {
 	uint32_t N_bytes;//store msg length
 	uint8_t  buffer[SRSRAN_MAX_BUFFER_SIZE_BYTES];
-	uint8_t  *msg;//store ori msg//msg = &buffer[0]
+	uint8_t  *msg;//store ori msg//msg = &buffer[SRSRAN_BUFFER_HEADER_OFFSET]
 	buffer_metadata_t md;
 }byte_buffer_t;
 

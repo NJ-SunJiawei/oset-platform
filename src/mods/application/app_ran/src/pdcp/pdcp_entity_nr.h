@@ -43,6 +43,8 @@ typedef struct discard_pdu {
 
 typedef struct {
 	pdcp_entity_base   base;
+	uint32_t tx_hfn; // 自定义
+
 	// State variables: 3GPP TS 38.323 v15.2.0, section 7.1
 	                  // TX_NEXT:指示下一个将要被发送的PDCP SDU的COUNT值
 	uint32_t tx_next; // COUNT value of next SDU to be transmitted.
@@ -58,6 +60,7 @@ typedef struct {
 
 	// Constants: 3GPP TS 38.323 v15.2.0, section 7.2
 	uint32_t      window_size;
+	uint32_t      maximum_pdcp_sn;
 
 	// Reordering Queue / Timers
 	oset_list_t   reorder_list;//std::map<uint32_t, byte_buffer_t>//oset_stl_heap_t

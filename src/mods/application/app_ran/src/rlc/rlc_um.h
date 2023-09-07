@@ -35,7 +35,7 @@ typedef struct {
 	oset_thread_mutex_t   unread_bytes_mutex;
 	uint32_t              unread_bytes;
 	oset_list_t           tx_sdu_queue;//rlc_um_base_tx_sdu_t
-	byte_buffer_t         *tx_sdu;//存放分片报文
+	byte_buffer_t         *tx_sdu;//存放pop临时报文
 	// lte
 	// rolling_average_t(double) mean_pdu_latency_us;
 }rlc_um_base_tx;

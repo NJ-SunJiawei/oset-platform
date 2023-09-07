@@ -439,7 +439,7 @@ void rrc_nr_ue_add(uint16_t rnti_, uint32_t pcell_cc_idx, bool start_msg3_timer)
 
 	if (!rrc_manager_self()->cfg.is_standalone) {
 		// Add the final PDCCH config in case of NSA
-		fill_phy_pdcch_cfg(rrc_manager_self()->cfg.cell_list[pcell_cc_idx], &ue->uecfg.phy_cfg.pdcch);
+		// fill_phy_pdcch_cfg(rrc_manager_self()->cfg.cell_list[pcell_cc_idx], &ue->uecfg.phy_cfg.pdcch);
 	} else {
 		//ue->cell_group_cfg      = rrc_manager_self()->cell_ctxt->master_cell_group;
 		fill_master_cell_cfg_from_enb_cfg_inner(rrc_manager_self()->cfg, pcell_cc_idx, &ue->cell_group_cfg);

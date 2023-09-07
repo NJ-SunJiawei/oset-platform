@@ -14,31 +14,119 @@
 
 #define RX_MOD_NR_BASE(rx, x) (((x)-(rx->RX_Next_Highest) - (rx->UM_Window_Size)) % (rx->mod))
 
+/////////////////////////////////////////////////////////////////////////////////////////////////
+static uint32_t rlc_um_nr_write_data_pdu_header(rlc_um_nr_pdu_header_t *header, byte_buffer_t *pdu)
+{
+  // Make room for the header
+  uint32_t len = rlc_um_nr_packed_length(header);
+  pdu->msg -= len;
+  uint8_t* ptr = pdu->msg;
+
+  // write SI field
+  *ptr = (header->si & 0x03) << 6; // 2 bits SI
+
+  if (header->si == (rlc_nr_si_field_t)full_sdu) {
+    // that's all ..
+    ptr++;
+  } else {
+    if (header->sn_size == (rlc_um_nr_sn_size_t)size6bits) {
+      // write SN
+      *ptr |= (header->sn & 0x3f); // 6 bit SN
+      ptr++;
+    } else {
+      // 12bit SN
+      *ptr |= (header->sn >> 8) & 0xf; // high part of SN (4 bit)
+      ptr++;
+      *ptr = (header->sn & 0xFF); // remaining 8 bit SN
+      ptr++;
+    }
+    if (header->so) {
+      // write SO
+      *ptr = (header->so) >> 8; // first part of SO
+      ptr++;
+      *ptr = (header->so & 0xFF); // second part of SO
+      ptr++;
+    }
+  }
+
+  pdu->N_bytes += (ptr - pdu->msg);// + len
+
+  return len;
+}
+
+//  UDM PDU
+// complete RLC PDU (head_len_full = 1)
+// | SI |R|R|R|R|R|R|
+// |      Data      |
+// |      ...       |
+
+// first RLC PDU segment(sn 6 bit)      first RLC PDU segment(sn 12 bit)
+// | SI |    SN     |                   | SI |R|R|   SN   |
+// |      Data      |                   |      SN         |
+// |      ...       |                   |      Data       |
+
+
+// other RLC PDU segment(sn 6 bit)      other RLC PDU segment(sn 12 bit)
+// | SI |    SN     |                   | SI |R|R|   SN   |
+// |      SO        |                   |      SN         |
+// |      SO        |                   |      SO         |
+// |      Data      |                   |      SO         |
+// |      ...       |                   |      Data       |
+
+uint32_t rlc_um_nr_packed_length(rlc_um_nr_pdu_header_t *header)
+{
+  uint32_t len = 0;
+  if (header->si == (rlc_nr_si_field_t)full_sdu) {
+    // that's all ..
+    len++;
+  } else {
+    if (header->sn_size == (rlc_um_nr_sn_size_t)size6bits) {
+      // Only 1Byte for SN
+      len++;
+    } else {
+      // 2 Byte for 12bit SN
+      len += 2;
+    }
+    if (header->so) {
+      // Two bytes always for segment information
+      len += 2;
+    }
+  }
+  return len;
+}
+
+/////////////////////////////////Base/////////////////////////////////////////
+
 static byte_buffer_t* tx_sdu_queue_read(rlc_um_base_tx *base_tx)
 {
 	rlc_um_base_tx_sdu_t *node = oset_list_first(&base_tx->tx_sdu_queue);
 	if(node){
+		byte_buffer_t *sdu = node->buffer;
 		oset_list_remove(&base_tx->tx_sdu_queue, node);
-		return node;
+		return sdu;
 	}
 	return NULL;
 }
 
-static uint32_t build_dl_data_pdu(rlc_um_base_tx *base_tx, byte_buffer_t *pdu, uint8_t *payload, uint32_t nof_bytes)
+static uint32_t build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_t *payload, uint32_t nof_bytes)
 {
   // Sanity check (we need at least 2Byte for a SDU)
   if (nof_bytes < 2) {
     RlcWarning("Cannot build a PDU with %d byte.", nof_bytes);
     return 0;
   }
+
+  byte_buffer_t *pdu = byte_buffer_init();
+
   rlc_um_nr_tx *tx = base_tx->tx;
 
   //std::lock_guard<std::mutex> lock(mutex);
   rlc_um_nr_pdu_header_t      header = {0};
-  header.si                          = (rlc_nr_si_field_t)full_sdu;
-  header.sn                          = tx->TX_Next;
-  header.sn_size                     = base_tx->cfg.um_nr.sn_field_length;
+  header.si          = (rlc_nr_si_field_t)full_sdu;
+  header.sn          = tx->TX_Next;
+  header.sn_size     = base_tx->cfg.um_nr.sn_field_length;
 
+  // pdu剩余空间
   uint32_t pdu_space = SRSRAN_MIN(nof_bytes, byte_buffer_get_tailroom(pdu));
 
   // Select segmentation information and header size
@@ -47,30 +135,53 @@ static uint32_t build_dl_data_pdu(rlc_um_base_tx *base_tx, byte_buffer_t *pdu, u
     do {
       base_tx->tx_sdu = tx_sdu_queue_read(&base_tx->tx_sdu_queue);
     } while (base_tx->tx_sdu == NULL && !oset_list_empty(&base_tx->tx_sdu_queue));
-    if (base_tx->tx_sdu == NULL) {
+
+	if (base_tx->tx_sdu == NULL) {
       RlcDebug("Cannot build any PDU, tx_sdu_queue has no non-null SDU.");
       return 0;
     }
-    next_so = 0;
+
+	// complete RLC PDU (head_len_full = 1)
+	// | SI |R|R|R|R|R|R|
+	// |	  Data		|
+	// |	  ...		|
+	
+	// first RLC PDU segment(sn 6 bit)		first RLC PDU segment(sn 12 bit)
+	// | SI |	 SN 	|					| SI |R|R|	 SN   |
+	// |	  Data		|					|	   SN		  |
+	// |	  ...		|					|	   Data 	  |
+	
+	
+	// other RLC PDU segment(sn 6 bit)		other RLC PDU segment(sn 12 bit)
+	// | SI |	 SN 	|					| SI |R|R|	 SN   |
+	// |	  SO		|					|	   SN		  |
+	// |	  SO		|					|	   SO		  |
+	// |	  Data		|					|	   SO		  |
+	// |	  ...		|					|	   Data 	  |
+
+
+    tx->next_so = 0;
 
     // Check for full SDU case
-    if (tx_sdu->N_bytes <= pdu_space - head_len_full) {//新pop取得数据
-      header.si = rlc_nr_si_field_t::full_sdu;//若待发送的数据《 允许tb发送的大小，则全部发送
+    if (base_tx->tx_sdu->N_bytes <= pdu_space - head_len_full) {
+      header.si = (rlc_nr_si_field_t)full_sdu;//若待发送的数据 < tb可以发送的大小，则全部发送
     } else {
-      header.si = rlc_nr_si_field_t::first_segment;//负责分片，并且为首条报文
+      header.si = (rlc_nr_si_field_t)first_segment;//分片，并且为首条报文
     }
-  } else {//上次未处理完毕的sdu数据剩余部分
+  } else {
+    // 上次未处理完毕的sdu数据剩余部分
     // The SDU is not new; check for last segment
-    if (tx_sdu->N_bytes <= pdu_space - head_len_segment) {
-      header.si = rlc_nr_si_field_t::last_segment;//分片的最后一条数据
+    if (base_tx->tx_sdu->N_bytes <= pdu_space - tx->head_len_segment) {
+      header.si = (rlc_nr_si_field_t)last_segment;//分片的最后一条数据
     } else {
-      header.si = rlc_nr_si_field_t::neither_first_nor_last_segment;//分片的中间数据
+      header.si = (rlc_nr_si_field_t)neither_first_nor_last_segment;//分片的中间数据
     }
   }
-  header.so = next_so;//位便宜
+
+  header.so = tx->next_so;//位偏移
 
   // Calculate actual header length
-  uint32_t head_len = rlc_um_nr_packed_length(header);//计算实际头
+  uint32_t head_len = rlc_um_nr_packed_length(header);//计算实际头长度
   if (pdu_space <= head_len + 1) {
     RlcInfo("Cannot build a PDU - %d bytes available, %d bytes required for header", nof_bytes, head_len);
     return 0;
@@ -78,50 +189,50 @@ static uint32_t build_dl_data_pdu(rlc_um_base_tx *base_tx, byte_buffer_t *pdu, u
 
   // Calculate the amount of data to move
   uint32_t space   = pdu_space - head_len;
-  uint32_t to_move = space >= tx_sdu->N_bytes ? tx_sdu->N_bytes : space;
+  uint32_t to_move = space >= base_tx->tx_sdu->N_bytes ? base_tx->tx_sdu->N_bytes : space;
 
   // Log
-  RlcDebug("adding %s - (%d/%d)", to_string(header.si).c_str(), to_move, tx_sdu->N_bytes);
+  RlcDebug("adding %s - (%d/%d)", rlc_nr_si_field_to_string(header.si), to_move, base_tx->tx_sdu->N_bytes);
 
   // Move data from SDU to PDU
-  uint8_t* pdu_ptr = pdu->msg;
-  memcpy(pdu_ptr, tx_sdu->msg, to_move);
-  pdu_ptr += to_move;
+  uint8_t *pdu_ptr = pdu->msg;
+  memcpy(pdu_ptr, base_tx->tx_sdu->msg, to_move);
+  //pdu_ptr += to_move;
   pdu->N_bytes += to_move;
-  tx_sdu->N_bytes -= to_move;
-  tx_sdu->msg += to_move;
+  base_tx->tx_sdu->N_bytes -= to_move;
+  base_tx->tx_sdu->msg += to_move;
 
   // Release SDU if emptied
-  if (tx_sdu->N_bytes == 0) {
-    tx_sdu.reset();
+  if (base_tx->tx_sdu->N_bytes == 0) {
+  	oset_free(base_tx->tx_sdu);
+    base_tx->tx_sdu = NULL;
   }
 
   // advance SO offset
-  next_so += to_move;
+  tx->next_so += to_move;
 
   // Update SN if needed
-  if (header.si == rlc_nr_si_field_t::last_segment) {
-    TX_Next = (TX_Next + 1) % mod;
-    next_so = 0;
+  if (header.si == (rlc_nr_si_field_t)last_segment) {
+    tx->TX_Next = (tx->TX_Next + 1) % tx->mod;
+    tx->next_so = 0;
   }
 
   // Add header and TX
-  rlc_um_nr_write_data_pdu_header(header, pdu.get());
+  rlc_um_nr_write_data_pdu_header(&header, pdu);
   memcpy(payload, pdu->msg, pdu->N_bytes);
   uint32_t ret = pdu->N_bytes;
-
+  oset_free(pdu);
   // Assert number of bytes
-  srsran_expect(
-      ret <= nof_bytes, "Error while packing MAC PDU (more bytes written (%d) than expected (%d)!", ret, nof_bytes);
+  ASSERT_IF_NOT(ret <= nof_bytes, "Error while packing MAC PDU (more bytes written (%d) than expected (%d)!", ret, nof_bytes);
 
-  if (header.si == rlc_nr_si_field_t::full_sdu) {
+  if (header.si == (rlc_nr_si_field_t)full_sdu) {
     // log without SN
-    RlcHexInfo(payload, ret, "Tx PDU (%d B)", pdu->N_bytes);
+    RlcHexInfo(payload, ret, "Tx PDU (%d B)", ret);
   } else {
-    RlcHexInfo(payload, ret, "Tx PDU SN=%d (%d B)", header.sn, pdu->N_bytes);
+    RlcHexInfo(payload, ret, "Tx PDU SN=%d (%d B)", header.sn, ret);
   }
 
-  debug_state();
+  RlcDebug("TX_Next=%d, next_so=%d", tx->TX_Next, tx->next_so);
 
   return ret;
 }
@@ -136,9 +247,7 @@ static uint32_t rlc_um_base_tx_build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_
 		return 0;
 	}
 
-	byte_buffer_t *pdu = byte_buffer_init();
-
-	return build_dl_data_pdu(base_tx, pdu, payload, nof_bytes);
+	return build_dl_data_pdu(base_tx, payload, nof_bytes);
 
 	{
 	  // Sanity check (we need at least 2B for a SDU)
@@ -259,50 +368,6 @@ void rlc_um_base_write_dl_sdu(rlc_um_base *base, rlc_um_base_tx *base_tx, byte_b
 
 
 #endif
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-//  UDM PDU
-
-// complete RLC PDU
-// | SI |R|R|R|R|R|R|
-// |      Data      |
-// |      ...       |
-
-// first RLC PDU segment(sn 6 bit)      first RLC PDU segment(sn 12 bit)
-// | SI |    SN     |                   | SI |R|R|   SN   |
-// |      Data      |                   |      SN         |
-// |      ...       |                   |      Data       |
-
-
-// other RLC PDU segment(sn 6 bit)      other RLC PDU segment(sn 12 bit)
-// | SI |    SN     |                   | SI |R|R|   SN   |
-// |      SO        |                   |      SO         |
-// |      SO        |                   |      SO         |
-// |      Data      |                   |      SN         |
-// |      ...       |                   |      Data       |
-
-uint32_t rlc_um_nr_packed_length(rlc_um_nr_pdu_header_t *header)
-{
-  uint32_t len = 0;
-  if (header->si == (rlc_nr_si_field_t)full_sdu) {
-    // that's all ..
-    len++;
-  } else {
-    if (header->sn_size == (rlc_um_nr_sn_size_t)size6bits) {
-      // Only 1Byte for SN
-      len++;
-    } else {
-      // 2 Byte for 12bit SN
-      len += 2;
-    }
-    if (header->so) {
-      // Two bytes always for segment information
-      len += 2;
-    }
-  }
-  return len;
-}
-
 //////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////rlc_um_nr_rx/////////////////////////////////
 bool rlc_um_nr_rx_has_missing_byte_segment(rlc_um_nr_rx *rx, uint32_t sn)
@@ -414,7 +479,9 @@ static bool rlc_um_nr_tx_configure(rlc_um_nr_tx *tx, rlc_config_t *cnfg_, char *
 
   // calculate header sizes for configured SN length
   rlc_um_nr_pdu_header_t header = {0};
+  header.sn_size   = cnfg_->um_nr.sn_field_length;
   header.si        = (rlc_nr_si_field_t)first_segment;
+
   header.so        = 0;//无偏移
   tx->head_len_first   = rlc_um_nr_packed_length(&header);
 
