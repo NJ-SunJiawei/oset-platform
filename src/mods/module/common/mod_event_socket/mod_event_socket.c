@@ -2800,6 +2800,11 @@ static int config(void)
 
 	if (zstr(prefs.ip)) {
 		set_pref_ip("127.0.0.1");
+	}else if(!strcmp(prefs.ip, "auto")){
+		char guess_ip4[256] = "";
+		int mask = 0;
+		oset_find_local_ip(guess_ip4, sizeof(guess_ip4), &mask, AF_INET);
+		set_pref_ip(guess_ip4);
 	}
 
 	if (zstr(prefs.password)) {
