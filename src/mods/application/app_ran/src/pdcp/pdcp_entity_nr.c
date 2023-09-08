@@ -189,7 +189,7 @@ pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_)
 void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr)
 {
 	byte_buffer_t *buffer_node = NULL;
-	oset_list_for_each(pdcp_nr->reorder_list, buffer_node){
+	oset_list_for_each(&pdcp_nr->reorder_list, buffer_node){
 		oset_free(buffer_node);
 	}
 	if(pdcp_nr->reordering_timer) gnb_timer_delete(pdcp_nr->reordering_timer);

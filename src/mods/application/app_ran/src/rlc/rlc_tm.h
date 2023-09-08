@@ -47,6 +47,7 @@ void rlc_tm_write_ul_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_b
 uint32_t rlc_tm_read_dl_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_bytes);
 void rlc_tm_write_dl_sdu(rlc_common *tm_common, byte_buffer_t *sdu);
 rlc_mode_t rlc_tm_get_mode(rlc_common *tm_common);
+bool rlc_tm_sdu_queue_is_full(rlc_common *tm_common);
 void rlc_tm_discard_sdu(rlc_common *tm_common, uint32_t discard_sn);
 
 

@@ -103,6 +103,9 @@ static byte_buffer_t* tx_sdu_queue_read(rlc_um_base_tx *base_tx)
 	if(node){
 		byte_buffer_t *sdu = node->buffer;
 		oset_list_remove(&base_tx->tx_sdu_queue, node);
+		oset_thread_mutex_lock(base_tx->unread_bytes_mutex);
+		base_tx->unread_bytes -= sdu->N_bytes;
+		oset_thread_mutex_unlock(base_tx->unread_bytes_mutex);
 		return sdu;
 	}
 	return NULL;
@@ -120,7 +123,6 @@ static uint32_t build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_t *payload, uin
 
   rlc_um_nr_tx *tx = base_tx->tx;
 
-  //std::lock_guard<std::mutex> lock(mutex);
   rlc_um_nr_pdu_header_t      header = {0};
   header.si          = (rlc_nr_si_field_t)full_sdu;
   header.sn          = tx->TX_Next;
@@ -238,16 +240,67 @@ static uint32_t build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_t *payload, uin
 }
 
 #if 1
+static uint32_t rlc_um_base_tx_discard_sdu(rlc_um_base_tx *base_tx, uint32_t discard_sn)
+{
+	bool discarded = false;
+
+	oset_thread_mutex_lock(base_tx->mutex);
+	rlc_um_base_tx_sdu_t *next_sdu, *sdu = NULL;
+	oset_list_for_each_safe(&base_tx->tx_sdu_queue, next_sdu, sdu){
+		if (sdu != NULL && sdu->buffer->md.pdcp_sn == discard_sn) {
+			oset_list_remove(&base_tx->tx_sdu_queue, sdu);
+			sdu = NULL;
+			discarded = true;
+		}
+	}	
+	oset_thread_mutex_unlock(base_tx->mutex);
+	// Discard fails when the PDCP PDU is already in Tx window.
+	RlcInfo("%s PDU with PDCP_SN=%d", discarded ? "Discarding" : "Couldn't discard", discard_sn);
+}
+
+static uint32_t rlc_um_base_tx_get_buffer_state(rlc_um_base *base, rlc_um_base_tx *base_tx, uint32_t prio_tx_queue)
+{
+	oset_thread_mutex_lock(base_tx->mutex);
+	// Bytes needed for tx SDUs
+	uint32_t n_sdus  = oset_list_count(&base_tx->tx_sdu_queue);
+	uint32_t n_bytes = base_tx->unread_bytes;
+	if (base_tx->tx_sdu) {
+		//若当前存在分片
+		n_sdus++;
+		n_bytes += base_tx->tx_sdu->N_bytes;
+	}
+
+	// Room needed for header extensions? (integer rounding)（整数舍入）为了头部扩展
+	if (n_sdus > 1) {
+		n_bytes += ((n_sdus - 1) * 1.5) + 0.5;
+	}
+
+	// Room needed for fixed header?
+	if (n_bytes > 0) {
+		n_bytes += (base->cfg.um.is_mrb) ? 2 : 3;
+	}
+
+	if (base_tx->bsr_callback) {
+		base_tx->bsr_callback(base->common.rnti, base->common.lcid, n_bytes, prio_tx_queue);
+	}
+	oset_thread_mutex_unlock(base_tx->mutex);
+	return n_bytes;
+}
+
 static uint32_t rlc_um_base_tx_build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_t* payload, uint32_t nof_bytes)
 {
+	oset_thread_mutex_lock(base_tx->mutex);
 	RlcDebug("MAC opportunity - %d bytes", nof_bytes);
 
 	if (base_tx->tx_sdu == NULL && oset_list_empty(&base_tx->tx_sdu_queue)) {
 		RlcInfo("No data available to be sent");
 		return 0;
 	}
+	
+	uint32_t ret = build_dl_data_pdu(base_tx, payload, nof_bytes);
+	oset_thread_mutex_unlock(base_tx->mutex);
 
-	return build_dl_data_pdu(base_tx, payload, nof_bytes);
+	return ret;
 
 	{
 	  // Sanity check (we need at least 2B for a SDU)
@@ -256,44 +309,46 @@ static uint32_t rlc_um_base_tx_build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_
 
 static int rlc_um_base_tx_write_dl_sdu(rlc_um_base_tx *base_tx, byte_buffer_t *sdu)
 {
-  if (sdu) {
-    uint8_t*   msg_ptr   = sdu->msg;
-    uint32_t   nof_bytes = sdu->N_bytes;
-  	int count = oset_list_count(&base_tx->tx_sdu_queue);
+	if (sdu) {
+		uint8_t*   msg_ptr   = sdu->msg;
+		uint32_t   nof_bytes = sdu->N_bytes;
+		int count = oset_list_count(&base_tx->tx_sdu_queue);
 
- 	if((uint32_t)count > base_tx->cfg.tx_queue_length){
-      rlc_um_base_tx_sdu_t *sdu_node = oset_malloc(rlc_um_base_tx_sdu_t);
-	  oset_assert(sdu_node);
-      sdu_node->buffer = byte_buffer_dup(sdu);
-  	  oset_list_add(&base_tx->tx_sdu_queue, sdu_node);
-	  oset_thread_mutex_lock(base_tx->unread_bytes_mutex);
-	  base_tx->unread_bytes += sdu->N_bytes;
-	  oset_thread_mutex_unlock(base_tx->unread_bytes_mutex);
-      RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU (%d B, tx_sdu_queue_len=%d)", nof_bytes, count);
-      return OSET_OK;
-    } else {
-      RlcHexWarning(msg_ptr,
-                    nof_bytes,
-                    "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
-                    base_tx->rb_name,
-                    nof_bytes,
-                    count);
-    }
-  } else {
-    RlcWarning("NULL SDU pointer in write_sdu()");
-  }
-  return OSET_ERROR;
+		if((uint32_t)count > base_tx->cfg.tx_queue_length){
+			rlc_um_base_tx_sdu_t *sdu_node = oset_malloc(rlc_um_base_tx_sdu_t);
+			oset_assert(sdu_node);
+			sdu_node->buffer = byte_buffer_dup(sdu);
+			  oset_list_add(&base_tx->tx_sdu_queue, sdu_node);
+			oset_thread_mutex_lock(base_tx->unread_bytes_mutex);
+			base_tx->unread_bytes += sdu->N_bytes;
+			oset_thread_mutex_unlock(base_tx->unread_bytes_mutex);
+			RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU (%d B, tx_sdu_queue_len=%d)", nof_bytes, count);
+			return OSET_OK;
+		} else {
+			RlcHexWarning(msg_ptr,
+			            nof_bytes,
+			            "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
+			            base_tx->rb_name,
+			            nof_bytes,
+			            count);
+		}
+	} else {
+		RlcWarning("NULL SDU pointer in write_sdu()");
+	}
+	return OSET_ERROR;
 }
 
 static void rlc_um_base_tx_stop(rlc_um_base_tx *base_tx)
 {
 	oset_list_init(&base_tx->tx_sdu_queue);
 	oset_thread_mutex_destroy(&base_tx->unread_bytes_mutex);
+	oset_thread_mutex_destroy(&base_tx->mutex);
 }
 
 static void rlc_um_base_tx_init(rlc_um_base_tx *base_tx, rlc_um_base *base_)
 {
 	oset_thread_mutex_init(&base_tx->unread_bytes_mutex);
+	oset_thread_mutex_init(&base_tx->mutex);
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -366,9 +421,10 @@ void rlc_um_base_write_dl_sdu(rlc_um_base *base, rlc_um_base_tx *base_tx, byte_b
   }
 }
 
-
 #endif
 //////////////////////////////////////////////////////////////////////////////
+
+#if 1
 /////////////////////////////////rlc_um_nr_rx/////////////////////////////////
 bool rlc_um_nr_rx_has_missing_byte_segment(rlc_um_nr_rx *rx, uint32_t sn)
 {
@@ -470,29 +526,30 @@ static void rlc_um_nr_tx_stop(rlc_um_nr_tx *tx)
 
 static bool rlc_um_nr_tx_configure(rlc_um_nr_tx *tx, rlc_config_t *cnfg_, char *rb_name_)
 {
-  tx->base_tx.rb_name = rb_name_;
-  tx->base_tx.cfg = *cnfg_;
-  tx->base_tx.tx  = tx;
+	tx->base_tx.rb_name = rb_name_;
+	tx->base_tx.cfg = *cnfg_;
+	tx->base_tx.tx  = tx;
 
-  tx->mod            = (cnfg_->um_nr.sn_field_length == (rlc_um_nr_sn_size_t)size6bits) ? 64 : 4096;
-  tx->UM_Window_Size = (cnfg_->um_nr.sn_field_length == (rlc_um_nr_sn_size_t)size6bits) ? 32 : 2048;
+	tx->mod            = (cnfg_->um_nr.sn_field_length == (rlc_um_nr_sn_size_t)size6bits) ? 64 : 4096;
+	tx->UM_Window_Size = (cnfg_->um_nr.sn_field_length == (rlc_um_nr_sn_size_t)size6bits) ? 32 : 2048;
 
-  // calculate header sizes for configured SN length
-  rlc_um_nr_pdu_header_t header = {0};
-  header.sn_size   = cnfg_->um_nr.sn_field_length;
-  header.si        = (rlc_nr_si_field_t)first_segment;
+	// calculate header sizes for configured SN length
+	rlc_um_nr_pdu_header_t header = {0};
+	header.sn_size   = cnfg_->um_nr.sn_field_length;
+	header.si        = (rlc_nr_si_field_t)first_segment;
 
-  header.so        = 0;//无偏移
-  tx->head_len_first   = rlc_um_nr_packed_length(&header);
+	header.so        = 0;//无偏移
+	tx->head_len_first   = rlc_um_nr_packed_length(&header);
 
-  header.so        = 1;//有偏移
-  tx->head_len_segment = rlc_um_nr_packed_length(&header);
+	header.so        = 1;//有偏移
+	tx->head_len_segment = rlc_um_nr_packed_length(&header);
 
-  //oset_assert(oset_list_count(tx->base_tx.tx_sdu_queue) <= cnfg_->tx_queue_length);
+	//oset_assert(oset_list_count(tx->base_tx.tx_sdu_queue) <= cnfg_->tx_queue_length);
 
-  return true;
+	return true;
 }
 
+#endif
 //////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////rlc_um_nr/////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -504,6 +561,23 @@ void rlc_um_nr_stop(rlc_common *um_common)
 	rlc_um_nr_rx_stop(&um->rx);
 	rlc_um_nr_tx_stop(&um->tx);
 }
+
+void rlc_um_nr_get_buffer_state(rlc_common *um_common, uint32_t *newtx_queue, uint32_t *prio_tx_queue)
+{
+	rlc_um_nr *um = (rlc_um_nr *)um_common;
+
+	*prio_tx_queue = 0;
+	*newtx_queue   = rlc_um_base_tx_get_buffer_state(&um->base, &um->tx.base_tx, *prio_tx_queue);
+}
+
+
+void rlc_um_nr_set_bsr_callback(rlc_common *um_common, bsr_callback_t callback)
+{
+	rlc_um_nr *um = (rlc_um_nr *)um_common;
+
+	um->tx.base_tx.bsr_callback = callback;
+}
+
 
 bool rlc_um_nr_configure(rlc_common *um_common, rlc_config_t *cnfg_)
 {
@@ -540,6 +614,7 @@ bool rlc_um_nr_configure(rlc_common *um_common, rlc_config_t *cnfg_)
 void rlc_um_nr_read_dl_pdu(rlc_common *um_common, uint8_t *payload, uint32_t nof_bytes)
 {
 	rlc_um_nr *um = (rlc_um_nr *)um_common;
+
 	rlc_um_base_read_dl_pdu(&um->base, &um->tx.base_tx, payload, nof_bytes);
 }
 
@@ -547,18 +622,27 @@ void rlc_um_nr_read_dl_pdu(rlc_common *um_common, uint8_t *payload, uint32_t nof
 void rlc_um_nr_write_dl_sdu(rlc_common *um_common, byte_buffer_t *sdu)
 {
 	rlc_um_nr *um = (rlc_um_nr *)um_common;
+
 	rlc_um_base_write_dl_sdu(&um->base, &um->tx.base_tx, sdu);
 }
 
 rlc_mode_t rlc_um_nr_get_mode(void)
 {
-  return rlc_mode_t(um);
+	return rlc_mode_t(um);
 }
 
 bool rlc_um_nr_sdu_queue_is_full(rlc_common *um_common)
 {
-  rlc_um_nr *um = (rlc_um_nr *)um_common;
-  return oset_list_count(um->tx.base_tx.tx_sdu_queue) == um->base.cfg.tx_queue_length;
+	rlc_um_nr *um = (rlc_um_nr *)um_common;
+
+	return oset_list_count(um->tx.base_tx.tx_sdu_queue) == um->base.cfg.tx_queue_length;
+}
+
+void rlc_um_nr_discard_sdu(rlc_common *um_common, uint32_t discard_sn)
+{
+	rlc_um_nr *um = (rlc_um_nr *)um_common;
+
+	rlc_um_base_tx_discard_sdu(&um->tx.base_tx, discard_sn);
 }
 
 rlc_um_nr *rlc_um_nr_init(uint32_t lcid_,	uint16_t rnti_)

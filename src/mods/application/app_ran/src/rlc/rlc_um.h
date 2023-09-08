@@ -36,6 +36,9 @@ typedef struct {
 	uint32_t              unread_bytes;
 	oset_list_t           tx_sdu_queue;//rlc_um_base_tx_sdu_t
 	byte_buffer_t         *tx_sdu;//存放pop临时报文
+
+	oset_thread_mutex_t   mutex;
+
 	// lte
 	// rolling_average_t(double) mean_pdu_latency_us;
 }rlc_um_base_tx;
@@ -122,11 +125,14 @@ typedef struct {
 
 rlc_um_nr *rlc_um_nr_init(uint32_t lcid_,	uint16_t rnti_);
 void rlc_um_nr_stop(rlc_common *um_common);
+void rlc_um_nr_get_buffer_state(rlc_common *um_common, uint32_t *newtx_queue, uint32_t *prio_tx_queue);
+void rlc_um_nr_set_bsr_callback(rlc_common *um_common, bsr_callback_t callback);
 bool rlc_um_nr_configure(rlc_common *um_common, rlc_config_t *cnfg_);
 void rlc_um_nr_read_dl_pdu(rlc_common *um_common, uint8_t *payload, uint32_t nof_bytes);
 void rlc_um_nr_write_dl_sdu(rlc_common *um_common, byte_buffer_t *sdu);
 rlc_mode_t rlc_um_nr_get_mode(void);
 bool rlc_um_nr_sdu_queue_is_full(rlc_common *um_common);
+void rlc_um_nr_discard_sdu(rlc_common *um_common, uint32_t discard_sn);
 
 #ifdef __cplusplus
 }

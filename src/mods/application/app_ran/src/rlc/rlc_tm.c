@@ -46,13 +46,13 @@ static void suspend(rlc_tm *tm)
 void rlc_tm_get_buffer_state(rlc_common *tm_common, uint32_t *newtx_queue, uint32_t *prio_tx_queue)
 {
 	rlc_tm *tm = (rlc_tm *)tm_common;
-	oset_apr_mutex_lock(tm->bsr_callback_mutex);
+	//oset_apr_mutex_lock(tm->bsr_callback_mutex);
 	*newtx_queue   = tm->unread_bytes;
 	*prio_tx_queue = 0;
 	if (tm->bsr_callback) {
 		tm->bsr_callback(tm_common->rnti, tm_common->lcid, *newtx_queue, *prio_tx_queue);
 	}
-	oset_apr_mutex_unlock(tm->bsr_callback_mutex);
+	//oset_apr_mutex_unlock(tm->bsr_callback_mutex);
 }
 
 
