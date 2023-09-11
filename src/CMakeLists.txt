@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.00)
 
 set(SSET_VERSION  ${FD_PROJECT_VERSION_MAJOR}.${FD_PROJECT_VERSION_MINOR}.${FD_PROJECT_VERSION_REV})
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version.h)
+configure_file(version.h.in  version.h)
 
 set(SRC_FILES
     sset-core.c
