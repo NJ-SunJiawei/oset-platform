@@ -510,14 +510,14 @@ static void *om_worker_handle_thread(oset_threadplus_t *thread, void *data)
 
     while(self.running) {
         oset_timer_mgr_expire(self.worker_timer[id]);
-		rv = oset_ring_queue_get(self.worker_queue[id], &pkt, &len);
+		rv = oset_ring_queue_try_get(self.worker_queue[id], &pkt, &len);
 		if(rv != OSET_OK)
 		{
 	       if (rv == OSET_DONE)
 		   	   break;
 
 		   if (rv == OSET_RETRY){
-			   oset_usleep(500);
+			   //oset_usleep(500);
 			   continue;
 		   }
 		}
@@ -651,7 +651,7 @@ static void *om_omc_handle_thread(oset_threadplus_t *thread, void *data)
 
     while(self.running) {
 		//oset_timer_mgr_expire(self.omc_timer);
-		rv = oset_ring_queue_get(self.omc_queue, (uint8_t **)&e, &len);
+		rv = oset_ring_queue_try_get(self.omc_queue, (uint8_t **)&e, &len);
 		if(rv != OSET_OK)
 		{
 	       if (rv == OSET_DONE)
@@ -730,7 +730,7 @@ static void *om_pod_handle_thread(oset_threadplus_t *thread, void *data)
 
 	while(self.running) {
 		//oset_timer_mgr_expire(self.pod_timer);
-		rv = oset_ring_queue_get(self.pod_queue, (uint8_t **)&e, &len);
+		rv = oset_ring_queue_try_get(self.pod_queue, (uint8_t **)&e, &len);
 		if(rv != OSET_OK)
 		{
 	       if (rv == OSET_DONE)
