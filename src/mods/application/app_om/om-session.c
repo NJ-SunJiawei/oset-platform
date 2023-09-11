@@ -510,6 +510,7 @@ static void *om_worker_handle_thread(oset_threadplus_t *thread, void *data)
 
     while(self.running) {
         oset_timer_mgr_expire(self.worker_timer[id]);
+		// 处理超时,不能阻塞
 		rv = oset_ring_queue_try_get(self.worker_queue[id], &pkt, &len);
 		if(rv != OSET_OK)
 		{
