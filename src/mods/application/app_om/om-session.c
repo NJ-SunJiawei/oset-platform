@@ -510,7 +510,7 @@ static void *om_worker_handle_thread(oset_threadplus_t *thread, void *data)
 
     while(self.running) {
         oset_timer_mgr_expire(self.worker_timer[id]);
-		rv = oset_ring_queue_time_get(self.worker_queue[id], &pkt, &len, oset_timer_mgr_next(self.worker_timer[id]));
+		rv = oset_ring_queue_get(self.worker_queue[id], &pkt, &len);
 		if(rv != OSET_OK)
 		{
 	       if (rv == OSET_DONE)
@@ -525,7 +525,6 @@ static void *om_worker_handle_thread(oset_threadplus_t *thread, void *data)
 		oset_ring_buf_ret(pkt);
 		pkt = NULL;
 		len = 0;
-		
     }
 
 	//oset_apr_thread_exit(thread, 0);

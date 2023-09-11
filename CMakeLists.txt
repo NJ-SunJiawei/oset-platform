@@ -77,8 +77,8 @@ message(STATUS "current platporm is ${CURRENT_SYSTEM}")
 ###################
 #可视化开关
 ###################
-set(GUI_SWITCH ON)
-set(IDE_SWITCH ON)
+set(GUI_SWITCH OFF)
+set(IDE_SWITCH OFF)
 
 ###################
 #调试模式开关
