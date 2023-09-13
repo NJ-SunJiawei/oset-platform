@@ -12,10 +12,10 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rlcTM"
 
-static uint32_t tm_sdu_peek_first_bytes(oset_queue_t *dl_sdu_queue)
+static uint32_t tm_sdu_peek_first_bytes(oset_queue_t *tx_sdu_queue)
 {
 	uint32_t size_next = 0;
-	byte_buffer_t *front_val = oset_queue_pop_peek(dl_sdu_queue);
+	byte_buffer_t *front_val = oset_queue_pop_peek(tx_sdu_queue);
 		if (front_val != NULL) {
 		size_next = front_val->N_bytes;
 	}
@@ -26,14 +26,15 @@ static void empty_queue(rlc_tm *tm)
 {
 	// Drop all messages in TX queue
 	byte_buffer_t *buf = NULL;
-	while(OSET_OK == oset_queue_trypop(tm->dl_sdu_queue, &buf)) {
+	while(OSET_OK == oset_queue_trypop(tm->tx_sdu_queue, &buf)) {
 		oset_apr_mutex_lock(tm->unread_bytes_mutex);
 		tm->unread_bytes -= buf->N_bytes;
 		oset_apr_mutex_unlock(tm->unread_bytes_mutex);
 		oset_free(buf);
 	}
+
 	oset_assert(0 == tm->unread_bytes);
-	oset_assert(0 == oset_queue_size(tm->dl_sdu_queue));
+	oset_assert(0 == oset_queue_size(tm->tx_sdu_queue));
 }
 
 static void suspend(rlc_tm *tm)
@@ -46,13 +47,14 @@ static void suspend(rlc_tm *tm)
 void rlc_tm_get_buffer_state(rlc_common *tm_common, uint32_t *newtx_queue, uint32_t *prio_tx_queue)
 {
 	rlc_tm *tm = (rlc_tm *)tm_common;
-	//oset_apr_mutex_lock(tm->bsr_callback_mutex);
+
+	oset_apr_mutex_lock(tm->bsr_callback_mutex);
 	*newtx_queue   = tm->unread_bytes;
 	*prio_tx_queue = 0;
 	if (tm->bsr_callback) {
 		tm->bsr_callback(tm_common->rnti, tm_common->lcid, *newtx_queue, *prio_tx_queue);
 	}
-	//oset_apr_mutex_unlock(tm->bsr_callback_mutex);
+	oset_apr_mutex_unlock(tm->bsr_callback_mutex);
 }
 
 
@@ -73,9 +75,9 @@ void rlc_tm_reset_metrics(rlc_common *tm_common)
 {
 	rlc_tm *tm = (rlc_tm *)tm_common;
 
-	//oset_apr_mutex_lock(tm->metrics_mutex);
+	oset_apr_mutex_lock(tm->metrics_mutex);
 	tm->metrics = {0};
-	//oset_apr_mutex_unlock(tm->metrics_mutex);
+	oset_apr_mutex_unlock(tm->metrics_mutex);
 }
 
 rlc_bearer_metrics_t rlc_tm_get_metrics(rlc_common *tm_common)
@@ -104,10 +106,10 @@ void rlc_tm_write_ul_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_b
 		sdu->N_bytes = nof_bytes;
 		byte_buffer_set_timestamp(sdu);
 		{
-			//oset_apr_mutex_lock(tm->metrics_mutex);
+			oset_apr_mutex_lock(tm->metrics_mutex);
 			tm->metrics.num_rx_pdu_bytes += nof_bytes;
 			tm->metrics.num_rx_pdus++;
-			//oset_apr_mutex_unlock(tm->metrics_mutex);
+			oset_apr_mutex_unlock(tm->metrics_mutex);
 		}
 
 		// gnb_rrc_task_handle??? push queue
@@ -120,22 +122,22 @@ void rlc_tm_write_ul_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_b
 		//RLC_BUFF_FREE(&tm->tm_pool, sdu);
 		oset_free(sdu);
 	} else {
-		RlcError("Fatal Error: Couldn't allocate buffer in rlc_tm::write_pdu()");
+		RlcError("Fatal Error: Couldn't allocate buffer in rlc_tm_write_ul_pdu()");
 	}
 }
 
-//下行方向 MAC get from RLC dl_sdu_queue
+//下行方向 MAC get from RLC tx_sdu_queue
 uint32_t rlc_tm_read_dl_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_bytes)
 {
 	rlc_tm *tm = (rlc_tm *)tm_common;
 
-	uint32_t pdu_size = tm_sdu_peek_first_bytes(tm->dl_sdu_queue);
+	uint32_t pdu_size = tm_sdu_peek_first_bytes(tm->tx_sdu_queue);
 	if (pdu_size > nof_bytes) {
 		RlcInfo("Tx PDU size larger than MAC opportunity (%d > %d)", pdu_size, nof_bytes);
 		return 0;
 	}
 	byte_buffer_t *buf = NULL;
-	if (OSET_OK == oset_queue_trypop(tm->dl_sdu_queue, &buf)) {
+	if (OSET_OK == oset_queue_trypop(tm->tx_sdu_queue, &buf)) {
 		oset_apr_mutex_lock(tm->unread_bytes_mutex);
 		tm->unread_bytes -= buf->N_bytes;
 		oset_apr_mutex_unlock(tm->unread_bytes_mutex);
@@ -147,13 +149,13 @@ uint32_t rlc_tm_read_dl_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t no
 		           pdu_size,
 		           "Tx %s PDU, queue size=%d, bytes=%d",
 		           rlc_mode_to_string((rlc_mode_t)tm, false),
-		           oset_queue_size(tm->dl_sdu_queue),
+		           oset_queue_size(tm->tx_sdu_queue),
 		           tm->unread_bytes);
 
-		//oset_apr_mutex_lock(tm->metrics_mutex);
+		oset_apr_mutex_lock(tm->metrics_mutex);
 		tm->metrics.num_tx_pdu_bytes += pdu_size;
 		tm->metrics.num_tx_pdus++;
-		//oset_apr_mutex_unlock(tm->metrics_mutex);
+		oset_apr_mutex_unlock(tm->metrics_mutex);
 		return pdu_size;
 	}
 
@@ -178,17 +180,25 @@ void rlc_tm_write_dl_sdu(rlc_common *tm_common, byte_buffer_t *sdu)
 		uint8_t    *msg_ptr  = sdu->msg;
 		uint32_t   nof_bytes = sdu->N_bytes;
 		byte_buffer_t *dup = byte_buffer_dup(sdu);
-		int ret = oset_queue_trypush(tm->dl_sdu_queue, dup);
+		int ret = oset_queue_trypush(tm->tx_sdu_queue, dup);
 		if (OSET_OK == ret) {
 			oset_apr_mutex_lock(tm->unread_bytes_mutex);
 			tm->unread_bytes += sdu->N_bytes;
 			oset_apr_mutex_unlock(tm->unread_bytes_mutex);
-			RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU, queue size=%d, sdu size = %d, sdu bytes=%d", tm->dl_sdu_queue.bounds, oset_queue_size(tm->dl_sdu_queue), tm->unread_bytes);
+
+			oset_apr_mutex_lock(tm->metrics_mutex);
+			tm->metrics.num_tx_sdu_bytes += nof_bytes;
+			tm->metrics.num_tx_sdus++;
+			oset_apr_mutex_unlock(tm->metrics_mutex);
+			RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU, queue size=%d, sdu size = %d, sdu bytes=%d", tm->tx_sdu_queue.bounds, oset_queue_size(tm->dl_sdu_queue), tm->unread_bytes);
 		} else {
 			oset_free(dup);
+			oset_apr_mutex_lock(tm->metrics_mutex);
+			tm->metrics.num_lost_sdus++;
+			oset_apr_mutex_unlock(tm->metrics_mutex);
 			RlcWarning("[Dropped SDU] Tx SDU, queue size=%d, sdu size = %d, sdu bytes=%d",
-			            tm->dl_sdu_queue.bounds,
-			            oset_queue_size(tm->dl_sdu_queue),
+			            tm->tx_sdu_queue.bounds,
+			            oset_queue_size(tm->tx_sdu_queue),
 			            tm->unread_bytes);
 		}
 	} else {
@@ -205,7 +215,7 @@ bool rlc_tm_sdu_queue_is_full(rlc_common *tm_common)
 {
   rlc_tm *tm = (rlc_tm *)tm_common;
 
-  return oset_queue_full(tm->dl_sdu_queue);
+  return oset_queue_full(tm->tx_sdu_queue);
 }
 
 void rlc_tm_discard_sdu(rlc_common *tm_common, uint32_t discard_sn)
@@ -223,11 +233,11 @@ void rlc_tm_stop(rlc_common *tm_common)
 	rlc_tm *tm = (rlc_tm *)tm_common;
 
 	suspend(tm);
-	oset_queue_term(tm->dl_sdu_queue);
-	oset_queue_destroy(tm->dl_sdu_queue);
+	oset_queue_term(tm->tx_sdu_queue);
+	oset_queue_destroy(tm->tx_sdu_queue);
 	//oset_pool_final(&tm->tm_pool);
 	oset_apr_mutex_destroy(tm->bsr_callback_mutex);
-	//oset_apr_mutex_destroy(tm->metrics_mutex);
+	oset_apr_mutex_destroy(tm->metrics_mutex);
 	oset_apr_mutex_destroy(tm->unread_bytes_mutex);
 
 	rlc_common_destory(&tm->common);
@@ -258,10 +268,10 @@ rlc_tm *rlc_tm_init(uint32_t lcid_,	uint16_t rnti_, oset_apr_memory_pool_t *usep
 					  };
 
 	oset_apr_mutex_init(&tm->bsr_callback_mutex, OSET_MUTEX_NESTED, usepool);
-	//oset_apr_mutex_init(&tm->metrics_mutex, OSET_MUTEX_NESTED, usepool);
+	oset_apr_mutex_init(&tm->metrics_mutex, OSET_MUTEX_NESTED, usepool);
 	oset_apr_mutex_init(&tm->unread_bytes_mutex, OSET_MUTEX_NESTED, usepool);
 
-	tm->dl_sdu_queue = oset_queue_create(static_tm_size);
+	tm->tx_sdu_queue = oset_queue_create(static_tm_size);
 
 	//oset_pool_init(&tm->tm_pool, static_tm_size);
 	//for(int i = 0; i < static_tm_size; ++i){

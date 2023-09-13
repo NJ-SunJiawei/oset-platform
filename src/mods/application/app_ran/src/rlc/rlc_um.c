@@ -54,6 +54,70 @@ static uint32_t rlc_um_nr_write_data_pdu_header(rlc_um_nr_pdu_header_t *header, 
   return len;
 }
 
+static uint32_t rlc_um_nr_read_data_pdu_header(uint8_t  *            payload,
+                                                           uint32_t nof_bytes,
+                                                           rlc_um_nr_sn_size_t sn_size,
+                                                           rlc_um_nr_pdu_header_t*   header)
+{
+  uint8_t* ptr = payload;
+
+  header->sn_size = sn_size;
+
+  // 0x03 = 0b00000011
+  // Fixed part
+  if (sn_size == (rlc_um_nr_sn_size_t)size6bits) {
+    header->si = (rlc_nr_si_field_t)((*ptr >> 6) & 0x03); // 2 bits SI
+    header->sn = *ptr & 0x3F;                             // 6 bits SN
+    // sanity check
+    if (header->si == (rlc_nr_si_field_t)full_sdu && header->sn != 0) {
+      oset_error("Malformed PDU, reserved bits are set");
+      return 0;
+    }
+    ptr++;
+  } else if (sn_size == (rlc_um_nr_sn_size_t)size12bits) {
+    header->si = (rlc_nr_si_field_t)((*ptr >> 6) & 0x03); // 2 bits SI
+    header->sn = (*ptr & 0x0F) << 8;                      // 4 bits SN
+    if (header->si == (rlc_nr_si_field_t)full_sdu && header->sn != 0) {
+      oset_error("Malformed PDU, reserved bits are set");
+      return 0;
+    }
+
+    // sanity check
+    if (header->si == (rlc_nr_si_field_t)first_segment) {
+      // make sure two reserved bits are not set
+      if (((*ptr >> 4) & 0x03) != 0) {
+        oset_error("Malformed PDU, reserved bits are set.");
+        return 0;
+      }
+    }
+
+    if (header->si != (rlc_nr_si_field_t)full_sdu) {
+      // continue unpacking remaining SN
+      ptr++;
+      header->sn |= (*ptr & 0xFF); // 8 bits SN
+    }
+
+    ptr++;
+  } else {
+    oset_error("Unsupported SN length");
+    return 0;
+  }
+
+  // Read optional part
+  if (header->si == (rlc_nr_si_field_t)last_segment ||
+      header->si == (rlc_nr_si_field_t)neither_first_nor_last_segment) {
+    // read SO
+    header->so = (*ptr & 0xFF) << 8;
+    ptr++;
+    header->so |= (*ptr & 0xFF);
+    ptr++;
+  }
+
+  // return consumed bytes
+  return (ptr - payload);
+}
+
+
 //  UDM PDU
 // complete RLC PDU (head_len_full = 1)
 // | SI |R|R|R|R|R|R|
@@ -103,9 +167,9 @@ static byte_buffer_t* tx_sdu_queue_read(rlc_um_base_tx *base_tx)
 	if(node){
 		byte_buffer_t *sdu = node->buffer;
 		oset_list_remove(&base_tx->tx_sdu_queue, node);
-		oset_thread_mutex_lock(base_tx->unread_bytes_mutex);
+		oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
 		base_tx->unread_bytes -= sdu->N_bytes;
-		oset_thread_mutex_unlock(base_tx->unread_bytes_mutex);
+		oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
 		return sdu;
 	}
 	return NULL;
@@ -240,27 +304,57 @@ static uint32_t build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_t *payload, uin
 }
 
 #if 1
+static void empty_queue(rlc_um_base_tx *base_tx)
+{
+	oset_thread_mutex_lock(&base_tx->mutex);
+	// Drop all messages in TX queue
+	rlc_um_base_tx_sdu_t *next_node, *node = NULL;
+	oset_list_for_each_safe(&base_tx->tx_sdu_queue, next_node, node){
+			byte_buffer_t *sdu = node->buffer;
+			oset_list_remove(&base_tx->tx_sdu_queue, node);
+			oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
+			base_tx->unread_bytes -= sdu->N_bytes;
+			oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
+			oset_free(sdu)
+	}
+
+	// deallocate SDU that is currently processed
+	if(base_tx->tx_sdu){
+		oset_free(base_tx->tx_sdu);
+		base_tx->tx_sdu = NULL;
+	}
+
+	oset_assert(0 == base_tx->unread_bytes);
+	oset_assert(0 == oset_list_count(base_tx->tx_sdu_queue));
+	oset_thread_mutex_unlock(&base_tx->mutex);
+}
+
 static uint32_t rlc_um_base_tx_discard_sdu(rlc_um_base_tx *base_tx, uint32_t discard_sn)
 {
 	bool discarded = false;
 
-	oset_thread_mutex_lock(base_tx->mutex);
-	rlc_um_base_tx_sdu_t *next_sdu, *sdu = NULL;
-	oset_list_for_each_safe(&base_tx->tx_sdu_queue, next_sdu, sdu){
-		if (sdu != NULL && sdu->buffer->md.pdcp_sn == discard_sn) {
-			oset_list_remove(&base_tx->tx_sdu_queue, sdu);
-			sdu = NULL;
+	oset_thread_mutex_lock(&base_tx->mutex);
+	rlc_um_base_tx_sdu_t *next_node, *node = NULL;
+	oset_list_for_each_safe(&base_tx->tx_sdu_queue, next_node, node){
+		if (node != NULL && node->buffer->md.pdcp_sn == discard_sn) {
+			byte_buffer_t *sdu = node->buffer;
+			oset_list_remove(&base_tx->tx_sdu_queue, node);
+			oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
+			base_tx->unread_bytes -= sdu->N_bytes;
+			oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
+			oset_free(sdu);
+			node = NULL;
 			discarded = true;
 		}
 	}	
-	oset_thread_mutex_unlock(base_tx->mutex);
+	oset_thread_mutex_unlock(&base_tx->mutex);
 	// Discard fails when the PDCP PDU is already in Tx window.
 	RlcInfo("%s PDU with PDCP_SN=%d", discarded ? "Discarding" : "Couldn't discard", discard_sn);
 }
 
-static uint32_t rlc_um_base_tx_get_buffer_state(rlc_um_base *base, rlc_um_base_tx *base_tx, uint32_t prio_tx_queue)
+static uint32_t rlc_um_base_tx_get_buffer_state(rlc_um_base_tx *base_tx, uint32_t prio_tx_queue)
 {
-	oset_thread_mutex_lock(base_tx->mutex);
+	oset_thread_mutex_lock(&base_tx->mutex);
 	// Bytes needed for tx SDUs
 	uint32_t n_sdus  = oset_list_count(&base_tx->tx_sdu_queue);
 	uint32_t n_bytes = base_tx->unread_bytes;
@@ -277,19 +371,20 @@ static uint32_t rlc_um_base_tx_get_buffer_state(rlc_um_base *base, rlc_um_base_t
 
 	// Room needed for fixed header?
 	if (n_bytes > 0) {
-		n_bytes += (base->cfg.um.is_mrb) ? 2 : 3;
+		n_bytes += (base_tx->cfg.um.is_mrb) ? 2 : 3;
 	}
 
 	if (base_tx->bsr_callback) {
-		base_tx->bsr_callback(base->common.rnti, base->common.lcid, n_bytes, prio_tx_queue);
+		base_tx->bsr_callback(base_tx->base->common.rnti, base_tx->base->common.lcid, n_bytes, prio_tx_queue);
 	}
-	oset_thread_mutex_unlock(base_tx->mutex);
+	oset_thread_mutex_unlock(&base_tx->mutex);
 	return n_bytes;
 }
 
+
 static uint32_t rlc_um_base_tx_build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_t* payload, uint32_t nof_bytes)
 {
-	oset_thread_mutex_lock(base_tx->mutex);
+	oset_thread_mutex_lock(&base_tx->mutex);
 	RlcDebug("MAC opportunity - %d bytes", nof_bytes);
 
 	if (base_tx->tx_sdu == NULL && oset_list_empty(&base_tx->tx_sdu_queue)) {
@@ -298,7 +393,7 @@ static uint32_t rlc_um_base_tx_build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_
 	}
 	
 	uint32_t ret = build_dl_data_pdu(base_tx, payload, nof_bytes);
-	oset_thread_mutex_unlock(base_tx->mutex);
+	oset_thread_mutex_unlock(&base_tx->mutex);
 
 	return ret;
 
@@ -318,10 +413,10 @@ static int rlc_um_base_tx_write_dl_sdu(rlc_um_base_tx *base_tx, byte_buffer_t *s
 			rlc_um_base_tx_sdu_t *sdu_node = oset_malloc(rlc_um_base_tx_sdu_t);
 			oset_assert(sdu_node);
 			sdu_node->buffer = byte_buffer_dup(sdu);
-			  oset_list_add(&base_tx->tx_sdu_queue, sdu_node);
-			oset_thread_mutex_lock(base_tx->unread_bytes_mutex);
+			oset_list_add(&base_tx->tx_sdu_queue, sdu_node);
+			oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
 			base_tx->unread_bytes += sdu->N_bytes;
-			oset_thread_mutex_unlock(base_tx->unread_bytes_mutex);
+			oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
 			RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU (%d B, tx_sdu_queue_len=%d)", nof_bytes, count);
 			return OSET_OK;
 		} else {
@@ -340,37 +435,196 @@ static int rlc_um_base_tx_write_dl_sdu(rlc_um_base_tx *base_tx, byte_buffer_t *s
 
 static void rlc_um_base_tx_stop(rlc_um_base_tx *base_tx)
 {
-	oset_list_init(&base_tx->tx_sdu_queue);
 	oset_thread_mutex_destroy(&base_tx->unread_bytes_mutex);
 	oset_thread_mutex_destroy(&base_tx->mutex);
 }
 
-static void rlc_um_base_tx_init(rlc_um_base_tx *base_tx, rlc_um_base *base_)
+static void rlc_um_base_tx_init(rlc_um_base_tx *base_tx)
 {
 	oset_thread_mutex_init(&base_tx->unread_bytes_mutex);
 	oset_thread_mutex_init(&base_tx->mutex);
 }
 
 //////////////////////////////////////////////////////////////////////////////////
+// TS 38.322 v15.003 Section 5.2.2.2.4
+
+bool has_missing_byte_segment(rlc_um_nr_rx *rx, uint32_t sn)
+{
+  // is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of
+  // all received segments of this RLC SDU
+  return (rx_window.find(sn) != rx_window.end());
+}
+
+static void rlc_um_base_rx_timer_expired(void *data)
+{
+	rlc_um_base_rx *base_rx = (rlc_um_base_rx *)data;
+	rlc_um_nr_rx *rx = base_rx->rx;
+	rlc_um_base *base = base_rx->base;
+
+	oset_thread_mutex_lock(&base_rx->mutex);
+
+    RlcDebug("reassembly timeout expiry for SN=%d - updating RX_Next_Reassembly and reassembling", rx->RX_Next_Reassembly);
+
+	oset_thread_mutex_lock(&base->metrics_mutex);
+    base->metrics.num_lost_pdus++;
+	oset_thread_mutex_unlock(&base->metrics_mutex);
+
+    if (base_rx->rx_sdu != NULL) {
+		byte_buffer_clear(base_rx->rx_sdu);
+    }
+
+    // update RX_Next_Reassembly to the next SN that has not been reassembled yet
+    rx->RX_Next_Reassembly = rx->RX_Timer_Trigger;
+    while (RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly) < RX_MOD_NR_BASE(rx, rx->RX_Next_Highest)) {
+      rx->RX_Next_Reassembly = (rx->RX_Next_Reassembly + 1) % rx->mod;
+      debug_state();
+    }
+
+    // discard all segments with SN < updated RX_Next_Reassembly
+    for (auto it = rx->rx_window.begin(); it != rx->rx_window.end();) {
+      if (RX_MOD_NR_BASE(rx, it->first) < RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly)) {
+        it = rx_window.erase(it);
+      } else {
+        ++it;
+      }
+    }
+
+    // check start of t_reassembly
+	// RX_Next_Highest > RX_Next_Reassembly + 1;(这个条件说明还有包没有重组递交上层)
+	// RX_Next_Highest = RX_Next_Reassembly + 1 and there is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of all received segments of this RLC SDU；
+	// 设置RX_Next_Trigger=RX_Next_Highest;
+    if (RX_MOD_NR_BASE(rx, rx->RX_Next_Highest) > RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly + 1) ||
+        ((RX_MOD_NR_BASE(rx, rx->RX_Next_Highest) == RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly + 1) &&
+          has_missing_byte_segment(rx, rx->RX_Next_Reassembly)))) {
+      RlcDebug("starting reassembly timer for SN=%d", base_rx->rb_name, rx->RX_Next_Reassembly);
+	  gnb_timer_start(rx->reassembly_timer, base_rx->cfg.um_nr.t_reassembly_ms);
+      rx->RX_Timer_Trigger = rx->RX_Next_Highest;
+    }
+
+	RlcDebug("RX_Next_Reassembly=%d, RX_Timer_Trigger=%d, RX_Next_Highest=%d, t_Reassembly=%s",
+		   rx->RX_Next_Reassembly,
+		   rx->RX_Timer_Trigger,
+		   rx->RX_Next_Highest,
+		   rx->reassembly_timer.running ? "running" : "stopped");
+
+	oset_thread_mutex_unlock(&base_rx->mutex);
+}
+
+static byte_buffer_t* strip_pdu_header(rlc_um_nr_pdu_header_t *header,
+                                                uint8_t   *payload,
+                                                uint32_t  nof_bytes)
+{
+	byte_buffer_t *sdu = byte_buffer_init();
+	if (sdu == NULL) {
+		RlcError("Couldn't allocate PDU");
+		return NULL;
+	}
+	memcpy(sdu->msg, payload, nof_bytes);
+	sdu->N_bytes = nof_bytes;
+
+	// strip RLC header
+	int header_len = rlc_um_nr_packed_length(header);
+	sdu->msg += header_len;
+	sdu->N_bytes -= header_len;
+	return sdu;
+}
+
+
+static void rlc_um_base_rx_handle_data_pdu(rlc_um_base_rx *base_rx, uint8_t* payload, uint32_t nof_bytes)
+{
+  rlc_um_nr_rx *rx = base_rx->rx;
+  rlc_um_base *base = base_rx->base;
+
+  oset_thread_mutex_lock(&base_rx->mutex);
+
+  rlc_um_nr_pdu_header_t header = {0};
+  rlc_um_nr_read_data_pdu_header(payload, nof_bytes, base_rx->cfg.um_nr.sn_field_length, &header);
+  RlcHexDebug(payload, nof_bytes, "Rx data PDU (%d B)", nof_bytes);
+
+  // check if PDU contains a SN
+  if (header.si == (rlc_nr_si_field_t)full_sdu) {
+    // copy full PDU into buffer
+    byte_buffer_t *sdu = strip_pdu_header(header, payload, nof_bytes);
+
+    // deliver to PDCP
+    RlcInfo("Rx SDU (%d B)", sdu->N_bytes);
+    API_pdcp_rlc_write_ul_pdu(base->common.rnti, base->common.lcid, sdu);
+	oset_free(sdu);
+  } else if (sn_invalid_for_rx_buffer(header.sn)) {
+    RlcInfo("Discarding SN=%d", header.sn);
+    // Nothing else to do here ..
+  } else {
+    // place PDU in receive buffer
+    rlc_umd_pdu_nr_t rx_pdu = {};
+    rx_pdu.header           = header;
+    rx_pdu.buf              = strip_pdu_header(header, payload, nof_bytes);
+
+    // check if this SN is already present in rx buffer
+    if (rx_window.find(header.sn) == rx_window.end()) {
+      // first received segment of this SN, add to rx buffer
+      RlcHexDebug(rx_pdu.buf->msg,
+                  rx_pdu.buf->N_bytes,
+                  "placing %s segment of SN=%d (%d B) in Rx buffer",
+                  to_string_short(header.si).c_str(),
+                  header.sn,
+                  rx_pdu.buf->N_bytes);
+      rlc_umd_pdu_segments_nr_t pdu_segments = {};
+      update_total_sdu_length(pdu_segments, rx_pdu);
+      pdu_segments.segments.emplace(header.so, std::move(rx_pdu));
+      rx_window[header.sn] = std::move(pdu_segments);
+    } else {
+      // other segment for this SN already present, update received data
+      RlcHexDebug(rx_pdu.buf->msg,
+                  rx_pdu.buf->N_bytes,
+                  "updating SN=%d at SO=%d with %d B",
+                  rx_pdu.header.sn,
+                  rx_pdu.header.so,
+                  rx_pdu.buf->N_bytes);
+
+      auto& pdu_segments = rx_window.at(header.sn);
+
+      // calculate total SDU length
+      update_total_sdu_length(pdu_segments, rx_pdu);
+
+      // append to list of segments
+      pdu_segments.segments.emplace(header.so, std::move(rx_pdu));
+    }
+
+    // handle received segments
+    handle_rx_buffer_update(header.sn);
+  }
+
+  RlcDebug("RX_Next_Reassembly=%d, RX_Timer_Trigger=%d, RX_Next_Highest=%d, t_Reassembly=%s",
+		 rx->RX_Next_Reassembly,
+		 rx->RX_Timer_Trigger,
+		 rx->RX_Next_Highest,
+		 rx->reassembly_timer.running ? "running" : "stopped");
+
+  oset_thread_mutex_unlock(&base_rx->mutex);
+}
+
 static void rlc_um_base_rx_stop(rlc_um_base_rx *base_rx)
 {
-	*base_rx = {0};
+	//todo
+	oset_thread_mutex_destroy(&base_rx->mutex);
 }
 
-static void rlc_um_base_rx_init(rlc_um_base_rx *base_rx, rlc_um_base *base_)
+static void rlc_um_base_rx_init(rlc_um_base_rx *base_rx)
 {
-	base_rx->metrics = &base_->metrics;
-	base_rx->lcid = base_->common.lcid;
+	oset_thread_mutex_init(&base_rx->mutex);
+	//base_rx->metrics = &base_rx->base->metrics;
+	//base_rx->lcid = base_rx->base->common.lcid;
 }
 
+//////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 void rlc_um_base_init(rlc_um_base *base, uint32_t lcid_, uint16_t rnti_)
 {
 	rlc_common_init(&base->common, NULL, rnti_, lcid_, (rlc_mode_t)um, NULL);
 	base->rx_enabled = false;
 	base->tx_enabled = false;
-	oset_thread_mutex_init(&base->metrics_mutex);
 	base->metrics = {0};
+	oset_thread_mutex_init(&base->metrics_mutex);
 }
 
 void rlc_um_base_stop(rlc_um_base *base)
@@ -382,9 +636,22 @@ void rlc_um_base_stop(rlc_um_base *base)
 	base->metrics = {0};
 }
 
+void rlc_um_base_write_ul_pdu(rlc_um_base *base, rlc_um_base_rx *base_rx, uint8_t *payload, uint32_t nof_bytes)
+{
+	if (base_rx->rx && base->rx_enabled) {
+		{
+			oset_thread_mutex_lock(&base->metrics_mutex);
+			base->metrics.num_rx_pdus++;
+			base->metrics.num_rx_pdu_bytes += nof_bytes;
+			oset_thread_mutex_unlock(&base->metrics_mutex);
+		}
+		rlc_um_base_rx_handle_data_pdu(base_rx, payload, nof_bytes);
+	}
+}
+
 uint32_t rlc_um_base_read_dl_pdu(rlc_um_base *base, rlc_um_base_tx *base_tx, uint8_t *payload, uint32_t nof_bytes)
 {
-	if (base_tx && base->tx_enabled) {
+	if (base_tx->tx && base->tx_enabled) {
 	  uint32_t len = rlc_um_base_tx_build_dl_data_pdu(base_tx, payload, nof_bytes);
 	  if (len > 0) {
 		oset_thread_mutex_lock(&base->metrics_mutex);
@@ -395,7 +662,6 @@ uint32_t rlc_um_base_read_dl_pdu(rlc_um_base *base, rlc_um_base_tx *base_tx, uin
 	  return len;
 	}
 	return 0;
-
 }
 
 void rlc_um_base_write_dl_sdu(rlc_um_base *base, rlc_um_base_tx *base_tx, byte_buffer_t *sdu)
@@ -426,73 +692,39 @@ void rlc_um_base_write_dl_sdu(rlc_um_base *base, rlc_um_base_tx *base_tx, byte_b
 
 #if 1
 /////////////////////////////////rlc_um_nr_rx/////////////////////////////////
-bool rlc_um_nr_rx_has_missing_byte_segment(rlc_um_nr_rx *rx, uint32_t sn)
+void rlc_um_nr_rx_reset(rlc_um_nr_rx *rx)
 {
-  // is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of
-  // all received segments of this RLC SDU
-  return (rx_window.find(sn) != rx_window.end());
+	rx->RX_Next_Reassembly = 0;
+	rx->RX_Timer_Trigger   = 0;
+	rx->RX_Next_Highest    = 0;
+
+	rx->base_rx.rx_sdu = NULL;//???
+
+	// Drop all messages in RX window
+	rx_window.clear();
+
+	// stop timer
+	if (rx->reassembly_timer.running) {
+		gnb_timer_stop(rx->reassembly_timer);
+	}
 }
 
-
-// TS 38.322 v15.003 Section 5.2.2.2.4
-void rlc_um_nr_rx_timer_expired(void *data)
+static void rlc_um_nr_rx_init(rlc_um_nr_rx *rx, rlc_um_base *base)
 {
-	rlc_um_nr_rx *rx = (rlc_um_nr_rx *)data;
-
-	oset_thread_mutex_lock(&rx->mutex);
-
-    RlcDebug("reassembly timeout expiry for SN=%d - updating RX_Next_Reassembly and reassembling", rx->RX_Next_Reassembly);
-
-    rx->base_rx.metrics->num_lost_pdus++;
-
-    if (rx->base_rx.rx_sdu != NULL) {
-		byte_buffer_clear(rx->base_rx.rx_sdu);
-    }
-
-    // update RX_Next_Reassembly to the next SN that has not been reassembled yet
-    rx->RX_Next_Reassembly = rx->RX_Timer_Trigger;
-    while (RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly) < RX_MOD_NR_BASE(rx, rx->RX_Next_Highest)) {
-      rx->RX_Next_Reassembly = (rx->RX_Next_Reassembly + 1) % rx->mod;
-      debug_state();
-    }
-
-    // discard all segments with SN < updated RX_Next_Reassembly
-    for (auto it = rx->rx_window.begin(); it != rx->rx_window.end();) {
-      if (RX_MOD_NR_BASE(rx, it->first) < RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly)) {
-        it = rx_window.erase(it);
-      } else {
-        ++it;
-      }
-    }
-
-    // check start of t_reassembly
-	// RX_Next_Highest > RX_Next_Reassembly + 1;(这个条件说明还有包没有重组递交上层)
-	// RX_Next_Highest = RX_Next_Reassembly + 1 and there is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of all received segments of this RLC SDU；
-	// 设置RX_Next_Trigger=RX_Next_Highest;
-    if (RX_MOD_NR_BASE(rx, rx->RX_Next_Highest) > RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly + 1) ||
-        ((RX_MOD_NR_BASE(rx, rx->RX_Next_Highest) == RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly + 1) &&
-          rlc_um_nr_rx_has_missing_byte_segment(rx, rx->RX_Next_Reassembly)))) {
-      RlcDebug("starting reassembly timer for SN=%d", rx->base_rx.rb_name, rx->RX_Next_Reassembly);
-	  gnb_timer_start(rx->reassembly_timer, rx->base_rx.cfg.um_nr.t_reassembly_ms);
-      rx->RX_Timer_Trigger = rx->RX_Next_Highest;
-    }
-
-    debug_state();
-	oset_thread_mutex_unlock(&rx->mutex);
-}
-
-
-static void rlc_um_nr_rx_init(rlc_um_base *base, rlc_um_nr_rx *rx)
-{
-	oset_thread_mutex_init(&rx->mutex);
+	rx->base_rx.base = base;
 	rlc_um_base_rx_init(&rx->base_rx, base)
 }
 
 static void rlc_um_nr_rx_stop(rlc_um_nr_rx *rx)
 {
-	oset_thread_mutex_destroy(&rx->mutex);
 	if(rx->reassembly_timer) gnb_timer_delete(rx->reassembly_timer);
 	rlc_um_base_rx_stop(&rx->base_rx);
+}
+
+static void rlc_um_nr_rx_reestablish(rlc_um_nr_rx *rx)
+{
+	// drop all SDUs, SDU segments, PDUs and reset timers
+	rlc_um_nr_rx_reset(rx);
 }
 
 static bool rlc_um_nr_rx_configure(rlc_um_nr_rx *rx, rlc_config_t *cnfg_, char *rb_name_)
@@ -506,22 +738,40 @@ static bool rlc_um_nr_rx_configure(rlc_um_nr_rx *rx, rlc_config_t *cnfg_, char *
 
 	// configure timer
 	if (rx->base_rx.cfg.um_nr.t_reassembly_ms > 0) {
-		rx->reassembly_timer = gnb_timer_add(gnb_manager_self()->app_timer, rlc_um_nr_rx_timer_expired, rx);
+		rx->reassembly_timer = gnb_timer_add(gnb_manager_self()->app_timer, rlc_um_base_rx_timer_expired, &rx->base_rx);
 	}
 
 	return true;
 }
 
 /////////////////////////////////rlc_um_nr_tx/////////////////////////////////
-
-static void rlc_um_nr_tx_init(rlc_um_base *base, rlc_um_nr_tx *tx)
+static void suspend(rlc_um_nr_tx *tx)
 {
-	rlc_um_base_tx_init(&tx->base_tx, base)
+	empty_queue(&tx->base_tx);
+	rlc_um_nr_tx_reset(tx);
+}
+
+void rlc_um_nr_tx_reset(rlc_um_nr_tx *tx)
+{
+	tx->TX_Next = 0;
+	tx->next_so = 0;
+}
+
+static void rlc_um_nr_tx_init(rlc_um_nr_tx *tx, rlc_um_base *base)
+{
+	tx->base_tx.base = base;
+	rlc_um_base_tx_init(&tx->base_tx);
 }
 
 static void rlc_um_nr_tx_stop(rlc_um_nr_tx *tx)
 {
+	suspend(tx);
 	rlc_um_base_tx_stop(&tx->base_tx);
+}
+
+static void rlc_um_nr_tx_reestablish(rlc_um_nr_tx *tx)
+{
+	suspend(tx);
 }
 
 static bool rlc_um_nr_tx_configure(rlc_um_nr_tx *tx, rlc_config_t *cnfg_, char *rb_name_)
@@ -567,17 +817,8 @@ void rlc_um_nr_get_buffer_state(rlc_common *um_common, uint32_t *newtx_queue, ui
 	rlc_um_nr *um = (rlc_um_nr *)um_common;
 
 	*prio_tx_queue = 0;
-	*newtx_queue   = rlc_um_base_tx_get_buffer_state(&um->base, &um->tx.base_tx, *prio_tx_queue);
+	*newtx_queue   = rlc_um_base_tx_get_buffer_state(&um->tx.base_tx, *prio_tx_queue);
 }
-
-
-void rlc_um_nr_set_bsr_callback(rlc_common *um_common, bsr_callback_t callback)
-{
-	rlc_um_nr *um = (rlc_um_nr *)um_common;
-
-	um->tx.base_tx.bsr_callback = callback;
-}
-
 
 bool rlc_um_nr_configure(rlc_common *um_common, rlc_config_t *cnfg_)
 {
@@ -589,12 +830,12 @@ bool rlc_um_nr_configure(rlc_common *um_common, rlc_config_t *cnfg_)
 	// determine bearer name and configure Rx/Tx objects
 	um->base.common.rb_name = oset_msprintf("DRB%s", um->base.cfg.um_nr.bearer_id);
 
-	rlc_um_nr_rx_init(&um->base, &um->rx);
+	rlc_um_nr_rx_init(&um->rx, &um->base);
 	if (! rlc_um_nr_rx_configure(&um->rx, &um->base.cfg, um->base.common.rb_name)) {
 		return false;
 	}
 
-	rlc_um_nr_tx_init(&um->base, &um->tx);
+	rlc_um_nr_tx_init(&um->tx, &um->base);
 	if (! rlc_um_nr_tx_configure(&um->tx, &um->base.cfg, um->base.common.rb_name)) {
 		return false;
 	}
@@ -610,6 +851,46 @@ bool rlc_um_nr_configure(rlc_common *um_common, rlc_config_t *cnfg_)
 	return true;
 }
 
+void rlc_um_nr_set_bsr_callback(rlc_common *um_common, bsr_callback_t callback)
+{
+	rlc_um_nr *um = (rlc_um_nr *)um_common;
+
+	um->tx.base_tx.bsr_callback = callback;
+}
+
+void rlc_um_nr_reset_metrics(rlc_common *um_common)
+{
+	rlc_um_nr *um = (rlc_tm *)um_common;
+
+	um->base.metrics = {0};
+}
+
+void rlc_um_nr_reestablish(rlc_common *um_common)
+{
+	rlc_um_nr *um = (rlc_tm *)um_common;
+
+	um->base.tx_enabled = false;
+
+	rlc_um_nr_tx_reestablish(&um->tx); // calls stop and enables tx again
+
+	rlc_um_nr_rx_reestablish(&um->rx); // nothing else needed
+
+	um->base.tx_enabled = true;
+}
+
+rlc_bearer_metrics_t rlc_um_nr_get_metrics(rlc_common *um_common)
+{
+	rlc_um_nr *um = (rlc_tm *)um_common;
+
+	return um->base.metrics;
+}
+
+void rlc_um_nr_write_ul_pdu(rlc_common *um_common, uint8_t *payload, uint32_t nof_bytes)
+{
+	rlc_um_nr *um = (rlc_um_nr *)um_common;
+
+	rlc_um_base_write_ul_pdu(&um->base, &um->rx.base_rx, payload, nof_bytes);
+}
 
 void rlc_um_nr_read_dl_pdu(rlc_common *um_common, uint8_t *payload, uint32_t nof_bytes)
 {
@@ -617,7 +898,6 @@ void rlc_um_nr_read_dl_pdu(rlc_common *um_common, uint8_t *payload, uint32_t nof
 
 	rlc_um_base_read_dl_pdu(&um->base, &um->tx.base_tx, payload, nof_bytes);
 }
-
 
 void rlc_um_nr_write_dl_sdu(rlc_common *um_common, byte_buffer_t *sdu)
 {
@@ -669,5 +949,4 @@ rlc_um_nr *rlc_um_nr_init(uint32_t lcid_,	uint16_t rnti_)
 						._stop              = rlc_um_nr_stop,
 					  };
 }
-
 

@@ -25,14 +25,14 @@ typedef struct{
 
 	bool                 tx_enabled;//true
 
-	//oset_apr_mutex_t    *metrics_mutex;
+	oset_apr_mutex_t    *metrics_mutex;
 	rlc_bearer_metrics_t metrics;
 
 	// Thread-safe queues for MAC messages
 	//OSET_POOL(tm_pool, byte_buffer_t);// 256
 	oset_apr_mutex_t    *unread_bytes_mutex;
 	uint32_t             unread_bytes;
-	oset_queue_t         *dl_sdu_queue; // 128 // byte_buffer_queue
+	oset_queue_t         *tx_sdu_queue; // 128 // byte_buffer_queue
 }rlc_tm;
 
 rlc_tm *rlc_tm_init(uint32_t lcid_, 	uint16_t rnti_, oset_apr_memory_pool_t	*usepool);

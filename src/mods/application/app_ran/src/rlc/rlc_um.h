@@ -18,6 +18,7 @@ extern "C" {
 
 typedef struct rlc_um_nr_rx_s rlc_um_nr_rx;
 typedef struct rlc_um_nr_tx_s rlc_um_nr_tx;
+typedef struct rlc_um_base_s  rlc_um_base;
 
 typedef struct rlc_um_base_tx_sdu {
 	oset_lnode_t       lnode;
@@ -29,7 +30,8 @@ typedef struct {
 	char                  *rb_name;
 	rlc_config_t          cfg;
 	rlc_um_nr_tx          *tx;
-	
+	rlc_um_base           *base;
+
 	bsr_callback_t        bsr_callback;
 	// TX SDU buffers
 	oset_thread_mutex_t   unread_bytes_mutex;
@@ -47,10 +49,12 @@ typedef struct {
 	char                  *rb_name;
 	rlc_config_t          cfg;
 	rlc_um_nr_rx          *rx;
+	rlc_um_base           *base;
 
 	byte_buffer_t         *rx_sdu;
-	uint32_t              lcid;
-	rlc_bearer_metrics_t  *metrics;
+	//uint32_t              lcid;
+	//rlc_bearer_metrics_t  *metrics;
+	oset_thread_mutex_t   mutex;
 }rlc_um_base_rx;
 
 
@@ -62,8 +66,6 @@ typedef struct rlc_um_base_s{
 	oset_thread_mutex_t   metrics_mutex;
 	rlc_bearer_metrics_t  metrics;
 }rlc_um_base;
-
-
 
 ////////////////////////////////////////////////////////////////////
 // Transmitter sub-class for NR
@@ -114,7 +116,6 @@ typedef struct rlc_um_nr_rx_s {
 	oset_hash_t   *rx_window;//std::map<uint32_t, rlc_umd_pdu_segments_nr_t>
 	// TS 38.322 Sec. 7.3
 	gnb_timer_t   *reassembly_timer; // to detect loss of RLC PDUs at lower layers
-	oset_thread_mutex_t mutex;
 }rlc_um_nr_rx;
 
 typedef struct {
@@ -126,8 +127,11 @@ typedef struct {
 rlc_um_nr *rlc_um_nr_init(uint32_t lcid_,	uint16_t rnti_);
 void rlc_um_nr_stop(rlc_common *um_common);
 void rlc_um_nr_get_buffer_state(rlc_common *um_common, uint32_t *newtx_queue, uint32_t *prio_tx_queue);
-void rlc_um_nr_set_bsr_callback(rlc_common *um_common, bsr_callback_t callback);
 bool rlc_um_nr_configure(rlc_common *um_common, rlc_config_t *cnfg_);
+void rlc_um_nr_set_bsr_callback(rlc_common *um_common, bsr_callback_t callback);
+void rlc_um_nr_reset_metrics(rlc_common *um_common);
+rlc_bearer_metrics_t rlc_um_nr_get_metrics(rlc_common *um_common);
+void rlc_um_nr_write_ul_pdu(rlc_common *um_common, uint8_t *payload, uint32_t nof_bytes);
 void rlc_um_nr_read_dl_pdu(rlc_common *um_common, uint8_t *payload, uint32_t nof_bytes);
 void rlc_um_nr_write_dl_sdu(rlc_common *um_common, byte_buffer_t *sdu);
 rlc_mode_t rlc_um_nr_get_mode(void);

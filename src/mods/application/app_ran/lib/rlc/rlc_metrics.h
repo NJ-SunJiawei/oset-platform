@@ -20,9 +20,9 @@ extern "C" {
 typedef struct {
   // SDU metrics
   uint32_t num_tx_sdus;
-  uint32_t num_rx_sdus;
+  //uint32_t num_rx_sdus;
   uint64_t num_tx_sdu_bytes;
-  uint64_t num_rx_sdu_bytes;
+  //uint64_t num_rx_sdu_bytes;
   uint32_t num_lost_sdus; //< Count dropped SDUs at Tx due to bearer inactivity or empty buffer
   uint64_t rx_latency_ms; //< Average time in ms from first RLC segment to full SDU
 
