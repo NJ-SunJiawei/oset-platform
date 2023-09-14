@@ -12,9 +12,49 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rlcUM"
 
-#define RX_MOD_NR_BASE(rx, x) (((x)-(rx->RX_Next_Highest) - (rx->UM_Window_Size)) % (rx->mod))
-
 /////////////////////////////////////////////////////////////////////////////////////////////////
+//  UDM PDU
+// complete RLC PDU (head_len_full = 1)
+// | SI |R|R|R|R|R|R|
+// |      Data      |
+// |      ...       |
+
+// first RLC PDU segment(sn 6 bit)      first RLC PDU segment(sn 12 bit)
+// | SI |    SN     |                   | SI |R|R|   SN   |
+// |      Data      |                   |      SN         |
+// |      ...       |                   |      Data       |
+
+
+// other RLC PDU segment(sn 6 bit)      other RLC PDU segment(sn 12 bit)
+// | SI |    SN     |                   | SI |R|R|   SN   |
+// |      SO        |                   |      SN         |
+// |      SO        |                   |      SO         |
+// |      Data      |                   |      SO         |
+// |      ...       |                   |      Data       |
+
+uint32_t rlc_um_nr_packed_length(rlc_um_nr_pdu_header_t *header)
+{
+  uint32_t len = 0;
+  if (header->si == (rlc_nr_si_field_t)full_sdu) {
+    // that's all ..
+    len++;
+  } else {
+    if (header->sn_size == (rlc_um_nr_sn_size_t)size6bits) {
+      // Only 1Byte for SN
+      len++;
+    } else {
+      // 2 Byte for 12bit SN
+      len += 2;
+    }
+    if (header->so) {
+      // Two bytes always for segment information
+      len += 2;
+    }
+  }
+  return len;
+}
+
+
 static uint32_t rlc_um_nr_write_data_pdu_header(rlc_um_nr_pdu_header_t *header, byte_buffer_t *pdu)
 {
   // Make room for the header
@@ -55,9 +95,9 @@ static uint32_t rlc_um_nr_write_data_pdu_header(rlc_um_nr_pdu_header_t *header, 
 }
 
 static uint32_t rlc_um_nr_read_data_pdu_header(uint8_t  *            payload,
-                                                           uint32_t nof_bytes,
+                                                           uint32_t  nof_bytes,
                                                            rlc_um_nr_sn_size_t sn_size,
-                                                           rlc_um_nr_pdu_header_t*   header)
+                                                           rlc_um_nr_pdu_header_t *header)
 {
   uint8_t* ptr = payload;
 
@@ -117,49 +157,199 @@ static uint32_t rlc_um_nr_read_data_pdu_header(uint8_t  *            payload,
   return (ptr - payload);
 }
 
-
-//  UDM PDU
-// complete RLC PDU (head_len_full = 1)
-// | SI |R|R|R|R|R|R|
-// |      Data      |
-// |      ...       |
-
-// first RLC PDU segment(sn 6 bit)      first RLC PDU segment(sn 12 bit)
-// | SI |    SN     |                   | SI |R|R|   SN   |
-// |      Data      |                   |      SN         |
-// |      ...       |                   |      Data       |
-
-
-// other RLC PDU segment(sn 6 bit)      other RLC PDU segment(sn 12 bit)
-// | SI |    SN     |                   | SI |R|R|   SN   |
-// |      SO        |                   |      SN         |
-// |      SO        |                   |      SO         |
-// |      Data      |                   |      SO         |
-// |      ...       |                   |      Data       |
-
-uint32_t rlc_um_nr_packed_length(rlc_um_nr_pdu_header_t *header)
+/////////////////////////////////rx/////////////////////////////////////////
+static uint32_t RX_MOD_NR_BASE(rlc_um_nr_rx *rx, uint32_t x)
 {
-  uint32_t len = 0;
-  if (header->si == (rlc_nr_si_field_t)full_sdu) {
-    // that's all ..
-    len++;
-  } else {
-    if (header->sn_size == (rlc_um_nr_sn_size_t)size6bits) {
-      // Only 1Byte for SN
-      len++;
-    } else {
-      // 2 Byte for 12bit SN
-      len += 2;
-    }
-    if (header->so) {
-      // Two bytes always for segment information
-      len += 2;
-    }
-  }
-  return len;
+   return ((x-rx->RX_Next_Highest - rx->UM_Window_Size) % (rx->mod))
 }
 
-/////////////////////////////////Base/////////////////////////////////////////
+// Sec 5.2.2.2.2
+static bool sn_invalid_for_rx_buffer(rlc_um_nr_rx *rx, uint32_t sn)
+{
+   // 若SN值落在 [ RX_Next_Highest - UM_Window_Size , RX_Next_Reassembly) 范围内，则出窗，将PDU丢弃
+   // 为什么UM敢把落在特定范围内叫做“出窗”？因为UM没有重传，sn永远是向前走的，不可能落在窗口的左侧。
+   return (RX_MOD_NR_BASE(rx->RX_Next_Highest - rx->UM_Window_Size) <= RX_MOD_NR_BASE(sn) &&
+		 RX_MOD_NR_BASE(sn) < RX_MOD_NR_BASE(rx->RX_Next_Reassembly));
+}
+
+static void update_total_sdu_length(rlc_umd_pdu_segments_nr_t *pdu_segments,
+                                             rlc_umd_pdu_nr_t *rx_pdu)
+{
+  if (rx_pdu->header.si == (rlc_nr_si_field_t)last_segment) {
+    pdu_segments->total_sdu_length = rx_pdu->header.so + rx_pdu->buf->N_bytes;
+    RlcDebug("updating total SDU length for SN=%d to %d B", rx_pdu.header.sn, pdu_segments.total_sdu_length);
+  }
+}
+
+static byte_buffer_t* strip_pdu_header(rlc_um_nr_pdu_header_t *header,
+                                                uint8_t   *payload,
+                                                uint32_t  nof_bytes)
+{
+	byte_buffer_t *sdu = byte_buffer_init();
+	if (sdu == NULL) {
+		RlcError("Couldn't allocate PDU");
+		return NULL;
+	}
+	memcpy(sdu->msg, payload, nof_bytes);
+	sdu->N_bytes = nof_bytes;
+
+	// strip RLC header
+	int header_len = rlc_um_nr_packed_length(header);
+	sdu->msg += header_len;
+	sdu->N_bytes -= header_len;
+	return sdu;
+}
+
+// TS 38.322 v15.003 Section 5.2.2.2.4
+static bool has_missing_byte_segment(rlc_um_nr_rx *rx, uint32_t sn)
+{
+  // is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of
+  // all received segments of this RLC SDU
+  return (NULL !=  oset_hash_get(rx->rx_window, &sn, sizeof(sn));
+}
+
+// Sect 5.2.2.2.3
+static void handle_rx_buffer_update(rlc_um_base_rx *base_rx, uint32_t sn)
+{
+  rlc_um_nr_rx *rx = base_rx->rx;
+  rlc_umd_pdu_segments_nr_t *pdu_segments = oset_hash_get(rx->rx_window, &sn, sizeof(sn));
+
+  if (NULL != pdu_segments) {
+    bool sdu_complete = false;
+
+    // iterate over received segments and try to assemble full SDU
+    auto& pdu = rx_window.at(sn);
+    for (auto it = pdu.segments.begin(); it != pdu.segments.end();) {
+      RlcDebug("Have %s segment with SO=%d for SN=%d",
+               to_string_short(it->second.header.si).c_str(),
+               it->second.header.so,
+               it->second.header.sn);
+      if (it->second.header.so == pdu.next_expected_so) {
+        if (pdu.next_expected_so == 0) {
+          if (pdu.sdu == nullptr) {
+            // reuse buffer of first segment for final SDU
+            pdu.sdu              = std::move(it->second.buf);
+            pdu.next_expected_so = pdu.sdu->N_bytes;
+            RlcDebug("Reusing first segment of SN=%d for final SDU", it->second.header.sn);
+            it = pdu.segments.erase(it);
+          } else {
+            RlcDebug("SDU buffer already allocated. Possible retransmission of first segment.");
+            if (it->second.header.so != pdu.next_expected_so) {
+              RlcError("Invalid PDU. SO doesn't match. Discarding all segments of SN=%d.", sn);
+              rx_window.erase(sn);
+              return;
+            }
+          }
+        } else {
+          if (it->second.buf->N_bytes > pdu.sdu->get_tailroom()) {
+            RlcError("Cannot fit RLC PDU in SDU buffer (tailroom=%d, len=%d), dropping both. Erasing SN=%d.",
+                     rx_sdu->get_tailroom(),
+                     it->second.buf->N_bytes,
+                     it->second.header.sn);
+            rx_window.erase(sn);
+            metrics.num_lost_pdus++;
+            return;
+          }
+
+          // add this segment to the end of the SDU buffer
+          memcpy(pdu.sdu->msg + pdu.sdu->N_bytes, it->second.buf->msg, it->second.buf->N_bytes);
+          pdu.sdu->N_bytes += it->second.buf->N_bytes;
+          pdu.next_expected_so += it->second.buf->N_bytes;
+          RlcDebug("Appended SO=%d of SN=%d", it->second.header.so, it->second.header.sn);
+          it = pdu.segments.erase(it);
+
+          if (pdu.next_expected_so == pdu.total_sdu_length) {
+            // entire SDU has been received, it will be passed up the stack outside the loop
+            sdu_complete = true;
+            break;
+          }
+        }
+      } else {
+        // handle next segment
+        ++it;
+      }
+    }
+
+    if (sdu_complete) {
+      // deliver full SDU to upper layers
+      RlcInfo("Rx SDU (%d B)", pdu.sdu->N_bytes);
+      pdcp->write_pdu(lcid, std::move(pdu.sdu));
+
+      // delete PDU from rx_window
+      rx_window.erase(sn);
+
+      // find next SN in rx buffer
+      if (sn == RX_Next_Reassembly) {
+        if (rx_window.empty()) {
+          // no further segments received
+          RX_Next_Reassembly = RX_Next_Highest;
+        } else {
+          for (auto it = rx_window.begin(); it != rx_window.end(); ++it) {
+            RlcDebug("SN=%d has %zd segments", it->first, it->second.segments.size());
+            if (RX_MOD_NR_BASE(it->first) > RX_MOD_NR_BASE(RX_Next_Reassembly)) {
+              RX_Next_Reassembly = it->first;
+              break;
+            }
+          }
+        }
+        RlcDebug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
+      }
+    } else if (not sn_in_reassembly_window(sn)) {
+      // SN outside of rx window
+
+      RX_Next_Highest = (sn + 1) % mod; // update RX_Next_highest
+      RlcDebug("Updating RX_Next_Highest=%d", RX_Next_Highest);
+
+      // drop all SNs outside of new rx window
+      for (auto it = rx_window.begin(); it != rx_window.end();) {
+        if (not sn_in_reassembly_window(it->first)) {
+          RlcInfo("SN=%d outside rx window [%d:%d] - discarding",
+                  it->first,
+                  RX_Next_Highest - UM_Window_Size,
+                  RX_Next_Highest);
+          it = rx_window.erase(it);
+          metrics.num_lost_pdus++;
+        } else {
+          ++it;
+        }
+      }
+
+      if (not sn_in_reassembly_window(RX_Next_Reassembly)) {
+        // update RX_Next_Reassembly to first SN that has not been reassembled and delivered
+        for (const auto& rx_pdu : rx_window) {
+          if (rx_pdu.first >= RX_MOD_NR_BASE(RX_Next_Highest - UM_Window_Size)) {
+            RX_Next_Reassembly = rx_pdu.first;
+            RlcDebug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
+            break;
+          }
+        }
+      }
+    }
+
+    if (reassembly_timer.is_running()) {
+      if (RX_Timer_Trigger <= RX_Next_Reassembly ||
+          (not sn_in_reassembly_window(RX_Timer_Trigger) and RX_Timer_Trigger != RX_Next_Highest) ||
+          ((RX_Next_Highest == RX_Next_Reassembly + 1) && not has_missing_byte_segment(RX_Next_Reassembly))) {
+        RlcDebug("stopping reassembly timer");
+        reassembly_timer.stop();
+      }
+    }
+
+    if (not reassembly_timer.is_running()) {
+      if ((RX_MOD_NR_BASE(RX_Next_Highest) > RX_MOD_NR_BASE(RX_Next_Reassembly + 1)) ||
+          ((RX_MOD_NR_BASE(RX_Next_Highest) == RX_MOD_NR_BASE(RX_Next_Reassembly + 1)) &&
+           has_missing_byte_segment(RX_Next_Reassembly))) {
+        RlcDebug("Starting reassembly timer for SN=%d", sn);
+        reassembly_timer.run();
+        RX_Timer_Trigger = RX_Next_Highest;
+      }
+    }
+  } else {
+    RlcError("SN=%d does not exist in Rx buffer", sn);
+  }
+}
+
+/////////////////////////////////tx////////////////////////////////////////
 
 static byte_buffer_t* tx_sdu_queue_read(rlc_um_base_tx *base_tx)
 {
@@ -446,15 +636,6 @@ static void rlc_um_base_tx_init(rlc_um_base_tx *base_tx)
 }
 
 //////////////////////////////////////////////////////////////////////////////////
-// TS 38.322 v15.003 Section 5.2.2.2.4
-
-bool has_missing_byte_segment(rlc_um_nr_rx *rx, uint32_t sn)
-{
-  // is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of
-  // all received segments of this RLC SDU
-  return (rx_window.find(sn) != rx_window.end());
-}
-
 static void rlc_um_base_rx_timer_expired(void *data)
 {
 	rlc_um_base_rx *base_rx = (rlc_um_base_rx *)data;
@@ -510,26 +691,6 @@ static void rlc_um_base_rx_timer_expired(void *data)
 	oset_thread_mutex_unlock(&base_rx->mutex);
 }
 
-static byte_buffer_t* strip_pdu_header(rlc_um_nr_pdu_header_t *header,
-                                                uint8_t   *payload,
-                                                uint32_t  nof_bytes)
-{
-	byte_buffer_t *sdu = byte_buffer_init();
-	if (sdu == NULL) {
-		RlcError("Couldn't allocate PDU");
-		return NULL;
-	}
-	memcpy(sdu->msg, payload, nof_bytes);
-	sdu->N_bytes = nof_bytes;
-
-	// strip RLC header
-	int header_len = rlc_um_nr_packed_length(header);
-	sdu->msg += header_len;
-	sdu->N_bytes -= header_len;
-	return sdu;
-}
-
-
 static void rlc_um_base_rx_handle_data_pdu(rlc_um_base_rx *base_rx, uint8_t* payload, uint32_t nof_bytes)
 {
   rlc_um_nr_rx *rx = base_rx->rx;
@@ -550,44 +711,58 @@ static void rlc_um_base_rx_handle_data_pdu(rlc_um_base_rx *base_rx, uint8_t* pay
     RlcInfo("Rx SDU (%d B)", sdu->N_bytes);
     API_pdcp_rlc_write_ul_pdu(base->common.rnti, base->common.lcid, sdu);
 	oset_free(sdu);
-  } else if (sn_invalid_for_rx_buffer(header.sn)) {
+  } else if (sn_invalid_for_rx_buffer(rx, header.sn)) {
+  	// (RX_Next_Highest – UM_Window_Size) <= SN < RX_Next_Reassembly, droping
     RlcInfo("Discarding SN=%d", header.sn);
     // Nothing else to do here ..
   } else {
+  	// rlc片段处理
     // place PDU in receive buffer
-    rlc_umd_pdu_nr_t rx_pdu = {};
-    rx_pdu.header           = header;
-    rx_pdu.buf              = strip_pdu_header(header, payload, nof_bytes);
+    rlc_umd_pdu_nr_t *rx_pdu = oset_malloc(rlc_umd_pdu_nr_t);
+	oset_assert(rx_pdu);
+    rx_pdu->header           = header;
+    rx_pdu->buf              = strip_pdu_header(header, payload, nof_bytes);
 
     // check if this SN is already present in rx buffer
-    if (rx_window.find(header.sn) == rx_window.end()) {
+    rlc_umd_pdu_segments_nr_t *um_pdu_segments = oset_hash_get(rx->rx_window, &header.sn, sizeof(header.sn));
+    if (NULL == um_pdu_segments) {
+	  // rlc sn首个片段
       // first received segment of this SN, add to rx buffer
-      RlcHexDebug(rx_pdu.buf->msg,
-                  rx_pdu.buf->N_bytes,
+      RlcHexDebug(rx_pdu->buf->msg,
+                  rx_pdu->buf->N_bytes,
                   "placing %s segment of SN=%d (%d B) in Rx buffer",
-                  to_string_short(header.si).c_str(),
+                  rlc_nr_si_field_to_string(header.si),
                   header.sn,
-                  rx_pdu.buf->N_bytes);
-      rlc_umd_pdu_segments_nr_t pdu_segments = {};
+                  rx_pdu->buf->N_bytes);
+
+      rlc_umd_pdu_segments_nr_t *pdu_segments = oset_malloc(rlc_umd_pdu_segments_nr_t);
+	  oset_assert(pdu_segments);
+	  pdu_segments->segments = oset_hash_make();
+
       update_total_sdu_length(pdu_segments, rx_pdu);
-      pdu_segments.segments.emplace(header.so, std::move(rx_pdu));
-      rx_window[header.sn] = std::move(pdu_segments);
+
+	  oset_hash_set(pdu_segments->segments, &rx_pdu->header.so, sizeof(rx_pdu->header.so), NULL);
+	  oset_hash_set(pdu_segments->segments, &rx_pdu->header.so, sizeof(rx_pdu->header.so), rx_pdu);
+
+	  oset_hash_set(rx->rx_window, &rx_pdu->header.sn, sizeof(rx_pdu->header.sn), NULL);
+	  oset_hash_set(rx->rx_window, &rx_pdu->header.sn, sizeof(rx_pdu->header.sn), pdu_segments);
     } else {
       // other segment for this SN already present, update received data
-      RlcHexDebug(rx_pdu.buf->msg,
-                  rx_pdu.buf->N_bytes,
+      RlcHexDebug(rx_pdu->buf->msg,
+                  rx_pdu->buf->N_bytes,
                   "updating SN=%d at SO=%d with %d B",
-                  rx_pdu.header.sn,
-                  rx_pdu.header.so,
-                  rx_pdu.buf->N_bytes);
+                  rx_pdu->header.sn,
+                  rx_pdu->header.so,
+                  rx_pdu->buf->N_bytes);
 
-      auto& pdu_segments = rx_window.at(header.sn);
+      rlc_umd_pdu_segments_nr_t *pdu_segments = um_pdu_segments;
 
       // calculate total SDU length
       update_total_sdu_length(pdu_segments, rx_pdu);
 
       // append to list of segments
-      pdu_segments.segments.emplace(header.so, std::move(rx_pdu));
+	  oset_hash_set(pdu_segments->segments, &rx_pdu->header.so, sizeof(rx_pdu->header.so), NULL);
+	  oset_hash_set(pdu_segments->segments, &rx_pdu->header.so, sizeof(rx_pdu->header.so), rx_pdu);
     }
 
     // handle received segments
@@ -692,6 +867,23 @@ void rlc_um_base_write_dl_sdu(rlc_um_base *base, rlc_um_base_tx *base_tx, byte_b
 
 #if 1
 /////////////////////////////////rlc_um_nr_rx/////////////////////////////////
+static int rlc_umd_pdu_free(void *rec, const void *key, int klen, const void *value)
+{
+	rlc_umd_pdu_nr_t  *segments = (rlc_umd_pdu_nr_t *)value;
+	oset_free(segments->buf);
+	oset_free(segments);
+	return 1;
+}
+
+static int rlc_umd_pdu_segments_free(void *rec, const void *key, int klen, const void *value)
+{
+	rlc_umd_pdu_segments_nr_t  *pdu_segments = (rlc_umd_pdu_segments_nr_t *)value;
+	oset_hash_do(rlc_umd_pdu_free, rec, pdu_segments->segments);
+	oset_hash_destroy(pdu_segments->segments);
+	oset_free(pdu_segments);
+	return 1;
+}
+
 void rlc_um_nr_rx_reset(rlc_um_nr_rx *rx)
 {
 	rx->RX_Next_Reassembly = 0;
@@ -701,7 +893,8 @@ void rlc_um_nr_rx_reset(rlc_um_nr_rx *rx)
 	rx->base_rx.rx_sdu = NULL;//???
 
 	// Drop all messages in RX window
-	rx_window.clear();
+	oset_hash_do(rlc_umd_pdu_segments_free, NULL, rx->rx_window);
+	oset_hash_clear(rx->rx_window);
 
 	// stop timer
 	if (rx->reassembly_timer.running) {
@@ -712,11 +905,15 @@ void rlc_um_nr_rx_reset(rlc_um_nr_rx *rx)
 static void rlc_um_nr_rx_init(rlc_um_nr_rx *rx, rlc_um_base *base)
 {
 	rx->base_rx.base = base;
+	rx->rx_window = oset_hash_make();
 	rlc_um_base_rx_init(&rx->base_rx, base)
 }
 
 static void rlc_um_nr_rx_stop(rlc_um_nr_rx *rx)
 {
+	oset_hash_do(rlc_umd_pdu_segments_free, NULL, rx->rx_window);
+	oset_hash_destroy(rx->rx_window);
+
 	if(rx->reassembly_timer) gnb_timer_delete(rx->reassembly_timer);
 	rlc_um_base_rx_stop(&rx->base_rx);
 }
@@ -885,6 +1082,10 @@ rlc_bearer_metrics_t rlc_um_nr_get_metrics(rlc_common *um_common)
 	return um->base.metrics;
 }
 
+
+// 关于PULL window，接收RLC实体维护一个接收窗口如下：
+// (RX_Next_Highest – UM_Window_Size) <= SN <RX_Next_Highest
+// 接收窗口只能依赖于接收窗口上边界状态变量(RX_Next_Highest)更新才能移动
 void rlc_um_nr_write_ul_pdu(rlc_common *um_common, uint8_t *payload, uint32_t nof_bytes)
 {
 	rlc_um_nr *um = (rlc_um_nr *)um_common;

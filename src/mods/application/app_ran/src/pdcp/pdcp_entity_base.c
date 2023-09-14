@@ -54,7 +54,8 @@ void pdcp_entity_base_init(pdcp_entity_base *base, uint32_t         lcid_, uint1
 
 void pdcp_entity_base_stop(pdcp_entity_base *base)
 {
-	base->active               = false;
+	base->active = false;
+	oset_free(base->rb_name);
 }
 
 void pdcp_entity_base_config_security(pdcp_entity_base *base, struct as_security_config_t *sec_cfg_)

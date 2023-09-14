@@ -104,11 +104,11 @@ typedef struct {
 
 typedef struct rlc_um_nr_rx_s {
 	rlc_um_base_rx  base_rx;
-	uint32_t      RX_Next_Reassembly; // [下边界]该变量指示的是接收到的UMD PDU中最早的待组装的PDU的SN。该变量的初始值为0，是接收窗口的下边界
+	uint32_t      RX_Next_Reassembly; // [下边界]当前等待重组的最早一个PDU的SN值。接收端默认SN小于该值的包都已被成功接收了
 	                                  // the earliest SN that is still considered for reassembly
-	uint32_t      RX_Timer_Trigger;   // 该变量指示的是触发t-Ressembly timer的UMD PDU的SN+1(用于RLC分段的重组)
+	uint32_t      RX_Timer_Trigger;   // 保存了触发t-Reassembly的PDU的SN值的下一个SN。当启动t-Reassembly时，说明有小于该SN的PDU还未收到，此时需要等待这些PDU以便进行重排序
 									  // the SN following the SN which triggered t-Reassembly
-	uint32_t      RX_Next_Highest; // [上边界]该变量指示的是的接收到的UMD PDU的最大SN+1。该变量的初始值为0，是接收窗口的上边界
+	uint32_t      RX_Next_Highest; // [上边界]保存所有已接收的PDU中，最高的SN+1
 								   // the SN following the SN of the UMD PDU with the highest SN among
 								   // received UMD PDUs. It serves as the higher edge of the reassembly window.
 	uint32_t      UM_Window_Size;

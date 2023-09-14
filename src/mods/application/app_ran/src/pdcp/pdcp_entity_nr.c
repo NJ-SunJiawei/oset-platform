@@ -128,7 +128,6 @@ static int count_compare(pdcp_nr_pdu_t *pdu1, pdcp_nr_pdu_t *pdu2)
 ////////////////////////////////////////////////////////////////////////////
 bool pdcp_entity_nr_configure(pdcp_entity_nr *pdcp_nr, pdcp_config_t *cnfg_)
 {
-	char name[64] = {0};
 	if (pdcp_nr->base.active) {
 		// Already configured
 		if (0 != memcmp(&pdcp_nr->base.cfg, cnfg_, sizeof(pdcp_config_t))){
@@ -139,9 +138,8 @@ bool pdcp_entity_nr_configure(pdcp_entity_nr *pdcp_nr, pdcp_config_t *cnfg_)
 	}
 
 	pdcp_nr->base.cfg      = cnfg_;
-	pdcp_nr->base.rb_name  = sprintf(name, "%s%d", cnfg_->rb_type == PDCP_RB_IS_DRB ? "DRB" : "SRB", cnfg_->bearer_id);
+	pdcp_nr->base.rb_name  = oset_msprintf("%s%d", cnfg_->rb_type == PDCP_RB_IS_DRB ? "DRB" : "SRB", cnfg_->bearer_id);
 	pdcp_nr->window_size = 1 << (pdcp_nr->base.cfg.sn_len - 1);
-	pdcp_nr->maximum_pdcp_sn = (1 << pdcp_nr->base.cfg.sn_len) - 1);
 
 	pdcp_nr->rlc_mode = API_rlc_pdcp_rb_is_um(pdcp_nr->base.rnti, pdcp_nr->base.lcid) ? pdcp_entity_nr::UM : pdcp_entity_nr::AM;
 
@@ -479,10 +477,6 @@ void pdcp_entity_nr_write_dl_sdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *sdu, in
 
   // Increment TX_NEXT
   pdcp_nr->tx_next++;
-  //if (pdcp_nr->tx_next > pdcp_nr->maximum_pdcp_sn) {
-  //	pdcp_nr->tx_hfn++;
-  //	pdcp_nr->tx_next = 0;
-  //}
 }
 
 
