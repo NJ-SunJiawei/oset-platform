@@ -358,7 +358,7 @@ alloc_result bwp_slot_allocator_alloc_rar_and_msg3(bwp_slot_allocator *bwp_alloc
 													&pdsch->sch,
 													&pdsch->sch.grant);
 	ASSERT_IF_NOT(code == SRSRAN_SUCCESS, "[%5u]Error converting DCI to grant", GET_RSLOT_ID(bwp_alloc->pdcch_slot));
-	pdsch.sch.grant.tb[0].softbuffer.tx = &bwp_pdcch_slot->rar_softbuffer->buffer;
+	pdsch->sch.grant.tb[0].softbuffer.tx = &bwp_pdcch_slot->rar_softbuffer->buffer;
 
 	//mac rar pdu???
 	/////////////////////////////////////////////////////////////////////////////////

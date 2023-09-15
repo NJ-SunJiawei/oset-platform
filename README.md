@@ -14,9 +14,9 @@ Core目录为核心目录，核心功能均在此目录开发，全部采用动�
 平台目录结构如下
 ├─cmake                      Cmake编译引用库
 ├─core                        OSET底软目录
-│  ├─base					   OSET base库
-│  ├─esl         			   Esl远程调用库
-│  ├─mods					  API模块库
+│  ├─base                      OSET base库
+│  ├─esl                       Esl远程调用库
+│  ├─mods                      API模块库
 ├─doc                  说明文档
 ├─tests                 单元测试
 ├─tools                 常用工具

@@ -55,7 +55,7 @@ int ra_sched_dl_rach_info(ra_sched *ra, rar_info_t *rar_info)
 	slot_point t_init = slot_point_add_jump(rar_info->prach_slot, prach_duration);
 	for (slot_point t = t_init; slot_point_less(&t, &t_max); slot_point_plus_plus(&t)) {
 		if (ra->bwp_cfg->slots[slot_idx(t)].is_dl) {
-			slot_interval_init(p.rar_win, t, slot_point_add_jump(t, ra->bwp_cfg->cfg.rar_window_size));//rar windows
+			slot_interval_init(&p.rar_win, t, slot_point_add_jump(t, ra->bwp_cfg->cfg.rar_window_size));//rar windows
 			break;
 		}
 	}

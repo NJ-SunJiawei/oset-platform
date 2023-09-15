@@ -415,7 +415,7 @@ static bool slot_worker_work_dl(slot_worker_t *slot_w, uint32_t cc_idx)
 		//每个码字与一个TB相对应，因此一个UE在一个TTI至多发送2个码字。码字可以看作是带出错保护的TB
 		uint8_t* data[SRSRAN_MAX_TB] = {0};
 		for (uint32_t i = 0; i < SRSRAN_MAX_TB; ++i) {
-			if (pdsch->data[i] != nullptr) {
+			if (pdsch->data[i] != NULL) {
 				//存放gnb下行组装好mac数据
 				data[i] = pdsch->data[i]->msg;
 			}

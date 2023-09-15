@@ -111,7 +111,7 @@ int mac_rar_pdu_nr_init_tx(mac_rar_pdu_nr *rar_pdu, byte_buffer_t* buffer_, uint
 int mac_rar_pdu_nr_pack(mac_rar_pdu_nr *rar_pdu)
 {
   int ret = OSET_ERROR;
-  if (rar_pdu->buffer == nullptr) {
+  if (rar_pdu->buffer == NULL) {
     oset_error("Invalid buffer");
     return ret;
   }

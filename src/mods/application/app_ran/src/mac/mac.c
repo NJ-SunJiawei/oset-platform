@@ -326,7 +326,7 @@ static dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg, uint32_t cc_idx
 		      ue_nr_metrics_dl_mcs(mac_ue, pdsch->sch.grant.tb[i].mcs);
 		    }
 		  }
-		} else if (pdsch.sch.grant.rnti_type == srsran_rnti_type_ra) {
+		} else if (pdsch->sch.grant.rnti_type == srsran_rnti_type_ra) {
 		  rar_t *rar = dl_res->rar[rar_count++];
 		  // for RARs we could actually move the byte_buffer to the PHY, as there are no retx
 
@@ -348,7 +348,7 @@ static dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg, uint32_t cc_idx
 		  // |	  UL Grant	 | OCT5
 		  // |	  TC-RNTI	 | OCT6
 		  // |	  TC-RNTI	 | OCT7
-		  pdsch.data[0] = mac_assemble_rar(rar->grants, pdsch->sch.grant.tb[0].tbs / 8);
+		  pdsch->data[0] = mac_assemble_rar(rar->grants, pdsch->sch.grant.tb[0].tbs / 8);
 #ifdef WRITE_RAR_PCAP
 			if (mac_manager.pcap.pcap_file != NULL) {
 			  	mac_pcap_write_dl_ra_rnti_nr(&mac_manager.pcap,
@@ -361,7 +361,7 @@ static dl_sched_t* mac_get_dl_sched(srsran_slot_cfg_t *slot_cfg, uint32_t cc_idx
 #endif
 		} else if (pdsch->sch.grant.rnti_type == srsran_rnti_type_si) {
 		  uint32_t sib_idx = dl_res->sib_idxs[si_count++];
-		  pdsch.data[0]    = mac_manager.bcch_dlsch_payload[sib_idx].payload;
+		  pdsch->data[0]    = mac_manager.bcch_dlsch_payload[sib_idx].payload;
 #ifdef WRITE_MIB_SIB_PCAP
 		  if (mac_manager.pcap.pcap_file != NULL) {
 		    mac_pcap_write_dl_si_rnti_nr(&mac_manager.pcap, 
