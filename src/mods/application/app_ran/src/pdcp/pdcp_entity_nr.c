@@ -140,6 +140,7 @@ bool pdcp_entity_nr_configure(pdcp_entity_nr *pdcp_nr, pdcp_config_t *cnfg_)
 	pdcp_nr->base.cfg      = cnfg_;
 	pdcp_nr->base.rb_name  = oset_msprintf("%s%d", cnfg_->rb_type == PDCP_RB_IS_DRB ? "DRB" : "SRB", cnfg_->bearer_id);
 	pdcp_nr->window_size = 1 << (pdcp_nr->base.cfg.sn_len - 1);
+	//maximum_pdcp_sn = (1u << cfg.sn_len) - 1;
 
 	pdcp_nr->rlc_mode = API_rlc_pdcp_rb_is_um(pdcp_nr->base.rnti, pdcp_nr->base.lcid) ? pdcp_entity_nr::UM : pdcp_entity_nr::AM;
 

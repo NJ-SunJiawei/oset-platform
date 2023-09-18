@@ -51,7 +51,6 @@ typedef struct {
 	rlc_um_nr_rx          *rx;
 	rlc_um_base           *base;
 
-	byte_buffer_t         *rx_sdu;
 	//uint32_t              lcid;
 	//rlc_bearer_metrics_t  *metrics;
 	oset_thread_mutex_t   mutex;
@@ -95,8 +94,8 @@ typedef struct {
 
 // Rx window
 typedef struct {
-	oset_hash_t    *segments; //std::map<uint32_t, rlc_umd_pdu_nr_t> // Map of segments with SO as key
-	byte_buffer_t  *sdu;
+	oset_hash_t    *segments; //std::map<uint16_t, rlc_umd_pdu_nr_t> // Map of segments with SO as key
+	byte_buffer_t  *sdu;//临时缓存rx_sdu buffer
 	uint32_t	   next_expected_so;
 	uint32_t	   total_sdu_length;
 } rlc_umd_pdu_segments_nr_t;
@@ -113,7 +112,7 @@ typedef struct rlc_um_nr_rx_s {
 								   // received UMD PDUs. It serves as the higher edge of the reassembly window.
 	uint32_t      UM_Window_Size;
 	uint32_t      mod; // Rx counter modulus
-	oset_hash_t   *rx_window;//std::map<uint32_t, rlc_umd_pdu_segments_nr_t>
+	oset_hash_t   *rx_window;//std::map<uint16_t, rlc_umd_pdu_segments_nr_t>
 	// TS 38.322 Sec. 7.3
 	gnb_timer_t   *reassembly_timer; // to detect loss of RLC PDUs at lower layers
 }rlc_um_nr_rx;
