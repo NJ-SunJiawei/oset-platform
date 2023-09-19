@@ -54,7 +54,7 @@ typedef struct {
 	                   // RX_DELIV[下边界]:指示的是还没有递交上层但是等待递交的first PDCP SDU的COUNT值
 	uint32_t rx_deliv; // COUNT value of first SDU not delivered to upper layers, but still waited for.
 
-	                   // RX_REORD:指示触发了重排序定时器的关联的PDCP 数据 PDU的COUNT值
+	                   // RX_REORD:接收窗口中启动t-Reordering定时器的PDCP            PDU对应的COUNT值
 	uint32_t rx_reord; // COUNT value following the COUNT value of PDCP Data PDU which triggered t-Reordering.
 
 	// Constants: 3GPP TS 38.323 v15.2.0, section 7.2

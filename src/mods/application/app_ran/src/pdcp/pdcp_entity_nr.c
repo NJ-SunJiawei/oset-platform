@@ -25,6 +25,7 @@ static void pass_to_upper_layers(pdcp_entity_nr *pdcp_nr, pdcp_nr_pdu_t *pdu)
     gw->write_pdu(lcid, pdu);
   }
 
+  oset_list_remove(&pdcp_nr->reorder_list, pdu);
   oset_free(pdu->buffer);
   oset_free(pdu);
 }
@@ -34,9 +35,10 @@ static void pass_to_upper_layers(pdcp_entity_nr *pdcp_nr, pdcp_nr_pdu_t *pdu)
 // Update RX_NEXT after submitting to higher layers
 static void deliver_all_consecutive_counts(pdcp_entity_nr *pdcp_nr)
 {
-  for (pdcp_nr_pdu_t *pdu = oset_list_first(&pdcp_nr->reorder_list);\
-		(pdu) && (pdu->count == pdcp_nr->rx_deliv);\
-        pdu = oset_list_next(pdu)){
+  pdcp_nr_pdu_t *tmp, *pdu = NULL;
+  for (pdu = oset_list_first(&pdcp_nr->reorder_list);\
+		(pdu)  && (tmp = oset_list_next(pdu), 1) && (pdu->count == pdcp_nr->rx_deliv);\
+        pdu = tmp){
     oset_debug("Delivering SDU with RCVD_COUNT %u", pdu->count);
 
     // Check RX_DELIV overflow
@@ -62,6 +64,12 @@ static void deliver_all_consecutive_counts(pdcp_entity_nr *pdcp_nr)
 /*
  * Timers
  */
+//定时器超时处理流程:
+//10）t-Reordering超时，排序窗口内全部小于RX_REORD的SDU和从RX_REORD开始的连续SDU全部递交到上层，这说明定时器其实只是等了一会，并没有要求对方重传，把要求重传的功能放到了应用层
+//20）更新RX_DELIV为大于等于RX_REORD的第一个没有向上递交的COUNT值
+//30）如果RX_DELIV和RX_NEXT之间有COUNT空洞，则RX_REORD=RX_NEXT，启动排序定时器t-Reordering。
+//100）流程结束。
+
 // Reordering Timer Callback (t-reordering)
 static void reordering_callback(void *data)
 {
@@ -70,14 +78,13 @@ static void reordering_callback(void *data)
 	oset_info("Reordering timer expired. RX_REORD=%u, re-order queue size=%ld", pdcp_nr->rx_reord, oset_list_count(&pdcp_nr->reorder_list));
 
 	// Deliver all PDCP SDU(s) with associated COUNT value(s) < RX_REORD
-    for (pdcp_nr_pdu_t *pdu = oset_list_first(&pdcp_nr->reorder_list);\
-		(pdu) && (pdu->count < pdcp_nr->rx_reord);\
-        pdu = oset_list_next(pdu)){
+	pdcp_nr_pdu_t *tmp, *pdu = NULL;
+	for (pdu = oset_list_first(&pdcp_nr->reorder_list);\
+		  (pdu)  && (tmp = oset_list_next(pdu), 1) && (pdu->count < pdcp_nr->rx_reord);\
+		  pdu = tmp){
 		    // Deliver to upper layers
 		    pass_to_upper_layers(pdcp_nr, pdu);
-			oset_list_remove(&pdcp_nr->reorder_list, pdu);
 		}	
-
 
 	// Update RX_DELIV to the first PDCP SDU not delivered to the upper layers
 	pdcp_nr->rx_deliv = pdcp_nr->rx_reord;
@@ -109,8 +116,8 @@ static void discard_callback(void *data)
 
   // Remove timer from map
   // NOTE: this will delete the callback. It *must* be the last instruction.
-  gnb_timer_delete(discard_node->discard_timer);
   oset_list_remove(&discard_node->pdcp_nr->discard_timers_list, discard_node);
+  gnb_timer_delete(discard_node->discard_timer);
   oset_free(discard_node);
 }
 
@@ -187,14 +194,17 @@ pdcp_entity_nr* pdcp_entity_nr_init(uint32_t lcid_, uint16_t rnti_)
 
 void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr)
 {
-	byte_buffer_t *buffer_node = NULL;
-	oset_list_for_each(&pdcp_nr->reorder_list, buffer_node){
+	pdcp_nr_pdu_t *node, *buffer_node = NULL;
+	oset_list_for_each_safe(&pdcp_nr->reorder_list, node, buffer_node){
+		oset_list_remove(buffer_node);
+		oset_free(buffer_node->buffer);
 		oset_free(buffer_node);
 	}
 	if(pdcp_nr->reordering_timer) gnb_timer_delete(pdcp_nr->reordering_timer);
 
-	discard_timer_t *timer_node = NULL;
-	oset_list_for_each(&pdcp_nr->discard_timers_list, timer_node){
+	discard_timer_t *node, *timer_node = NULL;
+	oset_list_for_each_safe(&pdcp_nr->discard_timers_list, node, timer_node){
+		oset_list_remove(timer_node);
 		gnb_timer_delete(timer_node->discard_timer);
 		oset_free(timer_node);
 	}
@@ -207,6 +217,19 @@ void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr)
 // nas 先加密再完保   pdcp 先完保再加密(完整性保护是pdu header和pdu data部分,pdu header不加密,pdu data\mac-I加密)
 // NR PDCP采用PUSH window(下边沿驱动)+t-reordering timer的形式接收下层递交的PDCP PDU
 // 关于PUSH window:接收窗口只能依赖于接收窗口下边界状态变量(RX_DELIV)更新才能移动
+// 所有状态变量基于COUNT值，并且在接收机制中不考虑COUNT值的wrap around问题。网络侧保证防止wrap around（如采用DRB addition/release）；
+
+//接收处理流程:
+//10）从下层收到一帧DATA PDU，PDCP实体首先计算COUNT值，也就是RCVD_COUNT，方法是：RCVD_SN可以从PDU中取出，所以需要计算出对应的RCVD_HFN，然后拼接计算出RCVD_COUNT
+//20）计算出COUNT值，用该值计算数字签名和解密，如果失败，则丢弃本PDU，转100
+//30）如果该PDU以前收到过，或者RCVD_COUNT < RX_DELIV，则丢弃本PDU，转100
+//40）进入接收缓存(接收窗口)，如果RCVD_COUNT是接收窗口中的最高值，则更新RX_NEXT=RCVD_COUNT+1
+//50）如果配置了非按序递交，则直接把SDU递交到上层，转100
+//60）如果RCVD_COUNT==RX_DELIV，则递交本SDU到上层，然后从COUNT = RX_DELIV开始，按升序递交接收窗口中缓存的全部序号连续的SDU到上层，完成后更新RX_DELIV为第一个还未递交的且大于 RX_DELIV的PDCP SDU的COUNT值
+//70）向上递交过程结束后，如果t-Reordering正在运行，并且最后递交的COUNT值(RX_DELIV)大于等于排序定时器绑定的COUNT值(RX_REORD)，则停止定时器
+//80）如果t-Reordering没有运行，并且RX_DELIV和RX_NEXT之间有COUNT空洞，则对RX_NEXT启动排序定时器，设置RX_REORD = RX_NEXT
+//100）流程结束。
+
 void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
 {
   // Log PDU
@@ -382,6 +405,7 @@ void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
 
   oset_debug("Rx PDCP state - RX_NEXT=%u, RX_DELIV=%u, RX_REORD=%u", pdcp_nr->rx_next, pdcp_nr->rx_deliv, pdcp_nr->rx_reord);
 }
+
 
 // SDAP/RRC interface
 // pdcp 先完保再加密(完整性保护是pdu header和pdu data部分,pdu header不加密,pdu data\mac-I加密)

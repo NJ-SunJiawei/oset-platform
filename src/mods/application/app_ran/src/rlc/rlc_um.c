@@ -177,7 +177,7 @@ static int rlc_umd_pdu_segments_free(void *rec, const void *key, int klen, const
 	rlc_umd_pdu_segments_nr_t  *pdu_segments = (rlc_umd_pdu_segments_nr_t *)value;
 	oset_hash_do(rlc_umd_pdu_free, pdu_segments->segments, pdu_segments->segments);
 	oset_hash_destroy(pdu_segments->segments);
-	oset_free(pdu_segments->sdu);
+	if(pdu_segments->sdu) oset_free(pdu_segments->sdu);
 	oset_free(pdu_segments);
 	return 1;
 }
@@ -332,11 +332,12 @@ static void handle_rx_buffer_update(rlc_um_base_rx *base_rx, uint16_t sn)
           rx->RX_Next_Reassembly = rx->RX_Next_Highest;
         } else {
 		  for (oset_hash_index_t *h = oset_hash_first(rx->rx_window); h;h = oset_hash_next(h)){
-			uint16_t sn = *(uint16_t *)oset_hash_this_key(h);
+			uint16_t k_sn = *(uint16_t *)oset_hash_this_key(h);
 			rlc_umd_pdu_segments_nr_t  *it = oset_hash_this_val(h);
-            RlcDebug("SN=%d has %zd segments", sn, oset_hash_count(it->segments));
-            if (RX_MOD_NR_BASE(sn) > RX_MOD_NR_BASE(rx->RX_Next_Reassembly)) {
-              rx->RX_Next_Reassembly = sn;
+		    //只要进入该分支，必定有分片，full_sdu报文已经被发送出去。
+            RlcDebug("SN=%d has %zd segments", k_sn, oset_hash_count(it->segments));
+            if (RX_MOD_NR_BASE(k_sn) > RX_MOD_NR_BASE(rx->RX_Next_Reassembly)) {
+              rx->RX_Next_Reassembly = k_sn;
               break;
             }
           }
@@ -344,42 +345,47 @@ static void handle_rx_buffer_update(rlc_um_base_rx *base_rx, uint16_t sn)
         RlcDebug("Updating RX_Next_Reassembly=%d", rx->RX_Next_Reassembly);
       }
     } else if (!sn_in_reassembly_window(sn)) {
-      // 此处只可能 > RX_Next_Highest,出窗的情况已经在sn_invalid_for_rx_buffer判断过
+      // 此处只可能sn > RX_Next_Highest,出窗的情况已经在sn_invalid_for_rx_buffer判断过
       // SN outside of rx window
-	  // 若sn大于RX_Next_Highest，则RX_Next_Highest设为x+1，相应地 reassembly window也向前移。
+	  // 若sn大于RX_Next_Highest，则RX_Next_Highest设为sn+1，相应地 reassembly window也向前移。
 	  // 因为前移而落到reassembly window之外的PDU，将被丢弃。
-      rx->RX_Next_Highest = (sn + 1) % mod; // update RX_Next_highest
+      rx->RX_Next_Highest = (sn + 1) % rx->mod; // update RX_Next_highest
       RlcDebug("Updating RX_Next_Highest=%d", rx->RX_Next_Highest);
 
       // drop all SNs outside of new rx window
-      for (auto it = rx_window.begin(); it != rx_window.end();) {
-        if (not sn_in_reassembly_window(it->first)) {
+      for (oset_hash_index_t *h = oset_hash_first(rx->rx_window); h;){
+	  	uint16_t k_sn = *(uint16_t *)oset_hash_this_key(h);
+	  	rlc_umd_pdu_segments_nr_t  *it = oset_hash_this_val(h);
+        if (!sn_in_reassembly_window(it)) {
           RlcInfo("SN=%d outside rx window [%d:%d] - discarding",
-                  it->first,
-                  RX_Next_Highest - UM_Window_Size,
-                  RX_Next_Highest);
-          it = rx_window.erase(it);
-          metrics.num_lost_pdus++;
+                  k_sn,
+                  rx->RX_Next_Highest - rx->UM_Window_Size,
+                  rx->RX_Next_Highest);
+		  rlc_umd_pdu_segments_free(rx->rx_window, &k_sn, sizeof(k_sn), it);
+		  oset_thread_mutex_lock(&base->metrics_mutex);
+		  base->metrics.num_lost_pdus++;
+		  oset_thread_mutex_unlock(&base->metrics_mutex);
         } else {
-          ++it;
+          h = oset_hash_next(h);
         }
       }
 
 	  // 若前移后RX_Next_Reassembly也落到重组窗口外，则将其值更新为
 	  // 大于等于RX_Next_Highest - UM_Window_Size，但还未被重组并传往上层的最早一个SN值。
-      if (not sn_in_reassembly_window(RX_Next_Reassembly)) {
+      if (!sn_in_reassembly_window(rx->RX_Next_Reassembly)) {
         // update RX_Next_Reassembly to first SN that has not been reassembled and delivered
-        for (const auto& rx_pdu : rx_window) {
-          if (rx_pdu.first >= RX_MOD_NR_BASE(RX_Next_Highest - UM_Window_Size)) {
-            RX_Next_Reassembly = rx_pdu.first;
-            RlcDebug("Updating RX_Next_Reassembly=%d", RX_Next_Reassembly);
+        for (oset_hash_index_t *h = oset_hash_first(rx->rx_window); h;h = oset_hash_next(h)){
+		  uint16_t k_sn = *(uint16_t *)oset_hash_this_key(h);
+          if (k_sn >= RX_MOD_NR_BASE(rx->RX_Next_Highest - rx->UM_Window_Size)) {
+            rx->RX_Next_Reassembly = k_sn;
+            RlcDebug("Updating RX_Next_Reassembly=%d", rx->RX_Next_Reassembly);
             break;
           }
         }
       }
     }
 
-    if (reassembly_timer.is_running()) {
+    if (rx->reassembly_timer.is_running()) {
       if (RX_Timer_Trigger <= RX_Next_Reassembly ||
           (not sn_in_reassembly_window(RX_Timer_Trigger) and RX_Timer_Trigger != RX_Next_Highest) ||
           ((RX_Next_Highest == RX_Next_Reassembly + 1) && not has_missing_byte_segment(RX_Next_Reassembly))) {
@@ -867,6 +873,38 @@ void rlc_um_base_stop(rlc_um_base *base)
 	base->metrics = {0};
 }
 
+/*
+一、当一个UMD PDU从下层被接收，则UM RLC实体应：
+
+	1、若该UMD PDU不包含SN（说明这是个完整包），则去掉RLC header，将RLC SDU发给上层
+	2、若SN值落在 [ RX_Next_Highest - UM_Window_Size , RX_Next_Reassembly) 范围内，则出窗，将PDU丢弃
+	3、否则，将PDU放入reception buffer
+	为什么UM敢把落在特定范围内叫做“出窗”？因为UM没有重传，sn永远是向前走的，不可能落在窗口的左侧。
+	落在窗口左侧的pdu会被视为正常包接收，并移动窗口。
+
+二、当一个SN = x 的 UMD PDU 放入 Reception buffer时，接收端会按照下列步骤操作：
+
+	1、若至此SN = x 的SDU的所有byte都已收到，则去掉RLC header，并将SDU重组传给上层。
+	2、若x = RX_Next_Reassembly，则更新RX_Next_Reassembly为目前下一个最早的SN值。
+	3、若x大于RX_Next_Highest，则RX_Next_Highest设为x+1，相应地 reassembly window也向前移。 因为前移而落到reassembly window之外的PDU，将被丢弃。
+	   若前移后RX_Next_Reassembly也落到重组窗口外，则将其值更新为 大于等于RX_Next_Highest - UM_Window_Size，但还未被重组并传往上层的最早一个SN值。
+	4、若t-Reassembly正在运行
+		如果RX_Timer_Trigger <= RX_Next_Reassembly，或者;
+		RX_Timer_Trigger落在reassembly window之外并且不等于RX_Next_Highest;
+		RX_Next_Highest = RX_Next_Reassembly + 1，且SN = RX_Next_Reassembly的SDU已收齐;
+		则停止并重置t-Reassembly
+	5、若t-Reassembly没有运行(包括因为前面步骤导致的停止运行)，且
+		RX_Next_Highest > RX_Next_Reassembly+1（即至少还有一个 SN < RX_Next_Highest没收到，应启动定时器等待未接收的PDU）
+		RX_Next_Highest = RX_Next_Reassembly + 1，且SN = RX_Next_Reassembly的SDU没收齐;
+		则启动t-Reassembly，并将RX_Timer_Trigger设置为RX_Next_Highest。
+
+三、当t-Reassembly超时，则：
+
+	1、将RX_Next_Reassembly更新为不小于RX_Timer_Trigger，且未重组的第一个SN值。
+	2、丢弃所有SN < 新RX_Next_Reassembly的PDU。
+	3、若此时RX_Next_Highest >= RX_Next_Reassembly+1，且SN = RX_Next_Reassembly的SDU没收齐;
+	   则启动t-Reassembly，并将RX_Timer_Trigger设置为 RX_Next_Highest
+*/
 void rlc_um_base_write_ul_pdu(rlc_um_base *base, rlc_um_base_rx *base_rx, uint8_t *payload, uint32_t nof_bytes)
 {
 	if (base_rx->rx && base->rx_enabled) {
