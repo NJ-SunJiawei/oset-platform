@@ -245,12 +245,10 @@ static bool has_missing_byte_segment(rlc_um_nr_rx *rx, uint32_t sn)
 }
 
 // Sect 5.2.2.2.3
-static void handle_rx_buffer_update(rlc_um_base_rx *base_rx, uint16_t sn)
+static void handle_rx_buffer_update(rlc_um_base_rx *base_rx, uint16_t sn, rlc_umd_pdu_segments_nr_t *pdu)
 {
   rlc_um_nr_rx *rx = base_rx->rx;
   rlc_um_base  *base = base_rx->base;
-
-  rlc_umd_pdu_segments_nr_t *pdu = oset_hash_get(rx->rx_window, &sn, sizeof(sn));
 
   if (NULL != pdu) {
     bool sdu_complete = false;
@@ -301,8 +299,7 @@ static void handle_rx_buffer_update(rlc_um_base_rx *base_rx, uint16_t sn)
           pdu->sdu->N_bytes += it->buf->N_bytes;
           pdu->next_expected_so += it->buf->N_bytes;
           RlcDebug("Appended SO=%d of SN=%d", it->header.so, it->header.sn);
-		  oset_free(it->buf);
-		  oset_hash_set(pdu->segments, &it->header.so, sizeof(it->header.so), NULL);
+		  rlc_umd_pdu_free(pdu->segments, &it->header.so, sizeof(it->header.so), it);
 
           if (pdu->next_expected_so == pdu->total_sdu_length) {
             // entire SDU has been received, it will be passed up the stack outside the loop
@@ -320,7 +317,6 @@ static void handle_rx_buffer_update(rlc_um_base_rx *base_rx, uint16_t sn)
       // deliver full SDU to upper layers
       RlcInfo("Rx SDU (%d B)", pdu->sdu->N_bytes);
 	  API_pdcp_rlc_write_ul_pdu(base->common.rnti, base->common.lcid, pdu->sdu);
-	  oset_free(pdu->sdu);
       // delete PDU from rx_window
 	  rlc_umd_pdu_segments_free(rx->rx_window, &sn, sizeof(sn), pdu);
 
@@ -374,7 +370,7 @@ static void handle_rx_buffer_update(rlc_um_base_rx *base_rx, uint16_t sn)
 	  // 大于等于RX_Next_Highest - UM_Window_Size，但还未被重组并传往上层的最早一个SN值。
       if (!sn_in_reassembly_window(rx->RX_Next_Reassembly)) {
         // update RX_Next_Reassembly to first SN that has not been reassembled and delivered
-        for (oset_hash_index_t *h = oset_hash_first(rx->rx_window); h;h = oset_hash_next(h)){
+        for (oset_hash_index_t *h = oset_hash_first(rx->rx_window); h; h = oset_hash_next(h)){
 		  uint16_t k_sn = *(uint16_t *)oset_hash_this_key(h);
           if (k_sn >= RX_MOD_NR_BASE(rx->RX_Next_Highest - rx->UM_Window_Size)) {
             rx->RX_Next_Reassembly = k_sn;
@@ -385,22 +381,31 @@ static void handle_rx_buffer_update(rlc_um_base_rx *base_rx, uint16_t sn)
       }
     }
 
-    if (rx->reassembly_timer.is_running()) {
-      if (RX_Timer_Trigger <= RX_Next_Reassembly ||
-          (not sn_in_reassembly_window(RX_Timer_Trigger) and RX_Timer_Trigger != RX_Next_Highest) ||
-          ((RX_Next_Highest == RX_Next_Reassembly + 1) && not has_missing_byte_segment(RX_Next_Reassembly))) {
+	// 若t-Reassembly正在运行:
+	// 1、如果RX_Timer_Trigger <= RX_Next_Reassembly(认为接收窗口内小于RX_Next_Reassembly的包都收到了，不需要针对这些包开启定时器)，或者;
+	// 2、RX_Timer_Trigger落在reassembly window之外并且不等于RX_Next_Highest(接收窗口下边界);
+	// 3、RX_Next_Highest = RX_Next_Reassembly + 1，且SN = RX_Next_Reassembly的SDU已收齐;
+	// 则停止并重置t-Reassembly
+    if (true == rx->reassembly_timer.running) {
+      if (rx->RX_Timer_Trigger <= rx->RX_Next_Reassembly ||
+          (!sn_in_reassembly_window(rx->RX_Timer_Trigger) && rx->RX_Timer_Trigger != rx->RX_Next_Highest) ||
+          ((rx->RX_Next_Highest == rx->RX_Next_Reassembly + 1) && !has_missing_byte_segment(rx->RX_Next_Reassembly))) {
         RlcDebug("stopping reassembly timer");
-        reassembly_timer.stop();
+        gnb_timer_stop(rx->reassembly_timer);
       }
     }
 
-    if (not reassembly_timer.is_running()) {
-      if ((RX_MOD_NR_BASE(RX_Next_Highest) > RX_MOD_NR_BASE(RX_Next_Reassembly + 1)) ||
-          ((RX_MOD_NR_BASE(RX_Next_Highest) == RX_MOD_NR_BASE(RX_Next_Reassembly + 1)) &&
-           has_missing_byte_segment(RX_Next_Reassembly))) {
+	// 若t-Reassembly没有运行(包括因为前面步骤导致的停止运行)，且
+	// RX_Next_Highest > RX_Next_Reassembly+1（即至少还有一个 SN < RX_Next_Highest没收到，应启动定时器等待未接收的PDU）
+	// RX_Next_Highest = RX_Next_Reassembly + 1，且SN = RX_Next_Reassembly的SDU没收齐;
+	// 则启动t-Reassembly，并将RX_Timer_Trigger设置为RX_Next_Highest。
+    if (false == rx->reassembly_timer.running) {
+      if ((RX_MOD_NR_BASE(rx->RX_Next_Highest) > RX_MOD_NR_BASE(rx->RX_Next_Reassembly + 1)) ||
+          ((RX_MOD_NR_BASE(rx->RX_Next_Highest) == RX_MOD_NR_BASE(rx->RX_Next_Reassembly + 1)) &&
+           has_missing_byte_segment(rx->RX_Next_Reassembly))) {
         RlcDebug("Starting reassembly timer for SN=%d", sn);
-        reassembly_timer.run();
-        RX_Timer_Trigger = RX_Next_Highest;
+        gnb_timer_start(rx->reassembly_timer, base_rx->cfg.um_nr.t_reassembly_ms);
+        rx->RX_Timer_Trigger = rx->RX_Next_Highest;
       }
     }
   } else {
@@ -695,6 +700,11 @@ static void rlc_um_base_tx_init(rlc_um_base_tx *base_tx)
 }
 
 //////////////////////////////////////////////////////////////////////////////////
+// 当t-Reassembly超时，则：
+// 将RX_Next_Reassembly更新为不小于RX_Timer_Trigger，且未重组的第一个SN值。
+// 丢弃所有SN < 新RX_Next_Reassembly的PDU。
+// 若此时RX_Next_Highest >= RX_Next_Reassembly+1，且SN = RX_Next_Reassembly的SDU没收齐;
+// 则启动t-Reassembly，并将RX_Timer_Trigger设置为 RX_Next_Highest
 static void rlc_um_base_rx_timer_expired(void *data)
 {
 	rlc_um_base_rx *base_rx = (rlc_um_base_rx *)data;
@@ -710,25 +720,32 @@ static void rlc_um_base_rx_timer_expired(void *data)
 	oset_thread_mutex_unlock(&base->metrics_mutex);
 
     // update RX_Next_Reassembly to the next SN that has not been reassembled yet
+    // 将RX_Next_Reassembly更新为不小于RX_Timer_Trigger，且未重组的第一个SN值。
     rx->RX_Next_Reassembly = rx->RX_Timer_Trigger;
     while (RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly) < RX_MOD_NR_BASE(rx, rx->RX_Next_Highest)) {
       rx->RX_Next_Reassembly = (rx->RX_Next_Reassembly + 1) % rx->mod;
-      debug_state();
+	  RlcDebug("RX_Next_Reassembly=%d, RX_Timer_Trigger=%d, RX_Next_Highest=%d, t_Reassembly=%s",
+			 rx->RX_Next_Reassembly,
+			 rx->RX_Timer_Trigger,
+			 rx->RX_Next_Highest,
+			 rx->reassembly_timer.running ? "running" : "stopped");
     }
 
     // discard all segments with SN < updated RX_Next_Reassembly
-    for (auto it = rx->rx_window.begin(); it != rx->rx_window.end();) {
-      if (RX_MOD_NR_BASE(rx, it->first) < RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly)) {
-        it = rx_window.erase(it);
+	// 丢弃所有SN < 新RX_Next_Reassembly的PDU
+    for (oset_hash_index_t *hi = oset_hash_first(rx->rx_window); hi;){
+	  uint16_t k_sn = *(uint16_t *)oset_hash_this_key(hi);
+	  rlc_umd_pdu_segments_nr_t  *it = oset_hash_this_val(hi);
+      if (RX_MOD_NR_BASE(rx, it) < RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly)) {
+		rlc_umd_pdu_segments_free(rx->rx_window, &k_sn, sizeof(k_sn), it);
       } else {
-        ++it;
+		hi = oset_hash_next(hi);
       }
     }
 
-    // check start of t_reassembly
 	// RX_Next_Highest > RX_Next_Reassembly + 1;(这个条件说明还有包没有重组递交上层)
-	// RX_Next_Highest = RX_Next_Reassembly + 1 and there is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of all received segments of this RLC SDU；
-	// 设置RX_Next_Trigger=RX_Next_Highest;
+	// RX_Next_Highest = RX_Next_Reassembly + 1 且SN = RX_Next_Reassembly的SDU没收齐;
+	// 则启动t-Reassembly，并将RX_Timer_Trigger设置为 RX_Next_Highest
     if (RX_MOD_NR_BASE(rx, rx->RX_Next_Highest) > RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly + 1) ||
         ((RX_MOD_NR_BASE(rx, rx->RX_Next_Highest) == RX_MOD_NR_BASE(rx, rx->RX_Next_Reassembly + 1) &&
           has_missing_byte_segment(rx, rx->RX_Next_Reassembly)))) {
@@ -828,7 +845,7 @@ static void rlc_um_base_rx_handle_data_pdu(rlc_um_base_rx *base_rx, uint8_t* pay
     }
 
     // handle received segments
-    handle_rx_buffer_update(base_rx, header.sn);
+    handle_rx_buffer_update(base_rx, header.sn, um_pdu_segments);
   }
 
   RlcDebug("RX_Next_Reassembly=%d, RX_Timer_Trigger=%d, RX_Next_Highest=%d, t_Reassembly=%s",
