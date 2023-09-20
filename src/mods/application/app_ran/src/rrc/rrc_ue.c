@@ -126,6 +126,12 @@ static bool init_pucch(void)
 	return true;
 }
 
+static const char* dl_ccch_msg_type_c_to_string(ASN_RRC_DL_CCCH_MessageType__c1_PR value)
+{
+  static const char* options[] = {"nothing", "rrcReject", "rrcSetup", "spare2", "spare1"};
+  return enum_to_text(options, 5, (uint32_t)value);
+}
+
 static int send_dl_ccch(rrc_nr_ue *ue, ASN_RRC_DL_CCCH_Message_t *dl_ccch_msg)
 {
 	// Allocate a new PDU buffer, pack the message and send to PDCP
@@ -135,12 +141,53 @@ static int send_dl_ccch(rrc_nr_ue *ue, ASN_RRC_DL_CCCH_Message_t *dl_ccch_msg)
 		return OSET_ERROR;
 	}
 	char fmtbuf[64] = {0};
-	sprintf(fmtbuf, "DL-CCCH.%s", #ASN_RRC_DL_CCCH_MessageType__c1_PR_rrcReject);
+	sprintf(fmtbuf, "DL-CCCH.%s", dl_ccch_msg_type_c_to_string(dl_ccch_msg->message.choice.c1->present));
 	log_rrc_ue_message(ue->rnti, srb0, Tx, pdu, fmtbuf);
 	API_rlc_rrc_write_dl_sdu(ue->rnti, srb_to_lcid(srb0), pdu);
 	oset_free(pdu);
 	return OSET_OK;
 }
+
+static const char* dl_dcch_msg_type_c_to_string(ASN_RRC_DL_DCCH_MessageType__c1_PR value)
+{
+  static const char* options[] = {"nothing",
+  								  "rrcReconfiguration",
+                                  "rrcResume",
+                                  "rrcRelease",
+                                  "rrcReestablishment",
+                                  "securityModeCommand",
+                                  "dlInformationTransfer",
+                                  "ueCapabilityEnquiry",
+                                  "counterCheck",
+                                  "mobilityFromNRCommand",
+                                  "spare7",
+                                  "spare6",
+                                  "spare5",
+                                  "spare4",
+                                  "spare3",
+                                  "spare2",
+                                  "spare1"};
+  return enum_to_text(options, 17, (uint32_t)value);
+}
+
+int send_dl_dcch(rrc_nr_ue *ue, nr_srb srb, ASN_RRC_DL_DCCH_Message_t *dl_dcch_msg)
+{
+  // Allocate a new PDU buffer, pack the message and send to PDCP
+  byte_buffer_t *pdu = oset_rrc_encode2(&asn_DEF_ASN_RRC_DL_DCCH_Message, dl_dcch_msg, asn_struct_free_context);
+  if (pdu == NULL) {
+	  oset_error("Failed to send DL-DCCH");
+	  return OSET_ERROR;
+  }
+
+  char fmtbuf[64] = {0};
+  sprintf(fmtbuf, "DL-DCCH.%s", dl_dcch_msg_type_c_to_string(dl_dcch_msg->message.choice.c1->present));
+  log_rrc_ue_message(ue->rnti, srb, Tx, pdu, fmtbuf);
+  API_pdcp_rrc_write_dl_sdu(ue->rnti, srb_to_lcid(srb), pdu, -1);
+  oset_free(pdu);
+
+  return OSET_OK;
+}
+
 
 static int update_as_security(rrc_nr_ue *ue, uint32_t lcid, bool enable_integrity, bool enable_ciphering)
 {
