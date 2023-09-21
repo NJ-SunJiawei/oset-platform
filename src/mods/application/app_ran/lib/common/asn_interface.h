@@ -1408,11 +1408,10 @@ struct intra_freq_cell_resel_info_s_ {
 
 // SystemInformationBlockType3
 struct sib_type3_lte_s {
-  struct cell_resel_info_common_lte_s_       cell_resel_info_common;
+  struct cell_resel_info_common_lte_s_   cell_resel_info_common;
   struct cell_resel_serving_freq_info_s_ cell_resel_serving_freq_info;
   struct intra_freq_cell_resel_info_s_   intra_freq_cell_resel_info;
 };
-
 
 enum  codebook_subset_restrict_opts {
   n2_tx_ant_tm3,

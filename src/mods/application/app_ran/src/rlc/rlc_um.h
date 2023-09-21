@@ -52,10 +52,8 @@ typedef struct {
 	rlc_um_base           *base;
 
 	//uint32_t              lcid;
-	//rlc_bearer_metrics_t  *metrics;
 	oset_thread_mutex_t   mutex;
 }rlc_um_base_rx;
-
 
 typedef struct rlc_um_base_s{
 	rlc_common            common;

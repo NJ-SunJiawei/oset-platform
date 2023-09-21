@@ -47,6 +47,16 @@ static void rlc_lib_write_ul_pdu_suspended(rlc_common *rlc_entity, uint8_t* payl
   }
 }
 
+static void rlc_lib_write_dl_sdu_suspended(rlc_common *rlc_entity, byte_buffer_t *sdu)
+{
+  if (rlc_entity->suspended) {//suspended
+	rlc_common_queue_tx_sdu(rlc_entity, sdu);
+  } else {
+	rlc_entity->func._write_dl_sdu(rlc_entity, sdu);
+  }
+}
+
+
 rlc_common *rlc_array_find_by_lcid(rlc_lib_t *rlc, uint32_t lcid)
 {
     return (rlc_common *)oset_hash_get(rlc->rlc_array, &lcid, sizeof(lcid));
@@ -154,7 +164,7 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
       switch (cnfg->rat) {
         case (srsran_rat_t)nr:
           // AM收发端各有一个实体，成对出现，但是一个实体有两个交互通道，类似于我们通信中常说的全双工，能够同时完成收发操作
-          rlc_entity = (rlc_common *)(new rlc_am(cnfg->rat, logger, lcid, pdcp, rrc, timers));
+          rlc_entity = (rlc_common *)(rlc_am_nr_init(lcid, rlc->rnti));
           break;
         default:
           oset_error("AM not supported for this RAT");
@@ -165,7 +175,7 @@ int rlc_lib_add_bearer(rlc_lib_t *rlc, uint32_t lcid, rlc_config_t *cnfg)
       switch (cnfg->rat) {
         case (srsran_rat_t)nr:
 		  // 一个 UM 实体只能接收或发送数据，而不能同时收发数据。UM 实体只提供单向的数据传输服务
-          rlc_entity = (rlc_common *)(new rlc_um_nr_init(lcid, rlc->rnti));
+          rlc_entity = (rlc_common *)(rlc_um_nr_init(lcid, rlc->rnti));
           break;
         default:
           oset_error("UM not supported for this RAT");
@@ -315,7 +325,7 @@ void rlc_lib_write_dl_sdu(rlc_lib_t *rlc, uint32_t lcid, byte_buffer_t *sdu)
   rlc_common  *rlc_entity = rlc_array_valid_lcid(rlc, lcid);
   
   if (NULL != rlc_entity) {
-  	rlc_entity->func._write_dl_sdu(rlc_entity, sdu);
+  	rlc_lib_write_dl_sdu_suspended(rlc_entity, sdu);
     rlc_lib_update_bsr(rlc, lcid);
   } else {
     oset_warn("RLC LCID %d doesn't exist. Deallocating SDU", lcid);

@@ -21,18 +21,11 @@ void rlc_common_init(rlc_common *common, char *rb_name, uint16_t rnti, uint32_t 
 	common->mode = mode;
 	common->rx_pdu_resume_queue = oset_queue_create(static_blocking_queue_size);
 	common->tx_sdu_resume_queue = oset_queue_create(static_blocking_queue_size);
-	//common->func = oset_core_alloc(usepool, sizeof(rlc_func_entity));
-	oset_pool_init(&common->resume_pool, static_blocking_queue_size);
-	for(int i = 0; i < static_blocking_queue_size; ++i){
-		byte_buffer_clear(&common->resume_pool.array[i]);
-	}
-
 }
 
 void rlc_common_destory(rlc_common *common)
 {
 	oset_free(common->rb_name);
-	oset_pool_final(&common->resume_pool);
 	oset_queue_term(common->rx_pdu_resume_queue);
 	oset_queue_destroy(common->rx_pdu_resume_queue);
 	oset_queue_term(common->tx_sdu_resume_queue);
@@ -42,23 +35,12 @@ void rlc_common_destory(rlc_common *common)
 // Enqueues the Rx PDU in the resume queue
 void rlc_common_queue_rx_pdu(rlc_common *common, uint8_t* payload, uint32_t nof_bytes)
 {
-	//byte_buffer_t *rx_pdu = byte_buffer_init();
-
-	byte_buffer_t *rx_pdu = NULL;
-	RLC_BUFF_ALLOC(&common->resume_pool, rx_pdu);
+	byte_buffer_t *rx_pdu = byte_buffer_dup_data(payload, nof_bytes);
 
 	if (rx_pdu == NULL) {
 		RlcWarning("Couldn't allocate PDU");
 		return;
 	}
-
-	if (byte_buffer_get_headroom(rx_pdu) < nof_bytes) {
-		RlcWarning("Not enough space to store PDU.");
-		return;
-	}
-
-	memcpy(rx_pdu->msg, payload, nof_bytes);
-	rx_pdu->N_bytes = nof_bytes;
 
 	// Do not block ever
 	if (OSET_OK != oset_queue_trypush(common->rx_pdu_resume_queue, rx_pdu)) {
@@ -66,6 +48,24 @@ void rlc_common_queue_rx_pdu(rlc_common *common, uint8_t* payload, uint32_t nof_
 		return;
 	}
 }
+
+// Enqueues the Tx SDU in the resume queue
+void rlc_common_queue_tx_sdu(rlc_common *common, byte_buffer_t *sdu)
+{
+	byte_buffer_t *tx_sdu = byte_buffer_dup(sdu);
+
+	if (tx_sdu == NULL) {
+		RlcWarning("Couldn't allocate SDU");
+		return;
+	}
+
+	// Do not block ever
+	if (OSET_OK != oset_queue_trypush(common->tx_sdu_resume_queue, tx_sdu))) {
+	RlcWarning("Dropping SDUs while bearer suspended.");
+	return;
+	}
+}
+
 
 bool is_suspended(rlc_common *common)
 {

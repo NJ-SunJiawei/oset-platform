@@ -7,7 +7,7 @@
  *Date: 2023.08
 ************************************************************************/
 #include "rlc/rlc_um.h"
-#include "rrc/rrc.h"
+#include "pdcp/pdcp.h"
 	
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rlcUM"
