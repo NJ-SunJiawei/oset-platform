@@ -12,6 +12,8 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rlcUM"
 
+#define UM_RXTX
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //  UDM PDU
 // complete RLC PDU (head_len_full = 1)
@@ -557,7 +559,8 @@ static uint32_t build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_t *payload, uin
   return ret;
 }
 
-#if 1
+
+#if UM_RXTX
 static void empty_queue(rlc_um_base_tx *base_tx)
 {
 	oset_thread_mutex_lock(&base_tx->mutex);
@@ -872,7 +875,7 @@ static void rlc_um_base_rx_init(rlc_um_base_rx *base_rx)
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
-void rlc_um_base_init(rlc_um_base *base, uint32_t lcid_, uint16_t rnti_)
+static void rlc_um_base_init(rlc_um_base *base, uint32_t lcid_, uint16_t rnti_)
 {
 	rlc_common_init(&base->common, NULL, rnti_, lcid_, (rlc_mode_t)um, NULL);
 	base->rx_enabled = false;
@@ -881,7 +884,7 @@ void rlc_um_base_init(rlc_um_base *base, uint32_t lcid_, uint16_t rnti_)
 	oset_thread_mutex_init(&base->metrics_mutex);
 }
 
-void rlc_um_base_stop(rlc_um_base *base)
+static void rlc_um_base_stop(rlc_um_base *base)
 {
 	rlc_common_destory(&base->common);
 	base->rx_enabled = false;
@@ -922,7 +925,7 @@ void rlc_um_base_stop(rlc_um_base *base)
 	3、若此时RX_Next_Highest >= RX_Next_Reassembly+1，且SN = RX_Next_Reassembly的SDU没收齐;
 	   则启动t-Reassembly，并将RX_Timer_Trigger设置为 RX_Next_Highest
 */
-void rlc_um_base_write_ul_pdu(rlc_um_base *base, rlc_um_base_rx *base_rx, uint8_t *payload, uint32_t nof_bytes)
+static void rlc_um_base_write_ul_pdu(rlc_um_base *base, rlc_um_base_rx *base_rx, uint8_t *payload, uint32_t nof_bytes)
 {
 	if (base_rx->rx && base->rx_enabled) {
 		{
@@ -935,7 +938,7 @@ void rlc_um_base_write_ul_pdu(rlc_um_base *base, rlc_um_base_rx *base_rx, uint8_
 	}
 }
 
-uint32_t rlc_um_base_read_dl_pdu(rlc_um_base *base, rlc_um_base_tx *base_tx, uint8_t *payload, uint32_t nof_bytes)
+static uint32_t rlc_um_base_read_dl_pdu(rlc_um_base *base, rlc_um_base_tx *base_tx, uint8_t *payload, uint32_t nof_bytes)
 {
 	if (base_tx->tx && base->tx_enabled) {
 	  uint32_t len = rlc_um_base_tx_build_dl_data_pdu(base_tx, payload, nof_bytes);
@@ -950,7 +953,7 @@ uint32_t rlc_um_base_read_dl_pdu(rlc_um_base *base, rlc_um_base_tx *base_tx, uin
 	return 0;
 }
 
-void rlc_um_base_write_dl_sdu(rlc_um_base *base, rlc_um_base_tx *base_tx, byte_buffer_t *sdu)
+static void rlc_um_base_write_dl_sdu(rlc_um_base *base, rlc_um_base_tx *base_tx, byte_buffer_t *sdu)
 {
   if (! base->tx_enabled || ! base_tx) {
     RlcDebug("RB is currently deactivated. Dropping SDU (%d B)", sdu->N_bytes);
@@ -976,9 +979,9 @@ void rlc_um_base_write_dl_sdu(rlc_um_base *base, rlc_um_base_tx *base_tx, byte_b
 #endif
 //////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if UM_RXTX
 /////////////////////////////////rlc_um_nr_rx/////////////////////////////////
-void rlc_um_nr_rx_reset(rlc_um_nr_rx *rx)
+static void rlc_um_nr_rx_reset(rlc_um_nr_rx *rx)
 {
 	rx->RX_Next_Reassembly = 0;
 	rx->RX_Timer_Trigger   = 0;
@@ -1036,16 +1039,16 @@ static bool rlc_um_nr_rx_configure(rlc_um_nr_rx *rx, rlc_config_t *cnfg_, char *
 }
 
 /////////////////////////////////rlc_um_nr_tx/////////////////////////////////
+static void rlc_um_nr_tx_reset(rlc_um_nr_tx *tx)
+{
+	tx->TX_Next = 0;
+	tx->next_so = 0;
+}
+
 static void suspend(rlc_um_nr_tx *tx)
 {
 	empty_queue(&tx->base_tx);
 	rlc_um_nr_tx_reset(tx);
-}
-
-void rlc_um_nr_tx_reset(rlc_um_nr_tx *tx)
-{
-	tx->TX_Next = 0;
-	tx->next_so = 0;
 }
 
 static void rlc_um_nr_tx_init(rlc_um_nr_tx *tx, rlc_um_base *base)
@@ -1085,6 +1088,7 @@ static bool rlc_um_nr_tx_configure(rlc_um_nr_tx *tx, rlc_config_t *cnfg_, char *
 	header.so        = 1;//有偏移
 	tx->head_len_segment = rlc_um_nr_packed_length(&header);
 
+	oset_list_init(&tx->base_tx.tx_sdu_queue);
 	//oset_assert(oset_list_count(tx->base_tx.tx_sdu_queue) <= cnfg_->tx_queue_length);
 
 	return true;

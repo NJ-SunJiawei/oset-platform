@@ -17,8 +17,10 @@ extern "C" {
 #endif
 #define  INVALID_RLC_SN           0xFFFFFFFF
 #define  RETX_COUNT_NOT_STARTED   0xFFFFFFFF
+
 #define  poll_periodicity         8 // After how many data PDUs a status PDU shall be requested
 #define  invalid_rlc_sn           0xFFFFFFFF
+#define  max_tx_queue_size        256
 
 #define  rlc_am_nr_status_pdu_sizeof_header_ack_sn         3 ///< header fixed part and ACK SN
 #define  rlc_am_nr_status_pdu_sizeof_nack_sn_ext_12bit_sn  2 ///< NACK SN and extension fields (12 bit SN)
@@ -98,7 +100,8 @@ typedef struct {
 	***************************************************************************/
 	rlc_am_nr_config_t  cfg;
 	rlc_am_base         *base;
-	rlc_am_nr_tx        *tx
+	rlc_am_nr_tx        *tx;
+	rlc_am_nr_rx        *rx;
 
 	bool                do_status; // light-weight access from Tx entity
 	oset_thread_mutex_t mutex;
@@ -112,11 +115,12 @@ typedef struct {
 	***************************************************************************/
 	rlc_am_nr_config_t cfg;
 	rlc_am_base        *base;
+	rlc_am_nr_tx       *tx;
 	rlc_am_nr_rx       *rx;
 	bsr_callback_t      bsr_callback;
 
 	// Tx SDU buffers
-	byte_buffer_queue   tx_sdu_queue;
+	oset_list_t         tx_sdu_queue;
 	// Mutexes
 	oset_thread_mutex_t mutex;
 }rlc_am_base_tx;
@@ -195,13 +199,14 @@ typedef struct rlc_am_nr_tx_s{
    ***************************************************************************/
   rlc_am_nr_tx_state_t   st;
 
-  std::unique_ptr<rlc_ringbuffer_base<rlc_amd_tx_pdu_nr> > tx_window;
-
+  oset_hash_t      *tx_window;//rlc_amd_tx_pdu_nr
   // Queues, buffers and container
   oset_list_t      retx_queue;//rlc_amd_retx_nr_t
   uint32_t         sdu_under_segmentation_sn; //= INVALID_RLC_SN // SN of the SDU currently being segmented.
   pdcp_sn_vector_t notify_info_vec;
 
+  uint32_t		  mod_nr;
+  uint32_t		  AM_Window_Size;
   // Helper constants
   uint32_t        min_hdr_size;  //= 2 // Pre-initialized for 12 bit SN, updated by configure()
   uint32_t        so_size;       //= 2
@@ -246,11 +251,13 @@ typedef struct rlc_am_nr_rx_s{
 	rlc_am_base_rx    base_rx;
 
 	// RX Window
-	std::unique_ptr<rlc_ringbuffer_base<rlc_amd_rx_sdu_nr_t> > rx_window;//???
+	oset_hash_t      *rx_window;//rlc_amd_rx_sdu_nr_t
 
 	// Mutexes
 	//oset_thread_mutex_t mutex;
 
+	uint32_t		mod_nr;
+	uint32_t		AM_Window_Size;
 	/****************************************************************************
 	* Rx timers
 	* Ref: 3GPP TS 38.322 version 16.2.0 Section 7.3
@@ -265,12 +272,14 @@ typedef struct rlc_am_nr_rx_s{
 	rlc_am_nr_rx_state_t st;
 }rlc_am_nr_rx;
 
-
 typedef struct {
 	rlc_am_base  base;
 	rlc_am_nr_tx tx;
 	rlc_am_nr_rx rx;
 }rlc_am_nr;
+
+bool rlc_am_nr_configure(rlc_common *am_common, rlc_config_t *cfg_);
+
 
 #ifdef __cplusplus
 }
