@@ -16,10 +16,47 @@
 #define AM_RXTX
 /////////////////////////////////////////////////////////////////////////////
 #if AM_RXTX
+static void empty_queue_no_lock(rlc_am_base_tx *base_tx)
+{
+	// Drop all messages in TX queue
+	rlc_um_base_tx_sdu_t *next_node, *node = NULL;
+	oset_list_for_each_safe(&base_tx->tx_sdu_queue, next_node, node){
+			byte_buffer_t *sdu = node->buffer;
+			oset_list_remove(&base_tx->tx_sdu_queue, node);
+			oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
+			base_tx->unread_bytes -= sdu->N_bytes;
+			oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
+			oset_free(sdu)
+	}
+
+	oset_assert(0 == base_tx->unread_bytes);
+	oset_assert(0 == oset_list_count(base_tx->tx_sdu_queue));
+}
+
+void empty_queue(rlc_am_base_tx *base_tx)
+{
+	oset_thread_mutex_lock(&base_tx->mutex);
+	empty_queue_no_lock(base_tx);
+	oset_thread_mutex_unlock(&base_tx->mutex);
+}
+
+static void rlc_am_base_tx_stop(rlc_am_base_tx *base_tx)
+{
+	oset_thread_mutex_destroy(&base_tx->unread_bytes_mutex);
+	oset_thread_mutex_destroy(&base_tx->mutex);
+}
 
 static void rlc_am_base_tx_init(rlc_am_base_tx *base_tx)
 {
 	oset_thread_mutex_init(&base_tx->mutex);
+	oset_thread_mutex_init(&base_tx->unread_bytes_mutex);
+}
+
+static void rlc_am_base_rx_stop(rlc_am_base_rx *base_rx)
+{
+	//todo
+	base_rx->do_status = false;
+	oset_thread_mutex_destroy(&base_rx->mutex);
 }
 
 static void rlc_am_base_rx_init(rlc_um_base_rx *base_rx)
@@ -35,10 +72,51 @@ static void rlc_am_base_init(rlc_am_base *base, uint32_t lcid_, uint16_t rnti_)
 	base->metrics = {0};
 	oset_thread_mutex_init(&base->metrics_mutex);
 }
+
+static void rlc_am_base_stop(rlc_am_base *base)
+{
+	rlc_common_destory(&base->common);
+	base->rx_enabled = false;
+	base->tx_enabled = false;
+	oset_thread_mutex_destroy(&base->metrics_mutex);
+	base->metrics = {0};
+}
+
 #endif
 /////////////////////////////////////////////////////////////////////////////
-
 #if AM_RXTX
+static void suspend_tx(rlc_am_nr_tx *tx)
+{
+	oset_thread_mutex_lock(&tx->base_tx.mutex);
+	empty_queue_no_lock(&tx->base_tx);
+
+	if(tx->poll_retransmit_timer) gnb_timer_delete(tx->poll_retransmit_timer);
+
+	tx->st = {0};
+	tx->sdu_under_segmentation_sn = INVALID_RLC_SN;
+
+	// Drop all messages in TX window
+	tx->tx_window->clear();
+	oset_hash_destroy(tx->tx_window);
+
+	// Drop all messages in RETX queue
+	tx->retx_queue.clear();
+
+	tx->base_tx.base.tx_enabled = false;
+	oset_thread_mutex_unlock(&tx->base_tx.mutex);
+}
+
+static void rlc_am_nr_tx_stop(rlc_am_nr_tx *tx)
+{
+	suspend_tx(tx);
+	rlc_am_base_tx_stop(&tx->base_tx);
+}
+
+static void rlc_am_nr_tx_reestablish(rlc_am_nr_tx *tx)
+{
+	suspend_tx(tx);
+}
+
 static bool rlc_am_nr_tx_configure(rlc_am_nr_tx *tx, rlc_config_t *cfg_, char *rb_name_)
 {
 	tx->base_tx.rb_name = rb_name_;
@@ -67,13 +145,13 @@ static bool rlc_am_nr_tx_configure(rlc_am_nr_tx *tx, rlc_config_t *cfg_, char *r
 	}
 	
 	tx->max_hdr_size = tx->min_hdr_size + tx->so_size;
-	
+
 	// make sure Tx queue is empty before attempting to resize
 	oset_list_init(&tx->base_tx.tx_sdu_queue);//cfg_->tx_queue_length
 	
 	// Configure t_poll_retransmission timer
 	if (tx->base_tx.cfg.t_poll_retx > 0) {
-	  tx->poll_retransmit_timer = gnb_timer_add(gnb_manager_self()->app_timer, rlc_um_base_rx_timer_expired, &tx->base_tx);
+	  tx->poll_retransmit_timer = gnb_timer_add(gnb_manager_self()->app_timer, rlc_am_base_tx_timer_expired, &tx->base_tx);
 	}
 	
 	tx->base_tx.base.tx_enabled = true;
@@ -95,8 +173,57 @@ static void rlc_am_nr_tx_init(rlc_am_nr_tx *tx, rlc_am_nr_rx *rx, rlc_um_base *b
 	tx->mod_nr       = 0;
 
 	tx->tx_window = oset_hash_make();
+	oset_list_init(&tx->tx_window);
 
 	rlc_am_base_tx_init(&tx->base_tx);
+}
+
+static void suspend_rx(rlc_am_nr_rx *rx)
+{
+	oset_thread_mutex_lock(&rx->base_rx.mutex);
+	if(rx->status_prohibit_timer) gnb_timer_delete(rx->status_prohibit_timer);
+	if(rx->reassembly_timer) gnb_timer_delete(rx->reassembly_timer);
+
+	rx->st = {0};
+	// Drop all messages in RX window
+	oset_hash_destroy(rx->rx_window);
+	oset_thread_mutex_unlock(&rx->base_rx.mutex);
+}
+
+static void rlc_am_nr_rx_reestablish(rlc_am_nr_rx *rx)
+{
+	suspend_rx(rx);
+}
+
+static void rlc_am_nr_rx_stop(rlc_am_nr_rx *rx)
+{
+	suspend_rx(rx);
+	rlc_am_base_rx_stop(&rx->base_rx);
+}
+
+static bool rlc_am_nr_rx_configure(rlc_am_nr_rx *rx, rlc_config_t *cfg_, char *rb_name_)
+{
+	rx->base_rx.rb_name = rb_name_;
+	rx->base_rx.cfg = cfg_->am_nr;
+
+	// configure timer
+	if (rx->base_rx.cfg.t_status_prohibit > 0) {
+		rx->status_prohibit_timer = gnb_timer_add(gnb_manager_self()->app_timer, rlc_am_base_rx_timer_expired, &rx->base_rx);
+	}
+
+	// Configure t_reassembly timer
+	if (rx->base_rx.cfg.t_reassembly > 0) {
+		rx->reassembly_timer = gnb_timer_add(gnb_manager_self()->app_timer, rlc_am_base_rx_timer_expired, &rx->base_rx);
+	}
+
+	rx->mod_nr = cardinality(rx->base_rx.cfg.rx_sn_field_length);
+	rx->AM_Window_Size = am_window_size(rx->base_rx.cfg.rx_sn_field_length);
+
+	rx->base_rx.base.rx_enabled = true;
+
+	RlcDebug("RLC AM NR configured rx entity.");
+
+	return true;
 }
 
 static void rlc_am_nr_rx_init(rlc_am_nr_rx *rx, rlc_am_nr_tx *tx, rlc_um_base *base)
@@ -112,6 +239,16 @@ static void rlc_am_nr_rx_init(rlc_am_nr_rx *rx, rlc_am_nr_tx *tx, rlc_um_base *b
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
+void rlc_am_nr_stop(rlc_common *am_common)
+{
+	rlc_am_nr *am = (rlc_um_nr *)am_common;
+
+	rlc_am_nr_rx_stop(&am->rx);
+	rlc_am_nr_tx_stop(&am->tx);
+	rlc_am_base_stop(&am->base);
+}
+
+
 bool rlc_am_nr_configure(rlc_common *am_common, rlc_config_t *cfg_)
 {
 	rlc_am_nr *am = (rlc_am_nr *)am_common;
@@ -122,12 +259,12 @@ bool rlc_am_nr_configure(rlc_common *am_common, rlc_config_t *cfg_)
 	// determine bearer name and configure Rx/Tx objects
 	am->base.common.rb_name = oset_strdup(get_rb_name(am->base.common.lcid));
 
-	if (! rlc_am_nr_tx_configure(&am->tx, &am->base.cfg, am->base.common.rb_name)) {
+	if (! rlc_am_nr_rx_configure(&am->rx, &am->base.cfg, am->base.common.rb_name)) {
 		RlcError("Error configuring bearer (RX)");
 		return false;
 	}
 
-	if (! tx_base->configure(cfg)) {
+	if (! rlc_am_nr_tx_configure(&am->tx, &am->base.cfg, am->base.common.rb_name)) {
 		RlcError("Error configuring bearer (TX)");
 		return false;
 	}
@@ -146,6 +283,16 @@ bool rlc_am_nr_configure(rlc_common *am_common, rlc_config_t *cfg_)
 	        am->base.cfg.tx_queue_length);
 
   return true;
+}
+
+void rlc_am_nr_reestablish(rlc_common *am_common)
+{
+	rlc_am_nr *am = (rlc_am_nr *)am_common;
+
+	RlcDebug("Reestablished bearer");
+	rlc_am_nr_tx_reestablish(&am->tx); // calls stop and enables tx again
+	rlc_am_nr_rx_reestablish(&am->rx); // calls only stop
+	am->base.tx_enabled = true;
 }
 
 rlc_am_nr *rlc_am_nr_init(uint32_t lcid_,	uint16_t rnti_)

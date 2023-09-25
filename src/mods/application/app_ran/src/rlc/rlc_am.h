@@ -120,7 +120,9 @@ typedef struct {
 	bsr_callback_t      bsr_callback;
 
 	// Tx SDU buffers
-	oset_list_t         tx_sdu_queue;
+	oset_thread_mutex_t  unread_bytes_mutex;
+	uint32_t             unread_bytes;
+	oset_list_t          tx_sdu_queue;
 	// Mutexes
 	oset_thread_mutex_t mutex;
 }rlc_am_base_tx;

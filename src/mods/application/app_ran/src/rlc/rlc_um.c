@@ -1000,16 +1000,19 @@ static void rlc_um_nr_rx_reset(rlc_um_nr_rx *rx)
 static void rlc_um_nr_rx_init(rlc_um_nr_rx *rx, rlc_um_base *base)
 {
 	rx->base_rx.base = base;
+	rx->base_rx.rx	= rx;
 	rx->rx_window = oset_hash_make();
 	rlc_um_base_rx_init(&rx->base_rx, base)
 }
 
 static void rlc_um_nr_rx_stop(rlc_um_nr_rx *rx)
 {
-	oset_hash_do(rlc_umd_pdu_segments_free, rx->rx_window, rx->rx_window);
+	oset_thread_mutex_lock(&rx->base_rx.mutex);
+	rlc_um_nr_rx_reset(rx);
 	oset_hash_destroy(rx->rx_window);
 
 	if(rx->reassembly_timer) gnb_timer_delete(rx->reassembly_timer);
+	oset_thread_mutex_unlock(&rx->base_rx.mutex);
 	rlc_um_base_rx_stop(&rx->base_rx);
 }
 
@@ -1023,7 +1026,6 @@ static bool rlc_um_nr_rx_configure(rlc_um_nr_rx *rx, rlc_config_t *cnfg_, char *
 {
 	rx->base_rx.rb_name = rb_name_;
 	rx->base_rx.cfg = *cnfg_;
-	rx->base_rx.rx	= rx;
 
 	//2^{[sn-FieldLength]}//模
 	rx->mod  = (cnfg_->um_nr.sn_field_length == (rlc_um_nr_sn_size_t)size6bits) ? 64 : 4096;
@@ -1054,6 +1056,7 @@ static void suspend(rlc_um_nr_tx *tx)
 static void rlc_um_nr_tx_init(rlc_um_nr_tx *tx, rlc_um_base *base)
 {
 	tx->base_tx.base = base;
+	tx->base_tx.tx  = tx;
 	rlc_um_base_tx_init(&tx->base_tx);
 }
 
@@ -1072,7 +1075,6 @@ static bool rlc_um_nr_tx_configure(rlc_um_nr_tx *tx, rlc_config_t *cnfg_, char *
 {
 	tx->base_tx.rb_name = rb_name_;
 	tx->base_tx.cfg = *cnfg_;
-	tx->base_tx.tx  = tx;
 
 	tx->mod            = (cnfg_->um_nr.sn_field_length == (rlc_um_nr_sn_size_t)size6bits) ? 64 : 4096;
 	tx->UM_Window_Size = (cnfg_->um_nr.sn_field_length == (rlc_um_nr_sn_size_t)size6bits) ? 32 : 2048;
@@ -1102,9 +1104,9 @@ void rlc_um_nr_stop(rlc_common *um_common)
 {
 	rlc_um_nr *um = (rlc_um_nr *)um_common;
 
-	rlc_um_base_stop(&um->base);
 	rlc_um_nr_rx_stop(&um->rx);
 	rlc_um_nr_tx_stop(&um->tx);
+	rlc_um_base_stop(&um->base);
 }
 
 void rlc_um_nr_get_buffer_state(rlc_common *um_common, uint32_t *newtx_queue, uint32_t *prio_tx_queue)
