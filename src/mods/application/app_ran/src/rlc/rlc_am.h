@@ -134,14 +134,14 @@ typedef struct  {
 	uint32_t payload_len;
 }pdu_segment;
 
-typedef struct rlc_amd_tx_pdu_nr {
+typedef struct {
 	uint32_t               rlc_sn;
 	uint32_t               pdcp_sn;
 	rlc_am_nr_pdu_header_t header;
 	byte_buffer_t          *sdu_buf;
 	uint32_t               retx_count;
 	oset_list_t            segment_list;//pdu_segment
-};
+}rlc_amd_tx_pdu_nr;
 
 /****************************************************************************
  * Tx state variables
@@ -154,13 +154,13 @@ typedef struct {
    * initially set to 0, and is updated whenever the AM RLC entity receives a positive acknowledgment for an RLC SDU
    * with SN = TX_Next_Ack.
    */
-  uint32_t tx_next_ack;
+  uint32_t tx_next_ack;//该状态变量指示的是等待ACK的first AMD PDU的SN。该变量的初始值为0；当接收到SN等于TX_Next_Ack的AMD PDU的ACK指示时更新；(传输窗口的下边界)
   /*
    * TX_Next: This state variable holds the value of the SN to be assigned for the next newly generated AMD PDU. It is
    * initially set to 0, and is updated whenever the AM RLC entity constructs an AMD PDU with SN = TX_Next and
    * contains an RLC SDU or the last segment of a RLC SDU.
    */
-  uint32_t tx_next;
+  uint32_t tx_next;//该状态变量指示的是分配给下一个新产生的包含RLC SDU segment的AMD PDU的SN
   /*
    * POLL_SN: This state variable holds the value of the highest SN of the AMD PDU among the AMD PDUs submitted to
    * lower layer when POLL_SN is set according to sub clause 5.3.3.2. It is initially set to 0.
@@ -218,7 +218,8 @@ typedef struct rlc_am_nr_tx_s{
    * TX timers
    * Ref: 3GPP TS 38.322 version 16.2.0 Section 7.3
    ***************************************************************************/
-  gnb_timer_t *poll_retransmit_timer;
+  gnb_timer_t *poll_retransmit_timer;// ARQ-轮询定时器；
+                                     // polling的目的：发送端获取接收端的RLC PDU接收状态，从而进行数据重传；
 }rlc_am_nr_tx;
 
 /****************************************************************************
@@ -264,7 +265,7 @@ typedef struct rlc_am_nr_rx_s{
 	* Rx timers
 	* Ref: 3GPP TS 38.322 version 16.2.0 Section 7.3
 	***************************************************************************/
-	gnb_timer_t *status_prohibit_timer;
+	gnb_timer_t *status_prohibit_timer;// ARQ-状态报告定时器(防止频繁上报)
 	gnb_timer_t *reassembly_timer;
 
 	/****************************************************************************
@@ -280,7 +281,17 @@ typedef struct {
 	rlc_am_nr_rx rx;
 }rlc_am_nr;
 
+rlc_am_nr *rlc_am_nr_init(uint32_t lcid_,	uint16_t rnti_);
+void rlc_am_nr_stop(rlc_common *am_common);
+void rlc_am_nr_get_buffer_state(rlc_common *am_common, uint32_t *n_bytes_newtx, uint32_t *n_bytes_prio);
 bool rlc_am_nr_configure(rlc_common *am_common, rlc_config_t *cfg_);
+void rlc_am_nr_set_bsr_callback(rlc_common *am_common, bsr_callback_t callback);
+rlc_bearer_metrics_t rlc_am_nr_get_metrics(rlc_common *am_common);
+void rlc_am_nr_reset_metrics(rlc_common *am_common);
+void rlc_am_nr_reestablish(rlc_common *am_common);
+rlc_mode_t rlc_am_nr_get_mode(void);
+bool rlc_am_nr_sdu_queue_is_full(rlc_common *am_common);
+
 
 
 #ifdef __cplusplus

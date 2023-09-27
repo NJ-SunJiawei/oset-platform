@@ -15,7 +15,7 @@
 #define UM_RXTX
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
-//  UDM PDU
+//  UMD PDU
 // complete RLC PDU (head_len_full = 1)
 // | SI |R|R|R|R|R|R|
 // |      Data      |
@@ -1159,7 +1159,9 @@ void rlc_um_nr_reset_metrics(rlc_common *um_common)
 {
 	rlc_um_nr *um = (rlc_tm *)um_common;
 
+	oset_thread_mutex_lock(&um->base.metrics_mutex);
 	um->base.metrics = {0};
+	oset_thread_mutex_unlock(&um->base.metrics_mutex);
 }
 
 void rlc_um_nr_reestablish(rlc_common *um_common)
