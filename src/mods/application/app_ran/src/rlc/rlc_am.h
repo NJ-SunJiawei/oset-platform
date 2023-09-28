@@ -83,6 +83,7 @@ typedef struct rlc_am_base_s  rlc_am_base;
 typedef struct rlc_am_nr_rx_s rlc_am_nr_rx;
 typedef struct rlc_am_nr_tx_s rlc_am_nr_tx;
 
+
 typedef struct rlc_am_base_s{
 	rlc_common            common;
 	rlc_config_t          cfg;
@@ -107,6 +108,12 @@ typedef struct {
 	oset_thread_mutex_t mutex;
 }rlc_am_base_rx;
 
+
+typedef struct rlc_am_base_tx_sdu {
+	oset_lnode_t       lnode;
+	byte_buffer_t      *buffer;
+} rlc_am_base_tx_sdu_t;
+
 typedef struct {
 	char			   *rb_name;
 	/****************************************************************************
@@ -122,7 +129,7 @@ typedef struct {
 	// Tx SDU buffers
 	oset_thread_mutex_t  unread_bytes_mutex;
 	uint32_t             unread_bytes;
-	oset_list_t          tx_sdu_queue;
+	oset_list_t          tx_sdu_queue;//rlc_am_base_tx_sdu_t
 	// Mutexes
 	oset_thread_mutex_t mutex;
 }rlc_am_base_tx;
@@ -289,8 +296,10 @@ void rlc_am_nr_set_bsr_callback(rlc_common *am_common, bsr_callback_t callback);
 rlc_bearer_metrics_t rlc_am_nr_get_metrics(rlc_common *am_common);
 void rlc_am_nr_reset_metrics(rlc_common *am_common);
 void rlc_am_nr_reestablish(rlc_common *am_common);
+void rlc_am_nr_write_dl_sdu(rlc_common *am_common, byte_buffer_t *sdu);
 rlc_mode_t rlc_am_nr_get_mode(void);
 bool rlc_am_nr_sdu_queue_is_full(rlc_common *am_common);
+void rlc_am_nr_discard_sdu(rlc_common *am_common, uint32_t discard_sn);
 
 
 

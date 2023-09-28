@@ -661,12 +661,13 @@ static uint32_t rlc_um_base_tx_build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_
 
 static int rlc_um_base_tx_write_dl_sdu(rlc_um_base_tx *base_tx, byte_buffer_t *sdu)
 {
+	oset_thread_mutex_lock(&base_tx->mutex);
 	if (sdu) {
 		uint8_t*   msg_ptr   = sdu->msg;
 		uint32_t   nof_bytes = sdu->N_bytes;
 		int count = oset_list_count(&base_tx->tx_sdu_queue);
 
-		if((uint32_t)count > base_tx->cfg.tx_queue_length){
+		if((uint32_t)count <= base_tx->cfg.tx_queue_length){
 			rlc_um_base_tx_sdu_t *sdu_node = oset_malloc(rlc_um_base_tx_sdu_t);
 			oset_assert(sdu_node);
 			sdu_node->buffer = byte_buffer_dup(sdu);
@@ -674,7 +675,8 @@ static int rlc_um_base_tx_write_dl_sdu(rlc_um_base_tx *base_tx, byte_buffer_t *s
 			oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
 			base_tx->unread_bytes += sdu->N_bytes;
 			oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
-			RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU (%d B, tx_sdu_queue_len=%d)", nof_bytes, count);
+			RlcHexInfo(msg_ptr, nof_bytes, "Tx SDU (%d B, tx_sdu_queue_len=%d)", nof_bytes, oset_list_count(&base_tx->tx_sdu_queue));
+			oset_thread_mutex_unlock(&base_tx->mutex);
 			return OSET_OK;
 		} else {
 			RlcHexWarning(msg_ptr,
@@ -687,6 +689,8 @@ static int rlc_um_base_tx_write_dl_sdu(rlc_um_base_tx *base_tx, byte_buffer_t *s
 	} else {
 		RlcWarning("NULL SDU pointer in write_sdu()");
 	}
+
+	oset_thread_mutex_unlock(&base_tx->mutex);
 	return OSET_ERROR;
 }
 
@@ -1224,6 +1228,10 @@ bool rlc_um_nr_sdu_queue_is_full(rlc_common *um_common)
 void rlc_um_nr_discard_sdu(rlc_common *um_common, uint32_t discard_sn)
 {
 	rlc_um_nr *um = (rlc_um_nr *)um_common;
+
+	if (!um->base.tx_enabled) {
+		return;
+	}
 
 	rlc_um_base_tx_discard_sdu(&um->tx.base_tx, discard_sn);
 }

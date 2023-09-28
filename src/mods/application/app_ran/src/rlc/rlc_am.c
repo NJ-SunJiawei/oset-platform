@@ -92,6 +92,79 @@ static void empty_queue(rlc_am_base_tx *base_tx)
 	oset_thread_mutex_unlock(&base_tx->mutex);
 }
 
+static void rlc_am_base_tx_discard_sdu(rlc_am_base_tx *base_tx, uint32_t discard_sn)
+{
+	bool discarded = false;
+
+	oset_thread_mutex_lock(&base_tx->mutex);
+	rlc_am_base_tx_sdu_t *next_node, *node = NULL;
+	oset_list_for_each_safe(&base_tx->tx_sdu_queue, next_node, node){
+	  if (node != NULL && node->buffer->md.pdcp_sn == discard_sn) {
+		  byte_buffer_t *sdu = node->buffer;
+		  oset_list_remove(&base_tx->tx_sdu_queue, node);
+		  oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
+		  base_tx->unread_bytes -= sdu->N_bytes;
+		  oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
+		  oset_free(sdu);
+		  node = NULL;
+		  discarded = true;
+	  }
+	}   
+
+	// Discard fails when the PDCP PDU is already in Tx window.
+	RlcInfo("%s PDU with PDCP_SN=%d", discarded ? "Discarding" : "Couldn't discard", discard_sn);
+}
+
+
+/*******************************************************
+ *     RLC AM TX entity
+ *******************************************************/
+static int rlc_am_base_tx_write_dl_sdu(rlc_am_base_tx *base_tx, byte_buffer_t *sdu)
+{
+	oset_thread_mutex_lock(&base_tx->mutex);
+	if (sdu) {
+		// Get SDU info
+		uint32_t sdu_pdcp_sn = sdu->md.pdcp_sn;
+
+		// Store SDU
+		uint8_t*   msg_ptr	 = sdu->msg;
+		uint32_t   nof_bytes = sdu->N_bytes;
+		int count = oset_list_count(&base_tx->tx_sdu_queue);
+
+		if((uint32_t)count <= base_tx->base->cfg.tx_queue_length) {
+			rlc_am_base_tx_sdu_t *sdu_node = oset_malloc(rlc_um_base_tx_sdu_t);
+			oset_assert(sdu_node);
+			sdu_node->buffer = byte_buffer_dup(sdu);
+			oset_list_add(&base_tx->tx_sdu_queue, sdu_node);
+			oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
+			base_tx->unread_bytes += sdu->N_bytes;
+			oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
+
+			RlcHexInfo(msg_ptr,
+			           nof_bytes,
+			           "Tx SDU (%d B, PDCP_SN=%ld tx_sdu_queue_len=%d)",
+			           nof_bytes,
+			           sdu_pdcp_sn,
+			           oset_list_count(&base_tx->tx_sdu_queue));
+			oset_thread_mutex_unlock(&base_tx->mutex);
+			return OSET_OK;
+		} else {
+			// in case of fail, the try_write returns back the sdu
+			RlcHexWarning(msg_ptr,
+			              nof_bytes,
+			              "[Dropped SDU] Tx SDU (%d B, PDCP_SN=%ld, tx_sdu_queue_len=%d)",
+			              nof_bytes,
+			              sdu_pdcp_sn,
+			              count);
+		}else{
+			RlcWarning("NULL SDU pointer in write_sdu()");
+		}
+	}
+	oset_thread_mutex_unlock(&base_tx->mutex);
+	return OSET_ERROR;
+}
+
+
 static void rlc_am_base_tx_get_buffer_state(rlc_am_base_tx *base_tx, uint32_t *n_bytes_new, uint32_t *n_bytes_prio)
 {
   rlc_am_nr_tx *tx = base_tx->tx;
@@ -375,6 +448,30 @@ static void rlc_am_base_stop(rlc_am_base *base)
 	base->metrics = {0};
 }
 
+static void rlc_am_base_write_dl_sdu(rlc_am_base *base, rlc_am_base_tx *base_tx, byte_buffer_t *sdu)
+{
+  if (! base->tx_enabled || ! base_tx) {
+    RlcDebug("RB is currently deactivated. Dropping SDU (%d B)", sdu->N_bytes);
+    oset_thread_mutex_lock(&base->metrics_mutex);
+    base->metrics.num_lost_sdus++;
+    oset_thread_mutex_unlock(&base->metrics_mutex);
+    return;
+  }
+
+  int sdu_bytes = sdu->N_bytes; //< Store SDU length for book-keeping
+  if (rlc_am_base_tx_write_dl_sdu(base_tx, sdu) == OSET_OK) {
+    oset_thread_mutex_lock(&base->metrics_mutex);
+    base->metrics.num_tx_sdus++;
+    base->metrics.num_tx_sdu_bytes += sdu_bytes;
+	oset_thread_mutex_unlock(&base->metrics_mutex);
+  } else {
+    oset_thread_mutex_lock(&base->metrics_mutex);
+    base->metrics.num_lost_sdus++;
+	oset_thread_mutex_unlock(&base->metrics_mutex);
+  }
+}
+
+
 #endif
 /////////////////////////////////////////////////////////////////////////////
 #if AM_RXTX
@@ -626,6 +723,13 @@ void rlc_am_nr_reestablish(rlc_common *am_common)
 	am->base.tx_enabled = true;
 }
 
+void rlc_am_nr_write_dl_sdu(rlc_common *am_common, byte_buffer_t *sdu)
+{
+	rlc_am_nr *am = (rlc_am_nr *)am_common;
+
+	rlc_am_base_write_dl_sdu(&am->base, &am->tx.base_tx, sdu);
+}
+
 rlc_mode_t rlc_am_nr_get_mode(void)
 {
 	return rlc_mode_t(am);
@@ -636,6 +740,17 @@ bool rlc_am_nr_sdu_queue_is_full(rlc_common *am_common)
 	rlc_am_nr *am = (rlc_am_nr *)am_common;
 
 	return oset_list_count(am->tx.base_tx.tx_sdu_queue) == am->base.cfg.tx_queue_length;
+}
+
+void rlc_am_nr_discard_sdu(rlc_common *am_common, uint32_t discard_sn)
+{
+	rlc_am_nr *am = (rlc_am_nr *)am_common;
+
+	if (!am->base.tx_enabled) {
+		return;
+	}
+
+	rlc_am_base_tx_discard_sdu(&am->tx.base_tx, discard_sn);
 }
 
 rlc_am_nr *rlc_am_nr_init(uint32_t lcid_,	uint16_t rnti_)
