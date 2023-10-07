@@ -112,7 +112,7 @@ typedef struct rlc_um_nr_rx_s {
 	uint32_t      mod; // Rx counter modulus
 	oset_hash_t   *rx_window;//std::map<uint16_t, rlc_umd_pdu_segments_nr_t>
 	// TS 38.322 Sec. 7.3
-	gnb_timer_t   *reassembly_timer; // to detect loss of RLC PDUs at lower layers
+	gnb_timer_t   *reassembly_timer; // 重组定时器 // to detect loss of RLC PDUs at lower layers
 }rlc_um_nr_rx;
 
 typedef struct {

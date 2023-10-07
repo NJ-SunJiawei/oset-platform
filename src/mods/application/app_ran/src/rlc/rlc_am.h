@@ -208,7 +208,7 @@ typedef struct rlc_am_nr_tx_s{
    ***************************************************************************/
   rlc_am_nr_tx_state_t   st;
 
-  oset_hash_t      *tx_window;//rlc_amd_tx_pdu_nr
+  oset_hash_t      *tx_window;//rlc_amd_tx_pdu_nr//记录重传
   // Queues, buffers and container
   oset_list_t      retx_queue;//rlc_amd_retx_nr_t
   uint32_t         sdu_under_segmentation_sn; //= INVALID_RLC_SN // SN of the SDU currently being segmented.
@@ -272,8 +272,14 @@ typedef struct rlc_am_nr_rx_s{
 	* Rx timers
 	* Ref: 3GPP TS 38.322 version 16.2.0 Section 7.3
 	***************************************************************************/
-	gnb_timer_t *status_prohibit_timer;// ARQ-状态报告定时器(防止频繁上报)
-	gnb_timer_t *reassembly_timer;
+	gnb_timer_t *status_prohibit_timer;
+// t-StatusProhibit ARQ-状态报告定时器(防止频繁上报):
+//    状态报告触发后，如果t-StatusProhibit 定时器没有运行，则在新传时（MAC 指示的），将构建的STATUS PDU递交底层，同时开启定时器；
+//    状态报告触发后，如果t-StatusProhibit 定时器在运行，状态报告是不能发送的。需要等到定时器超时后，在第一个传输机会到来时，将构建的STATUS PDU递交给底层，同时开启定时器；
+//  构建STATUS PDU：
+//    需要注意的是，t-Reassembly定时器超时会触发状态变量（RX_Highest_Status）更新以及状态报告。因此，应该以更新状态变量后的包接收状态来构建STATUS PDU(可理解为状态报告的触发点在状态变量更新之后)
+
+	gnb_timer_t *reassembly_timer;// 重组定时器 // to detect loss of RLC PDUs at lower layers
 
 	/****************************************************************************
 	* Rx state variables
