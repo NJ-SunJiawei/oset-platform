@@ -13,17 +13,55 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rlcAM"
 
+#define AM_RXTX
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_nr_status_pdu_t *status, uint32_t max_len);
+
+
 /////////////////////////////status/////////////////////////////////////////////
-void rlc_am_nr_status_pdu_reset(rlc_am_nr_status_pdu_t *status)
+static void log_rlc_am_nr_status_pdu_to_string(char *string, rlc_am_nr_status_pdu_t *status, char *rb_name)
+{
+	char buffer[512] = {0};
+	char *p = NULL, *last = NULL;
+
+	last = buffer + 512;
+	p = buffer;
+
+	p = oset_slprintf(p, last, "ACK_SN = %u, N_nack = %d", status->ack_sn, cvector_size(status->nacks));
+	if (cvector_size(status->nacks) > 0) {
+		p = oset_slprintf(p, last, ", NACK_SN = ");
+		for (uint32_t i = 0; i < cvector_size(status->nacks); ++i) {
+		  if (status->nacks[i].has_nack_range) {
+		    if (status->nacks[i].has_so) {
+		      p = oset_slprintf(p, last, 
+		                     "[%u %u:%u r%u]",
+		                     status->nacks[i].nack_sn,
+		                     status->nacks[i].so_start,
+		                     status->nacks[i].so_end,
+		                     status->nacks[i].nack_range);
+		    } else {
+		      p = oset_slprintf(p, last, "[%u r%u]", status->nacks[i].nack_sn, status->nacks[i].nack_range);
+		    }
+		  } else {
+		    if (status->nacks[i].has_so) {
+		      p = oset_slprintf(p, last, "[%u %u:%u]", status->nacks[i].nack_sn, status->nacks[i].so_start, status->nacks[i].so_end);
+		    } else {
+		      p = oset_slprintf(p, last, "[%u]", status->nacks[i].nack_sn);
+		    }
+		  }
+		}
+	}
+	oset_debug("%s: %s status PDU - %s", rb_name, string, buffer);
+}
+
+static void rlc_am_nr_status_pdu_reset(rlc_am_nr_status_pdu_t *status)
 {
 	status->cpt   = (rlc_am_nr_control_pdu_type_t)status_pdu;
 	status->ack_sn = INVALID_RLC_SN;
-	cvector_clear(status->nacks)
+	cvector_clear(status->nacks);//cvector_clear
 	status->packed_size = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
 }
-
-#define AM_RXTX
-uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_nr_status_pdu_t *status, uint32_t max_len);
 
 /////////////////////////////////////////////////////////////////////////////
 //  AMD PDU都有SN，这是因为AM RLC需要基于SN确保每个RLC PDU都成功接收
@@ -78,7 +116,20 @@ uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_nr_status_pdu_t *status, uint32_t 
 //                                      |         NACK_SN      |
 //                                      |NACK_SN|E1|E2|E3|R|R|R|
 //                                      |          ...         |
+
 #if AM_RXTX
+/*static int modulus_tx(nr_rlc_entity_am_t *entity, int a)
+{
+  int r = a - entity->tx_next_ack;
+  if (r < 0) r += entity->sn_modulus;
+  return r;
+}*/
+
+static uint32_t TX_MOD_NR_BASE(rlc_am_nr_tx *tx, uint32_t sn)
+{
+  return (sn - tx->st.tx_next_ack) % tx->mod_nr;
+}
+
 static void empty_queue_no_lock(rlc_am_base_tx *base_tx)
 {
 	// Drop all messages in TX queue
@@ -148,18 +199,19 @@ static uint32_t rlc_am_base_tx_build_status_pdu(rlc_am_base_tx *base_tx, byte_bu
 
 	rlc_am_nr_status_pdu_t status = {.sn_size = base_tx->cfg.rx_sn_field_length,};// carries status of RX entity, hence use SN length of RX
 	int pdu_len = rlc_am_base_rx_get_status_pdu(&rx->base_rx, &status, nof_bytes);
-	if (pdu_len == SRSRAN_ERROR) {
+	if (pdu_len == OSET_ERROR) {
 		RlcDebug("deferred status PDU. Cause: Failed to acquire rx lock");
 		pdu_len = 0;
-	} else if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
+	} else if (pdu_len > 0 && nof_bytes >= pdu_len)) {
 		RlcDebug("generated status PDU. Bytes:%d", pdu_len);
-		log_rlc_am_nr_status_pdu_to_string(logger.info, "TX status PDU - %s", &status, rb_name);
-		pdu_len = rlc_am_nr_write_status_pdu(status, cfg.tx_sn_field_length, payload);
+		log_rlc_am_nr_status_pdu_to_string("Tx" ,&status, base_tx->rb_name);
+		pdu_len = rlc_am_nr_write_status_pdu(status, base_tx->cfg.tx_sn_field_length, payload);
 	} else {
 		RlcInfo("cannot tx status PDU - %d bytes available, %d bytes required", nof_bytes, pdu_len);
 		pdu_len = 0;
 	}
 
+	cvector_free(status.nacks);
 	return payload->N_bytes;
 }
 
@@ -205,7 +257,7 @@ static uint32_t rlc_am_base_tx_read_dl_pdu(rlc_am_base_tx *base_tx, uint8_t *pay
 	}
 
 	// Retransmit if required
-	if (! retx_queue.empty()) {//重传
+	if (! tx->retx_queue.empty()) {//重传
 		RlcInfo("Re-transmission required. Retransmission queue size: %d", retx_queue.size());
 		return build_retx_pdu(payload, nof_bytes);
 	}
@@ -451,6 +503,39 @@ static void rlc_am_base_tx_init(rlc_am_base_tx *base_tx)
 	oset_thread_mutex_init(&base_tx->unread_bytes_mutex);
 }
 
+
+/*static int modulus_rx(nr_rlc_entity_am_t *entity, int a)
+{
+  // as per 38.322 7.1, modulus base is rx_next
+  int r = a - entity->rx_next;
+  if (r < 0) r += entity->sn_modulus;
+  return r;
+}*/
+
+static uint32_t RX_MOD_NR_BASE(rlc_am_nr_rx *rx, uint32_t sn)
+{
+  /* as per 38.322 7.1, modulus base is rx_next */
+  return (sn - rx->st.rx_next) % rx->mod_nr;
+}
+
+
+static int rlc_amd_rx_pdu_nr_cmp(rlc_amd_rx_pdu_nr *a, rlc_amd_rx_pdu_nr *b) 
+{
+	if (a.header.so == b.header.so)
+		return 0;
+	else if (a.header.so < b.header.so)
+		return -1;//从小到大排序
+	else
+		return 1;
+};
+
+
+static rlc_amd_rx_sdu_nr_t* rx_window_has_sn(rlc_am_nr_rx *rx, uint32_t sn)
+{
+  /* as per 38.322 7.1, modulus base is rx_next */
+  return oset_hash_get(rx->rx_window, &sn, sizeof(sn));
+}
+
 static void rlc_am_base_rx_timer_expired(void *data)
 {
   rlc_am_base_rx *base_rx = (rlc_am_base_rx *)data;
@@ -479,13 +564,13 @@ static void rlc_am_base_rx_timer_expired(void *data)
      *   - set RX_Next_Status_Trigger to RX_Next_Highest.
      */
     uint32_t sn_upd = {};
-    for (sn_upd = st.rx_next_status_trigger; rx_mod_base_nr(sn_upd) < rx_mod_base_nr(st.rx_next_highest);
+    for (sn_upd = rx->st.rx_next_status_trigger; RX_MOD_NR_BASE(sn_upd) < RX_MOD_NR_BASE(st.rx_next_highest);
          sn_upd = (sn_upd + 1) % mod_nr) {
       if (not rx_window->has_sn(sn_upd) || (rx_window->has_sn(sn_upd) && not(*rx_window)[sn_upd].fully_received)) {
         break;
       }
     }
-    st.rx_highest_status = sn_upd;
+    rx->st.rx_highest_status = sn_upd;
     if (not valid_ack_sn(st.rx_highest_status)) {
       RlcError("Rx_Highest_Status not inside RX window");
       debug_state();
@@ -493,10 +578,10 @@ static void rlc_am_base_rx_timer_expired(void *data)
     srsran_assert(valid_ack_sn(st.rx_highest_status), "Error: rx_highest_status assigned outside rx window");
 
     bool restart_reassembly_timer = false;
-    if (rx_mod_base_nr(st.rx_next_highest) > rx_mod_base_nr(st.rx_highest_status + 1)) {
+    if (RX_MOD_NR_BASE(st.rx_next_highest) > RX_MOD_NR_BASE(st.rx_highest_status + 1)) {
       restart_reassembly_timer = true;
     }
-    if (rx_mod_base_nr(st.rx_next_highest) == rx_mod_base_nr(st.rx_highest_status + 1)) {
+    if (RX_MOD_NR_BASE(st.rx_next_highest) == RX_MOD_NR_BASE(st.rx_highest_status + 1)) {
       if (rx_window->has_sn(st.rx_highest_status) && (*rx_window)[st.rx_highest_status].has_gap) {
         restart_reassembly_timer = true;
       }
@@ -511,7 +596,7 @@ static void rlc_am_base_rx_timer_expired(void *data)
      *   NOTE 2: The expiry of t-Reassembly triggers both RX_Highest_Status to be updated and a STATUS report to be
      *   triggered, but the STATUS report shall be triggered after RX_Highest_Status is updated.
      */
-    do_status = true;
+    base_rx->do_status = true;
     debug_state();
     debug_window();
     goto end;
@@ -526,6 +611,7 @@ end:
  */
 uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_base_rx *base_rx, rlc_am_nr_status_pdu_t *status, uint32_t max_len)
 {
+  rlc_am_nr_rx *rx = base_rx->rx;
 
   if (0 != oset_thread_mutex_trylock(&base_rx->mutex)) {
 	return OSET_ERROR;
@@ -540,24 +626,25 @@ uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_base_rx *base_rx, rlc_am_nr_status
    *   PDU(s) indicated by lower layer:
    */
   RlcDebug("Generating status PDU");
-  for (uint32_t i = st.rx_next; rx_mod_base_nr(i) < rx_mod_base_nr(st.rx_highest_status); i = (i + 1) % mod_nr) {
-    if ((rx_window->has_sn(i) && (*rx_window)[i].fully_received)) {
+  for (uint32_t i = rx->st.rx_next; RX_MOD_NR_BASE(rx, i) < RX_MOD_NR_BASE(rx, rx->st.rx_highest_status); i = (i + 1) % rx->mod_nr) {
+	rlc_amd_rx_sdu_nr_t* rx_node = rx_window_has_sn(rx, i);
+	if (NULL != rx_node && rx_node->fully_received) {
       RlcDebug("SDU SN=%d is fully received", i);
     } else {
-      if (not rx_window->has_sn(i)) {
+      if (NULL == rx_node) {
         // No segment received, NACK the whole SDU
         RlcDebug("Adding NACK for full SDU. NACK SN=%d", i);
-        rlc_status_nack_t nack;
+        rlc_status_nack_t nack = {0};
         nack.nack_sn = i;
         nack.has_so  = false;
-        status->push_nack(nack);
-      } else if (not(*rx_window)[i].fully_received) {
+		cvector_push_back(status->nacks, nack)
+      } else if (!rx_node->fully_received) {
         // Some segments were received, but not all.
         // NACK non consecutive missing bytes
         RlcDebug("Adding NACKs for segmented SDU. NACK SN=%d", i);
         uint32_t last_so         = 0;
         bool     last_segment_rx = false;
-        for (auto segm = (*rx_window)[i].segments.begin(); segm != (*rx_window)[i].segments.end(); segm++) {
+        for (rlc_amd_rx_pdu_nr *segm = rx_node->segments.begin(); segm != rx_node->segments.end(); segm++) {
           if (segm->header.so != last_so) {
             // Some bytes were not received
             rlc_status_nack_t nack;
@@ -596,7 +683,7 @@ uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_base_rx *base_rx, rlc_am_nr_status
           }
           last_so = segm->header.so + segm->buf->N_bytes;
         } // Segment loop
-        if (not last_segment_rx) {
+        if (!last_segment_rx) {
           rlc_status_nack_t nack;
           nack.nack_sn  = i;
           nack.has_so   = true;
@@ -615,7 +702,7 @@ uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_base_rx *base_rx, rlc_am_nr_status
    * - set the ACK_SN to the SN of the next not received RLC SDU which is not
    * indicated as missing in the resulting STATUS PDU.
    */
-  status->ack_sn = st.rx_highest_status;
+  status->ack_sn = rx->st.rx_highest_status;
 
   // trim PDU if necessary
   if (status->packed_size > max_len) {
@@ -623,18 +710,18 @@ uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_base_rx *base_rx, rlc_am_nr_status
             status->nacks.size(),
             status->packed_size,
             max_len);
-    log_rlc_am_nr_status_pdu_to_string(logger.debug, "Untrimmed status PDU - %s", status, rb_name);
-    if (not status->trim(max_len)) {
+    log_rlc_am_nr_status_pdu_to_string("Untrimmed", status, base_rx->rb_name);
+    if (! status->trim(max_len)) {
       RlcError("Failed to trim status PDU into provided space: max_len=%d", max_len);
     }
   }
 
   if (max_len != UINT32_MAX) {
     // UINT32_MAX is used just to query the status PDU length
-    if (status_prohibit_timer.is_valid()) {
-      status_prohibit_timer.run();
+    if (rx->status_prohibit_timer.is_valid()) {
+      rx->status_prohibit_timer.run();
     }
-    do_status = false;
+    base_rx->do_status = false;
   }
 
   oset_thread_mutex_unlock(&base_rx->mutex);
@@ -811,7 +898,7 @@ static void rlc_am_nr_tx_init(rlc_am_nr_tx *tx, rlc_am_nr_rx *rx, rlc_um_base *b
 	tx->mod_nr       = 0;
 
 	tx->tx_window = oset_hash_make();
-	oset_list_init(&tx->tx_window);
+	oset_list_init(&tx->retx_queue);
 
 	rlc_am_base_tx_init(&tx->base_tx);
 }
@@ -969,6 +1056,17 @@ void rlc_am_nr_reestablish(rlc_common *am_common)
 	rlc_am_nr_tx_reestablish(&am->tx); // calls stop and enables tx again
 	rlc_am_nr_rx_reestablish(&am->rx); // calls only stop
 	am->base.tx_enabled = true;
+}
+
+// NR AM RLC采用PUSH window+t-reassembly timer的形式接收下层递交的AMD PDU；
+// 如果接收到的AMD PDU落在接收窗口外，直接丢弃；
+// 如果接收到的AMD PDU落在接收窗口内，需要先进行重复性检测，没通过重复性检测的包或部分字节将被丢弃，通过重复性检测的包或字节放在接收buffer中；
+// 如果一个原始RLC SDU的所有SDU segment都接收到了，将重组成原始RLC SDU并递交上层
+void rlc_am_nr_write_ul_pdu(rlc_common *am_common, uint8_t *payload, uint32_t nof_bytes)
+{
+	rlc_am_nr *am = (rlc_am_nr *)am_common;
+
+	rlc_am_base_write_ul_pdu(&am->base, &am->rx.base_rx, payload, nof_bytes);
 }
 
 void rlc_am_nr_read_dl_pdu(rlc_common *am_common, uint8_t *payload, uint32_t nof_bytes)

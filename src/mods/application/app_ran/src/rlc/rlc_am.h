@@ -44,6 +44,7 @@ typedef struct {
 }rlc_amd_pdu_nr_t;
 
 typedef struct {
+  oset_lnode_t           lnode;
   rlc_am_nr_pdu_header_t header;
   byte_buffer_t          *buf;
   uint32_t               rlc_sn;
@@ -54,8 +55,7 @@ typedef struct {
   bool                 fully_received;
   bool                 has_gap;
   byte_buffer_t        *buf;
-  using segment_list_t = std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>;
-  segment_list_t segments;
+  oset_list_t          segments;// std::set<rlc_amd_rx_pdu_nr, rlc_amd_rx_pdu_nr_cmp>;
 }rlc_amd_rx_sdu_nr_t;
 
 typedef struct {
@@ -76,7 +76,7 @@ typedef struct {
 	/// CPT header
 	rlc_am_nr_control_pdu_type_t cpt ;// = rlc_am_nr_control_pdu_type_t::status_pdu
 	/// SN of the next not received RLC Data PDU
-	uint32_t ack_sn ;//= INVALID_RLC_SN
+	uint32_t ack_sn ;//= INVALID_RLC_SN// = rx_highest_status
 }rlc_am_nr_status_pdu_t;
 ///////////////////////////////////////////////////////////////////////////////
 typedef struct rlc_am_base_s  rlc_am_base;
@@ -239,22 +239,23 @@ typedef struct {
 	* SDU, and it serves as the lower edge of the receiving window. It is initially set to 0, and is updated whenever
 	* the AM RLC entity receives an RLC SDU with SN = RX_Next.
 	*/
-	uint32_t rx_next;
+	uint32_t rx_next;// [下边界]该变量指示的是last按序完全接收到的AMD PDU的SN+1。该变量初始值为0。是接收窗口的下边界,此变量之前的报文，接收端都已经全部成功接收。
 	/*
 	* RX_Next_Status_Trigger: This state variable holds the value of the SN following the SN of the RLC SDU which
 	* triggered t-Reassembly.
 	*/
-	uint32_t rx_next_status_trigger;
+	uint32_t rx_next_status_trigger;//该变量指示的是触发t-Ressembly timer的AMD PDU的SN+1。
 	/*
 	* RX_Next_Highest: This state variable holds the highest possible value of the SN which can be indicated by
 	*"ACK_SN" when a STATUS PDU needs to be constructed. It is initially set to 0.
 	*/
-	uint32_t rx_highest_status;
+	uint32_t rx_highest_status;//该变量指示的是在构建STATUS PDU时可以通过ACK_SN指示的最高的可能的SN。该变量初始值为0。(考虑HARQ重传完成后，RLC实体可以判断接收状态的RLC SN.)
+
 	/*
 	* RX_Next_Highest: This state variable holds the value of the SN following the SN of the RLC SDU with the
 	* highest SN among received RLC SDUs. It is initially set to 0.
 	*/
-	uint32_t rx_next_highest;
+	uint32_t rx_next_highest;//该变量指示的是接收到的AMD PDU中具有最大SN的AMD PDU的SN+1
 }rlc_am_nr_rx_state_t;
 
 typedef struct rlc_am_nr_rx_s{
@@ -302,6 +303,8 @@ void rlc_am_nr_set_bsr_callback(rlc_common *am_common, bsr_callback_t callback);
 rlc_bearer_metrics_t rlc_am_nr_get_metrics(rlc_common *am_common);
 void rlc_am_nr_reset_metrics(rlc_common *am_common);
 void rlc_am_nr_reestablish(rlc_common *am_common);
+void rlc_am_nr_write_ul_pdu(rlc_common *am_common, uint8_t *payload, uint32_t nof_bytes);
+void rlc_am_nr_read_dl_pdu(rlc_common *am_common, uint8_t *payload, uint32_t nof_bytes);
 void rlc_am_nr_write_dl_sdu(rlc_common *am_common, byte_buffer_t *sdu);
 rlc_mode_t rlc_am_nr_get_mode(void);
 bool rlc_am_nr_sdu_queue_is_full(rlc_common *am_common);

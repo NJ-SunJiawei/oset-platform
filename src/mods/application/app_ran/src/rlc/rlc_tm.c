@@ -105,12 +105,11 @@ void rlc_tm_write_ul_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_b
 		memcpy(sdu->msg, payload, nof_bytes);
 		sdu->N_bytes = nof_bytes;
 		byte_buffer_set_timestamp(sdu);
-		{
-			oset_apr_mutex_lock(tm->metrics_mutex);
-			tm->metrics.num_rx_pdu_bytes += nof_bytes;
-			tm->metrics.num_rx_pdus++;
-			oset_apr_mutex_unlock(tm->metrics_mutex);
-		}
+
+		oset_apr_mutex_lock(tm->metrics_mutex);
+		tm->metrics.num_rx_pdu_bytes += nof_bytes;
+		tm->metrics.num_rx_pdus++;
+		oset_apr_mutex_unlock(tm->metrics_mutex);
 
 		// gnb_rrc_task_handle??? push queue
 		if (srb_to_lcid(srb0) == tm_common->lcid) {
@@ -122,6 +121,9 @@ void rlc_tm_write_ul_pdu(rlc_common *tm_common, uint8_t *payload, uint32_t nof_b
 		//RLC_BUFF_FREE(&tm->tm_pool, sdu);
 		oset_free(sdu);
 	} else {
+		oset_apr_mutex_lock(tm->metrics_mutex);
+		tm->metrics.num_lost_pdus++;
+		oset_apr_mutex_unlock(tm->metrics_mutex);
 		RlcError("Fatal Error: Couldn't allocate buffer in rlc_tm_write_ul_pdu()");
 	}
 }

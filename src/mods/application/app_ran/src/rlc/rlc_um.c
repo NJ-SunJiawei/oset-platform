@@ -160,6 +160,24 @@ static uint32_t rlc_um_nr_read_data_pdu_header(uint8_t  *            payload,
 }
 
 /////////////////////////////////rx/////////////////////////////////////////
+/*static int modulus_rx(nr_rlc_entity_um_t *entity, int a)
+{
+	// as per 38.322 7.1, modulus base is rx_next_highest - window_size
+	int r = a - (entity->rx_next_highest - entity->window_size);
+	if (r < 0) r += entity->sn_modulus;
+	return r % entity->sn_modulus;
+}*/
+
+// ??? x & (rx->mod - 1)
+static uint32_t RX_MOD_NR_BASE(rlc_um_nr_rx *rx, uint32_t x)
+{
+	// 由于SN循环取值，因此会出现SN wrap around的问题。
+	// 为避免SN wrap around时实际接收窗口缩小导致丢包，协议规定相关状态变量在做运算和比较时必须遵守以下两个原则从而保证实际接收窗口固定不变：
+	// final value = [value from arithmetic operation] modulo 2^{[sn-FieldLength]}
+	/* as per 38.322 7.1, modulus base is rx_next_highest - window_size */
+	return (((x)-rx->RX_Next_Highest - rx->UM_Window_Size) % (rx->mod))
+}
+
 static int rlc_umd_pdu_free(void *rec, const void *key, int klen, const void *value)
 {
 	oset_hash_t *segments = (oset_hash_t *)rec;
@@ -184,39 +202,29 @@ static int rlc_umd_pdu_segments_free(void *rec, const void *key, int klen, const
 	return 1;
 }
 
-static uint32_t RX_MOD_NR_BASE(rlc_um_nr_rx *rx, uint32_t x)
-{
-	// 由于SN循环取值，因此会出现SN wrap around的问题。
-	// 为避免SN wrap around时实际接收窗口缩小导致丢包，协议规定相关状态变量在做运算和比较时必须遵守以下两个原则从而保证实际接收窗口固定不变：
-	// final value = [value from arithmetic operation] modulo 2^{[sn-FieldLength]}
-
-	// ??? x & (rx->mod - 1)
-	return (((x)-rx->RX_Next_Highest - rx->UM_Window_Size) % (rx->mod))
-}
-
 // Sec 5.2.2.2.1
 static bool sn_in_reassembly_window(rlc_um_nr_rx *rx, const uint32_t sn)
 {
-  return (RX_MOD_NR_BASE(rx->RX_Next_Highest - rx->UM_Window_Size) <= RX_MOD_NR_BASE(sn) &&
-          RX_MOD_NR_BASE(sn) < RX_MOD_NR_BASE(rx->RX_Next_Highest));
+	return (RX_MOD_NR_BASE(rx->RX_Next_Highest - rx->UM_Window_Size) <= RX_MOD_NR_BASE(sn) &&
+	      RX_MOD_NR_BASE(sn) < RX_MOD_NR_BASE(rx->RX_Next_Highest));
 }
 
 // Sec 5.2.2.2.2
 static bool sn_invalid_for_rx_buffer(rlc_um_nr_rx *rx, uint32_t sn)
 {
-   // 若SN值落在 [ RX_Next_Highest - UM_Window_Size , RX_Next_Reassembly) 范围内，则出窗，将PDU丢弃
-   // 为什么UM敢把落在特定范围内叫做“出窗”？因为UM没有重传，sn永远是向前走的，不可能落在窗口的左侧。
-   return (RX_MOD_NR_BASE(rx->RX_Next_Highest - rx->UM_Window_Size) <= RX_MOD_NR_BASE(sn) &&
+	// 若SN值落在 [ RX_Next_Highest - UM_Window_Size , RX_Next_Reassembly) 范围内，则出窗，将PDU丢弃
+	// 为什么UM敢把落在特定范围内叫做“出窗”？因为UM没有重传，sn永远是向前走的，不可能落在窗口的左侧。
+	return (RX_MOD_NR_BASE(rx->RX_Next_Highest - rx->UM_Window_Size) <= RX_MOD_NR_BASE(sn) &&
 		 RX_MOD_NR_BASE(sn) < RX_MOD_NR_BASE(rx->RX_Next_Reassembly));
 }
 
 static void update_total_sdu_length(rlc_umd_pdu_segments_nr_t *pdu_segments,
                                              rlc_umd_pdu_nr_t *rx_pdu)
 {
-  if (rx_pdu->header.si == (rlc_nr_si_field_t)last_segment) {
-    pdu_segments->total_sdu_length = rx_pdu->header.so + rx_pdu->buf->N_bytes;
-    RlcDebug("updating total SDU length for SN=%d to %d B", rx_pdu.header.sn, pdu_segments.total_sdu_length);
-  }
+	if (rx_pdu->header.si == (rlc_nr_si_field_t)last_segment) {
+	pdu_segments->total_sdu_length = rx_pdu->header.so + rx_pdu->buf->N_bytes;
+	RlcDebug("updating total SDU length for SN=%d to %d B", rx_pdu.header.sn, pdu_segments.total_sdu_length);
+	}
 }
 
 static byte_buffer_t* strip_pdu_header(rlc_um_nr_pdu_header_t *header,
@@ -241,9 +249,9 @@ static byte_buffer_t* strip_pdu_header(rlc_um_nr_pdu_header_t *header,
 // TS 38.322 v15.003 Section 5.2.2.2.4
 static bool has_missing_byte_segment(rlc_um_nr_rx *rx, uint32_t sn)
 {
-  // is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of
-  // all received segments of this RLC SDU
-  return (NULL !=  oset_hash_get(rx->rx_window, &sn, sizeof(sn));
+	// is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of
+	// all received segments of this RLC SDU
+	return (NULL !=  oset_hash_get(rx->rx_window, &sn, sizeof(sn));
 }
 
 // Sect 5.2.2.2.3
@@ -558,7 +566,6 @@ static uint32_t build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_t *payload, uin
 
   return ret;
 }
-
 
 #if UM_RXTX
 static void empty_queue(rlc_um_base_tx *base_tx)
@@ -1187,7 +1194,6 @@ rlc_bearer_metrics_t rlc_um_nr_get_metrics(rlc_common *um_common)
 
 	return um->base.metrics;
 }
-
 
 // 关于PULL window，接收RLC实体维护一个接收窗口如下：
 // (RX_Next_Highest – UM_Window_Size) <= SN <RX_Next_Highest

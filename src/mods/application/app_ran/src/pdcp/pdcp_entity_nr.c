@@ -122,11 +122,11 @@ static void discard_callback(void *data)
 }
 
 
-static int count_compare(pdcp_nr_pdu_t *pdu1, pdcp_nr_pdu_t *pdu2)
+static int count_compare(pdcp_nr_pdu_t *pdu_node, pdcp_nr_pdu_t *iter)
 {
-    if (pdu1->count == pdu2->count)
+    if (pdu_node->count == iter->count)
         return 0;
-    else if (pdu1->count < pdu2->count)
+    else if (pdu_node->count < iter->count)
         return -1;
     else
         return 1;
@@ -502,6 +502,10 @@ void pdcp_entity_nr_write_dl_sdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *sdu, in
 
   // Increment TX_NEXT
   pdcp_nr->tx_next++;
+//if (pdcp_nr->tx_next > (pdcp_nr->mod - 1)) {
+//	tx_hfn++;
+//	pdcp_nr->tx_next = 0;
+//}
 }
 
 

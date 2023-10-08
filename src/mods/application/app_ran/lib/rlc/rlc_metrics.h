@@ -19,7 +19,7 @@ extern "C" {
 
 typedef struct {
   // SDU metrics
-  uint32_t num_tx_sdus;
+  uint32_t num_tx_sdus;// write_dl_sdu
   //uint32_t num_rx_sdus;
   uint64_t num_tx_sdu_bytes;
   //uint64_t num_rx_sdu_bytes;
@@ -27,11 +27,13 @@ typedef struct {
   uint64_t rx_latency_ms; //< Average time in ms from first RLC segment to full SDU
 
   // PDU metrics
-  uint32_t num_tx_pdus;
-  uint32_t num_rx_pdus;
-  uint64_t num_tx_pdu_bytes;
+  uint32_t num_rx_pdus;// write_ul_pdu
   uint64_t num_rx_pdu_bytes;
   uint32_t num_lost_pdus; //< Lost PDUs registered at Rx
+
+  uint32_t num_tx_pdus;// read_dl_pdu
+  uint64_t num_tx_pdu_bytes;
+
 
   // misc metrics
   uint32_t rx_buffered_bytes; //< sum of payload of PDUs buffered in rx_window
