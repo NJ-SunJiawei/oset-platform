@@ -49,11 +49,6 @@ typedef enum {
   RLC_FI_FIELD_N_ITEMS,
 } rlc_fi_field_t;
 
-static const char rlc_fi_field_text[RLC_FI_FIELD_N_ITEMS][32] = {"Start and end aligned",
-                                                                 "Not end aligned",
-                                                                 "Not start aligned",
-                                                                 "Not start or end aligned"};
-
 typedef enum{
   full_sdu                       = 0b00,
   first_segment                  = 0b01,
@@ -61,7 +56,12 @@ typedef enum{
   neither_first_nor_last_segment = 0b11,
   nulltype,
 }rlc_nr_si_field_t;
-  
+
+extern char rlc_fi_field_text[RLC_FI_FIELD_N_ITEMS][32];
+extern char rlc_dc_field_text[RLC_DC_FIELD_N_ITEMS][20];
+// NACK helper (for LTE and NR)
+extern uint16_t so_end_of_sdu;
+
 inline char* rlc_nr_si_field_to_string(const rlc_nr_si_field_t si)
 {
   constexpr static const char* options[] = {"Data field contains full SDU",
@@ -94,7 +94,6 @@ typedef enum {
   RLC_DC_FIELD_N_ITEMS,
 } rlc_dc_field_t;
  
-static const char rlc_dc_field_text[RLC_DC_FIELD_N_ITEMS][20] = {"Control PDU", "Data PDU"};
 
 // UMD PDU Header
 typedef struct {
@@ -125,8 +124,6 @@ typedef struct {
   uint16_t       li[RLC_AM_WINDOW_SIZE];                 // Array of length indicators
 } rlc_amd_pdu_header_t;
 
-// NACK helper (for LTE and NR)
-const static uint16_t so_end_of_sdu = 0xFFFF;
 
 typedef struct {
   uint32_t nack_sn;        // Sequence Number (SN) of first missing SDU

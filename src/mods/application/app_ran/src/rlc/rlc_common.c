@@ -11,6 +11,15 @@
 #undef  OSET_LOG2_DOMAIN
 #define OSET_LOG2_DOMAIN   "app-gnb-rlcBase"
 
+char rlc_fi_field_text[RLC_FI_FIELD_N_ITEMS][32] = {"Start and end aligned",
+                                                                 "Not end aligned",
+                                                                 "Not start aligned",
+                                                                 "Not start or end aligned"};
+char rlc_dc_field_text[RLC_DC_FIELD_N_ITEMS][20] = {"Control PDU", "Data PDU"};
+
+// NACK helper (for LTE and NR)
+static uint16_t so_end_of_sdu = 0xFFFF;
+
 void rlc_common_init(rlc_common *common, char *rb_name, uint16_t rnti, uint32_t lcid, rlc_mode_t mode, oset_apr_memory_pool_t *usepool)
 {
 	common->usepool = usepool;

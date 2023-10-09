@@ -15,53 +15,9 @@
 
 #define AM_RXTX
 
-//////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_nr_status_pdu_t *status, uint32_t max_len);
-
-
-/////////////////////////////status/////////////////////////////////////////////
-static void log_rlc_am_nr_status_pdu_to_string(char *string, rlc_am_nr_status_pdu_t *status, char *rb_name)
-{
-	char buffer[512] = {0};
-	char *p = NULL, *last = NULL;
-
-	last = buffer + 512;
-	p = buffer;
-
-	p = oset_slprintf(p, last, "ACK_SN = %u, N_nack = %d", status->ack_sn, cvector_size(status->nacks));
-	if (cvector_size(status->nacks) > 0) {
-		p = oset_slprintf(p, last, ", NACK_SN = ");
-		for (uint32_t i = 0; i < cvector_size(status->nacks); ++i) {
-		  if (status->nacks[i].has_nack_range) {
-		    if (status->nacks[i].has_so) {
-		      p = oset_slprintf(p, last, 
-		                     "[%u %u:%u r%u]",
-		                     status->nacks[i].nack_sn,
-		                     status->nacks[i].so_start,
-		                     status->nacks[i].so_end,
-		                     status->nacks[i].nack_range);
-		    } else {
-		      p = oset_slprintf(p, last, "[%u r%u]", status->nacks[i].nack_sn, status->nacks[i].nack_range);
-		    }
-		  } else {
-		    if (status->nacks[i].has_so) {
-		      p = oset_slprintf(p, last, "[%u %u:%u]", status->nacks[i].nack_sn, status->nacks[i].so_start, status->nacks[i].so_end);
-		    } else {
-		      p = oset_slprintf(p, last, "[%u]", status->nacks[i].nack_sn);
-		    }
-		  }
-		}
-	}
-	oset_debug("%s: %s status PDU - %s", rb_name, string, buffer);
-}
-
-static void rlc_am_nr_status_pdu_reset(rlc_am_nr_status_pdu_t *status)
-{
-	status->cpt   = (rlc_am_nr_control_pdu_type_t)status_pdu;
-	status->ack_sn = INVALID_RLC_SN;
-	cvector_clear(status->nacks);//cvector_clear
-	status->packed_size = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
-}
+uint32_t rlc_am_base_rx_get_status_pdu_length(rlc_am_base_rx *base_rx);
 
 /////////////////////////////////////////////////////////////////////////////
 //  AMD PDU都有SN，这是因为AM RLC需要基于SN确保每个RLC PDU都成功接收
@@ -116,6 +72,382 @@ static void rlc_am_nr_status_pdu_reset(rlc_am_nr_status_pdu_t *status)
 //                                      |         NACK_SN      |
 //                                      |NACK_SN|E1|E2|E3|R|R|R|
 //                                      |          ...         |
+////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////status/////////////////////////////////////////////
+static void log_rlc_am_nr_status_pdu_to_string(char *string, rlc_am_nr_status_pdu_t *status, char *rb_name)
+{
+	char buffer[512] = {0};
+	char *p = NULL, *last = NULL;
+
+	last = buffer + 512;
+	p = buffer;
+
+	p = oset_slprintf(p, last, "ACK_SN = %u, N_nack = %d", status->ack_sn, cvector_size(status->nacks));
+	if (cvector_size(status->nacks) > 0) {
+		p = oset_slprintf(p, last, ", NACK_SN = ");
+		for (uint32_t i = 0; i < cvector_size(status->nacks); ++i) {
+		  if (status->nacks[i].has_nack_range) {
+		    if (status->nacks[i].has_so) {
+		      p = oset_slprintf(p, last, 
+		                     "[%u %u:%u r%u]",
+		                     status->nacks[i].nack_sn,
+		                     status->nacks[i].so_start,
+		                     status->nacks[i].so_end,
+		                     status->nacks[i].nack_range);
+		    } else {
+		      p = oset_slprintf(p, last, "[%u r%u]", status->nacks[i].nack_sn, status->nacks[i].nack_range);
+		    }
+		  } else {
+		    if (status->nacks[i].has_so) {
+		      p = oset_slprintf(p, last, "[%u %u:%u]", status->nacks[i].nack_sn, status->nacks[i].so_start, status->nacks[i].so_end);
+		    } else {
+		      p = oset_slprintf(p, last, "[%u]", status->nacks[i].nack_sn);
+		    }
+		  }
+		}
+	}
+	oset_debug("%s: %s status PDU - %s", rb_name, string, buffer);
+}
+
+static void rlc_am_nr_status_pdu_reset(rlc_am_nr_status_pdu_t *status)
+{
+	status->cpt   = (rlc_am_nr_control_pdu_type_t)status_pdu;
+	status->ack_sn = INVALID_RLC_SN;
+	cvector_clear(status->nacks);//cvector_clear
+	status->packed_size = rlc_am_nr_status_pdu_sizeof_header_ack_sn;
+}
+
+static bool rlc_am_nr_status_pdu_is_continuous_sequence(rlc_am_nr_status_pdu_t *status, rlc_status_nack_t prev, rlc_status_nack_t now)
+{
+  // SN must be continuous
+  if (now.nack_sn != ((prev.has_nack_range ? prev.nack_sn + prev.nack_range : (prev.nack_sn + 1)) % status->mod_nr)) {
+    return false;
+  }
+
+  // Segments on left side (if present) must reach the end of sdu
+  if (prev.has_so && prev.so_end != so_end_of_sdu) {
+    return false;
+  }
+
+  // Segments on right side (if present) must start from the beginning
+  if (now.has_so && now.so_start != 0) {
+    return false;
+  }
+
+  return true;
+}
+
+static uint32_t rlc_am_nr_status_pdu_nack_size(rlc_am_nr_status_pdu_t *status, rlc_status_nack_t nack)
+{
+	///////////////////////////////////////////////////////////////////////////
+	// D/C: AM报文包含两大类，一个是数据报文(1)，一个是控制报文(0)
+	// CPT: 字段是为了标识不同种类的控制报文，当前为000
+	// ACK_SN: 此序列号及之后的报文没有被接收到，也没有明确告知没有接收到
+	// E1: 表示后面是否跟随一个NACK_SN/E1/E2/E3字段。 跟随(1)
+	// NACK_SN: 标示丢失没有收到的报文
+	// E2: 标识是否跟随有SoStart和SoEnd。主要用于报文的不完整接收场景的处理
+	// E3: 字段表示后面是否跟着关于一连串RLC SDU未被接收的消息。是否有range字段
+	// NACK range: 字段表示从NACK_SN开始(包括NACK_SN)，有几个连续的RLC SDU丢失
+	// SOstart, Soend. 表示被RLC接收端发现丢失的SN=NACK_SN的SDU的某个部分。SOstart的值表示该丢失的SDU部分在原始SDU中的哪一个byte处开始.Soend表示哪个byte结束
+
+	// acK (sn 12 bit)						acK (sn 18 bit)
+	// |D/C|CPT | ACK_SN  | 				|D/C|CPT |	  ACK_SN   |
+	// |	 ACK_SN 	  | 				|		  ACK_SN	   |
+	// | E1 |R|R|R|R|R|R|R| 				|  ACK_SN		  |E1|R|
+	// |	 NACK_SN	  | 				|		  NACK_SN	   |
+	// |NACK_SN|E1|E2|E3|R| 				|		  NACK_SN	   |
+	// |	 NACK_SN	  | 				|NACK_SN|E1|E2|E3|R|R|R|
+	// |NACK_SN|E1|E2|E3|R| 				|		  NACK_SN	   |
+	// |	 SOstart	  | 				|		  NACK_SN	   |
+	// |	 SOstart	  | 				|NACK_SN|E1|E2|E3|R|R|R|
+	// |	 SOend		  | 				|		  SOstart	   |
+	// |	 SOend		  | 				|		  SOstart	   |
+	// |	 NACK_range   | 				|		  SOend 	   |
+	// |	 NACK_SN	  | 				|		  SOend 	   |
+	// |NACK_SN|E1|E2|E3|R| 				|		  NACK_range   |
+	// |	  ...		  | 				|		  NACK_SN	   |
+	//										|		  NACK_SN	   |
+	//										|NACK_SN|E1|E2|E3|R|R|R|
+	//	
+
+	uint32_t result = status->sn_size == (rlc_am_nr_sn_size_t)size12bits ? rlc_am_nr_status_pdu_sizeof_nack_sn_ext_12bit_sn
+	                                                                     : rlc_am_nr_status_pdu_sizeof_nack_sn_ext_18bit_sn;
+	if (nack.has_so) {
+		result += rlc_am_nr_status_pdu_sizeof_nack_so;
+	}
+	if (nack.has_nack_range) {
+		result += rlc_am_nr_status_pdu_sizeof_nack_range;
+	}
+	return result;
+}
+
+
+static void rlc_am_nr_status_pdu_push_nack(rlc_am_nr_status_pdu_t *status, rlc_status_nack_t nack)
+{  
+
+  if (cvector_size(status->nacks) == 0) {
+	cvector_push_back(status->nacks, nack);
+    status->packed_size += rlc_am_nr_status_pdu_nack_size(status, nack);
+    return;
+  }
+
+  rlc_status_nack_t *prev = cvector_back(status->nacks);
+  //sn连续判断
+  if (rlc_am_nr_status_pdu_is_continuous_sequence(status, *prev, nack) == false) {
+    cvector_push_back(status->nacks, nack);
+    status->packed_size += rlc_am_nr_status_pdu_nack_size(status, nack);
+    return;
+  }
+
+  // sn连续
+  // expand previous NACK
+  // subtract size of previous NACK (add updated size later)
+  status->packed_size -= rlc_am_nr_status_pdu_nack_size(status, *prev);
+
+  // enable and update NACK range
+  if (nack.has_nack_range == true) {
+    if (prev->has_nack_range == true) {
+      // [NACK range][NACK range]
+      prev->nack_range += nack.nack_range;
+    } else {
+      // [NACK SDU][NACK range]
+      prev->nack_range     = nack.nack_range + 1;
+      prev->has_nack_range = true;
+    }
+  } else {
+    if (prev->has_nack_range == true) {
+      // [NACK range][NACK SDU]
+      prev->nack_range++;
+    } else {
+      // [NACK SDU][NACK SDU]
+      prev->nack_range     = 2;
+      prev->has_nack_range = true;
+    }
+  }
+
+  // enable and update segment offsets (if required)
+  if (nack.has_so == true) {
+    if (prev->has_so == false) {
+      // [NACK SDU][NACK segm]
+      prev->has_so   = true;
+      prev->so_start = 0;
+    }
+    // [NACK SDU][NACK segm] or [NACK segm][NACK segm]
+    prev->so_end = nack.so_end;
+  } else {
+    if (prev->has_so == true) {
+      // [NACK segm][NACK SDU]
+      prev->so_end = so_end_of_sdu;
+    }
+    // [NACK segm][NACK SDU] or [NACK SDU][NACK SDU]
+  }
+
+  // add updated size
+  status->packed_size += rlc_am_nr_status_pdu_nack_size(status, *prev);
+}
+
+static bool rlc_am_nr_status_pdu_trim(rlc_am_nr_status_pdu_t *status, uint32_t max_packed_size)
+{
+  if (max_packed_size >= status->packed_size) {
+    // no trimming required
+    return true;
+  }
+  if (max_packed_size < rlc_am_nr_status_pdu_sizeof_header_ack_sn) {
+    // too little space for smallest possible status PDU (only header + ACK).
+    return false;
+  }
+
+  // remove NACKs (starting from the back) until it fits into given space
+  // note: when removing a NACK for a segment, we have to remove all other NACKs with the same SN as well,
+  // see TS 38.322 Sec. 5.3.4:
+  //   "set the ACK_SN to the SN of the next not received RLC SDU
+  //   which is not indicated as missing in the resulting STATUS PDU."
+  rlc_status_nack_t *back =  NULL;
+  while (cvector_size(status->nacks) > 0 &&\
+  			back =  cvector_back(status->nacks) &&\
+  			(status->packed_size > max_packed_size || back->nack_sn == status->ack_sn)) {
+    status->packed_size -= rlc_am_nr_status_pdu_push_nack(status, *back);
+    status->ack_sn = back->nack_sn;
+  	cvector_pop_back(status->nacks);
+  }
+  return true;
+}
+
+///////////////////////////////////////////////////////////////////////////
+// D/C: AM报文包含两大类，一个是数据报文(1)，一个是控制报文(0)
+// CPT: 字段是为了标识不同种类的控制报文，当前为000
+// ACK_SN: 此序列号及之后的报文没有被接收到，也没有明确告知没有接收到
+// E1: 表示后面是否跟随一个NACK_SN/E1/E2/E3字段。 跟随(1)
+// NACK_SN: 标示丢失没有收到的报文
+// E2: 标识是否跟随有SoStart和SoEnd。主要用于报文的不完整接收场景的处理
+// E3: 字段表示后面是否跟着关于一连串RLC SDU未被接收的消息。是否有range字段
+// NACK range: 字段表示从NACK_SN开始(包括NACK_SN)，有几个连续的RLC SDU丢失
+// SOstart, Soend. 表示被RLC接收端发现丢失的SN=NACK_SN的SDU的某个部分。SOstart的值表示该丢失的SDU部分在原始SDU中的哪一个byte处开始.Soend表示哪个byte结束
+
+// acK (sn 12 bit)						acK (sn 18 bit)
+// |D/C|CPT | ACK_SN  | 				|D/C|CPT |	  ACK_SN   |
+// |	 ACK_SN 	  | 				|		  ACK_SN	   |
+// | E1 |R|R|R|R|R|R|R| 				|  ACK_SN		  |E1|R|
+// |	 NACK_SN	  | 				|		  NACK_SN	   |
+// |NACK_SN|E1|E2|E3|R| 				|		  NACK_SN	   |
+// |	 NACK_SN	  | 				|NACK_SN|E1|E2|E3|R|R|R|
+// |NACK_SN|E1|E2|E3|R| 				|		  NACK_SN	   |
+// |	 SOstart	  | 				|		  NACK_SN	   |
+// |	 SOstart	  | 				|NACK_SN|E1|E2|E3|R|R|R|
+// |	 SOend		  | 				|		  SOstart	   |
+// |	 SOend		  | 				|		  SOstart	   |
+// |	 NACK_range   | 				|		  SOend 	   |
+// |	 NACK_SN	  | 				|		  SOend 	   |
+// |NACK_SN|E1|E2|E3|R| 				|		  NACK_range   |
+// |	  ...		  | 				|		  NACK_SN	   |
+//										|		  NACK_SN	   |
+//										|NACK_SN|E1|E2|E3|R|R|R|
+//	
+static int32_t rlc_am_nr_write_status_pdu_12bit_sn(rlc_am_nr_status_pdu_t *status_pdu, byte_buffer_t* pdu)
+{
+  uint8_t *ptr = pdu->msg;
+
+  // fixed header part
+  *ptr = 0; ///< 1 bit D/C field and 3bit CPT are all zero
+
+  // write first 4 bit of ACK_SN
+  *ptr |= (status_pdu->ack_sn >> 8) & 0x0f; // 4 bit ACK_SN
+  ptr++;
+  *ptr = status_pdu->ack_sn & 0xff; // remaining 8 bit of SN
+  ptr++;
+
+  // write E1 flag in octet 3
+  if (cvector_size(status_pdu->nacks) > 0) {
+    *ptr = 0x80;
+  } else {
+    *ptr = 0x00;
+  }
+  ptr++;
+
+  if (cvector_size(status_pdu->nacks) > 0) {
+    for (uint32_t i = 0; i < cvector_size(status_pdu->nacks); i++) {
+      // write first 8 bit of NACK_SN
+      *ptr = (status_pdu->nacks[i].nack_sn >> 4) & 0xff;
+      ptr++;
+
+      // write remaining 4 bits of NACK_SN
+      *ptr = (status_pdu->nacks[i].nack_sn & 0x0f) << 4;
+      // Set E1 if necessary
+      if (i < (uint32_t)(cvector_size(status_pdu->nacks) - 1)) {
+        *ptr |= 0x08;
+      }
+
+      if (status_pdu->nacks[i].has_so) {
+        // Set E2
+        *ptr |= 0x04;
+      }
+
+      if (status_pdu->nacks[i].has_nack_range) {
+        // Set E3
+        *ptr |= 0x02;
+      }
+
+      ptr++;
+      if (status_pdu->nacks[i].has_so) {
+        (*ptr) = status_pdu->nacks[i].so_start >> 8;
+        ptr++;
+        (*ptr) = status_pdu->nacks[i].so_start;
+        ptr++;
+        (*ptr) = status_pdu->nacks[i].so_end >> 8;
+        ptr++;
+        (*ptr) = status_pdu->nacks[i].so_end;
+        ptr++;
+      }
+      if (status_pdu->nacks[i].has_nack_range) {
+        (*ptr) = status_pdu->nacks[i].nack_range;
+        ptr++;
+      }
+    }
+  }
+
+  pdu->N_bytes = ptr - pdu->msg;
+
+  return OSET_OK;
+}
+
+static int32_t rlc_am_nr_write_status_pdu_18bit_sn(rlc_am_nr_status_pdu_t *status_pdu, byte_buffer_t* pdu)
+{
+  uint8_t* ptr = pdu->msg;
+
+  // fixed header part
+  *ptr = 0; ///< 1 bit D/C field and 3bit CPT are all zero
+
+  *ptr |= (status_pdu->ack_sn >> 14) & 0x0F; // upper 4 bits of SN
+  ptr++;
+  *ptr = (status_pdu->ack_sn >> 6) & 0xFF; // center 8 bits of SN
+  ptr++;
+  *ptr = (status_pdu->ack_sn << 2) & 0xFC; // lower 6 bits of SN
+
+  // set E1 flag if necessary
+  if (cvector_size(status_pdu->nacks) > 0) {
+    *ptr |= 0x02;
+  }
+  ptr++;
+
+  if (cvector_size(status_pdu->nacks) > 0) {
+    for (uint32_t i = 0; i < cvector_size(status_pdu->nacks); i++) {
+      *ptr = (status_pdu->nacks[i].nack_sn >> 10) & 0xFF; // upper 8 bits of SN
+      ptr++;
+      *ptr = (status_pdu->nacks[i].nack_sn >> 2) & 0xFF; // center 8 bits of SN
+      ptr++;
+      *ptr = (status_pdu->nacks[i].nack_sn << 6) & 0xC0; // lower 2 bits of SN
+
+      if (i < (uint32_t)(cvector_size(status_pdu->nacks) - 1)) {
+        *ptr |= 0x20; // Set E1
+      }
+      if (status_pdu->nacks[i].has_so) {
+        *ptr |= 0x10; // Set E2
+      }
+      if (status_pdu->nacks[i].has_nack_range) {
+        *ptr |= 0x08; // Set E3
+      }
+
+      ptr++;
+      if (status_pdu->nacks[i].has_so) {
+        (*ptr) = status_pdu->nacks[i].so_start >> 8;
+        ptr++;
+        (*ptr) = status_pdu->nacks[i].so_start;
+        ptr++;
+        (*ptr) = status_pdu->nacks[i].so_end >> 8;
+        ptr++;
+        (*ptr) = status_pdu->nacks[i].so_end;
+        ptr++;
+      }
+      if (status_pdu->nacks[i].has_nack_range) {
+        (*ptr) = status_pdu->nacks[i].nack_range;
+        ptr++;
+      }
+    }
+  }
+
+  pdu->N_bytes = ptr - pdu->msg;
+
+  return OSET_OK;
+}
+
+
+/**
+ * Write a RLC AM NR status PDU to a PDU buffer and eets the length of the generate PDU accordingly
+ * @param status_pdu The status PDU
+ * @param pdu A pointer to a unique bytebuffer
+ * @return OSET_OK if PDU was written, SRSRAN_ERROR otherwise
+ */
+static int32_t rlc_am_nr_write_status_pdu(rlc_am_nr_status_pdu_t *status_pdu,
+                                   rlc_am_nr_sn_size_t     sn_size,
+                                   byte_buffer_t*          pdu)
+{
+  if (sn_size == (rlc_am_nr_sn_size_t)size12bits) {
+    return rlc_am_nr_write_status_pdu_12bit_sn(status_pdu, pdu);
+  } else { // 18bit SN
+    return rlc_am_nr_write_status_pdu_18bit_sn(status_pdu, pdu);
+  }
+}
 
 #if AM_RXTX
 /*static int modulus_tx(nr_rlc_entity_am_t *entity, int a)
@@ -197,7 +529,12 @@ static uint32_t rlc_am_base_tx_build_status_pdu(rlc_am_base_tx *base_tx, byte_bu
 
 	RlcInfo("generating status PDU. Bytes available:%d", nof_bytes);
 
-	rlc_am_nr_status_pdu_t status = {.sn_size = base_tx->cfg.rx_sn_field_length,};// carries status of RX entity, hence use SN length of RX
+	rlc_am_nr_status_pdu_t status = {
+									 .mod_nr = cardinality(base_tx->cfg.rx_sn_field_length);
+									 .sn_size = base_tx->cfg.rx_sn_field_length,
+									};
+	cvector_reserve(status.nacks, RLC_AM_NR_TYP_NACKS)
+
 	int pdu_len = rlc_am_base_rx_get_status_pdu(&rx->base_rx, &status, nof_bytes);
 	if (pdu_len == OSET_ERROR) {
 		RlcDebug("deferred status PDU. Cause: Failed to acquire rx lock");
@@ -205,7 +542,7 @@ static uint32_t rlc_am_base_tx_build_status_pdu(rlc_am_base_tx *base_tx, byte_bu
 	} else if (pdu_len > 0 && nof_bytes >= pdu_len)) {
 		RlcDebug("generated status PDU. Bytes:%d", pdu_len);
 		log_rlc_am_nr_status_pdu_to_string("Tx" ,&status, base_tx->rb_name);
-		pdu_len = rlc_am_nr_write_status_pdu(status, base_tx->cfg.tx_sn_field_length, payload);
+		pdu_len = rlc_am_nr_write_status_pdu(&status, base_tx->cfg.tx_sn_field_length, payload);
 	} else {
 		RlcInfo("cannot tx status PDU - %d bytes available, %d bytes required", nof_bytes, pdu_len);
 		pdu_len = 0;
@@ -529,7 +866,6 @@ static int rlc_amd_rx_pdu_nr_cmp(rlc_amd_rx_pdu_nr *a, rlc_amd_rx_pdu_nr *b)
 		return 1;
 };
 
-
 static rlc_amd_rx_sdu_nr_t* rx_window_has_sn(rlc_am_nr_rx *rx, uint32_t sn)
 {
   /* as per 38.322 7.1, modulus base is rx_next */
@@ -637,26 +973,30 @@ uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_base_rx *base_rx, rlc_am_nr_status
         rlc_status_nack_t nack = {0};
         nack.nack_sn = i;
         nack.has_so  = false;
-		cvector_push_back(status->nacks, nack)
+		rlc_am_nr_status_pdu_push_nack(status, nack);
       } else if (!rx_node->fully_received) {
         // Some segments were received, but not all.
         // NACK non consecutive missing bytes
         RlcDebug("Adding NACKs for segmented SDU. NACK SN=%d", i);
         uint32_t last_so         = 0;
         bool     last_segment_rx = false;
-        for (rlc_amd_rx_pdu_nr *segm = rx_node->segments.begin(); segm != rx_node->segments.end(); segm++) {
+		rlc_amd_rx_pdu_nr  *segm = NULL;
+		oset_list_for_each(&rx_node->segments, segm){
+		  // 如果不缺失按道理segm->header.so == last_so
           if (segm->header.so != last_so) {
             // Some bytes were not received
-            rlc_status_nack_t nack;
+            rlc_status_nack_t nack = {0};
             nack.nack_sn  = i;
             nack.has_so   = true;
             nack.so_start = last_so;
-            nack.so_end   = segm->header.so - 1; // set to last missing byte
-            status->push_nack(nack);
+			// set to last missing byte 
+            nack.so_end   = segm->header.so - 1; //segm->header.so为下一个开始，所以so_end=so-1
+            rlc_am_nr_status_pdu_push_nack(status, nack);
+
             if (nack.so_start > nack.so_end) {
               // Print segment list
-              for (auto segm_it = (*rx_window)[i].segments.begin(); segm_it != (*rx_window)[i].segments.end();
-                   segm_it++) {
+              rlc_amd_rx_pdu_nr  *segm_it = NULL;
+			  oset_list_for_each(&rx_node->segments, segm_it){
                 RlcError("Segment: segm.header.so=%d, segm.buf.N_bytes=%d", segm_it->header.so, segm_it->buf->N_bytes);
               }
               RlcError("Error: SO_start=%d > SO_end=%d. NACK_SN=%d. SO_start=%d, SO_end=%d, seg.so=%d",
@@ -666,7 +1006,7 @@ uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_base_rx *base_rx, rlc_am_nr_status
                        nack.so_start,
                        nack.so_end,
                        segm->header.so);
-              srsran_assert(nack.so_start <= nack.so_end,
+              ASSERT_IF_NOT(nack.so_start <= nack.so_end,
                             "Error: SO_start=%d > SO_end=%d. NACK_SN=%d",
                             nack.so_start,
                             nack.so_end,
@@ -678,21 +1018,25 @@ uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_base_rx *base_rx, rlc_am_nr_status
                        nack.so_end);
             }
           }
-          if (segm->header.si == rlc_nr_si_field_t::last_segment) {
+
+          if (segm->header.si == (rlc_nr_si_field_t)last_segment) {
             last_segment_rx = true;
           }
+
           last_so = segm->header.so + segm->buf->N_bytes;
         } // Segment loop
+
+		// Final segment missing
         if (!last_segment_rx) {
-          rlc_status_nack_t nack;
+          rlc_status_nack_t nack = {0};
           nack.nack_sn  = i;
           nack.has_so   = true;
           nack.so_start = last_so;
-          nack.so_end   = rlc_status_nack_t::so_end_of_sdu;
-          status->push_nack(nack);
+          nack.so_end   = so_end_of_sdu;
+          rlc_am_nr_status_pdu_push_nack(status, nack);
           RlcDebug(
               "Final segment missing. NACK_SN=%d. SO_start=%d, SO_end=%d", nack.nack_sn, nack.so_start, nack.so_end);
-          srsran_assert(nack.so_start <= nack.so_end, "Error: SO_start > SO_end. NACK_SN=%d", nack.nack_sn);
+          ASSERT_IF_NOT(nack.so_start <= nack.so_end, "Error: SO_start > SO_end. NACK_SN=%d", nack.nack_sn);
         }
       }
     }
@@ -707,19 +1051,20 @@ uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_base_rx *base_rx, rlc_am_nr_status
   // trim PDU if necessary
   if (status->packed_size > max_len) {
     RlcInfo("Trimming status PDU with %d NACKs and packed_size=%d into max_len=%d",
-            status->nacks.size(),
+            cvector_size(status->nacks),
             status->packed_size,
             max_len);
     log_rlc_am_nr_status_pdu_to_string("Untrimmed", status, base_rx->rb_name);
-    if (! status->trim(max_len)) {
+    if (!rlc_am_nr_status_pdu_trim(status, max_len)) {
       RlcError("Failed to trim status PDU into provided space: max_len=%d", max_len);
     }
   }
 
   if (max_len != UINT32_MAX) {
     // UINT32_MAX is used just to query the status PDU length
-    if (rx->status_prohibit_timer.is_valid()) {
-      rx->status_prohibit_timer.run();
+    // t-StatusProhibit 定时器（防止频繁上报）
+    if (rx->status_prohibit_timer) {
+	  gnb_timer_start(rx->status_prohibit_timer, base_rx->cfg.t_status_prohibit);
     }
     base_rx->do_status = false;
   }
@@ -729,6 +1074,18 @@ uint32_t rlc_am_base_rx_get_status_pdu(rlc_am_base_rx *base_rx, rlc_am_nr_status
   return status->packed_size;
 }
 
+uint32_t rlc_am_base_rx_get_status_pdu_length(rlc_am_base_rx *base_rx)
+{
+	rlc_am_nr_status_pdu_t tmp_status = {
+									 .mod_nr = cardinality(base_rx->cfg.rx_sn_field_length);
+									 .sn_size = base_rx->cfg.rx_sn_field_length,
+									};
+	cvector_reserve(tmp_status.nacks, RLC_AM_NR_TYP_NACKS);
+
+	rlc_am_base_rx_get_status_pdu(base_rx, &tmp_status, UINT32_MAX);
+	cvector_free(tmp_status.nacks);
+	return tmp_status.packed_size;
+}
 
 static uint32_t rlc_am_base_rx_get_sdu_rx_latency_ms(rlc_am_base_rx *base_rx)
 {
