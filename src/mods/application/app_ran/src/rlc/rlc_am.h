@@ -208,10 +208,10 @@ typedef struct rlc_am_nr_tx_s{
    ***************************************************************************/
   rlc_am_nr_tx_state_t   st;
 
-  oset_hash_t      *tx_window;//rlc_amd_tx_pdu_nr//记录重传
+  oset_hash_t      *tx_window;//rlc_amd_tx_pdu_nr//记录新传和重传
   // Queues, buffers and container
   oset_list_t      retx_queue;//rlc_amd_retx_nr_t
-  uint32_t         sdu_under_segmentation_sn; //= INVALID_RLC_SN // SN of the SDU currently being segmented.
+  uint32_t         sdu_under_segmentation_sn; //= INVALID_RLC_SN // SN of the SDU currently being segmented.// 当前正在分段处理的sn
   pdcp_sn_vector_t notify_info_vec;
 
   uint32_t		  mod_nr;

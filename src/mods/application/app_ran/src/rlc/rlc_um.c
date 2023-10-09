@@ -160,6 +160,8 @@ static uint32_t rlc_um_nr_read_data_pdu_header(uint8_t  *            payload,
 }
 
 /////////////////////////////////rx/////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
+
 /*static int modulus_rx(nr_rlc_entity_um_t *entity, int a)
 {
 	// as per 38.322 7.1, modulus base is rx_next_highest - window_size
@@ -222,8 +224,8 @@ static void update_total_sdu_length(rlc_umd_pdu_segments_nr_t *pdu_segments,
                                              rlc_umd_pdu_nr_t *rx_pdu)
 {
 	if (rx_pdu->header.si == (rlc_nr_si_field_t)last_segment) {
-	pdu_segments->total_sdu_length = rx_pdu->header.so + rx_pdu->buf->N_bytes;
-	RlcDebug("updating total SDU length for SN=%d to %d B", rx_pdu.header.sn, pdu_segments.total_sdu_length);
+		pdu_segments->total_sdu_length = rx_pdu->header.so + rx_pdu->buf->N_bytes;
+		RlcDebug("updating total SDU length for SN=%d to %d B", rx_pdu.header.sn, pdu_segments.total_sdu_length);
 	}
 }
 
