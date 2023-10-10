@@ -24,8 +24,8 @@ uint32_t rlc_am_base_rx_get_status_pdu_length(rlc_am_base_rx *base_rx);
 // SN: 编号
 // D/C: AM报文包含两大类，一个是数据报文(1)，一个是控制报文(0)
 // SI:  full_sdu 0b00, first_segment 0b01, last_segment 0b10, neither_first_nor_last_segment 0b11
-// P: P字段是为重传而准备的, 回复状态状告(1), 不需要回复状态报告(0)
-// SO: 用于指示RLC SDU segment在原始RLC SDU中的位置，以byte为单位
+// P(polling): P字段是为重传而准备的, 回复状态状告(1), 不需要回复状态报告(0)
+// SO: 用于指示RLC SDU segment在原始RLC SDU中的位置，以byte为单位, 携带RLC SDU第一个分段的UMD PDU不需要SO域
 
 // no so(sn 12 bit)                     no so(sn 18 bit)
 // |D/C|P|SI | SN   |                   |D/C|P|SI|R|R| SN |   
@@ -73,6 +73,107 @@ uint32_t rlc_am_base_rx_get_status_pdu_length(rlc_am_base_rx *base_rx);
 //                                      |NACK_SN|E1|E2|E3|R|R|R|
 //                                      |          ...         |
 ////////////////////////////////////////////////////////////////////////////////
+static void log_rlc_am_nr_pdu_header_to_string(rlc_am_nr_pdu_header_t *header, char *rb_name)
+{
+	char buffer[512] = {0};
+	char *p = NULL, *last = NULL;
+
+	last = buffer + 512;
+	p = buffer;
+
+	p = oset_slprintf(p, last, 
+	             "%s: [%s, P=%s, SI=%s, SN_SIZE=%s, SN=%u, SO=%u",
+	             rb_name,
+	             rlc_dc_field_text[header->dc],
+	             (header->p ? "1" : "0"),
+	             rlc_nr_si_field_to_string(header->si),
+	             rlc_am_nr_sn_size_to_string(header->sn_size),
+	             header->sn,
+	             header->so);
+	p = oset_slprintf(p, last, "]");
+
+	oset_debug("%s", buffer);
+}
+
+static uint32_t rlc_am_nr_packed_length(rlc_am_nr_pdu_header_t *header)
+{
+  uint32_t len = 0;
+  if (header->si == (rlc_nr_si_field_t)full_sdu || header->si == (rlc_nr_si_field_t)first_segment) {
+    len = 2;
+    if (header->sn_size == (rlc_am_nr_sn_size_t)size18bits) {
+      len++;
+    }
+  } else {
+    // PDU contains SO
+    len = 4;
+    if (header->sn_size == (rlc_am_nr_sn_size_t)size18bits) {
+      len++;
+    }
+  }
+  return len;
+}
+
+static uint32_t write_data_pdu_header(rlc_am_nr_pdu_header_t *header, uint8_t *payload)
+{
+	// no so(sn 12 bit) 					no so(sn 18 bit)
+	// |D/C|P|SI | SN	|					|D/C|P|SI|R|R| SN |   
+	// |	  SN		|					|	   SN		  |
+	// |	  Data		|					|	   SN		  |
+	// |	  ...		|					|	   Data 	  |
+
+	// 携带RLC SDU第一个分段的UMD PDU不需要SO域
+
+	
+	// with so(sn 12 bit)					with so(sn 18 bit)
+	// |D/C|P|SI | SN	|					|D/C|P|SI|R|R| SN |
+	// |	  SN		|					|	   SN		  |
+	// |	  SO		|					|	   SN		  |
+	// |	  SO		|					|	   SO		  |
+	// |	  Data		|					|	   SO		  |
+	// |	  ...		|					|	   Data 	  |
+
+	uint8_t *ptr = payload;
+
+	// fixed header part
+	*ptr = (header->dc & 0x01) << 7;  ///< 1 bit D/C field
+	*ptr |= (header->p & 0x01) << 6;  ///< 1 bit P flag
+	*ptr |= (header->si & 0x03) << 4; ///< 2 bits SI
+
+	if (header->sn_size == (rlc_am_nr_sn_size_t)size12bits) {
+		// write first 4 bit of SN
+		*ptr |= (header->sn >> 8) & 0x0f; // 4 bit SN
+		ptr++;
+		*ptr = header->sn & 0xff; // remaining 8 bit of SN
+		ptr++;
+	} else {
+		// 18bit SN
+		*ptr |= (header->sn >> 16) & 0x3; // 2 bit SN
+		ptr++;
+		*ptr = header->sn >> 8; // bit 3 - 10 of SN
+		ptr++;
+		*ptr = (header->sn & 0xff); // remaining 8 bit of SN
+		ptr++;
+	}
+
+	if (header->so) {
+		// write SO
+		*ptr = header->so >> 8; // first part of SO
+		ptr++;
+		*ptr = (header->so & 0xff); // second part of SO
+		ptr++;
+	}
+	return rlc_am_nr_packed_length(header);
+}
+
+static uint32_t rlc_am_nr_write_data_pdu_header(rlc_am_nr_pdu_header_t *header, byte_buffer_t* pdu)
+{
+  // Make room for the header
+  uint32_t len = rlc_am_nr_packed_length(header);
+  pdu->msg -= len;
+  pdu->N_bytes += len;
+  write_data_pdu_header(header, pdu->msg);
+  return len;
+}
 
 /////////////////////////////status/////////////////////////////////////////////
 static void log_rlc_am_nr_status_pdu_to_string(char *string, rlc_am_nr_status_pdu_t *status, char *rb_name)
@@ -475,6 +576,7 @@ static void empty_queue_no_lock(rlc_am_base_tx *base_tx)
 	oset_list_for_each_safe(&base_tx->tx_sdu_queue, next_node, node){
 			byte_buffer_t *sdu = node->buffer;
 			oset_list_remove(&base_tx->tx_sdu_queue, node);
+			oset_free(node);
 			oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
 			base_tx->unread_bytes -= sdu->N_bytes;
 			oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
@@ -492,6 +594,109 @@ static void empty_queue(rlc_am_base_tx *base_tx)
 	oset_thread_mutex_unlock(&base_tx->mutex);
 }
 
+// polling的目的：发送端获取接收端的RLC PDU接收状态，从而进行数据重传；
+
+// polling的触发条件：
+// 累计传输AMD PDU（不包括重传）个数不小于预设阈值，即PDU_WITHOUT_POLL >= pollPDU；
+// 累计传输AMD PDU（不包括重传）总字节数不小于预设阈值，即BYTE_WITHOUT_POLL >= pollByte；
+// 传输完当前AMD PDU后传输buffer和重传buffer（等待ACK/NACK的RLC SDU或RLC SDU segment 除外）为空；
+// 传输完当前AMD PDU后不能再传输新的AMD PDU（如，传输窗口stalling）
+
+// t-PollRetransmit 定时器：
+// P域设置为“1”的AMD PDU递交下层后，启动或重启t-PollRetransmit定时器，并记录POLL_SN；
+// 当接收到反馈(NACK/ACK)的AMD PDU SN等于POLL_SN时，停止t-PollRetransmit定时器；
+// 当t-PollRetransmit定时器超时，如果没有待发数据，考虑重传POLL_SN对应的AMD PDU，同时设置P域；或者重传指示为NACK的AMD PDU并设置P域：
+
+/*
+ * Check whether the polling bit needs to be set, as specified in
+ * TS 38.322, section 5.3.3.2
+ */
+uint8_t get_pdu_poll(rlc_am_base_tx *base_tx, uint32_t sn, bool is_retx, uint32_t sdu_bytes)
+{
+  rlc_am_nr_tx *tx = base_tx->tx;
+  rlc_am_base *base = base_tx->base;
+
+  RlcDebug("Checking poll bit requirements for PDU. SN=%d, retx=%s, sdu_bytes=%d, POLL_SN=%d",
+           sn,
+           is_retx ? "true" : "false",
+           sdu_bytes,
+           tx->st.poll_sn);
+  /* For each AMD PDU or AMD PDU segment that has not been previoulsy tranmitted:
+   * - increment PDU_WITHOUT_POLL by one;
+   * - increment BYTE_WITHOUT_POLL by every new byte of Data field element that it maps to the Data field of the AMD
+   * PDU;
+   *   - if PDU_WITHOUT_POLL >= pollPDU; or
+   *   - if BYTE_WITHOUT_POLL >= pollByte:
+   *   	- include a poll in the AMD PDU as described below.
+   */
+	// 累计传输AMD PDU（不包括重传）个数不小于预设阈值，即PDU_WITHOUT_POLL >= pollPDU；
+	// 累计传输AMD PDU（不包括重传）总字节数不小于预设阈值，即BYTE_WITHOUT_POLL >= pollByte；
+  uint8_t poll = 0;
+  if (!is_retx) {
+    tx->st.pdu_without_poll++;
+    tx->st.byte_without_poll += sdu_bytes;
+    if (base_tx->cfg.poll_pdu > 0 && tx->st.pdu_without_poll >= (uint32_t)base_tx->cfg.poll_pdu) {
+      poll = 1;
+      RlcDebug("Setting poll bit due to PollPDU. SN=%d, POLL_SN=%d", sn, tx->st.poll_sn);
+    }
+    if (base_tx->cfg.poll_byte > 0 && tx->st.byte_without_poll >= (uint32_t)base_tx->cfg.poll_byte) {
+      poll = 1;
+      RlcDebug("Setting poll bit due to PollBYTE. SN=%d, POLL_SN=%d", sn, tx->st.poll_sn);
+    }
+  }
+
+  /*
+   * - if both the transmission buffer and the retransmission buffer becomes empty
+   *   (excluding transmitted RLC SDUs or RLC SDU segments awaiting acknowledgements)
+   *   after the transmission of the AMD PDU; or
+   * - if no new RLC SDU can be transmitted after the transmission of the AMD PDU (e.g. due to window stalling);
+   *   - include a poll in the AMD PDU as described below.
+   */
+  // 传输完当前AMD PDU后传输buffer和重传buffer（等待ACK/NACK的RLC SDU或RLC SDU segment 除外）为空；
+  // 传输完当前AMD PDU后不能再传输新的AMD PDU（如，传输窗口stalling）
+  if (oset_list_empty(&base_tx->tx_sdu_queue) && oset_list_empty(&tx->retx_queue) && tx->sdu_under_segmentation_sn == INVALID_RLC_SN) ||
+      oset_hash_count(tx->tx_window) > base->cfg.tx_queue_length) {
+    RlcDebug("Setting poll bit due to empty buffers/inablity to TX. SN=%d, POLL_SN=%d", sn, tx->st.poll_sn);
+    poll = 1;
+  }
+
+  /*
+   * - If poll bit is included:
+   *     - set PDU_WITHOUT_POLL to 0;
+   *     - set BYTE_WITHOUT_POLL to 0.
+   */
+  if (poll == 1) {
+    tx->st.pdu_without_poll  = 0;
+    tx->st.byte_without_poll = 0;
+    /*
+     * - set POLL_SN to the highest SN of the AMD PDU among the AMD PDUs submitted to lower layer;
+     * - if t-PollRetransmit is not running:
+     *   - start t-PollRetransmit.
+     * - else:
+     *   - restart t-PollRetransmit.
+     */
+
+	// t-PollRetransmit 定时器：
+	// P域设置为“1”的AMD PDU递交下层后，启动或重启t-PollRetransmit定时器，并记录POLL_SN；
+	// 当接收到反馈(NACK/ACK)的AMD PDU SN等于POLL_SN时，停止t-PollRetransmit定时器；
+	// 当t-PollRetransmit定时器超时，如果没有待发数据，考虑重传POLL_SN对应的AMD PDU，同时设置P域；或者重传指示为NACK的AMD PDU并设置P域：
+
+    if (!is_retx) {
+      // This is not an RETX, but a new transmission
+      // As such it should be the highest SN submitted to the lower layers
+      tx->st.poll_sn = sn;
+      RlcDebug("Setting new POLL_SN. POLL_SN=%d", sn);
+    }
+
+    if (base_tx->cfg.t_poll_retx > 0) {
+	  gnb_timer_start(tx->poll_retransmit_timer, base_tx->cfg.t_poll_retx);
+      RlcInfo("Started t-PollRetransmit. POLL_SN=%d", tx->st.poll_sn);
+    }
+  }
+  return poll;
+}
+
+
 // t-StatusProhibit ARQ-状态报告定时器(防止频繁上报):
 //    状态报告触发后，如果t-StatusProhibit 定时器没有运行，则在新传时（MAC 指示的），将构建的STATUS PDU递交底层，同时开启定时器；
 //    状态报告触发后，如果t-StatusProhibit 定时器在运行，状态报告是不能发送的。需要等到定时器超时后，在第一个传输机会到来时，将构建的STATUS PDU递交给底层，同时开启定时器；
@@ -501,6 +706,21 @@ static void empty_queue(rlc_am_base_tx *base_tx)
 bool do_status(rlc_am_base_rx *base_rx)
 {
   return base_rx->do_status && !base_rx->rx->status_prohibit_timer.running;
+}
+
+static byte_buffer_t* tx_sdu_queue_read(rlc_am_base_tx *base_tx)
+{
+	rlc_am_base_tx_sdu_t *node = oset_list_first(&base_tx->tx_sdu_queue);
+	if(node){
+		byte_buffer_t *sdu = node->buffer;
+		oset_list_remove(&base_tx->tx_sdu_queue, node);
+		oset_free(node);
+		oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
+		base_tx->unread_bytes -= sdu->N_bytes;
+		oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
+		return sdu;
+	}
+	return NULL;
 }
 
 static void rlc_am_base_tx_discard_sdu(rlc_am_base_tx *base_tx, uint32_t discard_sn)
@@ -513,6 +733,7 @@ static void rlc_am_base_tx_discard_sdu(rlc_am_base_tx *base_tx, uint32_t discard
 	  if (node != NULL && node->buffer->md.pdcp_sn == discard_sn) {
 		  byte_buffer_t *sdu = node->buffer;
 		  oset_list_remove(&base_tx->tx_sdu_queue, node);
+	  	  oset_free(node);
 		  oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
 		  base_tx->unread_bytes -= sdu->N_bytes;
 		  oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
@@ -574,9 +795,10 @@ static uint32_t rlc_am_base_tx_build_status_pdu(rlc_am_base_tx *base_tx, byte_bu
  */
 static uint32_t rlc_am_base_tx_build_new_pdu(rlc_am_base_tx *base_tx, uint8_t *payload, uint32_t nof_bytes)
 {
-	rlc_am_nr_tx *tx = base_tx->tx;
-	rlc_am_nr_rx *rx = base_tx->rx;
-	rlc_am_base *base = base_tx->base;
+  rlc_am_nr_tx *tx = base_tx->tx;
+  rlc_am_nr_rx *rx = base_tx->rx;
+  rlc_am_base *base = base_tx->base;
+  uint32_t ret = 0;
 
   if (nof_bytes <= tx->min_hdr_size) {
     RlcInfo("Not enough bytes for payload plus header. nof_bytes=%d", nof_bytes);
@@ -590,14 +812,14 @@ static uint32_t rlc_am_base_tx_build_new_pdu(rlc_am_base_tx *base_tx, uint8_t *p
   }
 
   // Read new SDU from TX queue
-  unique_byte_buffer_t tx_sdu;
-  RlcDebug("Reading from RLC SDU queue. Queue size %d", tx_sdu_queue.size());
+  byte_buffer_t *tx_sdu = NULL;
+  RlcDebug("Reading from RLC SDU queue. Queue size %d", oset_list_count(&base_tx->tx_sdu_queue);
   do {
-    tx_sdu = tx_sdu_queue.read();
-  } while (tx_sdu == nullptr && tx_sdu_queue.size() != 0);
+    tx_sdu = tx_sdu_queue_read(&base_tx->tx_sdu_queue);
+  } while (tx_sdu == NULL && !oset_list_empty(&base_tx->tx_sdu_queue));
 
-  if (tx_sdu != nullptr) {
-    RlcDebug("Read RLC SDU - RLC_SN=%d, PDCP_SN=%d, %d bytes", st.tx_next, tx_sdu->md.pdcp_sn, tx_sdu->N_bytes);
+  if (tx_sdu != NULL) {
+    RlcDebug("Read RLC SDU - RLC_SN=%d, PDCP_SN=%d, %d bytes", tx->st.tx_next, tx_sdu->md.pdcp_sn, tx_sdu->N_bytes);
   } else {
     RlcDebug("No SDUs left in the tx queue.");
     return 0;
@@ -605,47 +827,56 @@ static uint32_t rlc_am_base_tx_build_new_pdu(rlc_am_base_tx *base_tx, uint8_t *p
 
   // insert newly assigned SN into window and use reference for in-place operations
   // NOTE: from now on, we can't return from this function anymore before increasing tx_next
-  rlc_amd_tx_pdu_nr& tx_pdu = tx_window->add_pdu(st.tx_next);
-  tx_pdu.pdcp_sn            = tx_sdu->md.pdcp_sn;
-  tx_pdu.sdu_buf            = srsran::make_byte_buffer();
-  if (tx_pdu.sdu_buf == nullptr) {
-    RlcError("Couldn't allocate PDU in %s().", __FUNCTION__);
-    return 0;
+  rlc_amd_tx_pdu_nr *tx_pdu = tx_window_has_sn(tx, tx->st.tx_next);
+  if(NULL == tx_pdu){
+	  tx_pdu = oset_malloc(rlc_amd_tx_pdu_nr);
+	  oset_assert(tx_pdu);
+	  oset_hash_set(rx->rx_window, &tx->st.tx_next, sizeof(tx->st.tx_next), NULL);
+	  oset_hash_set(rx->rx_window, &tx->st.tx_next, sizeof(tx->st.tx_next), tx_pdu);
+  }else{
+	  RlcWarning("The same SN=%zd should not be added twice", tx->st.tx_next);
   }
 
+  tx_pdu->pdcp_sn = tx_sdu->md.pdcp_sn;
+  tx_pdu->sdu_buf = byte_buffer_init();
+  oset_assert(tx_pdu->sdu_buf);
+
   // Copy SDU into TX window SDU info
-  memcpy(tx_pdu.sdu_buf->msg, tx_sdu->msg, tx_sdu->N_bytes);
-  tx_pdu.sdu_buf->N_bytes = tx_sdu->N_bytes;
+  memcpy(tx_pdu->sdu_buf->msg, tx_sdu->msg, tx_sdu->N_bytes);
+  tx_pdu->sdu_buf->N_bytes = tx_sdu->N_bytes;
 
   // Segment new SDU if necessary
-  if (tx_sdu->N_bytes + min_hdr_size > nof_bytes) {
+  if (tx_sdu->N_bytes + tx->min_hdr_size > nof_bytes) {
     RlcInfo("trying to build PDU segment from SDU.");
     return build_new_sdu_segment(tx_pdu, payload, nof_bytes);
   }
 
   // Prepare header
-  rlc_am_nr_pdu_header_t hdr = {};
+  rlc_am_nr_pdu_header_t hdr = {0};
   hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
-  hdr.p                      = get_pdu_poll(st.tx_next, false, tx_sdu->N_bytes);
-  hdr.si                     = rlc_nr_si_field_t::full_sdu;
-  hdr.sn_size                = cfg.tx_sn_field_length;
-  hdr.sn                     = st.tx_next;
-  tx_pdu.header              = hdr;
-  log_rlc_am_nr_pdu_header_to_string(logger.info, hdr, rb_name);
+  hdr.p                      = get_pdu_poll(base_tx, tx->st.tx_next, false, tx_sdu->N_bytes);
+  hdr.si                     = (rlc_nr_si_field_t)full_sdu;
+  hdr.sn_size                = base_tx->cfg.tx_sn_field_length;
+  hdr.sn                     = tx->st.tx_next;
+  tx_pdu->header             = hdr;
+  log_rlc_am_nr_pdu_header_to_string(hdr, base_tx->rb_name);
 
   // Write header
-  uint32_t len = rlc_am_nr_write_data_pdu_header(hdr, tx_sdu.get());
+  uint32_t len = rlc_am_nr_write_data_pdu_header(hdr, tx_sdu);
   if (len > nof_bytes) {
     RlcError("error writing AMD PDU header");
   }
 
   // Update TX Next
-  st.tx_next = (st.tx_next + 1) % mod_nr;
+  tx->st.tx_next = (tx->st.tx_next + 1) % tx->mod_nr;
 
   memcpy(payload, tx_sdu->msg, tx_sdu->N_bytes);
   RlcDebug("wrote RLC PDU - %d bytes", tx_sdu->N_bytes);
 
-  return tx_sdu->N_bytes;
+  ret = tx_sdu->N_bytes;
+  oset_free(tx_sdu);
+
+  return ret;
 }
 
 

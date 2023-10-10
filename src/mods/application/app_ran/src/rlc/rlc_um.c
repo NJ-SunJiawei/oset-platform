@@ -433,6 +433,7 @@ static byte_buffer_t* tx_sdu_queue_read(rlc_um_base_tx *base_tx)
 	if(node){
 		byte_buffer_t *sdu = node->buffer;
 		oset_list_remove(&base_tx->tx_sdu_queue, node);
+		oset_free(node);
 		oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
 		base_tx->unread_bytes -= sdu->N_bytes;
 		oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
@@ -443,6 +444,8 @@ static byte_buffer_t* tx_sdu_queue_read(rlc_um_base_tx *base_tx)
 
 static uint32_t build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_t *payload, uint32_t nof_bytes)
 {
+  uint32_t ret = 0;
+
   // Sanity check (we need at least 2Byte for a SDU)
   if (nof_bytes < 2) {
     RlcWarning("Cannot build a PDU with %d byte.", nof_bytes);
@@ -552,7 +555,7 @@ static uint32_t build_dl_data_pdu(rlc_um_base_tx *base_tx, uint8_t *payload, uin
   // Add header and TX
   rlc_um_nr_write_data_pdu_header(&header, pdu);
   memcpy(payload, pdu->msg, pdu->N_bytes);
-  uint32_t ret = pdu->N_bytes;
+  ret = pdu->N_bytes;
   oset_free(pdu);
   // Assert number of bytes
   ASSERT_IF_NOT(ret <= nof_bytes, "Error while packing MAC PDU (more bytes written (%d) than expected (%d)!", ret, nof_bytes);
@@ -577,7 +580,8 @@ static void empty_queue(rlc_um_base_tx *base_tx)
 	rlc_um_base_tx_sdu_t *next_node, *node = NULL;
 	oset_list_for_each_safe(&base_tx->tx_sdu_queue, next_node, node){
 			byte_buffer_t *sdu = node->buffer;
-			oset_list_remove(&base_tx->tx_sdu_queue, node);
+			oset_list_remove(&base_tx->tx_sdu_queue, node);
+			oset_free(node);
 			oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
 			base_tx->unread_bytes -= sdu->N_bytes;
 			oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
@@ -605,6 +609,7 @@ static uint32_t rlc_um_base_tx_discard_sdu(rlc_um_base_tx *base_tx, uint32_t dis
 		if (node != NULL && node->buffer->md.pdcp_sn == discard_sn) {
 			byte_buffer_t *sdu = node->buffer;
 			oset_list_remove(&base_tx->tx_sdu_queue, node);
+			oset_free(node);
 			oset_thread_mutex_lock(&base_tx->unread_bytes_mutex);
 			base_tx->unread_bytes -= sdu->N_bytes;
 			oset_thread_mutex_unlock(&base_tx->unread_bytes_mutex);
