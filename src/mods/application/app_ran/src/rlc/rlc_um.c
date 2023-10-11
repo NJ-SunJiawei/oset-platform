@@ -307,7 +307,7 @@ static void handle_rx_buffer_update(rlc_um_base_rx *base_rx, uint16_t sn, rlc_um
           }
 
           // add this segment to the end of the SDU buffer
-          memcpy(pdu->sdu->msg + pdu.sdu->N_bytes, it->buf->msg, it->buf->N_bytes);
+          memcpy(pdu->sdu->msg + pdu->sdu->N_bytes, it->buf->msg, it->buf->N_bytes);
           pdu->sdu->N_bytes += it->buf->N_bytes;
           pdu->next_expected_so += it->buf->N_bytes;
           RlcDebug("Appended SO=%d of SN=%d", it->header.so, it->header.sn);

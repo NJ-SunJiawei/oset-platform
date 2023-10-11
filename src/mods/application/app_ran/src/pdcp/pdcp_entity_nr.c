@@ -219,16 +219,16 @@ void pdcp_entity_nr_stop(pdcp_entity_nr *pdcp_nr)
 // 关于PUSH window:接收窗口只能依赖于接收窗口下边界状态变量(RX_DELIV)更新才能移动
 // 所有状态变量基于COUNT值，并且在接收机制中不考虑COUNT值的wrap around问题。网络侧保证防止wrap around（如采用DRB addition/release）；
 
-//接收处理流程:
-//10）从下层收到一帧DATA PDU，PDCP实体首先计算COUNT值，也就是RCVD_COUNT，方法是：RCVD_SN可以从PDU中取出，所以需要计算出对应的RCVD_HFN，然后拼接计算出RCVD_COUNT
-//20）计算出COUNT值，用该值计算数字签名和解密，如果失败，则丢弃本PDU，转100
-//30）如果该PDU以前收到过，或者RCVD_COUNT < RX_DELIV，则丢弃本PDU，转100
-//40）进入接收缓存(接收窗口)，如果RCVD_COUNT是接收窗口中的最高值，则更新RX_NEXT=RCVD_COUNT+1
-//50）如果配置了非按序递交，则直接把SDU递交到上层，转100
-//60）如果RCVD_COUNT==RX_DELIV，则递交本SDU到上层，然后从COUNT = RX_DELIV开始，按升序递交接收窗口中缓存的全部序号连续的SDU到上层，完成后更新RX_DELIV为第一个还未递交的且大于 RX_DELIV的PDCP SDU的COUNT值
-//70）向上递交过程结束后，如果t-Reordering正在运行，并且最后递交的COUNT值(RX_DELIV)大于等于排序定时器绑定的COUNT值(RX_REORD)，则停止定时器
-//80）如果t-Reordering没有运行，并且RX_DELIV和RX_NEXT之间有COUNT空洞，则对RX_NEXT启动排序定时器，设置RX_REORD = RX_NEXT
-//100）流程结束。
+// 接收处理流程:
+// 10）从下层收到一帧DATA PDU，PDCP实体首先计算COUNT值，也就是RCVD_COUNT，方法是：RCVD_SN可以从PDU中取出，所以需要计算出对应的RCVD_HFN，然后拼接计算出RCVD_COUNT
+// 20）计算出COUNT值，用该值计算数字签名和解密，如果失败，则丢弃本PDU，转100
+// 30）如果该PDU以前收到过，或者RCVD_COUNT < RX_DELIV，则丢弃本PDU，转100
+// 40）进入接收缓存(接收窗口)，如果RCVD_COUNT是接收窗口中的最高值，则更新RX_NEXT=RCVD_COUNT+1
+// 50）如果配置了非按序递交，则直接把SDU递交到上层，转100
+// 60）如果RCVD_COUNT==RX_DELIV，则递交本SDU到上层，然后从COUNT = RX_DELIV开始，按升序递交接收窗口中缓存的全部序号连续的SDU到上层，完成后更新RX_DELIV为第一个还未递交的且大于 RX_DELIV的PDCP SDU的COUNT值
+// 70）向上递交过程结束后，如果t-Reordering正在运行，并且最后递交的COUNT值(RX_DELIV)大于等于排序定时器绑定的COUNT值(RX_REORD)，则停止定时器
+// 80）如果t-Reordering没有运行，并且RX_DELIV和RX_NEXT之间有COUNT空洞，则对RX_NEXT启动排序定时器，设置RX_REORD = RX_NEXT
+// 100）流程结束。
 
 void pdcp_entity_nr_write_ul_pdu(pdcp_entity_nr *pdcp_nr, byte_buffer_t *pdu)
 {

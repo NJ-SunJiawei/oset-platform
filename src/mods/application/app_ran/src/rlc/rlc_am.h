@@ -145,9 +145,9 @@ typedef struct {
 	uint32_t               rlc_sn;
 	uint32_t               pdcp_sn;
 	rlc_am_nr_pdu_header_t header;
-	byte_buffer_t          *sdu_buf;
+	byte_buffer_t          *sdu_buf;//缓存dl_sdu
 	uint32_t               retx_count;
-	oset_list_t            segment_list;//pdu_segment
+	oset_list_t            segment_list;//pdu_segment//分片段链表
 }rlc_amd_tx_pdu_nr;
 
 /****************************************************************************
@@ -187,16 +187,16 @@ typedef struct {
 
 typedef struct {
 	oset_lnode_t lnode;
-	uint32_t     sn;         ///< sequence number
-	bool         is_segment; ///< flag whether this is a segment or not
+	uint32_t     sn;         ///< sequence number//原始sn号
+	bool         is_segment; ///< flag whether this is a segment or not //原始包是否分片
 	uint32_t     so_start;   ///< offset to first byte of this segment
 	// so_end or segment_length are different for LTE and NR, hence are defined in subclasses
 	uint32_t     current_so; ///< stores progressing SO during segmentation of this object
 }rlc_amd_retx_base_t;
 
 typedef struct {
-	rlc_amd_retx_base_t  retx_base;
-	uint32_t             segment_length; ///< number of bytes contained in this segment
+	rlc_amd_retx_base_t  base;
+	uint32_t             segment_length; ///< number of bytes contained in this segment//分片段的长度
 }rlc_amd_retx_nr_t;
 
 typedef struct rlc_am_nr_tx_s{
@@ -208,10 +208,10 @@ typedef struct rlc_am_nr_tx_s{
    ***************************************************************************/
   rlc_am_nr_tx_state_t   st;
 
-  oset_hash_t      *tx_window;//rlc_amd_tx_pdu_nr//记录新传和重传
+  oset_hash_t      *tx_window;//rlc_amd_tx_pdu_nr//缓存信息为重传准备
   // Queues, buffers and container
   oset_list_t      retx_queue;//rlc_amd_retx_nr_t
-  uint32_t         sdu_under_segmentation_sn; //= INVALID_RLC_SN // SN of the SDU currently being segmented.// 当前正在分段处理的sn
+  uint32_t         sdu_under_segmentation_sn; // SN of the SDU currently being segmented.// 当前正在分段处理的sn
   pdcp_sn_vector_t notify_info_vec;
 
   uint32_t		  mod_nr;
