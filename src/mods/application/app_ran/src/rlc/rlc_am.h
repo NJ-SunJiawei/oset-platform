@@ -172,6 +172,10 @@ typedef struct {
    * POLL_SN: This state variable holds the value of the highest SN of the AMD PDU among the AMD PDUs submitted to
    * lower layer when POLL_SN is set according to sub clause 5.3.3.2. It is initially set to 0.
    */
+   // 1、如果发送方发送了一个包含poll的AMD PDU，将POLL_SN设置为发送给低层的所有AMD PDUs中最高的SN，并且启动或重启t-PollRetransmit
+   // 2、如果发送方接收到接收方回应的状态报告中包含了等于POLL_SN的ack或nack，则停止t-PollRetransmit
+   // 1、POLL_SN不一定指示的是携带有poll的AMD PDU的SN
+   // 2、t-PollRetransmit定时器超时后触发的poll，设置的POLL_SN可以与之前设置的值不同
   uint32_t poll_sn;
   /*
    * PDU_WITHOUT_POLL: This counter is initially set to 0. It counts the number of AMD PDUs sent since the most recent
